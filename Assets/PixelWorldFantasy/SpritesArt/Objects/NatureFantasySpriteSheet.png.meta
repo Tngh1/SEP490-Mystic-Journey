@@ -1,0 +1,2620 @@
+fileFormatVersion: 2
+guid: 256446c3b0b6fe84697f30a4d2c7ac1a
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 3
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: iPhone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_0
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 956
+        width: 23
+        height: 49
+      alignment: 9
+      pivot: {x: 0.43478262, y: 0.08163265}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6338fe204dd949342aae9bc5b8fbadd2
+      internalID: -656743093
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_1
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 865
+        width: 86
+        height: 143
+      alignment: 9
+      pivot: {x: 0.55813956, y: 0.04195804}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ac20aa4e7fa0a064ea06f803a90212a7
+      internalID: -523556471
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_2
+      rect:
+        serializedVersion: 2
+        x: 121
+        y: 864
+        width: 65
+        height: 157
+      alignment: 9
+      pivot: {x: 0.5846154, y: 0.03821656}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a7f4ce072782ed74289d9017d17b531b
+      internalID: -338607673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_3
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 898
+        width: 78
+        height: 118
+      alignment: 9
+      pivot: {x: 0.5, y: 0.076271184}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fafcdf65eacf778449cb9eab243d824a
+      internalID: -1092175973
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_4
+      rect:
+        serializedVersion: 2
+        x: 657
+        y: 764
+        width: 169
+        height: 248
+      alignment: 9
+      pivot: {x: 0.5147929, y: 0.044354837}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fc32056dbffff484ebb8668da88f55eb
+      internalID: -210812316
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_5
+      rect:
+        serializedVersion: 2
+        x: 833
+        y: 916
+        width: 101
+        height: 84
+      alignment: 9
+      pivot: {x: 0.50495046, y: 0.083333336}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ddb1bf616a53b684980bdb92c86b2205
+      internalID: 1431646
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_6
+      rect:
+        serializedVersion: 2
+        x: 937
+        y: 974
+        width: 52
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5192308, y: 0.18421052}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 07f8103661e9f3243bab4c46f6cd4262
+      internalID: 1240679382
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_7
+      rect:
+        serializedVersion: 2
+        x: 996
+        y: 987
+        width: 17
+        height: 14
+      alignment: 9
+      pivot: {x: 0.5294118, y: 0.21428573}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f920b71011d8cd545a181ce619b23424
+      internalID: -343940318
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_8
+      rect:
+        serializedVersion: 2
+        x: 1028
+        y: 993
+        width: 14
+        height: 12
+      alignment: 9
+      pivot: {x: 0.5, y: 0.16666667}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5a023c55d6a78cb40855a09550b6afa4
+      internalID: -2006433815
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_9
+      rect:
+        serializedVersion: 2
+        x: 1048
+        y: 971
+        width: 34
+        height: 35
+      alignment: 9
+      pivot: {x: 0.5, y: 0.17142858}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 99f9e87867673eb4a9b22663d1ae3e61
+      internalID: -1717476684
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_10
+      rect:
+        serializedVersion: 2
+        x: 283
+        y: 779
+        width: 133
+        height: 203
+      alignment: 9
+      pivot: {x: 0.5338346, y: 0.06403941}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6979d7aa304972e4db96d409761ae29c
+      internalID: 116329363
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_11
+      rect:
+        serializedVersion: 2
+        x: 437
+        y: 782
+        width: 204
+        height: 200
+      alignment: 9
+      pivot: {x: 0.48529413, y: 0.07}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: def291ce026a978409f0bffcfa97ac12
+      internalID: 872224494
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_12
+      rect:
+        serializedVersion: 2
+        x: 1018
+        y: 972
+        width: 21
+        height: 14
+      alignment: 9
+      pivot: {x: 0.47619048, y: 0.21428573}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 230ec2aa8db32fd45be10a0f2807c5b5
+      internalID: 528215313
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_13
+      rect:
+        serializedVersion: 2
+        x: 935
+        y: 916
+        width: 112
+        height: 52
+      alignment: 9
+      pivot: {x: 0.5, y: 0.13461539}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e356c8bc4a1492a4cb1f524623e74b6c
+      internalID: -1108759332
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_14
+      rect:
+        serializedVersion: 2
+        x: 1054
+        y: 950
+        width: 15
+        height: 12
+      alignment: 9
+      pivot: {x: 0.53333336, y: 0.25}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 82a73a63fde8b5648b83878e2f60cde3
+      internalID: -639872827
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_15
+      rect:
+        serializedVersion: 2
+        x: 1072
+        y: 949
+        width: 13
+        height: 20
+      alignment: 9
+      pivot: {x: 0.4615385, y: 0.15}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ae31f88445e2afd42be4b724d848f17e
+      internalID: 235672721
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_16
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 865
+        width: 31
+        height: 68
+      alignment: 9
+      pivot: {x: 0.58064514, y: 0.0882353}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e13762d8a6eec434f8399089c1ad83d5
+      internalID: -1730449589
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_17
+      rect:
+        serializedVersion: 2
+        x: 1055
+        y: 923
+        width: 29
+        height: 22
+      alignment: 9
+      pivot: {x: 0.51724136, y: 0.18181819}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d15149d2f837aa34e91cc67bac0ef359
+      internalID: 1836973354
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_18
+      rect:
+        serializedVersion: 2
+        x: 12
+        y: 849
+        width: 11
+        height: 10
+      alignment: 9
+      pivot: {x: 0.54545456, y: 0.2}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bfcb35e75fb2a7d4b9a6743a8019c1e2
+      internalID: -226456435
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_19
+      rect:
+        serializedVersion: 2
+        x: 31
+        y: 849
+        width: 9
+        height: 11
+      alignment: 9
+      pivot: {x: 0.5394876, y: 0.23690519}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7f6f97ce2216602468bd2e1851315d1f
+      internalID: 1512332898
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_20
+      rect:
+        serializedVersion: 2
+        x: 71
+        y: 831
+        width: 20
+        height: 23
+      alignment: 9
+      pivot: {x: 0.5, y: 0.21739131}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 46e8e5a8cf4230f4bb0a32ca78fdc16e
+      internalID: 728405456
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_21
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 830
+        width: 20
+        height: 24
+      alignment: 9
+      pivot: {x: 0.5, y: 0.20833334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 962b6667663ba334fad68226b8be73a1
+      internalID: -1964000173
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_22
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 751
+        width: 78
+        height: 138
+      alignment: 9
+      pivot: {x: 0.4871795, y: 0.072463766}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3551cb3dcf66dfd48a8045f401348964
+      internalID: 2113155627
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_23
+      rect:
+        serializedVersion: 2
+        x: 833
+        y: 806
+        width: 191
+        height: 102
+      alignment: 9
+      pivot: {x: 0.50261784, y: 0.10784314}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 13ba053362a93b84683b6d1fbfff2e3a
+      internalID: 485153086
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_24
+      rect:
+        serializedVersion: 2
+        x: 1031
+        y: 807
+        width: 43
+        height: 93
+      alignment: 9
+      pivot: {x: 0.4883721, y: 0.05376344}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 109c406c3e548d74e996c8ab91a3d60c
+      internalID: -230756751
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_25
+      rect:
+        serializedVersion: 2
+        x: 11
+        y: 797
+        width: 53
+        height: 50
+      alignment: 9
+      pivot: {x: 0.509434, y: 0.14}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 410583592d2ad864ca802e784531b6c6
+      internalID: 122318750
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_26
+      rect:
+        serializedVersion: 2
+        x: 71
+        y: 801
+        width: 19
+        height: 19
+      alignment: 9
+      pivot: {x: 0.5263158, y: 0.21052632}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 11c5e23f463e4a246a597e91dd7fc272
+      internalID: 879205818
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_27
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 799
+        width: 19
+        height: 24
+      alignment: 9
+      pivot: {x: 0.5263158, y: 0.20833334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9b92a6acf0ee70349967501199fc5751
+      internalID: -56377306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_28
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 539
+        width: 170
+        height: 250
+      alignment: 9
+      pivot: {x: 0.5411765, y: 0.064}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 85303733e73425d419a5c2903739c8ad
+      internalID: -854278240
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_29
+      rect:
+        serializedVersion: 2
+        x: 327
+        y: 735
+        width: 42
+        height: 30
+      alignment: 9
+      pivot: {x: 0.5, y: 0.26666668}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df2f57a0f4ee2414b854518c3da233b2
+      internalID: 819526850
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_30
+      rect:
+        serializedVersion: 2
+        x: 402
+        y: 733
+        width: 51
+        height: 34
+      alignment: 9
+      pivot: {x: 0.47058827, y: 0.32352942}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7920dc86cdacaaf42885c420aa647e87
+      internalID: -1017160737
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_31
+      rect:
+        serializedVersion: 2
+        x: 511
+        y: 533
+        width: 155
+        height: 215
+      alignment: 9
+      pivot: {x: 0.5032258, y: 0.07906976}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1b6036831b46bed4ea58a287a95fae11
+      internalID: -1977705008
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_32
+      rect:
+        serializedVersion: 2
+        x: 698
+        y: 533
+        width: 135
+        height: 204
+      alignment: 9
+      pivot: {x: 0.52592593, y: 0.058823533}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d9d424c3422a08d44bbb834993e54a80
+      internalID: -570516080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_33
+      rect:
+        serializedVersion: 2
+        x: 854
+        y: 645
+        width: 229
+        height: 151
+      alignment: 9
+      pivot: {x: 0.50218344, y: 0.37086093}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ea7cec53979bf0346813f5f03fc664c2
+      internalID: -1974996782
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_34
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 539
+        width: 147
+        height: 185
+      alignment: 9
+      pivot: {x: 0.48979592, y: 0.059459463}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3c817c2289c09aa4180bc73a58c0a59f
+      internalID: -969622321
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_35
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 540
+        width: 154
+        height: 184
+      alignment: 9
+      pivot: {x: 0.512987, y: 0.07608696}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9627dda1819957443afa55893cffd152
+      internalID: -917209087
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_36
+      rect:
+        serializedVersion: 2
+        x: 891
+        y: 580
+        width: 39
+        height: 51
+      alignment: 9
+      pivot: {x: 0.5091005, y: 0.15312046}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 409878d985ee48f49a35bb301e67cfac
+      internalID: 1816842160
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_37
+      rect:
+        serializedVersion: 2
+        x: 932
+        y: 580
+        width: 57
+        height: 61
+      alignment: 9
+      pivot: {x: 0.49122807, y: 0.14754097}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a8461bfd5180b840a9a6b290aedaed6
+      internalID: 1876942699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_38
+      rect:
+        serializedVersion: 2
+        x: 1069
+        y: 489
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f26a246c1edcb2342b36164f458d9042
+      internalID: -197891620
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_41
+      rect:
+        serializedVersion: 2
+        x: 1049
+        y: 597
+        width: 32
+        height: 31
+      alignment: 9
+      pivot: {x: 0.5, y: 0.41935483}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d66af55478b01c040acc0be2b23471dd
+      internalID: -438640715
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_43
+      rect:
+        serializedVersion: 2
+        x: 852
+        y: 580
+        width: 36
+        height: 37
+      alignment: 9
+      pivot: {x: 0.5098572, y: 0.21105792}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: acc41a25a3a42e94d91040abb1e8d676
+      internalID: -1460870054
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_48
+      rect:
+        serializedVersion: 2
+        x: 1000
+        y: 587
+        width: 36
+        height: 43
+      alignment: 9
+      pivot: {x: 0.4999983, y: 0.54482394}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cda4773148872bd49b632fac9564ebb5
+      internalID: -502206812
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_56
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 563
+        width: 37
+        height: 25
+      alignment: 9
+      pivot: {x: 0.5135135, y: 0.39999998}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7a2bdf49c80d1e3479b4bf62dce2dbdd
+      internalID: -441737055
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_59
+      rect:
+        serializedVersion: 2
+        x: 932
+        y: 514
+        width: 57
+        height: 61
+      alignment: 9
+      pivot: {x: 0.50877196, y: 0.14754097}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6def5917b7c0dc3449aa11fcacfef333
+      internalID: -1326919493
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_66
+      rect:
+        serializedVersion: 2
+        x: 891
+        y: 514
+        width: 39
+        height: 51
+      alignment: 9
+      pivot: {x: 0.4871795, y: 0.13725491}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: be9fe3d7000a2d04fbd8d855a0cc2e17
+      internalID: 1441008102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_69
+      rect:
+        serializedVersion: 2
+        x: 1051
+        y: 536
+        width: 35
+        height: 23
+      alignment: 9
+      pivot: {x: 0.54285717, y: 0.47826087}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6112b20e6c67c474fb6dba9f4c7bdb2e
+      internalID: 1240250591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_71
+      rect:
+        serializedVersion: 2
+        x: 852
+        y: 514
+        width: 36
+        height: 36
+      alignment: 9
+      pivot: {x: 0.51971775, y: 0.20706007}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0eb324301ed629046bb6d2fbf239aad8
+      internalID: 1401957072
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_72
+      rect:
+        serializedVersion: 2
+        x: 998
+        y: 543
+        width: 49
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5102041, y: 0.34210527}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2c058122bf35e9d4fa589d5d4ce3d6ee
+      internalID: 210714206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_80
+      rect:
+        serializedVersion: 2
+        x: 70
+        y: 492
+        width: 39
+        height: 40
+      alignment: 9
+      pivot: {x: 0.51282054, y: 0.3}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 131e387c686a1a246bd53af6a13dacfb
+      internalID: 1595179503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_81
+      rect:
+        serializedVersion: 2
+        x: 240
+        y: 492
+        width: 43
+        height: 36
+      alignment: 9
+      pivot: {x: 0.4883721, y: 0.25}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e19990728b06b1e4c8351ba7796d89f1
+      internalID: 725380405
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_82
+      rect:
+        serializedVersion: 2
+        x: 406
+        y: 492
+        width: 42
+        height: 34
+      alignment: 9
+      pivot: {x: 0.5, y: 0.29411766}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 899afcc70589465438b06dc418b2e3b0
+      internalID: 1255035854
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_83
+      rect:
+        serializedVersion: 2
+        x: 530
+        y: 263
+        width: 170
+        height: 250
+      alignment: 9
+      pivot: {x: 0.5352941, y: 0.09200001}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 24826b054bbeff4458533acd9256dd2f
+      internalID: 1870552030
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_84
+      rect:
+        serializedVersion: 2
+        x: 730
+        y: 404
+        width: 77
+        height: 118
+      alignment: 9
+      pivot: {x: 0.5064935, y: 0.084745765}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fbab43d6fd9d9044fbb38ee501c999d8
+      internalID: -1075046665
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_85
+      rect:
+        serializedVersion: 2
+        x: 891
+        y: 451
+        width: 39
+        height: 50
+      alignment: 9
+      pivot: {x: 0.4871795, y: 0.099999994}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 03e753e20b3ae9546844b875f6bb07c4
+      internalID: 134331361
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_86
+      rect:
+        serializedVersion: 2
+        x: 932
+        y: 448
+        width: 57
+        height: 61
+      alignment: 9
+      pivot: {x: 0.5263158, y: 0.114754096}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 56cd599de73d59d42bc5a64efb1dc4ad
+      internalID: 548371410
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_87
+      rect:
+        serializedVersion: 2
+        x: 999
+        y: 488
+        width: 10
+        height: 18
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0b08c3cf161da9849907af5de9df0384
+      internalID: -318251030
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_88
+      rect:
+        serializedVersion: 2
+        x: 1014
+        y: 488
+        width: 10
+        height: 12
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8ced29dad77b5f448a8f824ba1bda44b
+      internalID: -110131521
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_89
+      rect:
+        serializedVersion: 2
+        x: 1030
+        y: 491
+        width: 20
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6f9aee45e83623648a0bfd735d9b4ae6
+      internalID: 1454195053
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_90
+      rect:
+        serializedVersion: 2
+        x: 1052
+        y: 489
+        width: 16
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bc08837875b0330469da83fe8012c0ff
+      internalID: 221309278
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_91
+      rect:
+        serializedVersion: 2
+        x: 12
+        y: 260
+        width: 155
+        height: 225
+      alignment: 9
+      pivot: {x: 0.5419355, y: 0.08888889}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 909f76f3eec16574d8a4a93607ed098a
+      internalID: -643928486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_92
+      rect:
+        serializedVersion: 2
+        x: 198
+        y: 260
+        width: 133
+        height: 204
+      alignment: 9
+      pivot: {x: 0.5338346, y: 0.09313726}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7e7f98d99db6ae646b7d68ae3c2d2370
+      internalID: -333437537
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_93
+      rect:
+        serializedVersion: 2
+        x: 852
+        y: 451
+        width: 36
+        height: 37
+      alignment: 9
+      pivot: {x: 0.5, y: 0.13513514}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a8ac5118439d50845bd30eae6ac08d85
+      internalID: 1092126377
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_94
+      rect:
+        serializedVersion: 2
+        x: 993
+        y: 454
+        width: 13
+        height: 14
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a3f3d81143d997488fc45e6963dec62
+      internalID: -1158115706
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_95
+      rect:
+        serializedVersion: 2
+        x: 1008
+        y: 453
+        width: 18
+        height: 22
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 03562b4cecd7a494d8c04a41b96e8847
+      internalID: 1032555572
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_96
+      rect:
+        serializedVersion: 2
+        x: 1026
+        y: 454
+        width: 32
+        height: 33
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 19b1a1b28145e8344a1f3dad3ec50053
+      internalID: -1131312510
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_97
+      rect:
+        serializedVersion: 2
+        x: 1059
+        y: 454
+        width: 25
+        height: 27
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 35be788895eeed94f81f4e21ef379a10
+      internalID: -654949445
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_98
+      rect:
+        serializedVersion: 2
+        x: 358
+        y: 263
+        width: 155
+        height: 185
+      alignment: 9
+      pivot: {x: 0.516129, y: 0.118918926}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 68aa8f210b94937468cd9b8aa5cf7f1c
+      internalID: -2027451846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_99
+      rect:
+        serializedVersion: 2
+        x: 733
+        y: 260
+        width: 78
+        height: 137
+      alignment: 9
+      pivot: {x: 0.4871795, y: 0.05839416}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 934f310fe523cf643ad7da460d8a4169
+      internalID: 1558444540
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_100
+      rect:
+        serializedVersion: 2
+        x: 852
+        y: 380
+        width: 44
+        height: 44
+      alignment: 9
+      pivot: {x: 0.47727275, y: 0.1590909}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 112be29846caca941a566f26c0a102ba
+      internalID: -1077572872
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_101
+      rect:
+        serializedVersion: 2
+        x: 900
+        y: 387
+        width: 40
+        height: 61
+      alignment: 9
+      pivot: {x: 0.575, y: 0.114754096}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a79ad3b9a324b034195323e8d6b30d65
+      internalID: -1382978488
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_102
+      rect:
+        serializedVersion: 2
+        x: 949
+        y: 389
+        width: 28
+        height: 36
+      alignment: 9
+      pivot: {x: 0.5714286, y: 0.16666667}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 70c70d2430e57904e9dae995135b59ed
+      internalID: -1451374561
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_103
+      rect:
+        serializedVersion: 2
+        x: 984
+        y: 390
+        width: 38
+        height: 40
+      alignment: 9
+      pivot: {x: 0.5, y: 0.15}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9a1f8d51b85b86948bfab58d2721b78a
+      internalID: -64044844
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_104
+      rect:
+        serializedVersion: 2
+        x: 1031
+        y: 392
+        width: 53
+        height: 55
+      alignment: 9
+      pivot: {x: 0.4339623, y: 0.18181817}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9707f54d2cf3f1d4eaaddd569cf04564
+      internalID: 1845332568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_105
+      rect:
+        serializedVersion: 2
+        x: 833
+        y: 283
+        width: 101
+        height: 83
+      alignment: 9
+      pivot: {x: 0.4950495, y: 0.13253012}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d6e81178131c7b54ea216bffaaa6387d
+      internalID: 896091732
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_106
+      rect:
+        serializedVersion: 2
+        x: 938
+        y: 342
+        width: 52
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5, y: 0.18421052}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c547e45080c595940acd1ca8c8dbd8ba
+      internalID: 1083695080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_107
+      rect:
+        serializedVersion: 2
+        x: 996
+        y: 355
+        width: 17
+        height: 13
+      alignment: 9
+      pivot: {x: 0.47058824, y: 0.30769232}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 326874bd2cab68e43a126540c61997ae
+      internalID: 1170914838
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_108
+      rect:
+        serializedVersion: 2
+        x: 1028
+        y: 360
+        width: 14
+        height: 12
+      alignment: 9
+      pivot: {x: 0.5, y: 0.33333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 047ebb75b9ab0034980ed2cd017511f1
+      internalID: 439282190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_109
+      rect:
+        serializedVersion: 2
+        x: 1048
+        y: 338
+        width: 34
+        height: 35
+      alignment: 9
+      pivot: {x: 0.5294118, y: 0.2}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c5153fe92a1f2f049a115007ed9f30a9
+      internalID: -1862789171
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_110
+      rect:
+        serializedVersion: 2
+        x: 1018
+        y: 339
+        width: 21
+        height: 14
+      alignment: 9
+      pivot: {x: 0.52380955, y: 0.2857143}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 65522db5a95ef204ea2761d539b43558
+      internalID: -1478847487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_111
+      rect:
+        serializedVersion: 2
+        x: 935
+        y: 283
+        width: 112
+        height: 52
+      alignment: 9
+      pivot: {x: 0.5089286, y: 0.1923077}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 633f7756a40d37f4faed1d065df419fd
+      internalID: -1386951910
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_112
+      rect:
+        serializedVersion: 2
+        x: 1054
+        y: 317
+        width: 15
+        height: 12
+      alignment: 9
+      pivot: {x: 0.53333336, y: 0.33333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 78a9bec5614f6444ebc0e06313b6b618
+      internalID: -633108390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_113
+      rect:
+        serializedVersion: 2
+        x: 1072
+        y: 315
+        width: 13
+        height: 21
+      alignment: 9
+      pivot: {x: 0.53846157, y: 0.1904762}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 49d9018904eb6f1438d7d83145919303
+      internalID: 1616780255
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_114
+      rect:
+        serializedVersion: 2
+        x: 1055
+        y: 290
+        width: 29
+        height: 22
+      alignment: 9
+      pivot: {x: 0.51724136, y: 0.22727273}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b58931e2ef516f2439ebe4721a160882
+      internalID: -309982009
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_115
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 18
+        width: 135
+        height: 204
+      alignment: 9
+      pivot: {x: 0.5407407, y: 0.0882353}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7a411ca501a11254787931f75d12a605
+      internalID: 925944605
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_116
+      rect:
+        serializedVersion: 2
+        x: 176
+        y: 2
+        width: 168
+        height: 250
+      alignment: 9
+      pivot: {x: 0.53571427, y: 0.068}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b7a6c26c90b81ee4eadc6ffb37d80663
+      internalID: 133766691
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_117
+      rect:
+        serializedVersion: 2
+        x: 356
+        y: 191
+        width: 19
+        height: 18
+      alignment: 9
+      pivot: {x: 0.5000016, y: 0.1809455}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0f258d3906087594994250cf3451c93d
+      internalID: 8050486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_118
+      rect:
+        serializedVersion: 2
+        x: 377
+        y: 192
+        width: 19
+        height: 20
+      alignment: 9
+      pivot: {x: 0.48285875, y: 0.146566}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b189f267e04c9134b908cf88c0ce8a2f
+      internalID: -1919427390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_119
+      rect:
+        serializedVersion: 2
+        x: 402
+        y: 199
+        width: 42
+        height: 36
+      alignment: 9
+      pivot: {x: 0.5000007, y: 0.10856756}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 616bd9c25c7da8f4698e5197c814e6c8
+      internalID: -1947809159
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_120
+      rect:
+        serializedVersion: 2
+        x: 452
+        y: 18
+        width: 125
+        height: 206
+      alignment: 9
+      pivot: {x: 0.49600002, y: 0.067961164}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ccf285c713c7a20438b3a28ff06cbe57
+      internalID: 106046221
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_121
+      rect:
+        serializedVersion: 2
+        x: 616
+        y: 187
+        width: 23
+        height: 49
+      alignment: 9
+      pivot: {x: 0.5217391, y: 0.10204081}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7ce7aead11a55d7409084cca809781fa
+      internalID: -818120350
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_122
+      rect:
+        serializedVersion: 2
+        x: 650
+        y: 96
+        width: 85
+        height: 143
+      alignment: 9
+      pivot: {x: 0.5411765, y: 0.06993007}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3c5b3e5b0b94a1644bd1cc873d9f5f60
+      internalID: -706990592
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_123
+      rect:
+        serializedVersion: 2
+        x: 745
+        y: 95
+        width: 64
+        height: 157
+      alignment: 9
+      pivot: {x: 0.5625, y: 0.050955415}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 927b1039615e148429dae90de86b2c5b
+      internalID: 181586239
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_124
+      rect:
+        serializedVersion: 2
+        x: 833
+        y: 173
+        width: 191
+        height: 103
+      alignment: 9
+      pivot: {x: 0.4973822, y: 0.116504855}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c22b5a2aeadecf249ae809d32eeb7a7f
+      internalID: -2138040443
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_125
+      rect:
+        serializedVersion: 2
+        x: 1031
+        y: 174
+        width: 43
+        height: 98
+      alignment: 9
+      pivot: {x: 0.4883721, y: 0.1122449}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4ac8c7f205bb35741993b0b4858d0836
+      internalID: 1992612281
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_126
+      rect:
+        serializedVersion: 2
+        x: 356
+        y: 151
+        width: 39
+        height: 36
+      alignment: 9
+      pivot: {x: 0.49164915, y: 0.19904116}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c85f4859783e0541ba3d3c0017c1fd4
+      internalID: -652395131
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_127
+      rect:
+        serializedVersion: 2
+        x: 403
+        y: 148
+        width: 41
+        height: 38
+      alignment: 9
+      pivot: {x: 0.4920565, y: 0.23142122}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 14e21acded50b2947acb2233548b3903
+      internalID: 1114080981
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_128
+      rect:
+        serializedVersion: 2
+        x: 610
+        y: 96
+        width: 32
+        height: 68
+      alignment: 9
+      pivot: {x: 0.5625, y: 0.10294118}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ded3ca21d1c155a4eb561eda95a177ea
+      internalID: -1594003541
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_129
+      rect:
+        serializedVersion: 2
+        x: 854
+        y: 12
+        width: 229
+        height: 151
+      alignment: 9
+      pivot: {x: 0.49344978, y: 0.3576159}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9e296867160d7174d95f03150ec0ba15
+      internalID: -1326023035
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_130
+      rect:
+        serializedVersion: 2
+        x: 142
+        y: 96
+        width: 18
+        height: 23
+      alignment: 9
+      pivot: {x: 0.5555556, y: 0.17391305}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 916b73dc5b962ad4fb6610e4576e558f
+      internalID: 112386358
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_131
+      rect:
+        serializedVersion: 2
+        x: 354
+        y: 10
+        width: 76
+        height: 119
+      alignment: 9
+      pivot: {x: 0.5, y: 0.067226894}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b4492eee6c78bfc408077ef89b953c1b
+      internalID: 1270882120
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_132
+      rect:
+        serializedVersion: 2
+        x: 135
+        y: 51
+        width: 40
+        height: 44
+      alignment: 9
+      pivot: {x: 0.53658533, y: 0.22727273}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b897d779d7f1e4b4ebc5cc5a0bffc7fe
+      internalID: -661566508
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_133
+      rect:
+        serializedVersion: 2
+        x: 627
+        y: 61
+        width: 9
+        height: 12
+      alignment: 9
+      pivot: {x: 0.5555556, y: 0.25}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7da26b0eb6636d34a906416ce4885b82
+      internalID: -337901668
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_134
+      rect:
+        serializedVersion: 2
+        x: 644
+        y: 61
+        width: 13
+        height: 12
+      alignment: 9
+      pivot: {x: 0.53846157, y: 0.25}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 32569331adb2a0d4e9437a33ff726bab
+      internalID: 509858500
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_135
+      rect:
+        serializedVersion: 2
+        x: 671
+        y: 56
+        width: 21
+        height: 22
+      alignment: 9
+      pivot: {x: 0.52380955, y: 0.27272728}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d3930088cc7ead14a8b819edef231102
+      internalID: 1227721697
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_136
+      rect:
+        serializedVersion: 2
+        x: 699
+        y: 56
+        width: 20
+        height: 18
+      alignment: 9
+      pivot: {x: 0.5, y: 0.33333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 52947b451170d734aa85a8330a7e7a08
+      internalID: -1734091278
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_137
+      rect:
+        serializedVersion: 2
+        x: 738
+        y: 14
+        width: 37
+        height: 57
+      alignment: 9
+      pivot: {x: 0.4864865, y: 0.19298247}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 84c4f4e6b5d3c12498c71c0077f693c6
+      internalID: -1569620815
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_138
+      rect:
+        serializedVersion: 2
+        x: 782
+        y: 14
+        width: 37
+        height: 58
+      alignment: 9
+      pivot: {x: 0.4864865, y: 0.22413793}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 449a474af2dcf864386e2e8a901b6269
+      internalID: -1780974875
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_139
+      rect:
+        serializedVersion: 2
+        x: 136
+        y: 11
+        width: 39
+        height: 39
+      alignment: 9
+      pivot: {x: 0.4871795, y: 0.30769232}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d762f34d3b9794c4db7ef94bf067b461
+      internalID: 1323207900
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_140
+      rect:
+        serializedVersion: 2
+        x: 620
+        y: 14
+        width: 37
+        height: 31
+      alignment: 9
+      pivot: {x: 0.4864865, y: 0.2580645}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 832da06a7d2b4554e8a141a983a34477
+      internalID: -1876654383
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_141
+      rect:
+        serializedVersion: 2
+        x: 661
+        y: 2
+        width: 71
+        height: 52
+      alignment: 9
+      pivot: {x: 0.5070422, y: 0.42307693}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 20118c82d28b74c4bbe101482906817e
+      internalID: 211438498
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NatureFantasySpriteSheet_39
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 543
+        width: 16
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bf937e8a24c65a347a820b957801ac96
+      internalID: -1428060221
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      NatureFantasySpriteSheet_0: -656743093
+      NatureFantasySpriteSheet_1: -523556471
+      NatureFantasySpriteSheet_10: 116329363
+      NatureFantasySpriteSheet_100: -1077572872
+      NatureFantasySpriteSheet_101: -1382978488
+      NatureFantasySpriteSheet_102: -1451374561
+      NatureFantasySpriteSheet_103: -64044844
+      NatureFantasySpriteSheet_104: 1845332568
+      NatureFantasySpriteSheet_105: 896091732
+      NatureFantasySpriteSheet_106: 1083695080
+      NatureFantasySpriteSheet_107: 1170914838
+      NatureFantasySpriteSheet_108: 439282190
+      NatureFantasySpriteSheet_109: -1862789171
+      NatureFantasySpriteSheet_11: 872224494
+      NatureFantasySpriteSheet_110: -1478847487
+      NatureFantasySpriteSheet_111: -1386951910
+      NatureFantasySpriteSheet_112: -633108390
+      NatureFantasySpriteSheet_113: 1616780255
+      NatureFantasySpriteSheet_114: -309982009
+      NatureFantasySpriteSheet_115: 925944605
+      NatureFantasySpriteSheet_116: 133766691
+      NatureFantasySpriteSheet_117: 8050486
+      NatureFantasySpriteSheet_118: -1919427390
+      NatureFantasySpriteSheet_119: -1947809159
+      NatureFantasySpriteSheet_12: 528215313
+      NatureFantasySpriteSheet_120: 106046221
+      NatureFantasySpriteSheet_121: -818120350
+      NatureFantasySpriteSheet_122: -706990592
+      NatureFantasySpriteSheet_123: 181586239
+      NatureFantasySpriteSheet_124: -2138040443
+      NatureFantasySpriteSheet_125: 1992612281
+      NatureFantasySpriteSheet_126: -652395131
+      NatureFantasySpriteSheet_127: 1114080981
+      NatureFantasySpriteSheet_128: -1594003541
+      NatureFantasySpriteSheet_129: -1326023035
+      NatureFantasySpriteSheet_13: -1108759332
+      NatureFantasySpriteSheet_130: 112386358
+      NatureFantasySpriteSheet_131: 1270882120
+      NatureFantasySpriteSheet_132: -661566508
+      NatureFantasySpriteSheet_133: -337901668
+      NatureFantasySpriteSheet_134: 509858500
+      NatureFantasySpriteSheet_135: 1227721697
+      NatureFantasySpriteSheet_136: -1734091278
+      NatureFantasySpriteSheet_137: -1569620815
+      NatureFantasySpriteSheet_138: -1780974875
+      NatureFantasySpriteSheet_139: 1323207900
+      NatureFantasySpriteSheet_14: -639872827
+      NatureFantasySpriteSheet_140: -1876654383
+      NatureFantasySpriteSheet_141: 211438498
+      NatureFantasySpriteSheet_15: 235672721
+      NatureFantasySpriteSheet_16: -1730449589
+      NatureFantasySpriteSheet_17: 1836973354
+      NatureFantasySpriteSheet_18: -226456435
+      NatureFantasySpriteSheet_19: 1512332898
+      NatureFantasySpriteSheet_2: -338607673
+      NatureFantasySpriteSheet_20: 728405456
+      NatureFantasySpriteSheet_21: -1964000173
+      NatureFantasySpriteSheet_22: 2113155627
+      NatureFantasySpriteSheet_23: 485153086
+      NatureFantasySpriteSheet_24: -230756751
+      NatureFantasySpriteSheet_25: 122318750
+      NatureFantasySpriteSheet_26: 879205818
+      NatureFantasySpriteSheet_27: -56377306
+      NatureFantasySpriteSheet_28: -854278240
+      NatureFantasySpriteSheet_29: 819526850
+      NatureFantasySpriteSheet_3: -1092175973
+      NatureFantasySpriteSheet_30: -1017160737
+      NatureFantasySpriteSheet_31: -1977705008
+      NatureFantasySpriteSheet_32: -570516080
+      NatureFantasySpriteSheet_33: -1974996782
+      NatureFantasySpriteSheet_34: -969622321
+      NatureFantasySpriteSheet_35: -917209087
+      NatureFantasySpriteSheet_36: 1816842160
+      NatureFantasySpriteSheet_37: 1876942699
+      NatureFantasySpriteSheet_38: -197891620
+      NatureFantasySpriteSheet_39: -1428060221
+      NatureFantasySpriteSheet_4: -210812316
+      NatureFantasySpriteSheet_40: 1653278349
+      NatureFantasySpriteSheet_41: -438640715
+      NatureFantasySpriteSheet_42: -1737812444
+      NatureFantasySpriteSheet_43: -1460870054
+      NatureFantasySpriteSheet_44: -253305267
+      NatureFantasySpriteSheet_45: -674829235
+      NatureFantasySpriteSheet_46: -1404000384
+      NatureFantasySpriteSheet_47: -1386556681
+      NatureFantasySpriteSheet_48: -502206812
+      NatureFantasySpriteSheet_49: -114690713
+      NatureFantasySpriteSheet_5: 1431646
+      NatureFantasySpriteSheet_50: 911835924
+      NatureFantasySpriteSheet_51: 727664981
+      NatureFantasySpriteSheet_52: 1111870634
+      NatureFantasySpriteSheet_53: -478976200
+      NatureFantasySpriteSheet_54: 1976815366
+      NatureFantasySpriteSheet_55: -1126983402
+      NatureFantasySpriteSheet_56: -441737055
+      NatureFantasySpriteSheet_57: 1254014773
+      NatureFantasySpriteSheet_58: -1702171071
+      NatureFantasySpriteSheet_59: -1326919493
+      NatureFantasySpriteSheet_6: 1240679382
+      NatureFantasySpriteSheet_60: -1093307895
+      NatureFantasySpriteSheet_61: -1265702536
+      NatureFantasySpriteSheet_62: -23809786
+      NatureFantasySpriteSheet_63: 1322646500
+      NatureFantasySpriteSheet_64: -1361354388
+      NatureFantasySpriteSheet_65: -1081311041
+      NatureFantasySpriteSheet_66: 1441008102
+      NatureFantasySpriteSheet_67: -692819383
+      NatureFantasySpriteSheet_68: 549263741
+      NatureFantasySpriteSheet_69: 1240250591
+      NatureFantasySpriteSheet_7: -343940318
+      NatureFantasySpriteSheet_70: 126777991
+      NatureFantasySpriteSheet_71: 1401957072
+      NatureFantasySpriteSheet_72: 210714206
+      NatureFantasySpriteSheet_73: -1893450171
+      NatureFantasySpriteSheet_74: 538503415
+      NatureFantasySpriteSheet_75: 1258613412
+      NatureFantasySpriteSheet_76: 1592912741
+      NatureFantasySpriteSheet_77: -359436794
+      NatureFantasySpriteSheet_78: -796755855
+      NatureFantasySpriteSheet_79: 1268180333
+      NatureFantasySpriteSheet_8: -2006433815
+      NatureFantasySpriteSheet_80: 1595179503
+      NatureFantasySpriteSheet_81: 725380405
+      NatureFantasySpriteSheet_82: 1255035854
+      NatureFantasySpriteSheet_83: 1870552030
+      NatureFantasySpriteSheet_84: -1075046665
+      NatureFantasySpriteSheet_85: 134331361
+      NatureFantasySpriteSheet_86: 548371410
+      NatureFantasySpriteSheet_87: -318251030
+      NatureFantasySpriteSheet_88: -110131521
+      NatureFantasySpriteSheet_89: 1454195053
+      NatureFantasySpriteSheet_9: -1717476684
+      NatureFantasySpriteSheet_90: 221309278
+      NatureFantasySpriteSheet_91: -643928486
+      NatureFantasySpriteSheet_92: -333437537
+      NatureFantasySpriteSheet_93: 1092126377
+      NatureFantasySpriteSheet_94: -1158115706
+      NatureFantasySpriteSheet_95: 1032555572
+      NatureFantasySpriteSheet_96: -1131312510
+      NatureFantasySpriteSheet_97: -654949445
+      NatureFantasySpriteSheet_98: -2027451846
+      NatureFantasySpriteSheet_99: 1558444540
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 346100
+  packageName: Pixel World - Fantasy Lands
+  packageVersion: 1.0
+  assetPath: Assets/PixelWorldFantasy/SpritesArt/Objects/NatureFantasySpriteSheet.png
+  uploadId: 822964

@@ -1,0 +1,587 @@
+fileFormatVersion: 2
+guid: e6e80275b28fd454cb32b7bf4bfcb6f1
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 3
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: iPhone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: TortureChamber_0
+      rect:
+        serializedVersion: 2
+        x: 3
+        y: 111
+        width: 33
+        height: 48
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 38e75756cf5cd2944b355fabaa186d84
+      internalID: -1019652347
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_1
+      rect:
+        serializedVersion: 2
+        x: 38
+        y: 141
+        width: 33
+        height: 18
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 97da76d0e60f3b94ca8806a2a252926b
+      internalID: 1537053357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_2
+      rect:
+        serializedVersion: 2
+        x: 75
+        y: 109
+        width: 19
+        height: 49
+      alignment: 9
+      pivot: {x: 0.68421054, y: 0.040816326}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b8b93c2427ebcd044a4b8a5c95a4ea36
+      internalID: 780088832
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_3
+      rect:
+        serializedVersion: 2
+        x: 100
+        y: 109
+        width: 19
+        height: 49
+      alignment: 9
+      pivot: {x: 0.31578946, y: 0.040816326}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a4e6bfd3663241f4188035ab7e35a40f
+      internalID: -948340554
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_4
+      rect:
+        serializedVersion: 2
+        x: 123
+        y: 105
+        width: 27
+        height: 51
+      alignment: 9
+      pivot: {x: 0.4814815, y: 0.019607844}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e92a9cccc4004c748aa4e33f2119bf82
+      internalID: -148953488
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_5
+      rect:
+        serializedVersion: 2
+        x: 157
+        y: 75
+        width: 27
+        height: 83
+      alignment: 9
+      pivot: {x: 0.5185185, y: 0.012048192}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 51aa212512d8ebf4d8cdcc20bc39c484
+      internalID: 524932882
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_6
+      rect:
+        serializedVersion: 2
+        x: 38
+        y: 108
+        width: 33
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5151515, y: 0.03125}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47a94b330bb65c34cb17e336d2879d3e
+      internalID: -1317098059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_7
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 40
+        width: 36
+        height: 65
+      alignment: 9
+      pivot: {x: 0.5, y: 0.046153847}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5ceeef325b8d92542890454b31b69e06
+      internalID: -1529907203
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_8
+      rect:
+        serializedVersion: 2
+        x: 45
+        y: 40
+        width: 36
+        height: 65
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 89d3e279eb4fdc64cb5c6115b9678e90
+      internalID: -2096056879
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_9
+      rect:
+        serializedVersion: 2
+        x: 85
+        y: 40
+        width: 36
+        height: 65
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8c9b39194e6acd54faedf9c7f463f5bc
+      internalID: 1281634712
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_10
+      rect:
+        serializedVersion: 2
+        x: 126
+        y: 64
+        width: 16
+        height: 25
+      alignment: 9
+      pivot: {x: 0.5, y: 0.12}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6857743e6d0079a4dbd5c10cd8ba9f04
+      internalID: 35196364
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_11
+      rect:
+        serializedVersion: 2
+        x: 152
+        y: 31
+        width: 7
+        height: 37
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fec8f181f6b1e0640b27bd39c7aa010b
+      internalID: 35097216
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_12
+      rect:
+        serializedVersion: 2
+        x: 161
+        y: 32
+        width: 7
+        height: 36
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3853e1bf80908294e8bde28982d22181
+      internalID: -1372639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_13
+      rect:
+        serializedVersion: 2
+        x: 171
+        y: 31
+        width: 7
+        height: 37
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 857f44c529ebaf646956c7a5453a6328
+      internalID: 1441837744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_14
+      rect:
+        serializedVersion: 2
+        x: 180
+        y: 32
+        width: 7
+        height: 36
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a8aa150c810fea4090d9eb44f38543b
+      internalID: 523149858
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_15
+      rect:
+        serializedVersion: 2
+        x: 3
+        y: 2
+        width: 42
+        height: 31
+      alignment: 9
+      pivot: {x: 0.5, y: 0.06451613}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f1ff4c9bf4d8dfd4c9d91d0e3d761f9a
+      internalID: 450529443
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_16
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 2
+        width: 42
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0625}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 60f34b0e55e26564ca0997c1748b82a7
+      internalID: -473046768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_17
+      rect:
+        serializedVersion: 2
+        x: 89
+        y: 2
+        width: 42
+        height: 35
+      alignment: 9
+      pivot: {x: 0.5, y: 0.08571429}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 04dda5f6d48fd4d4da77c63b90109b11
+      internalID: -2107203907
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_18
+      rect:
+        serializedVersion: 2
+        x: 132
+        y: 24
+        width: 19
+        height: 39
+      alignment: 9
+      pivot: {x: 0.5263158, y: 0.102564104}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2e7773e2af81e604190f5887a5a21ecc
+      internalID: -653632761
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: TortureChamber_19
+      rect:
+        serializedVersion: 2
+        x: 135
+        y: 3
+        width: 53
+        height: 20
+      alignment: 9
+      pivot: {x: 0.509434, y: 0.2}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8c48df311c242fb4ba45e658b06c906c
+      internalID: 989179117
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      TortureChamber_0: -1019652347
+      TortureChamber_1: 1537053357
+      TortureChamber_10: 35196364
+      TortureChamber_11: 35097216
+      TortureChamber_12: -1372639
+      TortureChamber_13: 1441837744
+      TortureChamber_14: 523149858
+      TortureChamber_15: 450529443
+      TortureChamber_16: -473046768
+      TortureChamber_17: -2107203907
+      TortureChamber_18: -653632761
+      TortureChamber_19: 989179117
+      TortureChamber_2: 780088832
+      TortureChamber_3: -948340554
+      TortureChamber_4: -148953488
+      TortureChamber_5: 524932882
+      TortureChamber_6: -1317098059
+      TortureChamber_7: -1529907203
+      TortureChamber_8: -2096056879
+      TortureChamber_9: 1281634712
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 346100
+  packageName: Pixel World - Fantasy Lands
+  packageVersion: 1.0
+  assetPath: Assets/PixelWorldFantasy/SpritesArt/Objects/TortureChamber.png
+  uploadId: 822964
