@@ -67,9 +67,15 @@ public class PlayerBehaviour : MonoBehaviour
 		  }
 
 		  inputVector = inputVector.normalized;
-		  rb.MovePosition(rb.position + inputVector * (movingSpeed * Time.fixedDeltaTime));
+        inputVector = inputVector.normalized;
 
-		  if(Input.GetKey(KeyCode.Mouse0) && cooldownTimer > attackCooldown)
+        anim.SetFloat("MoveX", inputVector.x);
+        anim.SetFloat("MoveY", inputVector.y);
+        anim.SetFloat("Speed", inputVector.sqrMagnitude);
+
+        rb.MovePosition(rb.position + inputVector * (movingSpeed * Time.fixedDeltaTime));
+
+        if (Input.GetKey(KeyCode.Mouse0) && cooldownTimer > attackCooldown)
 		  {
 			  Debug.Log("Mouse");
 			  anim.SetTrigger("PlayerAttack");
