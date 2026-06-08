@@ -1,56 +1,31 @@
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class UIInventorySlot : MonoBehaviour
+public class UIInventorySlot : UIBaseItemSlot
 {
-    [Header("UI")]
-    [SerializeField] private Image icon;
-    [SerializeField] private TMP_Text quantityText;
-    [SerializeField] private GameObject highlight;
+    [Header("Inventory Specifics")]
+    [SerializeField] private GameObject equippedIndicator;
 
-    private InventoryItemData currentData;
-
-    public void SetData(InventoryItemData data)
+    public void SetupInventory(UIItemDisplayData data)
     {
-        Debug.Log("SET DATA");
-
-        currentData = data;
-
         if (data == null)
         {
-            Debug.Log("DATA NULL");
-
-            Clear();
+            ClearSlot();
             return;
         }
 
-        Debug.Log("ITEM ID: " + data.itemId);
+        // G?i logic v? Lõi t? Class Cha
+        base.SetupCore(data);
 
-        icon.enabled = true;
-
-        icon.sprite =
-            ItemIconDatabase.Instance.GetIcon(data.itemId);
-
-        Debug.Log("SPRITE SET");
-
-        quantityText.text =
-            data.quantity > 1
-            ? data.quantity.ToString()
-            : "";
-
-        highlight.SetActive(false);
+        // B?t/T?t d?u tích V n?u ?? ?ang m?c ho?c Skin ?ang trang b?
+        if (equippedIndicator != null)
+        {
+            equippedIndicator.SetActive(data.isEquipped);
+        }
     }
 
-    public void Clear()
+    public override void ClearSlot()
     {
-        currentData = null;
-
-        icon.sprite = null;
-        icon.enabled = false;
-
-        quantityText.text = "";
-
-        highlight.SetActive(false);
+        base.ClearSlot();
+        if (equippedIndicator != null) equippedIndicator.SetActive(false);
     }
 }
