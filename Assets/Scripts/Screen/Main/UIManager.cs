@@ -10,6 +10,7 @@ public class UIManager : MonoBehaviour
     public GameObject skillPanel;
     public GameObject guidePanel;
     public GameObject dialoguePanel;
+    public GameObject dailyPanel;
     public GameObject gachaPanel;
     public GameObject mapPanel;
     public GameObject questPanel;
