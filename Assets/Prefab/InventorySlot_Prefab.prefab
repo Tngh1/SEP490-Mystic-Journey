@@ -88,9 +88,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cea13df2cbe2bf747855aa67a998e56d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIInventorySlot
-  icon: {fileID: 9142255893472601091}
+  iconImage: {fileID: 0}
   quantityText: {fileID: 2683696581206801166}
-  highlight: {fileID: 5134440431271784798}
+  rarityBorder: {fileID: 0}
+  selectHighlight: {fileID: 0}
+  equippedIndicator: {fileID: 0}
 --- !u!1 &4412863740756483697
 GameObject:
   m_ObjectHideFlags: 0
@@ -180,7 +182,7 @@ GameObject:
   - component: {fileID: 4269092479645016809}
   - component: {fileID: 766718072148292599}
   m_Layer: 5
-  m_Name: 'UIInventorySlot '
+  m_Name: InventorySlot_Prefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -304,9 +306,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cea13df2cbe2bf747855aa67a998e56d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIInventorySlot
-  icon: {fileID: 9142255893472601091}
+  iconImage: {fileID: 9142255893472601091}
   quantityText: {fileID: 2683696581206801166}
-  highlight: {fileID: 5134440431271784798}
+  rarityBorder: {fileID: 0}
+  selectHighlight: {fileID: 5134440431271784798}
+  equippedIndicator: {fileID: 0}
 --- !u!1 &4799354046948720519
 GameObject:
   m_ObjectHideFlags: 0
