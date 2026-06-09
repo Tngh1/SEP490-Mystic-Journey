@@ -5,66 +5,43 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 3.5f;
+    [SerializeField] private float moveSpeed = 4f;
 
     private Rigidbody2D rb;
-    private Animator animator;
 
-    private Vector2 input;
-    private Vector2 lastMove;
+    private Vector2 moveInput;
+    private Vector2 lastMove = Vector2.down;
 
-    public Vector2 MoveInput => input;
-    public bool IsMoving => input.sqrMagnitude > 0.01f;
-
+    public Vector2 MoveInput => moveInput;
+    public Vector2 LastMove => lastMove;
+    public bool IsMoving => moveInput.sqrMagnitude > 0.01f;
+    public static PlayerMovement Instance { get; private set; }
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
 
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-    }
-
-    private void Update()
-    {
-        ReadInput();
-
-        // Lưu hướng cuối cùng
-        if (input != Vector2.zero)
-        {
-            lastMove = input;
-        }
-
-        // Update Animator
-        animator.SetFloat("MoveX", lastMove.x);
-        animator.SetFloat("MoveY", lastMove.y);
-        animator.SetFloat("Speed", IsMoving ? 1f : 0f);
-        Debug.Log(IsMoving ? 1f : 0f);
+        Instance = this;
     }
 
     private void FixedUpdate()
     {
-        rb.MovePosition(rb.position + input * moveSpeed * Time.fixedDeltaTime);
+        rb.MovePosition(
+            rb.position +
+            moveInput * moveSpeed * Time.fixedDeltaTime
+        );
     }
 
-    private void ReadInput()
+    public void OnMove(InputValue value)
     {
-        input = Vector2.zero;
+        moveInput = value.Get<Vector2>();
 
-        if (Keyboard.current == null)
-            return;
-
-        if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
-            input.x = -1f;
-        else if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-            input.x = 1f;
-
-        if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
-            input.y = 1f;
-        else if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed)
-            input.y = -1f;
-
-        input.Normalize();
+        if (moveInput != Vector2.zero)
+        {
+            lastMove = moveInput.normalized;
+        }
     }
+
 }

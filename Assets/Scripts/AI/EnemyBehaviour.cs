@@ -1,7 +1,7 @@
+using System;
+using EnemyPatrol.Utilites;
 using UnityEngine;
 using UnityEngine.AI;
-using EnemyPatrol.Utilites;
-using System;
 
 public class EnemyBehaviour : MonoBehaviour
 {
@@ -46,10 +46,10 @@ public class EnemyBehaviour : MonoBehaviour
         Death
     }
 
-       private void Start()
-       {
-           startingPosition = transform.position;
-       }
+    private void Start()
+    {
+        startingPosition = transform.position;
+    }
 
     private void Awake()
     {
@@ -73,7 +73,7 @@ public class EnemyBehaviour : MonoBehaviour
         currentState = State.Death;
     }
 
-     private void StateController()
+    private void StateController()
     {
         switch (currentState)
         {
@@ -105,7 +105,7 @@ public class EnemyBehaviour : MonoBehaviour
     }
     private void ChasingTarget()
     {
-        navMeshAgent.SetDestination(PlayerBehaviour.Instance.transform.position);
+        navMeshAgent.SetDestination(PlayerMovement.Instance.transform.position);
     }
 
     public float GetRoamingAnimationSpeed()
@@ -115,60 +115,61 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void CheckCurrentState()
     {
-        float distanceToPlayer = Vector3.Distance(transform.position, PlayerBehaviour.Instance.transform.position);
+        float distanceToPlayer = Vector3.Distance(transform.position, PlayerMovement.Instance.transform.position);
         State newState = State.Roaming;
 
-        if(isChasingEnemy)
+        if (isChasingEnemy)
         {
-            if(distanceToPlayer <= chasingDistance)
+            if (distanceToPlayer <= chasingDistance)
             {
                 newState = State.Chasing;
             }
         }
 
-        if(isAttackingEnemy)
+        if (isAttackingEnemy)
         {
-            if(distanceToPlayer <= attackDistance)
+            if (distanceToPlayer <= attackDistance)
             {
                 newState = State.Attack;
             }
         }
 
-        if(newState != currentState)
+        if (newState != currentState)
         {
-            if(newState == State.Chasing)
+            if (newState == State.Chasing)
             {
                 navMeshAgent.ResetPath();
                 navMeshAgent.speed = chasingSpeed;
             }
-            else if(newState == State.Roaming)
+            else if (newState == State.Roaming)
             {
                 roamingTime = 0f;
                 navMeshAgent.speed = roamingSpeed;
 
             }
-            else if(newState == State.Attack)
+            else if (newState == State.Attack)
             {
                 navMeshAgent.ResetPath();
             }
 
-                currentState = newState;
+            currentState = newState;
         }
 
     }
 
     public bool IsRunning
     {
-        get {
-                if (navMeshAgent.velocity == Vector3.zero)
-                    {
-                      return false;
-                    }
-                else
-                    {
-                     return true;
-                    }
-        }                    
+        get
+        {
+            if (navMeshAgent.velocity == Vector3.zero)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
 
     }
 
@@ -185,15 +186,15 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void MovementDirection()
     {
-        if(Time.time > nextCheckDirectionTime)
+        if (Time.time > nextCheckDirectionTime)
         {
-            if(IsRunning)
+            if (IsRunning)
             {
                 ChangeFaceDir(lastPosition, transform.position);
             }
             else if (currentState == State.Attack)
             {
-                ChangeFaceDir(transform.position, PlayerBehaviour.Instance.transform.position);
+                ChangeFaceDir(transform.position, PlayerMovement.Instance.transform.position);
             }
 
             lastPosition = transform.position;
@@ -202,7 +203,7 @@ public class EnemyBehaviour : MonoBehaviour
     }
     private void Roaming()
     {
-      //  startingPosition = transform.position;
+        //  startingPosition = transform.position;
         roamPosition = GetRoamingPosition();
         navMeshAgent.SetDestination(roamPosition);
     }
