@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
@@ -32,14 +32,14 @@ public class UIManager : MonoBehaviour
     // ?? M? PANEL
     public void OpenPanel(GameObject panel)
     {
-        // N?u click l?i panel ?ang m? ? ?óng luôn
+        // N?u click l?i panel ?ang m? ? ?Ã³ng luÃ´n
         if (currentPanel == panel)
         {
             CloseCurrentPanel();
             return;
         }
 
-        // ?óng panel c?
+        // ?Ã³ng panel c?
         if (currentPanel != null)
         {
             currentPanel.SetActive(false);
@@ -50,7 +50,7 @@ public class UIManager : MonoBehaviour
         currentPanel = panel;
     }
 
-    // ?? ?ÓNG PANEL HI?N T?I
+    // ?? ?Ã“NG PANEL HI?N T?I
     public void CloseCurrentPanel()
     {
         if (currentPanel != null)
@@ -60,7 +60,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ?? ?ÓNG PANEL C? TH? (r?t h?u ích cho nút X)
+    // ?? ?Ã“NG PANEL C? TH? (r?t h?u Ã­ch cho nÃºt X)
     public void ClosePanel(GameObject panel)
     {
         if (panel.activeSelf)
@@ -72,7 +72,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ?? ?ÓNG T?T C?
+    // ?? ?Ã“NG T?T C?
     public void CloseAll()
     {
         inventoryPanel.SetActive(false);
