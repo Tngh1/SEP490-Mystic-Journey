@@ -1,14 +1,23 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
-public class UIDailyLoginSlot : UIBaseItemSlot
+public class UIDailySlot : UIBaseItemSlot
 {
-    [Header("Daily Login Specifics")]
-    [SerializeField] private TMP_Text dayText; // VD: "Ngày 1", "Ngày 2"
-    [SerializeField] private GameObject claimedOverlay; // ?ã ?i?m danh
-    [SerializeField] private GameObject todayHighlight; // Vi?n sáng nh?p nháy cho ngày hi?n t?i
+    [Header("Daily Specifics")]
+    [SerializeField] private TMP_Text dayText;
+    [SerializeField] private GameObject claimedOverlay; // Kh?i m? ?è lên khi ?ã nh?n
+    [SerializeField] private Button claimButton;
 
-    public void SetupDailyLogin(UIItemDisplayData data, bool isToday)
+    private void Awake()
+    {
+        if (claimButton != null)
+        {
+            claimButton.onClick.AddListener(OnClaimButtonClicked);
+        }
+    }
+
+    public void SetupDaily(UIItemDisplayData data)
     {
         if (data == null)
         {
@@ -16,30 +25,31 @@ public class UIDailyLoginSlot : UIBaseItemSlot
             return;
         }
 
+        // G?i Lõi ?? v? Icon, Vi?n, S? l??ng
         base.SetupCore(data);
 
+        // V? ngày
         if (dayText != null)
         {
-            dayText.text = $"Ngày {data.dayNumber}";
+            dayText.text = "Day " + data.dayNumber;
         }
 
+        // B?t/t?t l?p m? "?ã nh?n"
         if (claimedOverlay != null)
         {
             claimedOverlay.SetActive(data.isClaimed);
         }
 
-        // B?t highlight n?u ô này là ph?n th??ng c?a ngày hôm nay
-        if (todayHighlight != null)
+        // Khóa nút b?m n?u ?ã nh?n r?i (Không cho click n?a)
+        if (claimButton != null)
         {
-            todayHighlight.SetActive(isToday && !data.isClaimed);
+            claimButton.interactable = !data.isClaimed;
         }
     }
 
-    public override void ClearSlot()
+    private void OnClaimButtonClicked()
     {
-        base.ClearSlot();
-        if (claimedOverlay != null) claimedOverlay.SetActive(false);
-        if (todayHighlight != null) todayHighlight.SetActive(false);
-        if (dayText != null) dayText.text = string.Empty;
+        // Truy?n tín hi?u click ra ngoài
+        OnSlotClicked?.Invoke(this);
     }
 }
