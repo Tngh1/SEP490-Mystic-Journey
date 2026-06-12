@@ -127,12 +127,12 @@ TextureImporter:
       name: Knight_IDLE_South_0
       rect:
         serializedVersion: 2
-        x: 37
-        y: 29
-        width: 30
-        height: 50
+        x: 33
+        y: 30
+        width: 41
+        height: 48
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -149,12 +149,12 @@ TextureImporter:
       name: Knight_IDLE_South_1
       rect:
         serializedVersion: 2
-        x: 139
-        y: 29
-        width: 34
-        height: 50
+        x: 137
+        y: 30
+        width: 41
+        height: 47
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -171,12 +171,12 @@ TextureImporter:
       name: Knight_IDLE_South_2
       rect:
         serializedVersion: 2
-        x: 242
-        y: 29
-        width: 35
-        height: 48
+        x: 240
+        y: 30
+        width: 42
+        height: 46
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -193,12 +193,12 @@ TextureImporter:
       name: Knight_IDLE_South_3
       rect:
         serializedVersion: 2
-        x: 346
-        y: 29
-        width: 35
-        height: 48
+        x: 342
+        y: 30
+        width: 44
+        height: 46
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -215,12 +215,12 @@ TextureImporter:
       name: Knight_IDLE_South_4
       rect:
         serializedVersion: 2
-        x: 449
-        y: 29
-        width: 36
-        height: 47
+        x: 444
+        y: 30
+        width: 46
+        height: 46
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -237,12 +237,12 @@ TextureImporter:
       name: Knight_IDLE_South_5
       rect:
         serializedVersion: 2
-        x: 552
-        y: 29
-        width: 37
-        height: 46
+        x: 548
+        y: 30
+        width: 46
+        height: 48
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -259,12 +259,12 @@ TextureImporter:
       name: Knight_IDLE_South_6
       rect:
         serializedVersion: 2
-        x: 657
-        y: 29
-        width: 36
-        height: 46
+        x: 654
+        y: 30
+        width: 44
+        height: 48
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -281,12 +281,12 @@ TextureImporter:
       name: Knight_IDLE_South_7
       rect:
         serializedVersion: 2
-        x: 763
-        y: 29
-        width: 33
-        height: 48
+        x: 758
+        y: 30
+        width: 44
+        height: 47
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -303,12 +303,12 @@ TextureImporter:
       name: Knight_IDLE_South_8
       rect:
         serializedVersion: 2
-        x: 867
-        y: 29
-        width: 33
-        height: 49
+        x: 862
+        y: 30
+        width: 44
+        height: 46
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -321,11 +321,55 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Knight_IDLE_South_9
+      rect:
+        serializedVersion: 2
+        x: 966
+        y: 30
+        width: 44
+        height: 46
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f64968b6f58753c4eb6170499e6c4733
+      internalID: -8250461
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_IDLE_South_10
+      rect:
+        serializedVersion: 2
+        x: 1070
+        y: 30
+        width: 44
+        height: 46
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9e51c96e35ebbf3428ec1d5b98253020
+      internalID: 1406632405
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 0777167da805e27438837cb17c7a44e3
     internalID: 0
     vertices: []
     indices: 
@@ -333,10 +377,13 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       Knight_IDLE_South_0: 601325958733788123
       Knight_IDLE_South_1: 5158118909057045434
+      Knight_IDLE_South_10: 1406632405
       Knight_IDLE_South_2: 8764050121006342232
       Knight_IDLE_South_3: -6593805304822418373
       Knight_IDLE_South_4: -8104001184257455869
@@ -344,6 +391,7 @@ TextureImporter:
       Knight_IDLE_South_6: 8756775886630167181
       Knight_IDLE_South_7: 2644397758840862780
       Knight_IDLE_South_8: -3072235132464028181
+      Knight_IDLE_South_9: -8250461
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

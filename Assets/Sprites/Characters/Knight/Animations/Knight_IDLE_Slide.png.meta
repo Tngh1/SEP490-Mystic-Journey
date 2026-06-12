@@ -124,199 +124,243 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_0
+      name: Knight_IDLE_Slide_0
       rect:
         serializedVersion: 2
-        x: 38
-        y: 26
-        width: 27
-        height: 53
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: abc8ac1ee10d416e0800000000000000
-      internalID: -1867639114396169030
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_1
-      rect:
-        serializedVersion: 2
-        x: 142
-        y: 26
-        width: 27
+        x: 36
+        y: 24
+        width: 39
         height: 54
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: ef74cfd3dbe769c70800000000000000
-      internalID: 8977502258463524862
+      spriteID: ae85da7d9e5f9c74082a9ade2630d5e1
+      internalID: -1979490143
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_2
+      name: Knight_IDLE_Slide_1
       rect:
         serializedVersion: 2
-        x: 245
-        y: 26
-        width: 29
-        height: 52
+        x: 140
+        y: 24
+        width: 39
+        height: 56
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 2ae90593a7fbed010800000000000000
-      internalID: 1215619481105112738
+      spriteID: 9af9735c0a9b4e44eba57c76bbd70a32
+      internalID: 398060792
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_3
+      name: Knight_IDLE_Slide_2
       rect:
         serializedVersion: 2
-        x: 348
-        y: 26
-        width: 31
-        height: 51
+        x: 242
+        y: 24
+        width: 42
+        height: 57
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 86a80f96cc8657a80800000000000000
-      internalID: -8469748297040360856
+      spriteID: 15ed8a713135b9f4bb85ac5ae6bb86a0
+      internalID: -1511193145
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_4
+      name: Knight_IDLE_Slide_3
+      rect:
+        serializedVersion: 2
+        x: 347
+        y: 24
+        width: 41
+        height: 56
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6b0c1a00ca8b0444c9daec28ecc6d9e0
+      internalID: -263924048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_IDLE_Slide_4
       rect:
         serializedVersion: 2
         x: 451
-        y: 26
-        width: 33
-        height: 51
+        y: 24
+        width: 41
+        height: 55
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 9c16b0ec14a7db000800000000000000
-      internalID: 53333193646629321
+      spriteID: 7c0f442f18a0e5b478fb773f5fa8c43e
+      internalID: -1404019292
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_5
+      name: Knight_IDLE_Slide_5
       rect:
         serializedVersion: 2
-        x: 555
-        y: 26
-        width: 33
-        height: 51
+        x: 554
+        y: 23
+        width: 42
+        height: 56
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: ead48a9b6e54381e0800000000000000
-      internalID: -2196835335967060562
+      spriteID: b92467c0192302d4f90776f77a2def8a
+      internalID: 555890418
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_6
+      name: Knight_IDLE_Slide_6
       rect:
         serializedVersion: 2
-        x: 660
-        y: 26
-        width: 31
+        x: 658
+        y: 23
+        width: 42
         height: 52
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 98443a093523fe340800000000000000
-      internalID: 4895186654465311881
+      spriteID: 2975c112b046fc34ea65b8fd2473f010
+      internalID: 1774301221
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_7
+      name: Knight_IDLE_Slide_7
       rect:
         serializedVersion: 2
-        x: 765
-        y: 26
-        width: 29
-        height: 54
+        x: 762
+        y: 23
+        width: 42
+        height: 52
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: e1e89e29c1d564be0800000000000000
-      internalID: -1493403849121493474
+      spriteID: be5d1d22883a1414bb73f537b43cbbe2
+      internalID: -1593268533
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_IDLE_SouthEast_8
+      name: Knight_IDLE_Slide_8
       rect:
         serializedVersion: 2
-        x: 870
-        y: 26
-        width: 27
-        height: 53
+        x: 867
+        y: 24
+        width: 40
+        height: 52
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 72fa82c016df0ed80800000000000000
-      internalID: -8223294326320877785
+      spriteID: bdcb1e5479cf17d48a4c530442ba0df2
+      internalID: -974979100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_IDLE_Slide_9
+      rect:
+        serializedVersion: 2
+        x: 972
+        y: 24
+        width: 39
+        height: 55
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6e8b93a28ecfaa743928b2089d2c5b00
+      internalID: 382418976
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_IDLE_Slide_10
+      rect:
+        serializedVersion: 2
+        x: 1077
+        y: 24
+        width: 38
+        height: 57
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 37691cc5bce501f4ba790f98fc662b6a
+      internalID: -1155745580
       vertices: []
       indices: 
       edges: []
@@ -325,7 +369,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: d42fbe16584ad524fb61b64b9636e696
     internalID: 0
     vertices: []
     indices: 
@@ -333,17 +377,21 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Knight_IDLE_SouthEast_0: -1867639114396169030
-      Knight_IDLE_SouthEast_1: 8977502258463524862
-      Knight_IDLE_SouthEast_2: 1215619481105112738
-      Knight_IDLE_SouthEast_3: -8469748297040360856
-      Knight_IDLE_SouthEast_4: 53333193646629321
-      Knight_IDLE_SouthEast_5: -2196835335967060562
-      Knight_IDLE_SouthEast_6: 4895186654465311881
-      Knight_IDLE_SouthEast_7: -1493403849121493474
-      Knight_IDLE_SouthEast_8: -8223294326320877785
+      Knight_IDLE_Slide_0: -1979490143
+      Knight_IDLE_Slide_1: 398060792
+      Knight_IDLE_Slide_10: -1155745580
+      Knight_IDLE_Slide_2: -1511193145
+      Knight_IDLE_Slide_3: -263924048
+      Knight_IDLE_Slide_4: -1404019292
+      Knight_IDLE_Slide_5: 555890418
+      Knight_IDLE_Slide_6: 1774301221
+      Knight_IDLE_Slide_7: -1593268533
+      Knight_IDLE_Slide_8: -974979100
+      Knight_IDLE_Slide_9: 382418976
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
