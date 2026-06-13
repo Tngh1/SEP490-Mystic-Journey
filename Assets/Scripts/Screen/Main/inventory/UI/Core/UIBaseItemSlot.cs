@@ -28,7 +28,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         iconImage.enabled = true;
         iconImage.sprite = data.icon;
 
-        // T?i ?u sinh chu?i, không hi?n s? n?u ch? có 1 món
+        // T?i ?u sinh chu?i, khï¿½ng hi?n s? n?u ch? cï¿½ 1 mï¿½n
       //  quantityText.text = data.quantity > 1 ? data.quantity.ToString() : string.Empty;
 
         //SetHighlight(false);
@@ -50,7 +50,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
     protected virtual void SetRarityColor(string rarity)
     {
-        // Logic ??i màu vi?n theo ph?m ch?t. Mira thêm mã màu t??ng ?ng vào ?ây nhé!
+        // Logic ??i mï¿½u vi?n theo ph?m ch?t. Mira thï¿½m mï¿½ mï¿½u t??ng ?ng vï¿½o ?ï¿½y nhï¿½!
        // if (rarityBorder == null || string.IsNullOrEmpty(rarity)) return;
 
         switch (rarity.ToLower())
