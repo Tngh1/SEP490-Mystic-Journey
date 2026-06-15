@@ -2201,6 +2201,7 @@ GameObject:
   - component: {fileID: 1207455106}
   - component: {fileID: 1207455108}
   - component: {fileID: 1207455107}
+  - component: {fileID: 1207455109}
   m_Layer: 5
   m_Name: LoginPanel
   m_TagString: Untagged
@@ -2266,6 +2267,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1207455105}
   m_CullTransparentMesh: 1
+--- !u!114 &1207455109
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207455105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71065e1c301deb9499e8ff67358a2bf2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MysticJourney.Screen.Login.LoginUIManager
+  usernameInput: {fileID: 263637966}
+  passwordInput: {fileID: 797566201}
+  loginButton: {fileID: 873581505}
+  sceneOnSuccess: Main
+  delayBeforeSceneLoad: 0.5
 --- !u!1 &1359373085
 GameObject:
   m_ObjectHideFlags: 0
