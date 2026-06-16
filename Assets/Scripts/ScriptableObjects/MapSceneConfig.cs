@@ -1,4 +1,3 @@
-using UnityEditor.U2D.Aseprite;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Mystic Journey/Map Scene Config")]

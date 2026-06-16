@@ -28,9 +28,26 @@ namespace MysticJourney.API.Models.Response
     {
         public int TotalItems { get; set; }
         public int TotalSkins { get; set; }
-        public InventoryItemResponse[] EquippedItems { get; set; }  // Items đang mặc
-        public InventoryItemResponse[] BagItems { get; set; }       // Items trong túi
+        public InventoryItemResponse[] EquippedItems { get; set; }   // Items đang trang bị
+        public InventoryItemResponse[] BagItems { get; set; }        // Items trong túi
         public int BagCapacity { get; set; }
+        // Skin của player – dùng PlayerSkinId để gọi POST /api/skins/equip|unequip
+        public PlayerSkinSummaryResponse[] PlayerSkins { get; set; }
+    }
+
+    // Thông tin skin nhỏ gọn kèm PlayerSkinId đúng
+    [System.Serializable]
+    public class PlayerSkinSummaryResponse
+    {
+        public int PlayerSkinId { get; set; }       // ID bảng PlayerSkins – dùng khi equip/unequip
+        public int SkinId { get; set; }
+        public string SkinName { get; set; }
+        public string SkinDescription { get; set; }
+        public string SkinType { get; set; }        // "FullSet", "Armor", "Weapon"
+        public string SkinRarity { get; set; }      // "Common", "Epic"…
+        public string IconUrl { get; set; }
+        public string PreviewUrl { get; set; }
+        public bool IsEquipped { get; set; }
     }
 
     [System.Serializable]
