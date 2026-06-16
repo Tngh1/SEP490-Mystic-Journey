@@ -3,34 +3,43 @@ using UnityEngine;
 public class MenuUIManager : MonoBehaviour
 {
     [Header("UI Panels")]
-    public GameObject waitPanel;
+    public GameObject startPanel;
     public GameObject loginPanel;
-    public GameObject registerPanel;
+    public GameObject websitePanel;
 
-    void Start()
-    {
-        // Khi mới chạy game, bật WaitPanel và tắt 2 panel kia
-        ShowWaitPanel();
-    }
+    [Header("Website")]
+    public string websiteUrl = "https://yourwebsite.com";
 
-    public void ShowWaitPanel()
+    private void Start()
     {
-        waitPanel.SetActive(true);
+        startPanel.SetActive(true);
         loginPanel.SetActive(false);
-        registerPanel.SetActive(false);
+        websitePanel.SetActive(true);   // hiện nút Website
     }
 
-    public void ShowLoginPanel()
+    // Login
+    public void OpenLoginPanel()
     {
-        waitPanel.SetActive(false);
+        startPanel.SetActive(false);
         loginPanel.SetActive(true);
-        registerPanel.SetActive(false);
     }
 
-    public void ShowRegisterPanel()
+    // Register
+    public void OpenRegisterWebsite()
     {
-        waitPanel.SetActive(false);
+        Application.OpenURL(websiteUrl);
+    }
+
+    // Website Button
+    public void OpenWebsite()
+    {
+        Application.OpenURL(websiteUrl);
+    }
+
+    // Back từ LoginPanel
+    public void BackToStart()
+    {
+        startPanel.SetActive(true);
         loginPanel.SetActive(false);
-        registerPanel.SetActive(true);
     }
 }
