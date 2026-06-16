@@ -124,199 +124,243 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_0
+      name: Knight_RUN_Slide_0
       rect:
         serializedVersion: 2
-        x: 38
-        y: 26
-        width: 27
+        x: 36
+        y: 24
+        width: 39
+        height: 54
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5db43c22df0e2e34aabb683a8ff2913b
+      internalID: 1680476646
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_RUN_Slide_1
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 24
+        width: 39
         height: 53
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: c7d6f37904172be80800000000000000
-      internalID: -8164338652239925892
+      spriteID: f066c93c44b31ab4e9c814378856cf3a
+      internalID: -1251847543
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_1
+      name: Knight_RUN_Slide_2
       rect:
         serializedVersion: 2
-        x: 142
-        y: 27
-        width: 27
-        height: 51
+        x: 245
+        y: 24
+        width: 37
+        height: 52
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 487f7e70e5a431b80800000000000000
-      internalID: -8425308710160042108
+      spriteID: 3684568b860095443af8ea79e79ef212
+      internalID: 169810302
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_2
+      name: Knight_RUN_Slide_3
       rect:
         serializedVersion: 2
-        x: 247
-        y: 28
-        width: 25
-        height: 50
+        x: 350
+        y: 25
+        width: 36
+        height: 52
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 7d9c5dcdd67967560800000000000000
-      internalID: 7311197543194806743
+      spriteID: 8001241faaedb7b44835d33025b237ce
+      internalID: 1650854292
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_3
-      rect:
-        serializedVersion: 2
-        x: 351
-        y: 27
-        width: 26
-        height: 53
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: fd72481e3c5beaa50800000000000000
-      internalID: 6534359962267953119
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Knight_RUN_SouthEast_4
+      name: Knight_RUN_Slide_4
       rect:
         serializedVersion: 2
         x: 455
         y: 26
-        width: 29
+        width: 34
         height: 53
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 686c9d8aafc171900800000000000000
-      internalID: 655024133705942662
+      spriteID: 947fa02011ea6b549a0ef355e9a259ef
+      internalID: 141583431
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_5
+      name: Knight_RUN_Slide_5
       rect:
         serializedVersion: 2
-        x: 556
+        x: 560
         y: 27
-        width: 34
+        width: 35
         height: 51
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: f9a383e10c4bf8740800000000000000
-      internalID: 5156538835596229279
+      spriteID: 802e576ce5d781a4bae314597634ff20
+      internalID: 1920507894
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_6
+      name: Knight_RUN_Slide_6
       rect:
         serializedVersion: 2
-        x: 659
-        y: 25
+        x: 664
+        y: 27
         width: 36
-        height: 53
+        height: 49
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: e5877a6543c8de390800000000000000
-      internalID: -7787414024233715618
+      spriteID: 7df7cb90c8045144a92dc203fd7a7377
+      internalID: 29342322
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_7
+      name: Knight_RUN_Slide_7
       rect:
         serializedVersion: 2
-        x: 765
-        y: 25
-        width: 30
-        height: 55
+        x: 768
+        y: 27
+        width: 37
+        height: 50
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 888a25113b7cd2280800000000000000
-      internalID: -9066370902923237240
+      spriteID: c8828bc3ad5eda24884e78713211fc5e
+      internalID: -560470035
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_RUN_SouthEast_8
+      name: Knight_RUN_Slide_8
       rect:
         serializedVersion: 2
-        x: 871
+        x: 872
+        y: 27
+        width: 36
+        height: 52
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8b525293842593f41b7402b46b7a1bc7
+      internalID: 878029531
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_RUN_Slide_9
+      rect:
+        serializedVersion: 2
+        x: 976
+        y: 27
+        width: 35
+        height: 51
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c467609fcd7be9248a4c2395b6a6a3f6
+      internalID: -2048057629
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_RUN_Slide_10
+      rect:
+        serializedVersion: 2
+        x: 1079
         y: 26
-        width: 26
-        height: 53
+        width: 35
+        height: 50
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: a5b74353340c67ce0800000000000000
-      internalID: -1407726438618727590
+      spriteID: 78e31648255494f48bdfa963f1dab42d
+      internalID: 182383734
       vertices: []
       indices: 
       edges: []
@@ -325,7 +369,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 47f70daac0aa0094ea1f4220941e354e
     internalID: 0
     vertices: []
     indices: 
@@ -333,17 +377,21 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Knight_RUN_SouthEast_0: -8164338652239925892
-      Knight_RUN_SouthEast_1: -8425308710160042108
-      Knight_RUN_SouthEast_2: 7311197543194806743
-      Knight_RUN_SouthEast_3: 6534359962267953119
-      Knight_RUN_SouthEast_4: 655024133705942662
-      Knight_RUN_SouthEast_5: 5156538835596229279
-      Knight_RUN_SouthEast_6: -7787414024233715618
-      Knight_RUN_SouthEast_7: -9066370902923237240
-      Knight_RUN_SouthEast_8: -1407726438618727590
+      Knight_RUN_Slide_0: 1680476646
+      Knight_RUN_Slide_1: -1251847543
+      Knight_RUN_Slide_10: 182383734
+      Knight_RUN_Slide_2: 169810302
+      Knight_RUN_Slide_3: 1650854292
+      Knight_RUN_Slide_4: 141583431
+      Knight_RUN_Slide_5: 1920507894
+      Knight_RUN_Slide_6: 29342322
+      Knight_RUN_Slide_7: -560470035
+      Knight_RUN_Slide_8: 878029531
+      Knight_RUN_Slide_9: -2048057629
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

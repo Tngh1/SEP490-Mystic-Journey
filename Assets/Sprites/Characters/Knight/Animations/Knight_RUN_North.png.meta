@@ -127,12 +127,12 @@ TextureImporter:
       name: Knight_RUN_North_0
       rect:
         serializedVersion: 2
-        x: 37
-        y: 27
-        width: 30
-        height: 50
+        x: 30
+        y: 28
+        width: 41
+        height: 48
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -149,12 +149,12 @@ TextureImporter:
       name: Knight_RUN_North_1
       rect:
         serializedVersion: 2
-        x: 141
-        y: 27
-        width: 31
-        height: 50
+        x: 134
+        y: 28
+        width: 41
+        height: 48
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -171,12 +171,12 @@ TextureImporter:
       name: Knight_RUN_North_2
       rect:
         serializedVersion: 2
-        x: 246
-        y: 27
-        width: 30
+        x: 239
+        y: 28
+        width: 40
         height: 49
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -193,12 +193,12 @@ TextureImporter:
       name: Knight_RUN_North_3
       rect:
         serializedVersion: 2
-        x: 350
-        y: 27
-        width: 30
-        height: 50
+        x: 344
+        y: 28
+        width: 39
+        height: 49
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -215,12 +215,12 @@ TextureImporter:
       name: Knight_RUN_North_4
       rect:
         serializedVersion: 2
-        x: 454
-        y: 27
-        width: 29
-        height: 50
+        x: 448
+        y: 28
+        width: 38
+        height: 49
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -237,12 +237,12 @@ TextureImporter:
       name: Knight_RUN_North_5
       rect:
         serializedVersion: 2
-        x: 556
-        y: 27
-        width: 29
-        height: 50
+        x: 553
+        y: 28
+        width: 36
+        height: 49
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -259,12 +259,12 @@ TextureImporter:
       name: Knight_RUN_North_6
       rect:
         serializedVersion: 2
-        x: 659
-        y: 27
-        width: 29
+        x: 658
+        y: 28
+        width: 35
         height: 49
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -281,12 +281,12 @@ TextureImporter:
       name: Knight_RUN_North_7
       rect:
         serializedVersion: 2
-        x: 763
-        y: 27
-        width: 30
+        x: 762
+        y: 28
+        width: 34
         height: 50
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -303,12 +303,12 @@ TextureImporter:
       name: Knight_RUN_North_8
       rect:
         serializedVersion: 2
-        x: 869
-        y: 27
-        width: 29
-        height: 50
+        x: 865
+        y: 29
+        width: 36
+        height: 48
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -321,11 +321,55 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Knight_RUN_North_9
+      rect:
+        serializedVersion: 2
+        x: 968
+        y: 29
+        width: 38
+        height: 48
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 894fc99e812d145419bba05929497e55
+      internalID: 1944436975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_RUN_North_10
+      rect:
+        serializedVersion: 2
+        x: 1071
+        y: 29
+        width: 40
+        height: 48
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6c36ab3469d2fc42a47f902929e85bd
+      internalID: 637984224
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 65db0a14445f079439ba12af55561932
     internalID: 0
     vertices: []
     indices: 
@@ -333,10 +377,13 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       Knight_RUN_North_0: -8971509872614508034
       Knight_RUN_North_1: 7824454178919481228
+      Knight_RUN_North_10: 637984224
       Knight_RUN_North_2: 1660178634951663743
       Knight_RUN_North_3: 8588614535353421328
       Knight_RUN_North_4: -8843280817341854023
@@ -344,6 +391,7 @@ TextureImporter:
       Knight_RUN_North_6: -744219468254961384
       Knight_RUN_North_7: 2988958077078800243
       Knight_RUN_North_8: -6719036585806172508
+      Knight_RUN_North_9: 1944436975
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
