@@ -1,3 +1,55 @@
+﻿//using System.Collections;
+//using UnityEngine;
+//using UnityEngine.SceneManagement;
+
+//public class GameBootstrap : MonoBehaviour
+//{
+//    private IEnumerator Start()
+//    {
+//        Debug.Log("=== GAME BOOTSTRAP START ===");
+
+//        // ?? 1. GI? L?P LOGIN (load data t? DB)
+//        MockLoginData();
+
+//        // ?? 2. Load Scene Main (UI + EventSystem)
+//        yield return SceneManager.LoadSceneAsync("Main", LoadSceneMode.Additive);
+
+//        // ?? 3. B?o hi?m n?u login không có map
+//        if (string.IsNullOrEmpty(WorldState.CurrentMapName))
+//        {
+//            Debug.LogWarning("Không có map t? login -> dùng map m?c ??nh");
+//            WorldState.CurrentMapName = "ElfForest";
+//        }
+
+//        // ?? 4. Load Map t? data login
+//        yield return SceneManager.LoadSceneAsync(WorldState.CurrentMapName, LoadSceneMode.Additive);
+
+//        // ?? 5. Set Main làm active scene (r?t nên có)
+//        Scene mainScene = SceneManager.GetSceneByName("Main");
+//        SceneManager.SetActiveScene(mainScene);
+
+//        Debug.Log("=== LOAD DONE ===");
+
+//        // ?? 6. Xóa bootstrap
+//        Destroy(gameObject);
+//    }
+
+//    private void MockLoginData()
+//    {
+//        PlayerProfileDto profile = new PlayerProfileDto
+//        {
+//            LastMapName = "ElfForest",
+//            PositionX = 125.5f,
+//            PositionY = 50.2f
+//        };
+
+//        WorldState.CurrentMapName = profile.LastMapName;
+//        WorldState.LastPosition = new Vector3(profile.PositionX, profile.PositionY, 0f);
+
+//        Debug.Log("[Mock Login] ?ã load data t? DB gi?");
+//    }
+//}
+
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,44 +60,66 @@ public class GameBootstrap : MonoBehaviour
     {
         Debug.Log("=== GAME BOOTSTRAP START ===");
 
-        // ?? 1. GI? L?P LOGIN (load data t? DB)
-        MockLoginData();
+        //// Giả lập login
+        //MockLoginData();
 
-        // ?? 2. Load Scene Main (UI + EventSystem)
-        yield return SceneManager.LoadSceneAsync("Main", LoadSceneMode.Additive);
+        //// Chưa có nhân vật
+        //if (!WorldState.HasCharacter)
+        //{
+        //    Debug.Log("No Character -> Character Creation");
 
-        // ?? 3. B?o hi?m n?u login kh�ng c� map
+        //    SceneManager.LoadScene("CharacterCreation");
+
+        //    Destroy(gameObject);
+        //    yield break;
+        //}
+
+        // Có nhân vật
+        yield return LoadGame();
+
+        Destroy(gameObject);
+    }
+
+    private IEnumerator LoadGame()
+    {
+        Debug.Log("Loading Game...");
+
+        yield return SceneManager.LoadSceneAsync(
+            "Main",
+            LoadSceneMode.Additive);
+
         if (string.IsNullOrEmpty(WorldState.CurrentMapName))
         {
-            Debug.LogWarning("Kh�ng c� map t? login -> d�ng map m?c ??nh");
-            WorldState.CurrentMapName = "ElfForest";
+            WorldState.CurrentMapName = "Abandoned  Castle";
         }
 
-        // ?? 4. Load Map t? data login
-        yield return SceneManager.LoadSceneAsync(WorldState.CurrentMapName, LoadSceneMode.Additive);
+        yield return SceneManager.LoadSceneAsync(
+            WorldState.CurrentMapName,
+            LoadSceneMode.Additive);
 
-        // ?? 5. Set Main l�m active scene (r?t n�n c�)
-        Scene mainScene = SceneManager.GetSceneByName("Main");
+        Scene mainScene =
+            SceneManager.GetSceneByName("Main");
+
         SceneManager.SetActiveScene(mainScene);
 
-        Debug.Log("=== LOAD DONE ===");
-
-        // ?? 6. X�a bootstrap
-        Destroy(gameObject);
+        Debug.Log("Game Loaded");
     }
 
     private void MockLoginData()
     {
-        PlayerProfileDto profile = new PlayerProfileDto
+        // Đổi true/false để test
+
+        WorldState.HasCharacter = false;
+
+        if (WorldState.HasCharacter)
         {
-            LastMapName = "ElfForest",
-            PositionX = 125.5f,
-            PositionY = 50.2f
-        };
+            WorldState.PlayerName = "Phat";
+            WorldState.PlayerClass = "Knight";
 
-        WorldState.CurrentMapName = profile.LastMapName;
-        WorldState.LastPosition = new Vector3(profile.PositionX, profile.PositionY, 0f);
+            WorldState.CurrentMapName = "Abandoned  Castle";
 
-        Debug.Log("[Mock Login] ?� load data t? DB gi?");
+            WorldState.LastPosition =
+                new Vector3(10f, 5f, 0f);
+        }
     }
 }
