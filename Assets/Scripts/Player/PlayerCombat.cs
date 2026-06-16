@@ -8,7 +8,13 @@ public class PlayerCombat : MonoBehaviour
     [Header("Attack")]
     [SerializeField] private float attackCooldown = 0.5f;
 
-    [Header("Skills")]
+    [Header("Skill Settings")]
+    [SerializeField] private Transform firePoint;     // Vị trí skill sinh ra
+    [SerializeField] private GameObject skill1Prefab; // Kéo Prefab skill 1 vào đây
+    [SerializeField] private GameObject skill2Prefab; // Kéo Prefab skill 2 vào đây
+    [SerializeField] private GameObject skill3Prefab; // Kéo Prefab skill 3 vào đây
+
+    [Header("Skills Cooldown")]
     [SerializeField] private float skill1Cooldown = 3f;
     [SerializeField] private float skill2Cooldown = 5f;
     [SerializeField] private float skill3Cooldown = 8f;
@@ -45,6 +51,8 @@ public class PlayerCombat : MonoBehaviour
         nextAttackTime = Time.time + attackCooldown;
 
         animator.SetTrigger("Attack");
+
+        // Nếu có Prefab chém thường, bạn có thể Instantiate ở đây
     }
 
     #endregion
@@ -65,6 +73,9 @@ public class PlayerCombat : MonoBehaviour
         nextSkill1Time = Time.time + skill1Cooldown;
 
         animator.SetTrigger("Skill1");
+
+        // Gọi hàm tạo Prefab skill 1
+        SpawnSkill(skill1Prefab);
     }
 
     #endregion
@@ -85,6 +96,9 @@ public class PlayerCombat : MonoBehaviour
         nextSkill2Time = Time.time + skill2Cooldown;
 
         animator.SetTrigger("Skill2");
+
+        // Gọi hàm tạo Prefab skill 2
+        SpawnSkill(skill2Prefab);
     }
 
     #endregion
@@ -105,16 +119,30 @@ public class PlayerCombat : MonoBehaviour
         nextSkill3Time = Time.time + skill3Cooldown;
 
         animator.SetTrigger("Skill3");
+
+        // Gọi hàm tạo Prefab skill 3
+        SpawnSkill(skill3Prefab);
     }
 
     #endregion
 
+    // Hàm dùng chung để sinh ra Skill Prefab
+    private void SpawnSkill(GameObject skillPrefab)
+    {
+        if (skillPrefab != null && firePoint != null)
+        {
+            Instantiate(skillPrefab, firePoint.position, firePoint.rotation);
+        }
+        else
+        {
+            Debug.LogWarning("Chưa gán Skill Prefab hoặc Fire Point trong Inspector!");
+        }
+    }
+
     private bool IsBusy()
     {
-        AnimatorStateInfo state =
-            animator.GetCurrentAnimatorStateInfo(0);
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
 
-        return state.IsName("BasicAttack")
-            || state.IsName("SkillCast");
+        return state.IsName("BasicAttack") || state.IsName("SkillCast");
     }
 }
