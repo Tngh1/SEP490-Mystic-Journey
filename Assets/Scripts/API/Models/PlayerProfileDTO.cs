@@ -33,6 +33,9 @@ namespace MysticJourney.API.Models.Response
         public decimal Gold { get; set; }
         public decimal Gems { get; set; }
         public int Energy { get; set; }
+        public string LastMapName { get; set; }
+        public double PositionX { get; set; }
+        public double PositionY { get; set; }
         public string CreatedAt { get; set; }
         public string UpdatedAt { get; set; }
         public bool IsBanned { get; set; }

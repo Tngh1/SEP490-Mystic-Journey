@@ -21,6 +21,9 @@ namespace MysticJourney.API.Models.Response
         public int RoleId { get; set; }
         public int? PlayerProfileId { get; set; }      // null nếu chưa tạo profile
         public string PlayerDisplayName { get; set; }
+        public string LastMapName { get; set; }
+        public double PositionX { get; set; }
+        public double PositionY { get; set; }
         public string AccessToken { get; set; }
         public string AccessTokenExpiresAt { get; set; }
         public string RefreshToken { get; set; }

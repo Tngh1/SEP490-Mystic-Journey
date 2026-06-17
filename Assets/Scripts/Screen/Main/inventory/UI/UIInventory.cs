@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,7 +12,7 @@ public class UIInventory : MonoBehaviour
 
     private List<UIInventorySlot> slots = new List<UIInventorySlot>();
 
-    // Tr?m trung chuy?n s? ki?n click ra ngoài
+    // Tr?m trung chuy?n s? ki?n click ra ngoï¿½i
     public Action<UIBaseItemSlot> OnInventorySlotClicked;
 
     private void Awake()
@@ -28,7 +28,7 @@ public class UIInventory : MonoBehaviour
             UIInventorySlot slot = Instantiate(slotPrefab, contentParent);
             slot.ClearSlot();
 
-            // ??ng ký l?ng nghe s? ki?n Click t? Slot này
+            // ??ng kï¿½ l?ng nghe s? ki?n Click t? Slot nï¿½y
             slot.OnSlotClicked += HandleSlotClicked;
 
             slots.Add(slot);
@@ -37,7 +37,7 @@ public class UIInventory : MonoBehaviour
 
     private void HandleSlotClicked(UIBaseItemSlot clickedSlot)
     {
-        // Phóng lu?ng s? ki?n ra ngoài (Cho Manager h?ng)
+        // Phï¿½ng lu?ng s? ki?n ra ngoï¿½i (Cho Manager h?ng)
         OnInventorySlotClicked?.Invoke(clickedSlot);
     }
 
@@ -49,18 +49,18 @@ public class UIInventory : MonoBehaviour
         {
             if (i < items.Count)
             {
-                // Có data -> ?? data vào
-                slots[i].gameObject.SetActive(true); // ??m b?o ô ?ang b?t
+                // Cï¿½ data -> ?? data vï¿½o
+                slots[i].gameObject.SetActive(true); // ??m b?o ï¿½ ?ang b?t
                 slots[i].SetupInventory(items[i]);
             }
             else
             {
-                // H?t data -> D?n d?p ô tr?ng
+                // H?t data -> D?n d?p ï¿½ tr?ng
                 slots[i].ClearSlot();
 
-                // L?u ý: Tùy thi?t k? c?a Mira. 
-                // N?u mu?n Túi ?? luôn hi?n ?? 64 ô (dù tr?ng r?ng) thì GI? NGUYÊN dòng SetActive(true).
-                // N?u mu?n Túi ?? t? co l?i v?a khít s? l??ng ??, thì thêm dòng: slots[i].gameObject.SetActive(false);
+                // L?u ï¿½: Tï¿½y thi?t k? c?a Mira. 
+                // N?u mu?n Tï¿½i ?? luï¿½n hi?n ?? 64 ï¿½ (dï¿½ tr?ng r?ng) thï¿½ GI? NGUYï¿½N dï¿½ng SetActive(true).
+                // N?u mu?n Tï¿½i ?? t? co l?i v?a khï¿½t s? l??ng ??, thï¿½ thï¿½m dï¿½ng: slots[i].gameObject.SetActive(false);
             }
         }
     }

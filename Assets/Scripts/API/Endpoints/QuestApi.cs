@@ -5,8 +5,6 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // Tương ứng QuestsController → GET /api/quests
-    // Không cần auth cho tất cả endpoint
     public class QuestApi : MonoBehaviour
     {
         private static QuestApi _instance;
@@ -27,60 +25,62 @@ namespace MysticJourney.API.Endpoints
 
         private void Awake()
         {
-            if (_instance != null && _instance != this) { Destroy(gameObject); return; }
+            if (_instance != null && _instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             _instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
-        // GET /api/quests?page=&pageSize=&search=&type=&isActive=
         public void GetAll(
             int page,
             int pageSize,
-            Action<PaginatedResponse<QuestResponse>> onSuccess,
+            Action<PagedResultResponse<QuestResponse>> onSuccess,
             Action<ApiException> onError,
             string search = null,
             string type = null,
-            bool? isActive = null)
+            bool? isActive = null,
+            string mapName = null)
         {
-            string endpoint = $"{ApiConfig.QuestAll}?page={page}&pageSize={pageSize}";
-            if (!string.IsNullOrEmpty(search)) endpoint += $"&search={search}";
-            if (!string.IsNullOrEmpty(type))   endpoint += $"&type={type}";
-            if (isActive.HasValue)              endpoint += $"&isActive={isActive.Value}";
+            var endpoint = $"{ApiConfig.QuestAll}?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrEmpty(search)) endpoint += $"&search={UnityEngine.Networking.UnityWebRequest.EscapeURL(search)}";
+            if (!string.IsNullOrEmpty(type)) endpoint += $"&type={UnityEngine.Networking.UnityWebRequest.EscapeURL(type)}";
+            if (isActive.HasValue) endpoint += $"&isActive={isActive.Value}";
+            if (!string.IsNullOrEmpty(mapName)) endpoint += $"&mapName={UnityEngine.Networking.UnityWebRequest.EscapeURL(mapName)}";
 
-            Debug.Log($"[QuestApi] GetAll → page={page} pageSize={pageSize}");
-
-            ApiClient.Instance.Get<PaginatedResponse<QuestResponse>>(
+            ApiClient.Instance.Get<PagedResultResponse<QuestResponse>>(
                 endpoint,
                 response =>
                 {
-                    Debug.Log($"[QuestApi] ✅ GetAll OK | TotalCount={response.TotalCount} | Page={response.Page}/{response.TotalPages}");
+                    Debug.Log($"[QuestApi] GetAll OK | TotalCount={response.TotalCount}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[QuestApi] ❌ GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    Debug.LogError($"[QuestApi] GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: false
             );
         }
 
-        // GET /api/quests/{id}
         public void GetById(int questId, Action<QuestResponse> onSuccess, Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.QuestById, questId);
-            Debug.Log($"[QuestApi] GetById → questId={questId}");
+            var endpoint = string.Format(ApiConfig.QuestById, questId);
 
             ApiClient.Instance.Get<QuestResponse>(
                 endpoint,
                 response =>
                 {
-                    Debug.Log($"[QuestApi] ✅ GetById OK | Title={response.Title} | Type={response.Type} | RequiredLevel={response.RequiredLevel}");
+                    Debug.Log($"[QuestApi] GetById OK | questId={questId} | Title={response.Title}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[QuestApi] ❌ GetById FAIL | questId={questId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    Debug.LogError($"[QuestApi] GetById FAIL | questId={questId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: false

@@ -5,8 +5,6 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // Tương ứng DailyLoginRewardsController → /api/dailyloginrewards
-    // Không cần auth cho tất cả endpoint
     public class DailyLoginApi : MonoBehaviour
     {
         private static DailyLoginApi _instance;
@@ -27,36 +25,57 @@ namespace MysticJourney.API.Endpoints
 
         private void Awake()
         {
-            if (_instance != null && _instance != this) { Destroy(gameObject); return; }
+            if (_instance != null && _instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             _instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
-        // GET /api/dailyloginrewards?page=&pageSize=
-        // Trả về PagedResultResponse (TotalCount + Items[])
-        // Dùng để hiển thị lịch thưởng đăng nhập hàng ngày trong UI
         public void GetAll(
             int page,
             int pageSize,
             Action<PagedResultResponse<DailyLoginRewardResponse>> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = $"{ApiConfig.DailyLoginRewards}?page={page}&pageSize={pageSize}";
-            Debug.Log($"[DailyLoginApi] GetAll → page={page} pageSize={pageSize}");
+            var endpoint = $"{ApiConfig.DailyLoginRewards}?page={page}&pageSize={pageSize}";
 
             ApiClient.Instance.Get<PagedResultResponse<DailyLoginRewardResponse>>(
                 endpoint,
                 response =>
                 {
-                    Debug.Log($"[DailyLoginApi] ✅ GetAll OK | TotalCount={response.TotalCount}");
+                    Debug.Log($"[DailyLoginApi] GetAll OK | TotalCount={response.TotalCount}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[DailyLoginApi] ❌ GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    Debug.LogError($"[DailyLoginApi] GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: false
+            );
+        }
+
+        public void GetStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
+        {
+            ApiClient.Instance.Get<ApiResponse<PlayerDailyLoginResponse>>(
+                ApiConfig.DailyLoginStatus,
+                response => onSuccess?.Invoke(response.Data),
+                onError,
+                requiresAuth: true
+            );
+        }
+
+        public void Claim(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
+        {
+            ApiClient.Instance.PostEmpty<ApiResponse<ClaimDailyRewardResponse>>(
+                ApiConfig.DailyLoginClaim,
+                response => onSuccess?.Invoke(response.Data),
+                onError,
+                requiresAuth: true
             );
         }
     }
