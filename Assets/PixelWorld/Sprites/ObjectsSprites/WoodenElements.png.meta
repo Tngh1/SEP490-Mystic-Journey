@@ -1,0 +1,2006 @@
+fileFormatVersion: 2
+guid: 39de25018aee2674dabcf3a813041764
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: WoodenElements_0
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 256
+        width: 16
+        height: 40
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 282b23949ed89e143867eb822397c4d7
+      internalID: -2037282826
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_1
+      rect:
+        serializedVersion: 2
+        x: 40
+        y: 261
+        width: 19
+        height: 35
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6c1b16b707661a4428998464030ed0fe
+      internalID: 727243172
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_2
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 261
+        width: 19
+        height: 35
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 09be1a66a922fda4aa21dbe5da972050
+      internalID: 613030757
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_3
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 261
+        width: 19
+        height: 35
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 915e7fd9b95db00449f7d8f573648694
+      internalID: -2031389411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_4
+      rect:
+        serializedVersion: 2
+        x: 101
+        y: 249
+        width: 13
+        height: 50
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df9f7e25373a73f4e8a14ba0907bcba7
+      internalID: 1261053109
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_5
+      rect:
+        serializedVersion: 2
+        x: 115
+        y: 249
+        width: 13
+        height: 50
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: edb01f8f37b2f8a4986e16e62c0458c6
+      internalID: 1915159962
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_6
+      rect:
+        serializedVersion: 2
+        x: 129
+        y: 249
+        width: 13
+        height: 50
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6588d5c9f6af69442a5c15f645a5acbe
+      internalID: 72708103
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_7
+      rect:
+        serializedVersion: 2
+        x: 143
+        y: 258
+        width: 17
+        height: 41
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: afa7afcde4cd99343b298efca30fb678
+      internalID: 1509853641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_8
+      rect:
+        serializedVersion: 2
+        x: 162
+        y: 252
+        width: 17
+        height: 47
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6be4da4560a6d7d43827a2f5cc1d2011
+      internalID: 1958473427
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_9
+      rect:
+        serializedVersion: 2
+        x: 180
+        y: 252
+        width: 17
+        height: 47
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0d21a6e0263d1ed46a426562df9f094f
+      internalID: 2024020481
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_10
+      rect:
+        serializedVersion: 2
+        x: 198
+        y: 252
+        width: 17
+        height: 47
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d298499cd899db6469b4ec8a93dd051a
+      internalID: -1281671101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_11
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 248
+        width: 19
+        height: 51
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a69bda936139d6a4f9d8257383af7bb0
+      internalID: -308519801
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_12
+      rect:
+        serializedVersion: 2
+        x: 247
+        y: 232
+        width: 19
+        height: 70
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0511dce2a3a42024693ba435cf74262c
+      internalID: 825614808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_13
+      rect:
+        serializedVersion: 2
+        x: 270
+        y: 241
+        width: 55
+        height: 53
+      alignment: 9
+      pivot: {x: 0.4974809, y: 0.051153507}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fa21ab49ddb970f49b3aa9c9ef4f11db
+      internalID: 1667146733
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_14
+      rect:
+        serializedVersion: 2
+        x: 329
+        y: 251
+        width: 30
+        height: 21
+      alignment: 9
+      pivot: {x: 0.5, y: 0.42857143}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6baea58d3e27a014b92697505c6b8e50
+      internalID: -1499005825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_15
+      rect:
+        serializedVersion: 2
+        x: 368
+        y: 258
+        width: 14
+        height: 14
+      alignment: 9
+      pivot: {x: 0.5, y: 0.2857143}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 920f125858005794d98f3a35844bdbfe
+      internalID: 2044226081
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_16
+      rect:
+        serializedVersion: 2
+        x: 396
+        y: 255
+        width: 24
+        height: 33
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0cffd2bdca6b6924b96b74dfc88aeb65
+      internalID: 819458487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_17
+      rect:
+        serializedVersion: 2
+        x: 426
+        y: 255
+        width: 11
+        height: 25
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 91f161a3f80094b4ba3d8049698cbea2
+      internalID: -1217520061
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_18
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 254
+        width: 37
+        height: 35
+      alignment: 9
+      pivot: {x: 0.4864865, y: 0.22857143}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0689fa94f4336444b8a59919d1f80642
+      internalID: -1826402091
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_19
+      rect:
+        serializedVersion: 2
+        x: 496
+        y: 229
+        width: 98
+        height: 65
+      alignment: 9
+      pivot: {x: 0.5102041, y: 0.44358662}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 16ff4d5fa61fd984aa02d4667da03988
+      internalID: -536001558
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_20
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 202
+        width: 30
+        height: 93
+      alignment: 9
+      pivot: {x: 0.5013835, y: 0.0051456573}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: caa6df5605e5e874dbfc03cb65a8e277
+      internalID: -974932325
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_21
+      rect:
+        serializedVersion: 2
+        x: 643
+        y: 249
+        width: 25
+        height: 46
+      alignment: 9
+      pivot: {x: 0.48, y: 0.08695652}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ec19615387a7642498e3df2118be856d
+      internalID: 1602736434
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_22
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 213
+        width: 29
+        height: 35
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2ce25d795e69ef7428a131724376c4a0
+      internalID: -466200119
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_23
+      rect:
+        serializedVersion: 2
+        x: 58
+        y: 218
+        width: 12
+        height: 27
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 419ee46853f06a64caa84a9b527db870
+      internalID: 1988963000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_24
+      rect:
+        serializedVersion: 2
+        x: 72
+        y: 218
+        width: 7
+        height: 27
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d2ea72c05ab2ec74bbb9086a044b49a5
+      internalID: 1427956955
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_25
+      rect:
+        serializedVersion: 2
+        x: 85
+        y: 217
+        width: 10
+        height: 28
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b67b0ab3e362ab54c943b3bf047d7a60
+      internalID: 296464717
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_26
+      rect:
+        serializedVersion: 2
+        x: 221
+        y: 161
+        width: 5
+        height: 62
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b4526979624089344bdaf0c8eeed03e0
+      internalID: 527720067
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_27
+      rect:
+        serializedVersion: 2
+        x: 252
+        y: 165
+        width: 89
+        height: 57
+      alignment: 9
+      pivot: {x: 0.505618, y: 0.50877196}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e265032de3795884793986afbdd3a874
+      internalID: 389450760
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_28
+      rect:
+        serializedVersion: 2
+        x: 352
+        y: 165
+        width: 10
+        height: 59
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cec5dac64aac94546883606b0454c243
+      internalID: -528244314
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_29
+      rect:
+        serializedVersion: 2
+        x: 370
+        y: 172
+        width: 19
+        height: 50
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: debe1c650c80ef747ad16358f0166e2a
+      internalID: -115839643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_30
+      rect:
+        serializedVersion: 2
+        x: 412
+        y: 219
+        width: 35
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f3772765cfc7daf4087af1e1bf9f4211
+      internalID: -1824066468
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_31
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 153
+        width: 38
+        height: 45
+      alignment: 9
+      pivot: {x: 0.5, y: 0.15555556}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2aedac2315aafcc43a516f98e7651c80
+      internalID: -522431326
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_32
+      rect:
+        serializedVersion: 2
+        x: 166
+        y: 193
+        width: 13
+        height: 12
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b892a5bcf9759fd43af82364bb020097
+      internalID: -1476539668
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_33
+      rect:
+        serializedVersion: 2
+        x: 199
+        y: 162
+        width: 5
+        height: 39
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d4ae52fb81451f247860208a002e63e0
+      internalID: 1804239986
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_34
+      rect:
+        serializedVersion: 2
+        x: 414
+        y: 162
+        width: 41
+        height: 39
+      alignment: 9
+      pivot: {x: 0.48780486, y: 0.33333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fa85a0129898bfa4881c6d4337362c08
+      internalID: 838398481
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_35
+      rect:
+        serializedVersion: 2
+        x: 489
+        y: 171
+        width: 30
+        height: 40
+      alignment: 9
+      pivot: {x: 0.5, y: 0.22500001}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b28baaf855f8dc245b8b11250fba11a5
+      internalID: 1316121899
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_36
+      rect:
+        serializedVersion: 2
+        x: 537
+        y: 171
+        width: 17
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5294118, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 507a7525f4c35fa4f909e51daea1a890
+      internalID: -1897698561
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_37
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 158
+        width: 38
+        height: 28
+      alignment: 9
+      pivot: {x: 0.5, y: 0.107142866}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47a3aedd682678e4a963a64d47a2fbe1
+      internalID: 812901012
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_38
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 158
+        width: 38
+        height: 28
+      alignment: 9
+      pivot: {x: 0.5, y: 0.107142866}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 04a97a0ddfec8b94791dcd654c9ee57e
+      internalID: 2076927218
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_39
+      rect:
+        serializedVersion: 2
+        x: 159
+        y: 158
+        width: 11
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bf732873979aafb4e99030b393f9db51
+      internalID: -1023160343
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_40
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 165
+        width: 9
+        height: 18
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6cb1c0df4aa1ba848b742f46545b6888
+      internalID: 1216054551
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_41
+      rect:
+        serializedVersion: 2
+        x: 568
+        y: 126
+        width: 32
+        height: 40
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e184b22bd09c5fa4c93b25adfd4ab7bb
+      internalID: 201885352
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_42
+      rect:
+        serializedVersion: 2
+        x: 609
+        y: 125
+        width: 42
+        height: 49
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 78ecd8cb0c5e8dd4d9bd093195802ba3
+      internalID: 1207558531
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_43
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 110
+        width: 74
+        height: 31
+      alignment: 9
+      pivot: {x: 0.5, y: 0.22580644}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 65aa6cabd55faeb489acfaeb9b622e30
+      internalID: -1985785078
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_44
+      rect:
+        serializedVersion: 2
+        x: 99
+        y: 104
+        width: 30
+        height: 39
+      alignment: 9
+      pivot: {x: 0.5, y: 0.20512821}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 684a9fb4bdeb0c4469be2e7ce8aa2827
+      internalID: 1255374421
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_45
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 108
+        width: 43
+        height: 37
+      alignment: 9
+      pivot: {x: 0.5116279, y: 0.2702703}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 744bace38d71e2441b75b8f1164fb903
+      internalID: -1628514369
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_46
+      rect:
+        serializedVersion: 2
+        x: 257
+        y: 102
+        width: 44
+        height: 47
+      alignment: 9
+      pivot: {x: 0.5, y: 0.19148935}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5a9e0cea12645a8499698b762b15515a
+      internalID: 1599314615
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_47
+      rect:
+        serializedVersion: 2
+        x: 489
+        y: 140
+        width: 30
+        height: 23
+      alignment: 9
+      pivot: {x: 0.5, y: 0.30434784}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c18a7974bb13aea4db084ce1290b18be
+      internalID: 1172682316
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_48
+      rect:
+        serializedVersion: 2
+        x: 537
+        y: 126
+        width: 17
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5294118, y: 0.6052632}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d58ab5ddbfa95fc4f88cba5212617eef
+      internalID: -1927991312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_49
+      rect:
+        serializedVersion: 2
+        x: 656
+        y: 125
+        width: 44
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 40fd757701a8da241bb3aa6e5fbe3bd7
+      internalID: 1536034388
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_50
+      rect:
+        serializedVersion: 2
+        x: 149
+        y: 109
+        width: 22
+        height: 29
+      alignment: 9
+      pivot: {x: 0.45454547, y: 0.2413793}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4f1e6375b80d67e44b8cbd8e388f1f40
+      internalID: -1843270616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_51
+      rect:
+        serializedVersion: 2
+        x: 310
+        y: 102
+        width: 22
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.21875}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 97fc0445febd56a4c8474affcead04cf
+      internalID: -755898086
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_52
+      rect:
+        serializedVersion: 2
+        x: 344
+        y: 102
+        width: 30
+        height: 36
+      alignment: 9
+      pivot: {x: 0.5, y: 0.2777778}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: af5d63604dec0d146b05855f6b2f3e62
+      internalID: 151648526
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_53
+      rect:
+        serializedVersion: 2
+        x: 381
+        y: 99
+        width: 30
+        height: 39
+      alignment: 9
+      pivot: {x: 0.5, y: 0.23076923}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 23877a6f2ec126e41a56566e9f0b998b
+      internalID: -1995964244
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_54
+      rect:
+        serializedVersion: 2
+        x: 427
+        y: 106
+        width: 15
+        height: 17
+      alignment: 9
+      pivot: {x: 0.6, y: 0.23529412}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ae6a840db7212644fb101ccf66b1233a
+      internalID: 1262338772
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_55
+      rect:
+        serializedVersion: 2
+        x: 451
+        y: 106
+        width: 15
+        height: 18
+      alignment: 9
+      pivot: {x: 0.6, y: 0.22222222}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d8fa277d8a6f87d4a8cd8131a2044027
+      internalID: -611653903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_56
+      rect:
+        serializedVersion: 2
+        x: 609
+        y: 23
+        width: 81
+        height: 87
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a12dff7ea7b6dec4790475d9edf6d150
+      internalID: 1015550541
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_57
+      rect:
+        serializedVersion: 2
+        x: 17
+        y: 73
+        width: 15
+        height: 15
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6763cf4763226184f940e7f1716ffc07
+      internalID: 2115870172
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_58
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 73
+        width: 16
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 41d908a8234932c44965d17184a15ed2
+      internalID: 691485802
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_59
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 73
+        width: 16
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: aaf2d8af8c5bedb46a31fffb14b2fe7e
+      internalID: -868357963
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_60
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 73
+        width: 16
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 87a925fa55ff3e846b8b7f97fa3f8ce1
+      internalID: 946316412
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_61
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 36
+        width: 33
+        height: 56
+      alignment: 9
+      pivot: {x: 0.6060606, y: 0.33928573}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c3518ea763404ec4da835acbc3080277
+      internalID: -148915601
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_62
+      rect:
+        serializedVersion: 2
+        x: 199
+        y: 41
+        width: 30
+        height: 44
+      alignment: 9
+      pivot: {x: 0.5666667, y: 0.38636366}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0da1b2bf4aaae6d4f8396894490b6380
+      internalID: -777137349
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_63
+      rect:
+        serializedVersion: 2
+        x: 254
+        y: 41
+        width: 32
+        height: 42
+      alignment: 9
+      pivot: {x: 0.5, y: 0.45238096}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 400c630f26862904fb6b06da94c85aac
+      internalID: -970561116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_64
+      rect:
+        serializedVersion: 2
+        x: 488
+        y: 80
+        width: 35
+        height: 24
+      alignment: 9
+      pivot: {x: 0.4857143, y: 0.4166667}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: eea0d41e4c61b1a46b630be8b704b2e8
+      internalID: 1354332951
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_65
+      rect:
+        serializedVersion: 2
+        x: 545
+        y: 80
+        width: 35
+        height: 24
+      alignment: 9
+      pivot: {x: 0.4857143, y: 0.33333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 08383e8476b59fe4f8e23eb9d86d33bf
+      internalID: -111161431
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_66
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 56
+        width: 16
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d46d9d94e05b51a458b4a22b80d9f59c
+      internalID: -1712907986
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_67
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 55
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 51f3aaaf53983c649875207b4a02da83
+      internalID: 2139541789
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_68
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 55
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 63f14db4faf144248967d358314b54be
+      internalID: -812428654
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_69
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 55
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 262d27def0cacd84ba3007af5745b68c
+      internalID: 1934570215
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_70
+      rect:
+        serializedVersion: 2
+        x: 146
+        y: 37
+        width: 36
+        height: 40
+      alignment: 9
+      pivot: {x: 0.5555556, y: 0.425}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 103e0415e5d12634e8f3ebf1162ab003
+      internalID: -2124153980
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_71
+      rect:
+        serializedVersion: 2
+        x: 298
+        y: 37
+        width: 30
+        height: 39
+      alignment: 9
+      pivot: {x: 0.5, y: 0.41025642}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 455dcc1b6f97f484786aa082a99cb68a
+      internalID: -613457101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_72
+      rect:
+        serializedVersion: 2
+        x: 337
+        y: 38
+        width: 30
+        height: 39
+      alignment: 9
+      pivot: {x: 0.5, y: 0.43589744}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 712777ff639a5f64885be4f8f853e5d7
+      internalID: 407054898
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_73
+      rect:
+        serializedVersion: 2
+        x: 381
+        y: 38
+        width: 30
+        height: 39
+      alignment: 9
+      pivot: {x: 0.4666667, y: 0.43589744}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d67e7336b9c33fd45a27cb1988b1047c
+      internalID: -925445493
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_74
+      rect:
+        serializedVersion: 2
+        x: 430
+        y: 41
+        width: 32
+        height: 26
+      alignment: 9
+      pivot: {x: 0.5, y: 0.34615386}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 82cb8668d2d2d734585235ddd4542cac
+      internalID: 1110162393
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_75
+      rect:
+        serializedVersion: 2
+        x: 525
+        y: 15
+        width: 59
+        height: 56
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9f7933180bfed4240b68a27842dabafd
+      internalID: 1935554953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_76
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 37
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b0021e6ef7b863a468934d96711b88fd
+      internalID: -893947735
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_77
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 37
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 03838bf2e59d44e47a7dc924c71d006e
+      internalID: 684180417
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_78
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 37
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 44c7b27bab55432449f6e5141cf8b402
+      internalID: -912457285
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_79
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 37
+        width: 16
+        height: 17
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b41a39aa3c1fd514f84b0cec8d2e3ce8
+      internalID: 633962031
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WoodenElements_80
+      rect:
+        serializedVersion: 2
+        x: 159
+        y: 156
+        width: 24
+        height: 50
+      alignment: 9
+      pivot: {x: 0.5416667, y: 0.04}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 65fdcf35cf40d2e4183f7e5501b17685
+      internalID: -1018200337
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      WoodenElements_0: -2037282826
+      WoodenElements_1: 727243172
+      WoodenElements_10: -1281671101
+      WoodenElements_11: -308519801
+      WoodenElements_12: 825614808
+      WoodenElements_13: 1667146733
+      WoodenElements_14: -1499005825
+      WoodenElements_15: 2044226081
+      WoodenElements_16: 819458487
+      WoodenElements_17: -1217520061
+      WoodenElements_18: -1826402091
+      WoodenElements_19: -536001558
+      WoodenElements_2: 613030757
+      WoodenElements_20: -974932325
+      WoodenElements_21: 1602736434
+      WoodenElements_22: -466200119
+      WoodenElements_23: 1988963000
+      WoodenElements_24: 1427956955
+      WoodenElements_25: 296464717
+      WoodenElements_26: 527720067
+      WoodenElements_27: 389450760
+      WoodenElements_28: -528244314
+      WoodenElements_29: -115839643
+      WoodenElements_3: -2031389411
+      WoodenElements_30: -1824066468
+      WoodenElements_31: -522431326
+      WoodenElements_32: -1476539668
+      WoodenElements_33: 1804239986
+      WoodenElements_34: 838398481
+      WoodenElements_35: 1316121899
+      WoodenElements_36: -1897698561
+      WoodenElements_37: 812901012
+      WoodenElements_38: 2076927218
+      WoodenElements_39: -1023160343
+      WoodenElements_4: 1261053109
+      WoodenElements_40: 1216054551
+      WoodenElements_41: 201885352
+      WoodenElements_42: 1207558531
+      WoodenElements_43: -1985785078
+      WoodenElements_44: 1255374421
+      WoodenElements_45: -1628514369
+      WoodenElements_46: 1599314615
+      WoodenElements_47: 1172682316
+      WoodenElements_48: -1927991312
+      WoodenElements_49: 1536034388
+      WoodenElements_5: 1915159962
+      WoodenElements_50: -1843270616
+      WoodenElements_51: -755898086
+      WoodenElements_52: 151648526
+      WoodenElements_53: -1995964244
+      WoodenElements_54: 1262338772
+      WoodenElements_55: -611653903
+      WoodenElements_56: 1015550541
+      WoodenElements_57: 2115870172
+      WoodenElements_58: 691485802
+      WoodenElements_59: -868357963
+      WoodenElements_6: 72708103
+      WoodenElements_60: 946316412
+      WoodenElements_61: -148915601
+      WoodenElements_62: -777137349
+      WoodenElements_63: -970561116
+      WoodenElements_64: 1354332951
+      WoodenElements_65: -111161431
+      WoodenElements_66: -1712907986
+      WoodenElements_67: 2139541789
+      WoodenElements_68: -812428654
+      WoodenElements_69: 1934570215
+      WoodenElements_7: 1509853641
+      WoodenElements_70: -2124153980
+      WoodenElements_71: -613457101
+      WoodenElements_72: 407054898
+      WoodenElements_73: -925445493
+      WoodenElements_74: 1110162393
+      WoodenElements_75: 1935554953
+      WoodenElements_76: -893947735
+      WoodenElements_77: 684180417
+      WoodenElements_78: -912457285
+      WoodenElements_79: 633962031
+      WoodenElements_8: 1958473427
+      WoodenElements_80: -1018200337
+      WoodenElements_9: 2024020481
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
