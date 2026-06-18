@@ -1,0 +1,787 @@
+fileFormatVersion: 2
+guid: e92679c27342c5e4094aba9301101693
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_0
+      rect:
+        serializedVersion: 2
+        x: 20
+        y: 223
+        width: 108
+        height: 200
+      alignment: 9
+      pivot: {x: 0.537037, y: 0.035}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1d2467873ad1eaf42bad1c3431e7ceaf
+      internalID: -560974825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_1
+      rect:
+        serializedVersion: 2
+        x: 142
+        y: 221
+        width: 109
+        height: 202
+      alignment: 9
+      pivot: {x: 0.46788988, y: 0.034653466}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fbdcb1dfca02a074a8e8fa698c69e631
+      internalID: 1331325197
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_2
+      rect:
+        serializedVersion: 2
+        x: 255
+        y: 295
+        width: 77
+        height: 122
+      alignment: 9
+      pivot: {x: 0.5584416, y: 0.049180325}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c240b587965bf44cacda709661a4d6d
+      internalID: -980988308
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_3
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 270
+        width: 55
+        height: 154
+      alignment: 9
+      pivot: {x: 0.5272727, y: 0.045454547}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2fd7ce81da1691245b589cb1b676e774
+      internalID: -1353585315
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_4
+      rect:
+        serializedVersion: 2
+        x: 398
+        y: 265
+        width: 66
+        height: 174
+      alignment: 9
+      pivot: {x: 0.5, y: 0.03448276}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dbe4ff7098dc72d44b38c82164b7adad
+      internalID: -1734214446
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_5
+      rect:
+        serializedVersion: 2
+        x: 470
+        y: 153
+        width: 110
+        height: 285
+      alignment: 9
+      pivot: {x: 0.47272727, y: 0.03508772}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 81175a11d538f3044a8d929e82631a74
+      internalID: -1905028375
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_6
+      rect:
+        serializedVersion: 2
+        x: 586
+        y: 224
+        width: 124
+        height: 204
+      alignment: 9
+      pivot: {x: 0.48387095, y: 0.039215688}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8dd78c4d942e728409e8786babcb8505
+      internalID: -1686383565
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_7
+      rect:
+        serializedVersion: 2
+        x: 45
+        y: 38
+        width: 66
+        height: 154
+      alignment: 9
+      pivot: {x: 0.5, y: 0.038961038}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 594948fe5ac974447bad650b43b5d561
+      internalID: -1611063101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_8
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 12
+        width: 109
+        height: 198
+      alignment: 9
+      pivot: {x: 0.4587156, y: 0.045454547}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3cf515d548d21ec498509c466b7086b3
+      internalID: 177251968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_9
+      rect:
+        serializedVersion: 2
+        x: 252
+        y: 54
+        width: 137
+        height: 207
+      alignment: 9
+      pivot: {x: 0.5328467, y: 0.057971016}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ce432492e55f7c54fa4a87faf73dd170
+      internalID: -1094367890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_10
+      rect:
+        serializedVersion: 2
+        x: 403
+        y: 122
+        width: 55
+        height: 138
+      alignment: 9
+      pivot: {x: 0.5090909, y: 0.057971016}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab676a69f5f144e499474f4a1702b103
+      internalID: 1029687905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_11
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 124
+        width: 15
+        height: 22
+      alignment: 9
+      pivot: {x: 0.53333336, y: 0.18181819}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c59b16efd743576419667e3f1ccbcc10
+      internalID: -42171683
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_12
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 126
+        width: 15
+        height: 19
+      alignment: 9
+      pivot: {x: 0.53333336, y: 0.21052632}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fa3e7b18ce8e4e74ea142aaefd9a4a63
+      internalID: -1925256490
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_13
+      rect:
+        serializedVersion: 2
+        x: 521
+        y: 123
+        width: 17
+        height: 22
+      alignment: 9
+      pivot: {x: 0.47058824, y: 0.22727273}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2bf461e5fde8cf049b3fdbddbbf0d49a
+      internalID: 1931558003
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_14
+      rect:
+        serializedVersion: 2
+        x: 541
+        y: 122
+        width: 23
+        height: 25
+      alignment: 9
+      pivot: {x: 0.47826087, y: 0.19999999}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 31aedd02c16061148b7f97f45ddce5fa
+      internalID: 1811927614
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_15
+      rect:
+        serializedVersion: 2
+        x: 606
+        y: 66
+        width: 84
+        height: 143
+      alignment: 9
+      pivot: {x: 0.5595238, y: 0.04895105}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dfebc17be3eaf0f48934669ff0777e0d
+      internalID: -2094426808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_16
+      rect:
+        serializedVersion: 2
+        x: 415
+        y: 59
+        width: 48
+        height: 51
+      alignment: 9
+      pivot: {x: 0.5208334, y: 0.15686275}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0cff3586545b815428e19640e8aca6bc
+      internalID: 1407962601
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_17
+      rect:
+        serializedVersion: 2
+        x: 470
+        y: 67
+        width: 40
+        height: 42
+      alignment: 9
+      pivot: {x: 0.52500004, y: 0.16666667}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 206ae874993346046931a6a2748104c7
+      internalID: -143079366
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_18
+      rect:
+        serializedVersion: 2
+        x: 516
+        y: 67
+        width: 35
+        height: 29
+      alignment: 9
+      pivot: {x: 0.51428574, y: 0.13793103}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e90aa191cfebdfc46add0a639ce80c8b
+      internalID: 1471466701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_19
+      rect:
+        serializedVersion: 2
+        x: 563
+        y: 68
+        width: 19
+        height: 20
+      alignment: 9
+      pivot: {x: 0.5263158, y: 0.15}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c1d1fe4ac670944f98bf65095ae6f94
+      internalID: -1868084023
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_20
+      rect:
+        serializedVersion: 2
+        x: 677
+        y: 11
+        width: 40
+        height: 60
+      alignment: 9
+      pivot: {x: 0.52500004, y: 0.23333335}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ad2cc3ecd23f5d449b46a7c9df04b6ac
+      internalID: -289644673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_21
+      rect:
+        serializedVersion: 2
+        x: 409
+        y: 3
+        width: 52
+        height: 45
+      alignment: 9
+      pivot: {x: 0.5192308, y: 0.11111111}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2e9ca6c79541fd94e8651487713e105e
+      internalID: -1600867934
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_22
+      rect:
+        serializedVersion: 2
+        x: 475
+        y: 4
+        width: 53
+        height: 56
+      alignment: 9
+      pivot: {x: 0.5283019, y: 0.107142866}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2300e9e67ec0ad74ba8aa032b07a081b
+      internalID: -365369807
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_23
+      rect:
+        serializedVersion: 2
+        x: 547
+        y: 10
+        width: 53
+        height: 45
+      alignment: 9
+      pivot: {x: 0.5283019, y: 0.31111112}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3689d127bb48cbb438136f15cfb2df27
+      internalID: -551462081
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_24
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 15
+        width: 48
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5416667, y: 0.34210527}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5a207d1dbcb840441b24e436cf9bf200
+      internalID: -1965915893
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_25
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 50
+        width: 26
+        height: 64
+      alignment: 9
+      pivot: {x: 0.53163445, y: 0.06856483}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e7b5378ac09bf7c419b4b2ec0650afac
+      internalID: 529884599
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_26
+      rect:
+        serializedVersion: 2
+        x: 14
+        y: 164
+        width: 23
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c38c84b2cc6872249b2a77f3a3aa4799
+      internalID: -576835681
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SnowTreesSpriteSheet_27
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 120
+        width: 37
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 662ec65bd5b916b4785d78db23f8479b
+      internalID: -403615326
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      SnowTreesSpriteSheet_0: -560974825
+      SnowTreesSpriteSheet_1: 1331325197
+      SnowTreesSpriteSheet_10: 1029687905
+      SnowTreesSpriteSheet_11: -42171683
+      SnowTreesSpriteSheet_12: -1925256490
+      SnowTreesSpriteSheet_13: 1931558003
+      SnowTreesSpriteSheet_14: 1811927614
+      SnowTreesSpriteSheet_15: -2094426808
+      SnowTreesSpriteSheet_16: 1407962601
+      SnowTreesSpriteSheet_17: -143079366
+      SnowTreesSpriteSheet_18: 1471466701
+      SnowTreesSpriteSheet_19: -1868084023
+      SnowTreesSpriteSheet_2: -980988308
+      SnowTreesSpriteSheet_20: -289644673
+      SnowTreesSpriteSheet_21: -1600867934
+      SnowTreesSpriteSheet_22: -365369807
+      SnowTreesSpriteSheet_23: -551462081
+      SnowTreesSpriteSheet_24: -1965915893
+      SnowTreesSpriteSheet_25: 529884599
+      SnowTreesSpriteSheet_26: -576835681
+      SnowTreesSpriteSheet_27: -403615326
+      SnowTreesSpriteSheet_3: -1353585315
+      SnowTreesSpriteSheet_4: -1734214446
+      SnowTreesSpriteSheet_5: -1905028375
+      SnowTreesSpriteSheet_6: -1686383565
+      SnowTreesSpriteSheet_7: -1611063101
+      SnowTreesSpriteSheet_8: 177251968
+      SnowTreesSpriteSheet_9: -1094367890
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

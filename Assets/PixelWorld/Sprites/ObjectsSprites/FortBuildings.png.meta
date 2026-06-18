@@ -1,0 +1,557 @@
+fileFormatVersion: 2
+guid: 8e05ba4be8beb734996bb9a6ffe73664
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: FortBuildings_0
+      rect:
+        serializedVersion: 2
+        x: 37
+        y: 554
+        width: 280
+        height: 425
+      alignment: 9
+      pivot: {x: 0.50357145, y: 0.009411764}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f36e5f87ba59a8147b11bd794fd86996
+      internalID: -1138489801
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_1
+      rect:
+        serializedVersion: 2
+        x: 369
+        y: 792
+        width: 295
+        height: 215
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0b5e05bde214a444b928f74b4b456c30
+      internalID: -2017522675
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_2
+      rect:
+        serializedVersion: 2
+        x: 747
+        y: 792
+        width: 363
+        height: 208
+      alignment: 9
+      pivot: {x: 0.5013774, y: 0.043269232}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0497286b841ece74ea6824bd189fc706
+      internalID: -2117036145
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_3
+      rect:
+        serializedVersion: 2
+        x: 1136
+        y: 792
+        width: 363
+        height: 208
+      alignment: 9
+      pivot: {x: 0.5013774, y: 0.028846156}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df4753865c883cc468557e53d9c4f573
+      internalID: 893942015
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_4
+      rect:
+        serializedVersion: 2
+        x: 360
+        y: 554
+        width: 295
+        height: 215
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 601f42c19761d224694aa91e09d479b0
+      internalID: -246059479
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_5
+      rect:
+        serializedVersion: 2
+        x: 680
+        y: 475
+        width: 143
+        height: 299
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4f6cd04dce582b646833a55daa80206a
+      internalID: -1497507268
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_6
+      rect:
+        serializedVersion: 2
+        x: 897
+        y: 544
+        width: 191
+        height: 218
+      alignment: 9
+      pivot: {x: 0.5078534, y: 0.7798165}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 64b1bb2a5e0b8634c8429f51538d4d45
+      internalID: -762478158
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_7
+      rect:
+        serializedVersion: 2
+        x: 1148
+        y: 646
+        width: 340
+        height: 116
+      alignment: 9
+      pivot: {x: 0.5, y: 0.61206895}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9135226f8ca5de144bf99ed2b56113eb
+      internalID: 1123497250
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_8
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 348
+        width: 258
+        height: 159
+      alignment: 9
+      pivot: {x: 0.5426357, y: 0.7484276}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cf2add3d465b98042bd2dd9c6bb61ea3
+      internalID: -1199916476
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_9
+      rect:
+        serializedVersion: 2
+        x: 360
+        y: 320
+        width: 295
+        height: 215
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0af7da81bcfc20a4b9f9ad23a0bd4f61
+      internalID: -982870418
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_10
+      rect:
+        serializedVersion: 2
+        x: 691
+        y: 263
+        width: 122
+        height: 208
+      alignment: 9
+      pivot: {x: 0.5081967, y: 0.80288464}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5ac3c313ad3438241acef71f05002a1b
+      internalID: -2142766314
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_11
+      rect:
+        serializedVersion: 2
+        x: 829
+        y: 62
+        width: 223
+        height: 454
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 692ee158374338d459b7cd7a2264cdf2
+      internalID: -574738610
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_12
+      rect:
+        serializedVersion: 2
+        x: 1063
+        y: 60
+        width: 223
+        height: 454
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f40c9cb1f5855ce4e82a726aa93e1c0d
+      internalID: 470640544
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_13
+      rect:
+        serializedVersion: 2
+        x: 1297
+        y: 62
+        width: 223
+        height: 473
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f8b83a27fb0769e4eafea539e8ce8e40
+      internalID: -1962530316
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_14
+      rect:
+        serializedVersion: 2
+        x: 115
+        y: 160
+        width: 191
+        height: 160
+      alignment: 9
+      pivot: {x: 0.4973822, y: 0.76875}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 55499612ee335b14c950a5ff1f2dee51
+      internalID: 970430994
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_15
+      rect:
+        serializedVersion: 2
+        x: 369
+        y: 185
+        width: 277
+        height: 116
+      alignment: 9
+      pivot: {x: 0.49819493, y: 0.69827586}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1a712647236780d4c830d75415c8ec40
+      internalID: -871400638
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_16
+      rect:
+        serializedVersion: 2
+        x: 691
+        y: 51
+        width: 122
+        height: 208
+      alignment: 9
+      pivot: {x: 0.48360652, y: 0.82692313}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4dea27e8cd7d0a2409979a0cd4aea9cb
+      internalID: 1408508357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FortBuildings_17
+      rect:
+        serializedVersion: 2
+        x: 369
+        y: 52
+        width: 277
+        height: 116
+      alignment: 9
+      pivot: {x: 0.5090253, y: 0.6896552}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 31ed2ddee92409c4abadfa9716578286
+      internalID: 2136751042
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      FortBuildings_0: -1138489801
+      FortBuildings_1: -2017522675
+      FortBuildings_10: -2142766314
+      FortBuildings_11: -574738610
+      FortBuildings_12: 470640544
+      FortBuildings_13: -1962530316
+      FortBuildings_14: 970430994
+      FortBuildings_15: -871400638
+      FortBuildings_16: 1408508357
+      FortBuildings_17: 2136751042
+      FortBuildings_2: -2117036145
+      FortBuildings_3: 893942015
+      FortBuildings_4: -246059479
+      FortBuildings_5: -1497507268
+      FortBuildings_6: -762478158
+      FortBuildings_7: 1123497250
+      FortBuildings_8: -1199916476
+      FortBuildings_9: -982870418
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
