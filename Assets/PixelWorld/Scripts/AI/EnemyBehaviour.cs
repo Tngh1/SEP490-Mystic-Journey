@@ -50,6 +50,13 @@ public class EnemyBehaviour : MonoBehaviour
     private void Awake()
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
+        if (navMeshAgent == null)
+        {
+            enabled = false;
+            Debug.LogWarning($"[EnemyBehaviour] Missing NavMeshAgent on {name}.");
+            return;
+        }
+
         navMeshAgent.updateRotation = false;
         navMeshAgent.updateUpAxis = false;
         currentState = startingState;
@@ -65,7 +72,9 @@ public class EnemyBehaviour : MonoBehaviour
 
     public void SetDeathState()
     {
-        navMeshAgent.ResetPath();
+        if (CanUseNavMeshAgent())
+            navMeshAgent.ResetPath();
+
         currentState = State.Death;
     }
 
@@ -100,17 +109,28 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void ChasingTarget()
     {
-        navMeshAgent.SetDestination(PlayerBehaviour.Instance.transform.position);
+        var target = GetPlayerTarget();
+        if (target == null || !CanUseNavMeshAgent())
+            return;
+
+        navMeshAgent.SetDestination(target.position);
     }
 
     public float GetRoamingAnimationSpeed()
     {
+        if (roamingSpeed <= 0f || navMeshAgent == null)
+            return 0f;
+
         return navMeshAgent.speed / roamingSpeed;
     }
 
     private void CheckCurrentState()
     {
-        float distanceToPlayer = Vector3.Distance(transform.position, PlayerBehaviour.Instance.transform.position);
+        var target = GetPlayerTarget();
+        if (target == null)
+            return;
+
+        float distanceToPlayer = Vector3.Distance(transform.position, target.position);
         State newState = State.Roaming;
 
         if (isChasingEnemy)
@@ -133,17 +153,22 @@ public class EnemyBehaviour : MonoBehaviour
         {
             if (newState == State.Chasing)
             {
-                navMeshAgent.ResetPath();
-                navMeshAgent.speed = chasingSpeed;
+                if (CanUseNavMeshAgent())
+                {
+                    navMeshAgent.ResetPath();
+                    navMeshAgent.speed = chasingSpeed;
+                }
             }
             else if (newState == State.Roaming)
             {
                 roamingTime = 0f;
-                navMeshAgent.speed = roamingSpeed;
+                if (navMeshAgent != null)
+                    navMeshAgent.speed = roamingSpeed;
             }
             else if (newState == State.Attack)
             {
-                navMeshAgent.ResetPath();
+                if (CanUseNavMeshAgent())
+                    navMeshAgent.ResetPath();
             }
 
             currentState = newState;
@@ -154,7 +179,7 @@ public class EnemyBehaviour : MonoBehaviour
     {
         get
         {
-            return navMeshAgent.velocity.magnitude > 0.1f;
+            return navMeshAgent != null && navMeshAgent.velocity.magnitude > 0.1f;
         }
     }
 
@@ -171,13 +196,15 @@ public class EnemyBehaviour : MonoBehaviour
     {
         if (Time.time > nextCheckDirectionTime)
         {
+            var target = GetPlayerTarget();
+
             if (IsRunning)
             {
                 ChangeFaceDir(lastPosition, transform.position);
             }
-            else if (currentState == State.Attack)
+            else if (currentState == State.Attack && target != null)
             {
-                ChangeFaceDir(transform.position, PlayerBehaviour.Instance.transform.position);
+                ChangeFaceDir(transform.position, target.position);
             }
 
             lastPosition = transform.position;
@@ -187,6 +214,9 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void Roaming()
     {
+        if (!CanUseNavMeshAgent())
+            return;
+
         roamPosition = GetRoamingPosition();
         navMeshAgent.SetDestination(roamPosition);
     }
@@ -206,5 +236,24 @@ public class EnemyBehaviour : MonoBehaviour
         {
             transform.rotation = Quaternion.Euler(0, 0, 0);
         }
+    }
+
+    private static Transform GetPlayerTarget()
+    {
+        if (PlayerBehaviour.Instance != null)
+            return PlayerBehaviour.Instance.transform;
+
+        if (PlayerMovement.Instance != null)
+            return PlayerMovement.Instance.transform;
+
+        return null;
+    }
+
+    private bool CanUseNavMeshAgent()
+    {
+        return navMeshAgent != null &&
+               navMeshAgent.enabled &&
+               navMeshAgent.isActiveAndEnabled &&
+               navMeshAgent.isOnNavMesh;
     }
 }

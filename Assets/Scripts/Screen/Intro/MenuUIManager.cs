@@ -12,8 +12,8 @@ public class MenuUIManager : MonoBehaviour
 
     private void Start()
     {
-        startPanel.SetActive(true);
-        loginPanel.SetActive(false);
+        startPanel.SetActive(false);
+        loginPanel.SetActive(true);
         websitePanel.SetActive(true);   // hiện nút Website
     }
 
