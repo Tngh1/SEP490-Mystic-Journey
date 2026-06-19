@@ -6,6 +6,20 @@ namespace MysticJourney.Screen.GameSetting
 {
     public class GameSettingUIManager : MonoBehaviour
     {
+        [System.Serializable]
+        private class SettingState
+        {
+            public float MasterVolume;
+            public float MusicVolume;
+            public float SfxVolume;
+
+            public bool MuteAll;
+            public bool DamageNumbers;
+
+            public int DisplayMode;
+            public int Resolution;
+        }
+
         [Header("Audio")]
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
@@ -17,29 +31,44 @@ namespace MysticJourney.Screen.GameSetting
         [SerializeField] private TMP_Dropdown resolutionDropdown;
         [SerializeField] private ToggleButtonUI damageNumbersToggle;
 
-        [Header("Buttons")]
+        [Header("Main Buttons")]
         [SerializeField] private Button saveChangeButton;
+        [SerializeField] private Button settingsCloseButton;
+
+        [Header("Confirm Popup")]
+        [SerializeField] private GameObject confirmPanel;
+        [SerializeField] private Button popupOkButton;
+        [SerializeField] private Button popupCloseButton;
+
+        private SettingState savedState;
 
         private void Start()
         {
-            if (saveChangeButton != null)
-                saveChangeButton.onClick.AddListener(OnSaveChangeClicked);
+            if (confirmPanel != null)
+                confirmPanel.SetActive(false);
+
+            saveChangeButton?.onClick.AddListener(OnSaveChangeClicked);
+            settingsCloseButton?.onClick.AddListener(OnSettingsCloseClicked);
+
+            popupOkButton?.onClick.AddListener(OnPopupOkClicked);
+            popupCloseButton?.onClick.AddListener(OnPopupCloseClicked);
 
             LoadCurrentSettings();
         }
 
         private void OnDestroy()
         {
-            if (saveChangeButton != null)
-                saveChangeButton.onClick.RemoveListener(OnSaveChangeClicked);
+            saveChangeButton?.onClick.RemoveListener(OnSaveChangeClicked);
+            settingsCloseButton?.onClick.RemoveListener(OnSettingsCloseClicked);
+
+            popupOkButton?.onClick.RemoveListener(OnPopupOkClicked);
+            popupCloseButton?.onClick.RemoveListener(OnPopupCloseClicked);
         }
 
-        /// <summary>
-        /// Load setting hiện tại lên UI.
-        /// Sau này có thể gọi API lấy GameSetting rồi set vào đây.
-        /// </summary>
         private void LoadCurrentSettings()
         {
+            // TODO: Sau này load từ API hoặc PlayerPrefs
+
             if (masterVolumeSlider != null)
                 masterVolumeSlider.value = 1f;
 
@@ -60,14 +89,55 @@ namespace MysticJourney.Screen.GameSetting
 
             if (damageNumbersToggle != null)
                 damageNumbersToggle.isOn = true;
+
+            savedState = CaptureCurrentState();
         }
 
-        /// <summary>
-        /// Click Save Change.
-        /// Hiện tại chỉ log ra Console.
-        /// Sau này thay bằng gọi API SaveGameSettings().
-        /// </summary>
-        public void OnSaveChangeClicked()
+        private void OnSaveChangeClicked()
+        {
+            SaveSettings();
+
+            savedState = CaptureCurrentState();
+
+            Debug.Log("[GameSettingUIManager] Settings Saved.");
+        }
+
+        private void OnSettingsCloseClicked()
+        {
+            if (HasUnsavedChanges())
+            {
+                if (confirmPanel != null)
+                    confirmPanel.SetActive(true);
+
+                return;
+            }
+
+            CloseSettingsPanel();
+        }
+
+        private void OnPopupOkClicked()
+        {
+            SaveSettings();
+
+            savedState = CaptureCurrentState();
+
+            if (confirmPanel != null)
+                confirmPanel.SetActive(false);
+
+            CloseSettingsPanel();
+        }
+
+        private void OnPopupCloseClicked()
+        {
+            if (confirmPanel != null)
+                confirmPanel.SetActive(false);
+
+            CloseSettingsPanel();
+
+            Debug.Log("[GameSettingUIManager] Closed without saving.");
+        }
+
+        private void SaveSettings()
         {
             string displayMode = GetDropdownText(displayModeDropdown);
             string resolution = GetDropdownText(resolutionDropdown);
@@ -84,6 +154,50 @@ namespace MysticJourney.Screen.GameSetting
             Debug.Log($"DamageNumber : {damageNumbersToggle?.isOn}");
 
             Debug.Log("=================================================");
+
+            // TODO:
+            // Call API SaveGameSettings()
+            // hoặc PlayerPrefs.Save()
+        }
+
+        private void CloseSettingsPanel()
+        {
+            gameObject.SetActive(false);
+        }
+
+        private SettingState CaptureCurrentState()
+        {
+            return new SettingState
+            {
+                MasterVolume = masterVolumeSlider != null ? masterVolumeSlider.value : 0f,
+                MusicVolume = musicVolumeSlider != null ? musicVolumeSlider.value : 0f,
+                SfxVolume = sfxVolumeSlider != null ? sfxVolumeSlider.value : 0f,
+
+                MuteAll = muteAllToggle != null && muteAllToggle.isOn,
+                DamageNumbers = damageNumbersToggle != null && damageNumbersToggle.isOn,
+
+                DisplayMode = displayModeDropdown != null ? displayModeDropdown.value : 0,
+                Resolution = resolutionDropdown != null ? resolutionDropdown.value : 0
+            };
+        }
+
+        private bool HasUnsavedChanges()
+        {
+            if (savedState == null)
+                return false;
+
+            SettingState current = CaptureCurrentState();
+
+            return
+                !Mathf.Approximately(current.MasterVolume, savedState.MasterVolume) ||
+                !Mathf.Approximately(current.MusicVolume, savedState.MusicVolume) ||
+                !Mathf.Approximately(current.SfxVolume, savedState.SfxVolume) ||
+
+                current.MuteAll != savedState.MuteAll ||
+                current.DamageNumbers != savedState.DamageNumbers ||
+
+                current.DisplayMode != savedState.DisplayMode ||
+                current.Resolution != savedState.Resolution;
         }
 
         private string GetDropdownText(TMP_Dropdown dropdown)
