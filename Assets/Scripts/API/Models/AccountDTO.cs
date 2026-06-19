@@ -21,6 +21,8 @@ namespace MysticJourney.API.Models.Response
         public int RoleId { get; set; }
         public int? PlayerProfileId { get; set; }      // null nếu chưa tạo profile
         public string PlayerDisplayName { get; set; }
+        public string PlayerClass { get; set; }
+        public int Level { get; set; }
         public string LastMapName { get; set; }
         public double PositionX { get; set; }
         public double PositionY { get; set; }
@@ -38,6 +40,9 @@ namespace MysticJourney.API.Models.Response
         public string UserName { get; set; }
         public string Email { get; set; }
         public string Role { get; set; }
+        public int? PlayerProfileId { get; set; }
+        public string PlayerClass { get; set; }
+        public int Level { get; set; }
         public string LastMapName { get; set; }
         public double PositionX { get; set; }
         public double PositionY { get; set; }

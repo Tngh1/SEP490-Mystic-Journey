@@ -43,7 +43,10 @@ namespace MysticJourney.API.Endpoints
                 response =>
                 {
                     if (response.Success && response.Data != null)
+                    {
+                        WorldState.PlayerProfileId = response.Data.PlayerProfileId;
                         ApplyWorldPosition(response.Data.Position);
+                    }
                     onSuccess?.Invoke(response.Data);
                 },
                 onError,
