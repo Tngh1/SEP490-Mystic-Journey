@@ -1,4 +1,6 @@
-using System.Collections;
+ï»¿using System.Collections;
+using MysticJourney.API.Core;
+using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,44 +10,53 @@ public class GameBootstrap : MonoBehaviour
     {
         Debug.Log("=== GAME BOOTSTRAP START ===");
 
-        // ?? 1. GI? L?P LOGIN (load data t? DB)
-        MockLoginData();
-
-        // ?? 2. Load Scene Main (UI + EventSystem)
+        yield return LoadWorldSession();
         yield return SceneManager.LoadSceneAsync("Main", LoadSceneMode.Additive);
 
-        // ?? 3. B?o hi?m n?u login không có map
-        if (string.IsNullOrEmpty(WorldState.CurrentMapName))
-        {
-            Debug.LogWarning("Không có map t? login -> dùng map m?c ??nh");
+        if (string.IsNullOrWhiteSpace(WorldState.CurrentMapName))
             WorldState.CurrentMapName = "ElfForest";
-        }
 
-        // ?? 4. Load Map t? data login
         yield return SceneManager.LoadSceneAsync(WorldState.CurrentMapName, LoadSceneMode.Additive);
 
-        // ?? 5. Set Main làm active scene (r?t nên có)
-        Scene mainScene = SceneManager.GetSceneByName("Main");
-        SceneManager.SetActiveScene(mainScene);
+        var mainScene = SceneManager.GetSceneByName("Main");
+        if (mainScene.IsValid())
+            SceneManager.SetActiveScene(mainScene);
 
         Debug.Log("=== LOAD DONE ===");
-
-        // ?? 6. Xóa bootstrap
         Destroy(gameObject);
     }
 
-    private void MockLoginData()
+    private IEnumerator LoadWorldSession()
     {
-        PlayerProfileDto profile = new PlayerProfileDto
+        var done = false;
+
+        if (ApiClient.Instance.HasToken())
         {
-            LastMapName = "ElfForest",
-            PositionX = 125.5f,
-            PositionY = 50.2f
-        };
+            AuthApi.Instance.GetMe(
+                _ => done = true,
+                error =>
+                {
+                    Debug.LogWarning($"[GameBootstrap] GetMe failed, using local world session. {error.Message}");
+                    LoadLocalWorldSession();
+                    done = true;
+                }
+            );
 
-        WorldState.CurrentMapName = profile.LastMapName;
-        WorldState.LastPosition = new Vector3(profile.PositionX, profile.PositionY, 0f);
+            yield return new WaitUntil(() => done);
+            yield break;
+        }
 
-        Debug.Log("[Mock Login] ?ã load data t? DB gi?");
+        LoadLocalWorldSession();
+        yield return null;
+    }
+
+    private static void LoadLocalWorldSession()
+    {
+        var mapName = PlayerPrefs.GetString(ApiConfig.LastMapNameKey, "ElfForest");
+        var x = PlayerPrefs.GetFloat(ApiConfig.PositionXKey, 0f);
+        var y = PlayerPrefs.GetFloat(ApiConfig.PositionYKey, 0f);
+
+        WorldState.CurrentMapName = string.IsNullOrWhiteSpace(mapName) ? "ElfForest" : mapName.Trim();
+        WorldState.LastPosition = new Vector3(x, y, 0f);
     }
 }

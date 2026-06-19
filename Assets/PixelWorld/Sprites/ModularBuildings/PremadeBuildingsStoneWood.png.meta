@@ -1,0 +1,732 @@
+fileFormatVersion: 2
+guid: 6bd3a7b6983627049ad395adc4964023
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_0
+      rect:
+        serializedVersion: 2
+        x: 41
+        y: 1096
+        width: 259
+        height: 360
+      alignment: 9
+      pivot: {x: 0.5019305, y: 0.008333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 101bef30a11df8c4e8f453707afd7018
+      internalID: -1612855738
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_1
+      rect:
+        serializedVersion: 2
+        x: 325
+        y: 1216
+        width: 277
+        height: 262
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 460151ea82fe83f4d99cfa47554600a1
+      internalID: 1661451400
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_2
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 1228
+        width: 96
+        height: 148
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 73f7d9bba66fc7a408d19938a0749367
+      internalID: 1557088067
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_3
+      rect:
+        serializedVersion: 2
+        x: 744
+        y: 1228
+        width: 64
+        height: 262
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e9fd3f931d9c2584cb3f711aa3a80f4a
+      internalID: 850815057
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_4
+      rect:
+        serializedVersion: 2
+        x: 846
+        y: 1223
+        width: 146
+        height: 247
+      alignment: 9
+      pivot: {x: 0.49315068, y: 0.016194332}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 28732aa1a4784c34d83ae33cb683d661
+      internalID: -1057700206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_5
+      rect:
+        serializedVersion: 2
+        x: 1001
+        y: 1209
+        width: 247
+        height: 271
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd27c09d93a913746a32e349529d4a85
+      internalID: 2057433101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_6
+      rect:
+        serializedVersion: 2
+        x: 328
+        y: 1065
+        width: 272
+        height: 46
+      alignment: 9
+      pivot: {x: 0.5, y: 0.7173913}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1787168db01d56049856ec4be15e06e9
+      internalID: 1397341269
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_8
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 1077
+        width: 96
+        height: 34
+      alignment: 9
+      pivot: {x: 0.5208334, y: 0.7058824}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7af241bd0733cbd4fb29ee7e16e01667
+      internalID: 219597585
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_9
+      rect:
+        serializedVersion: 2
+        x: 747
+        y: 1077
+        width: 59
+        height: 54
+      alignment: 9
+      pivot: {x: 0.4915254, y: 0.7777778}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8790acef5bca9a945a32d448f73033aa
+      internalID: 514375299
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_10
+      rect:
+        serializedVersion: 2
+        x: 857
+        y: 1076
+        width: 119
+        height: 59
+      alignment: 9
+      pivot: {x: 0.487395, y: 0.7288136}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6cefb779f0e506342b59ccf4d79003b5
+      internalID: 112254926
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_12
+      rect:
+        serializedVersion: 2
+        x: 1006
+        y: 1006
+        width: 225
+        height: 140
+      alignment: 9
+      pivot: {x: 0.48120302, y: 0.5857143}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 19860c1399091a541b348d5f6d8d83a4
+      internalID: -246541481
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_14
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 768
+        width: 254
+        height: 250
+      alignment: 9
+      pivot: {x: 0.515748, y: 0.76000005}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c3f9ab58507278c4387881621b3f2190
+      internalID: 88529487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_15
+      rect:
+        serializedVersion: 2
+        x: 319
+        y: 581
+        width: 334
+        height: 452
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 070a472129ed4564aa7c322c02bcd156
+      internalID: 1435000816
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_16
+      rect:
+        serializedVersion: 2
+        x: 681
+        y: 580
+        width: 302
+        height: 356
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 70e6c82374384604aa714050e23f37dc
+      internalID: 499760288
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_17
+      rect:
+        serializedVersion: 2
+        x: 1024
+        y: 614
+        width: 172
+        height: 324
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: da23a79aa51b6b941a669fcbad6f8bad
+      internalID: 1720370948
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_18
+      rect:
+        serializedVersion: 2
+        x: 75
+        y: 540
+        width: 203
+        height: 162
+      alignment: 9
+      pivot: {x: 0.48768473, y: 0.19753087}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1b88d3fbfdd97d74292cac53cff1c0b6
+      internalID: 2039084916
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_19
+      rect:
+        serializedVersion: 2
+        x: 325
+        y: 313
+        width: 323
+        height: 264
+      alignment: 9
+      pivot: {x: 0.501548, y: 0.76515156}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 82453711f3c5d4e4cb827e2d662187bd
+      internalID: 317588589
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_20
+      rect:
+        serializedVersion: 2
+        x: 78
+        y: 397
+        width: 197
+        height: 96
+      alignment: 9
+      pivot: {x: 0.5025381, y: 0.45833334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d6a2be81a8a74de449af2219e43b10cb
+      internalID: 400010457
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_21
+      rect:
+        serializedVersion: 2
+        x: 687
+        y: 313
+        width: 293
+        height: 199
+      alignment: 9
+      pivot: {x: 0.5085324, y: 0.69849247}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 39be30c3caba6e941bee85453973f7be
+      internalID: -1502835131
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_22
+      rect:
+        serializedVersion: 2
+        x: 1028
+        y: 320
+        width: 160
+        height: 189
+      alignment: 9
+      pivot: {x: 0.55625004, y: 0.6878307}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 09bfbffd28318a3458bb06ef8f84f3e6
+      internalID: -342896357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_23
+      rect:
+        serializedVersion: 2
+        x: 81
+        y: 239
+        width: 177
+        height: 72
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d6cc504e6019e044a891cbe609fde7ad
+      internalID: 2007043621
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_24
+      rect:
+        serializedVersion: 2
+        x: 328
+        y: 27
+        width: 318
+        height: 244
+      alignment: 9
+      pivot: {x: 0.5062893, y: 0.78278685}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d25ed0b9584d8a9449c4261391672847
+      internalID: 1121185969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_25
+      rect:
+        serializedVersion: 2
+        x: 687
+        y: 112
+        width: 289
+        height: 168
+      alignment: 9
+      pivot: {x: 0.50865054, y: 0.71428573}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 58f15ced8a4e3fa42b7548acfac1dc1e
+      internalID: 1983062932
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PremadeBuildingsStoneWood_57
+      rect:
+        serializedVersion: 2
+        x: 83
+        y: 166
+        width: 172
+        height: 49
+      alignment: 9
+      pivot: {x: 0.5116279, y: 0.79591835}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f1198e1d0db29f34eb2d92af4442c028
+      internalID: -806493503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      PremadeBuildingsStoneWood_0: -1612855738
+      PremadeBuildingsStoneWood_1: 1661451400
+      PremadeBuildingsStoneWood_10: 112254926
+      PremadeBuildingsStoneWood_11: -946749637
+      PremadeBuildingsStoneWood_12: -246541481
+      PremadeBuildingsStoneWood_13: 222080034
+      PremadeBuildingsStoneWood_14: 88529487
+      PremadeBuildingsStoneWood_15: 1435000816
+      PremadeBuildingsStoneWood_16: 499760288
+      PremadeBuildingsStoneWood_17: 1720370948
+      PremadeBuildingsStoneWood_18: 2039084916
+      PremadeBuildingsStoneWood_19: 317588589
+      PremadeBuildingsStoneWood_2: 1557088067
+      PremadeBuildingsStoneWood_20: 400010457
+      PremadeBuildingsStoneWood_21: -1502835131
+      PremadeBuildingsStoneWood_22: -342896357
+      PremadeBuildingsStoneWood_23: 2007043621
+      PremadeBuildingsStoneWood_24: 1121185969
+      PremadeBuildingsStoneWood_25: 1983062932
+      PremadeBuildingsStoneWood_26: 1607237479
+      PremadeBuildingsStoneWood_27: -1706670675
+      PremadeBuildingsStoneWood_28: -1417880540
+      PremadeBuildingsStoneWood_29: -1551061834
+      PremadeBuildingsStoneWood_3: 850815057
+      PremadeBuildingsStoneWood_30: 561442627
+      PremadeBuildingsStoneWood_31: -1685071246
+      PremadeBuildingsStoneWood_32: -40019989
+      PremadeBuildingsStoneWood_33: 2887646
+      PremadeBuildingsStoneWood_34: -930159680
+      PremadeBuildingsStoneWood_35: 86992288
+      PremadeBuildingsStoneWood_36: -940780966
+      PremadeBuildingsStoneWood_37: 177774477
+      PremadeBuildingsStoneWood_38: 1196554907
+      PremadeBuildingsStoneWood_39: -1396886147
+      PremadeBuildingsStoneWood_4: -1057700206
+      PremadeBuildingsStoneWood_40: 289454425
+      PremadeBuildingsStoneWood_41: 903002496
+      PremadeBuildingsStoneWood_42: -426870287
+      PremadeBuildingsStoneWood_43: 1596790071
+      PremadeBuildingsStoneWood_44: 1975942581
+      PremadeBuildingsStoneWood_45: 190365187
+      PremadeBuildingsStoneWood_46: -517322707
+      PremadeBuildingsStoneWood_47: -1500693683
+      PremadeBuildingsStoneWood_48: -19198925
+      PremadeBuildingsStoneWood_49: -940215437
+      PremadeBuildingsStoneWood_5: 2057433101
+      PremadeBuildingsStoneWood_50: 1392764170
+      PremadeBuildingsStoneWood_51: 146406617
+      PremadeBuildingsStoneWood_52: 369671240
+      PremadeBuildingsStoneWood_53: 392913954
+      PremadeBuildingsStoneWood_54: 1383907145
+      PremadeBuildingsStoneWood_55: 1611094078
+      PremadeBuildingsStoneWood_56: 1903592085
+      PremadeBuildingsStoneWood_57: -806493503
+      PremadeBuildingsStoneWood_58: 561954395
+      PremadeBuildingsStoneWood_59: 1691402533
+      PremadeBuildingsStoneWood_6: 1397341269
+      PremadeBuildingsStoneWood_60: 15193153
+      PremadeBuildingsStoneWood_7: 1206836833
+      PremadeBuildingsStoneWood_8: 219597585
+      PremadeBuildingsStoneWood_9: 514375299
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

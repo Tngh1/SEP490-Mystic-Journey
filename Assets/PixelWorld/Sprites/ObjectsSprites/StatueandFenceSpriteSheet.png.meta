@@ -1,0 +1,488 @@
+fileFormatVersion: 2
+guid: eccd05fe24af9fe48b9362c4479c9e48
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_0
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 437
+        width: 29
+        height: 36
+      alignment: 9
+      pivot: {x: 0.4827586, y: 0.25}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 382143dff4f2ecd4f93d5b3dd9a4ca6f
+      internalID: 1214588918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_1
+      rect:
+        serializedVersion: 2
+        x: 35
+        y: 433
+        width: 16
+        height: 16
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8ef965802d3337a4d86c802b5bab5290
+      internalID: -154041754
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_2
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 441
+        width: 108
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.1875}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6935baeae392b0448a16aaf4c7cb3939
+      internalID: 1776550292
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_3
+      rect:
+        serializedVersion: 2
+        x: 179
+        y: 442
+        width: 92
+        height: 34
+      alignment: 9
+      pivot: {x: 0.51086956, y: 0.11764706}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 86f4008785ad1ad4c96e80a907497eed
+      internalID: 1425750444
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_4
+      rect:
+        serializedVersion: 2
+        x: 296
+        y: 336
+        width: 43
+        height: 129
+      alignment: 9
+      pivot: {x: 0.5116279, y: 0.13953489}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8874d2e16b0d38841ab1219afc26a6a2
+      internalID: -247202188
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_5
+      rect:
+        serializedVersion: 2
+        x: 63
+        y: 356
+        width: 14
+        height: 79
+      alignment: 9
+      pivot: {x: 0.5, y: 0.73417723}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f907468b3dfa0dc4f9c14d811d8e7a5d
+      internalID: 1996563714
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_6
+      rect:
+        serializedVersion: 2
+        x: 119
+        y: 357
+        width: 53
+        height: 78
+      alignment: 9
+      pivot: {x: 0.509434, y: 0.051282052}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dc5132d8f2a67f64f97d5d6d7a7b7cbd
+      internalID: -1957673094
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_7
+      rect:
+        serializedVersion: 2
+        x: 210
+        y: 357
+        width: 54
+        height: 77
+      alignment: 9
+      pivot: {x: 0.5, y: 0.051948052}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ed0a9ecbadb9b7848b73a803cc54292b
+      internalID: 1387446408
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_8
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 277
+        width: 66
+        height: 46
+      alignment: 9
+      pivot: {x: 0.4848485, y: 0.26086956}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f21fc144dc920af45afe987a211b682b
+      internalID: 1221936581
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_9
+      rect:
+        serializedVersion: 2
+        x: 130
+        y: 265
+        width: 81
+        height: 66
+      alignment: 9
+      pivot: {x: 0.5185185, y: 0.22727273}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d2ec78418bb18ba408f0e7f9c6de4976
+      internalID: -2079192971
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_10
+      rect:
+        serializedVersion: 2
+        x: 235
+        y: 260
+        width: 91
+        height: 68
+      alignment: 9
+      pivot: {x: 0.48351648, y: 0.1764706}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 03b1547253e18894e882ef160762e40d
+      internalID: 1008846259
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_11
+      rect:
+        serializedVersion: 2
+        x: 18
+        y: 12
+        width: 97
+        height: 240
+      alignment: 9
+      pivot: {x: 0.49484533, y: 0.029166669}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6b1a73f677aedc04abf9b4ded3e6fe90
+      internalID: -414265090
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_12
+      rect:
+        serializedVersion: 2
+        x: 119
+        y: 6
+        width: 108
+        height: 246
+      alignment: 9
+      pivot: {x: 0.5, y: 0.044715445}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fd4a63bc5b274b040b5e2952298c28d7
+      internalID: -1826770540
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_13
+      rect:
+        serializedVersion: 2
+        x: 231
+        y: 122
+        width: 114
+        height: 119
+      alignment: 9
+      pivot: {x: 0.50877196, y: 0.11764707}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 18ef64c84ab890e4ab66bef50999e7cc
+      internalID: -1859123725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StatueandFenceSpriteSheet_14
+      rect:
+        serializedVersion: 2
+        x: 236
+        y: 6
+        width: 108
+        height: 94
+      alignment: 9
+      pivot: {x: 0.5, y: 0.12765957}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c931d46de02f5fa418cd85e224ed759d
+      internalID: -1732354179
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      StatueandFenceSpriteSheet_0: 1214588918
+      StatueandFenceSpriteSheet_1: -154041754
+      StatueandFenceSpriteSheet_10: 1008846259
+      StatueandFenceSpriteSheet_11: -414265090
+      StatueandFenceSpriteSheet_12: -1826770540
+      StatueandFenceSpriteSheet_13: -1859123725
+      StatueandFenceSpriteSheet_14: -1732354179
+      StatueandFenceSpriteSheet_2: 1776550292
+      StatueandFenceSpriteSheet_3: 1425750444
+      StatueandFenceSpriteSheet_4: -247202188
+      StatueandFenceSpriteSheet_5: 1996563714
+      StatueandFenceSpriteSheet_6: -1957673094
+      StatueandFenceSpriteSheet_7: 1387446408
+      StatueandFenceSpriteSheet_8: 1221936581
+      StatueandFenceSpriteSheet_9: -2079192971
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

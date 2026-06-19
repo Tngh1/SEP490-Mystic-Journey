@@ -6,14 +6,10 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // Xử lý toàn bộ API xác thực tài khoản.
-    // Chỉ có 3 endpoint: LoginGame, GetMe, Logout.
-    // Token được tự động lưu/xóa trong PlayerPrefs.
     public class AuthApi : MonoBehaviour
     {
         private static AuthApi _instance;
 
-        // Singleton – không cần attach vào GameObject thủ công
         public static AuthApi Instance
         {
             get
@@ -30,22 +26,23 @@ namespace MysticJourney.API.Endpoints
 
         private void Awake()
         {
-            if (_instance != null && _instance != this) { Destroy(gameObject); return; }
+            if (_instance != null && _instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             _instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
-        // ── LoginGame ─────────────────────────────────────────────
-        // POST /api/accounts/login-game
-        // Dùng EmailOrUsername (có thể nhập email hoặc username đều được).
-        // Sau khi thành công, token và PlayerProfileId được lưu tự động.
         public void LoginGame(
             string emailOrUsername,
             string password,
             Action<LoginGameResponse> onSuccess,
             Action<ApiException> onError)
         {
-            Debug.Log($"[AuthApi] LoginGame → emailOrUsername={emailOrUsername}");
+            Debug.Log($"[AuthApi] LoginGame -> emailOrUsername={emailOrUsername}");
 
             var body = new LoginGameRequest
             {
@@ -58,34 +55,30 @@ namespace MysticJourney.API.Endpoints
                 body,
                 response =>
                 {
-                    // Lưu token để các API cần auth dùng sau
                     ApiClient.Instance.SaveToken(response.AccessToken);
 
-                    // Lưu PlayerProfileId (nullable vì tài khoản mới chưa có profile)
                     if (response.PlayerProfileId.HasValue)
                         PlayerPrefs.SetInt(ApiConfig.PlayerProfileIdKey, response.PlayerProfileId.Value);
                     else
-                        Debug.LogWarning("[AuthApi] LoginGame: PlayerProfileId is null – profile chưa tồn tại.");
+                        Debug.LogWarning("[AuthApi] LoginGame: PlayerProfileId is null.");
 
                     PlayerPrefs.SetInt(ApiConfig.AccountIdKey, response.AccountId);
                     PlayerPrefs.SetString(ApiConfig.UserNameKey, response.UserName);
+                    SaveWorldSession(response.LastMapName, response.PositionX, response.PositionY);
                     PlayerPrefs.Save();
 
-                    Debug.Log($"[AuthApi] ✅ LoginGame OK | UserName={response.UserName} | AccountId={response.AccountId} | PlayerProfileId={response.PlayerProfileId}");
+                    Debug.Log($"[AuthApi] LoginGame OK | UserName={response.UserName} | AccountId={response.AccountId} | PlayerProfileId={response.PlayerProfileId}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[AuthApi] ❌ LoginGame FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    Debug.LogError($"[AuthApi] LoginGame FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: false
             );
         }
 
-        // ── GetMe ─────────────────────────────────────────────────
-        // GET /api/accounts/me  (cần auth)
-        // Lấy thông tin tài khoản đang đăng nhập: role, email, vị trí cuối.
         public void GetMe(Action<MeResponse> onSuccess, Action<ApiException> onError)
         {
             Debug.Log("[AuthApi] GetMe...");
@@ -94,21 +87,19 @@ namespace MysticJourney.API.Endpoints
                 ApiConfig.Me,
                 response =>
                 {
-                    Debug.Log($"[AuthApi] ✅ GetMe OK | UserName={response.UserName} | Role={response.Role} | LastMap={response.LastMapName}");
+                    SaveWorldSession(response.LastMapName, response.PositionX, response.PositionY);
+                    Debug.Log($"[AuthApi] GetMe OK | UserName={response.UserName} | Role={response.Role} | LastMap={response.LastMapName}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[AuthApi] ❌ GetMe FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    Debug.LogError($"[AuthApi] GetMe FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true
             );
         }
 
-        // ── Logout ────────────────────────────────────────────────
-        // POST /api/accounts/logout  (cần auth)
-        // Token local bị xóa dù server có lỗi hay không.
         public void Logout(Action<SimpleResponse> onSuccess, Action<ApiException> onError)
         {
             Debug.Log("[AuthApi] Logout...");
@@ -118,18 +109,30 @@ namespace MysticJourney.API.Endpoints
                 response =>
                 {
                     ApiClient.Instance.ClearToken();
-                    Debug.Log("[AuthApi] ✅ Logout OK – token đã xóa.");
+                    Debug.Log("[AuthApi] Logout OK.");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    // Dù server lỗi vẫn xóa token để người dùng không bị kẹt
                     ApiClient.Instance.ClearToken();
-                    Debug.LogWarning($"[AuthApi] ⚠ Logout server lỗi nhưng token local đã xóa | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    Debug.LogWarning($"[AuthApi] Logout server error, local session cleared | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true
             );
+        }
+
+        private static void SaveWorldSession(string mapName, double positionX, double positionY)
+        {
+            var safeMapName = string.IsNullOrWhiteSpace(mapName) ? "ElfForest" : mapName.Trim();
+            var position = new Vector3((float)positionX, (float)positionY, 0f);
+
+            PlayerPrefs.SetString(ApiConfig.LastMapNameKey, safeMapName);
+            PlayerPrefs.SetFloat(ApiConfig.PositionXKey, position.x);
+            PlayerPrefs.SetFloat(ApiConfig.PositionYKey, position.y);
+
+            WorldState.CurrentMapName = safeMapName;
+            WorldState.LastPosition = position;
         }
     }
 }

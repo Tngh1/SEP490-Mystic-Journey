@@ -2,7 +2,11 @@ using UnityEngine;
 
 public static class WorldState
 {
-    public static string CurrentMapName;
+    public static bool HasCharacter;
 
+    public static string PlayerName;
+    public static string PlayerClass;
+
+    public static string CurrentMapName;
     public static Vector3 LastPosition;
 }

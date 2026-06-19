@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using MysticJourney.API.Core;
+using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -45,5 +47,16 @@ public class MapSceneController : MonoBehaviour
 
         WorldState.CurrentMapName =
             targetScene;
+        WorldState.LastPosition = Vector3.zero;
+
+        if (ApiClient.Instance.HasToken())
+        {
+            WorldApi.Instance.UpdatePosition(
+                targetScene,
+                Vector3.zero,
+                _ => Debug.Log($"[MapSceneController] Saved map transition: {targetScene}"),
+                error => Debug.LogWarning($"[MapSceneController] Save map transition failed: {error.Message}")
+            );
+        }
     }
 }

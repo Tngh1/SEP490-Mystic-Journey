@@ -21,53 +21,74 @@ namespace MysticJourney.API.Core
         public const string PlayerProfileIdKey = "mj_player_profile_id";
         public const string AccountIdKey = "mj_account_id";
         public const string UserNameKey = "mj_user_name";
+        public const string LastMapNameKey = "mj_last_map_name";
+        public const string PositionXKey = "mj_position_x";
+        public const string PositionYKey = "mj_position_y";
 
-        // ── AccountsController ─────────────────────────────────────
-        public const string LoginGame = "/api/accounts/login-game";  // POST, không cần auth
-        public const string Logout    = "/api/accounts/logout";       // POST, cần auth
-        public const string Me        = "/api/accounts/me";           // GET,  cần auth
+        // Auth / Account
+        public const string LoginGame = "/api/accounts/login-game";
+        public const string Logout = "/api/accounts/logout";
+        public const string Me = "/api/accounts/me";
 
-        // ── PlayerProfilesController ───────────────────────────────
-        public const string PlayerProfileById    = "/api/playerprofiles/{0}"; // {0} = playerProfileId
-        public const string PlayerProfileUpdate  = "/api/playerprofiles/{0}"; // PUT, cần auth
+        // Player Profile
+        public const string PlayerProfileById = "/api/playerprofiles/{0}";
+        public const string PlayerProfileUpdate = "/api/playerprofiles/{0}";
 
-        // ── InventoryController ────────────────────────────────────
-        public const string InventoryMe      = "/api/inventory/me";           // GET,  cần auth
-        public const string InventoryEquip   = "/api/inventory/equip-item";   // POST, cần auth
-        public const string InventoryUnequip = "/api/inventory/unequip-item"; // POST, cần auth
-        public const string InventoryConsume = "/api/inventory/consume-item"; // POST, cần auth
+        // Inventory
+        public const string InventoryMe = "/api/inventory/me";
+        public const string InventoryEquip = "/api/inventory/equip-item";
+        public const string InventoryUnequip = "/api/inventory/unequip-item";
+        public const string InventoryConsume = "/api/inventory/consume-item";
 
-        // ── DungeonsController ─────────────────────────────────────
-        public const string DungeonAll = "/api/dungeons";      // GET, không cần auth
-        public const string DungeonById = "/api/dungeons/{0}"; // {0} = dungeonConfigId
+        // Dungeons
+        public const string DungeonAll = "/api/dungeons";
+        public const string DungeonById = "/api/dungeons/{0}";
 
-        // ── QuestsController ───────────────────────────────────────
-        public const string QuestAll = "/api/quests";          // GET, không cần auth
-        public const string QuestById = "/api/quests/{0}";     // {0} = questId
+        // Quest catalog
+        public const string QuestAll = "/api/quests";
+        public const string QuestById = "/api/quests/{0}";
 
-        // ── AchievementsController ─────────────────────────────────
-        public const string AchievementAll = "/api/achievements";       // GET, không cần auth
-        public const string AchievementById = "/api/achievements/{0}";  // {0} = achievementId
+        // Achievements
+        public const string AchievementAll = "/api/achievements";
+        public const string AchievementById = "/api/achievements/{0}";
 
-        // ── GachaBannersController ─────────────────────────────────
-        public const string GachaAll = "/api/gachabanners";      // GET, không cần auth
-        public const string GachaById = "/api/gachabanners/{0}"; // {0} = gachaBannerId
+        // Gacha
+        public const string GachaAll = "/api/gachabanners";
+        public const string GachaById = "/api/gachabanners/{0}";
 
-        // ── MailsController ────────────────────────────────────────
-        public const string MailById     = "/api/mails/{0}";            // {0} = mailId
-        public const string MailByPlayer = "/api/mails/player/{0}";     // {0} = playerProfileId
-        public const string MailRead     = "/api/mails/{0}/read";        // POST, cần auth
-        public const string MailClaim    = "/api/mails/{0}/claim";       // POST, cần auth
-        public const string MailDelete   = "/api/mails/{0}";             // DELETE, cần auth
+        // Mail
+        public const string MailById = "/api/mails/{0}";
+        public const string MailByPlayer = "/api/mails/player/{0}";
+        public const string MailRead = "/api/mails/{0}/read";
+        public const string MailClaim = "/api/mails/{0}/claim";
+        public const string MailDelete = "/api/mails/{0}";
 
-        // ── DailyLoginRewardsController ────────────────────────────
-        public const string DailyLoginRewards = "/api/dailyloginrewards"; // GET
+        // Daily Login
+        public const string DailyLoginRewards = "/api/dailyloginrewards";
+        public const string DailyLoginStatus = "/api/dailyloginrewards/status";
+        public const string DailyLoginClaim = "/api/dailyloginrewards/claim";
 
-        // ── ShopItemsController ────────────────────────────────────
-        public const string ShopItems = "/api/shopitems"; // GET, không cần auth
+        // Shop
+        public const string ShopItems = "/api/shopitems";
 
-        // ── SkinsController ────────────────────────────────────────
-        public const string SkinEquip   = "/api/skins/equip";   // POST, cần auth
-        public const string SkinUnequip = "/api/skins/unequip"; // POST, cần auth
+        // Skins
+        public const string SkinEquip = "/api/skins/equip";
+        public const string SkinUnequip = "/api/skins/unequip";
+
+        // Player Quest runtime (UC 25)
+        public const string PlayerQuestMe = "/api/playerquests/me";
+        public const string PlayerQuestDetail = "/api/playerquests/{0}";
+        public const string PlayerQuestAccept = "/api/playerquests/accept";
+        public const string PlayerQuestBatch = "/api/playerquests/batch-progress";
+        public const string PlayerQuestComplete = "/api/playerquests/complete";
+        public const string PlayerQuestClaim = "/api/playerquests/claim";
+
+        // World runtime (UC 21)
+        public const string WorldState = "/api/world/state";
+        public const string WorldPosition = "/api/world/position";
+        public const string WorldNpcTalk = "/api/world/npc/talk";
+        public const string WorldChestOpen = "/api/world/chests/open";
+        public const string WorldInteractObject = "/api/world/interactions";
+        public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";
     }
 }

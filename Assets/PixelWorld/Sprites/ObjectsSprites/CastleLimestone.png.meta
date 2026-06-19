@@ -1,0 +1,700 @@
+fileFormatVersion: 2
+guid: 5ebc4b83b1287cc46bab79cc0e4bd9c3
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: CastleLimestone_0
+      rect:
+        serializedVersion: 2
+        x: 27
+        y: 1140
+        width: 249
+        height: 310
+      alignment: 9
+      pivot: {x: 0.64443046, y: 0.3125819}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd1a603e91dce614b95d9205c3f0e43d
+      internalID: 196576237
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_1
+      rect:
+        serializedVersion: 2
+        x: 316
+        y: 1294
+        width: 197
+        height: 146
+      alignment: 9
+      pivot: {x: 0.4467005, y: 0.739726}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 031a0789b8888c641bee98443f2b22c5
+      internalID: 611961029
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_2
+      rect:
+        serializedVersion: 2
+        x: 555
+        y: 1229
+        width: 141
+        height: 211
+      alignment: 9
+      pivot: {x: 0.50354606, y: 0.033175357}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e9228c5f741f74347816084357f968f7
+      internalID: 2081316535
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_3
+      rect:
+        serializedVersion: 2
+        x: 719
+        y: 1334
+        width: 131
+        height: 103
+      alignment: 9
+      pivot: {x: 0.519084, y: 0.5825243}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6e7564d6139556146855175eeb8c33cc
+      internalID: -2059393745
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_4
+      rect:
+        serializedVersion: 2
+        x: 930
+        y: 1420
+        width: 183
+        height: 30
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 59b69d8431dd1c84ab90b97b87f4bd44
+      internalID: -173434792
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_5
+      rect:
+        serializedVersion: 2
+        x: 1232
+        y: 953
+        width: 205
+        height: 487
+      alignment: 9
+      pivot: {x: 0.49756098, y: 0.27957335}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c6a72b52b0fce894eb75bbbeb3435674
+      internalID: 1268869898
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_6
+      rect:
+        serializedVersion: 2
+        x: 27
+        y: 809
+        width: 248
+        height: 306
+      alignment: 9
+      pivot: {x: 0.69443595, y: 0.877447}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 273386c72f9bda5468076261df65e035
+      internalID: 440253243
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_7
+      rect:
+        serializedVersion: 2
+        x: 316
+        y: 842
+        width: 419
+        height: 355
+      alignment: 9
+      pivot: {x: 0.50835323, y: 0.6309859}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9b1bb0f41c4cacc46859663fca3e1e05
+      internalID: -1272417914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_8
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 1075
+        width: 345
+        height: 312
+      alignment: 9
+      pivot: {x: 0.52173895, y: 0.3833262}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline:
+      - - {x: -172.5, y: -156}
+        - {x: -172.5, y: 56}
+        - {x: -146.5, y: 156}
+        - {x: 172.5, y: 156}
+        - {x: 172.5, y: -156}
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 79c039b61f95fcf48b4624a80eee28fe
+      internalID: -1763100094
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_9
+      rect:
+        serializedVersion: 2
+        x: 19
+        y: 361
+        width: 266
+        height: 440
+      alignment: 9
+      pivot: {x: 0.4924812, y: 0.036363635}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd8ea7e4c204ff94b811568f21a8c27b
+      internalID: 1744307838
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_10
+      rect:
+        serializedVersion: 2
+        x: 308
+        y: 423
+        width: 148
+        height: 396
+      alignment: 9
+      pivot: {x: 0.5337838, y: 0.19949494}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df3265edb38606346b1f5667b902f0f2
+      internalID: -461775801
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_11
+      rect:
+        serializedVersion: 2
+        x: 467
+        y: 450
+        width: 102
+        height: 355
+      alignment: 9
+      pivot: {x: 0.5, y: 0.15211268}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b5fcf8b0c33fe2a4cb2c43064786862b
+      internalID: 2111901771
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_12
+      rect:
+        serializedVersion: 2
+        x: 581
+        y: 431
+        width: 89
+        height: 393
+      alignment: 9
+      pivot: {x: 0.4494382, y: 0.18575063}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e7bfb0c7a87689f40aae2e708f82e615
+      internalID: 1772948052
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_13
+      rect:
+        serializedVersion: 2
+        x: 691
+        y: 484
+        width: 146
+        height: 311
+      alignment: 9
+      pivot: {x: 0.5, y: 0.048231512}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1b6ea90cae7b9e74290413fc8cabf0c2
+      internalID: -674826963
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_14
+      rect:
+        serializedVersion: 2
+        x: 857
+        y: 730
+        width: 345
+        height: 312
+      alignment: 9
+      pivot: {x: 0.51594204, y: 0.3653846}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 80af39d29c10cec4486e4c1508b33f3e
+      internalID: 1813232149
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_15
+      rect:
+        serializedVersion: 2
+        x: 1232
+        y: 444
+        width: 205
+        height: 498
+      alignment: 9
+      pivot: {x: 0.50731707, y: 0.034136545}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 57b97af5542c4c1418894abb10fe20ed
+      internalID: -867657632
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_16
+      rect:
+        serializedVersion: 2
+        x: 848
+        y: 566
+        width: 345
+        height: 131
+      alignment: 9
+      pivot: {x: 0.5246377, y: 0.8396947}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ea301f632df9af54f95a27d8a196ccdf
+      internalID: 1689104437
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_17
+      rect:
+        serializedVersion: 2
+        x: 496
+        y: 14
+        width: 216
+        height: 411
+      alignment: 9
+      pivot: {x: 0.5185185, y: 0.27493918}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b18b102e4e24fd94abf02c34f8ce7536
+      internalID: -2043677170
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_18
+      rect:
+        serializedVersion: 2
+        x: 746
+        y: 39
+        width: 216
+        height: 386
+      alignment: 9
+      pivot: {x: 0.5509259, y: 0.30569947}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 77e4de44567dba44e99902d6de04e48c
+      internalID: 258397445
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_19
+      rect:
+        serializedVersion: 2
+        x: 996
+        y: 349
+        width: 183
+        height: 197
+      alignment: 9
+      pivot: {x: 0.5355191, y: 0.25888324}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1c1c47f051b4d9d458ea995a23f19cf4
+      internalID: -1552704917
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_20
+      rect:
+        serializedVersion: 2
+        x: 1245
+        y: 247
+        width: 180
+        height: 191
+      alignment: 9
+      pivot: {x: 0.50555557, y: 0.07853403}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6847ca042c4fa354795577abc470c60b
+      internalID: -709284285
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_21
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 191
+        width: 399
+        height: 141
+      alignment: 9
+      pivot: {x: 0.5012531, y: 0.08510638}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6c31312076a5dd04db465f13cf869875
+      internalID: 82229172
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_22
+      rect:
+        serializedVersion: 2
+        x: 1042
+        y: 11
+        width: 144
+        height: 325
+      alignment: 9
+      pivot: {x: 0.49305555, y: 0.043076925}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: acb1e5f3e442cda4188b1d49efc9281a
+      internalID: 1770915335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleLimestone_23
+      rect:
+        serializedVersion: 2
+        x: 1245
+        y: 11
+        width: 180
+        height: 232
+      alignment: 9
+      pivot: {x: 0.51111114, y: 0.0862069}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d3331675179bd6d42bce9f1f1b4cee44
+      internalID: 1241408643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      CastleLimestone_0: 196576237
+      CastleLimestone_1: 611961029
+      CastleLimestone_10: -461775801
+      CastleLimestone_11: 2111901771
+      CastleLimestone_12: 1772948052
+      CastleLimestone_13: -674826963
+      CastleLimestone_14: 1813232149
+      CastleLimestone_15: -867657632
+      CastleLimestone_16: 1689104437
+      CastleLimestone_17: -2043677170
+      CastleLimestone_18: 258397445
+      CastleLimestone_19: -1552704917
+      CastleLimestone_2: 2081316535
+      CastleLimestone_20: -709284285
+      CastleLimestone_21: 82229172
+      CastleLimestone_22: 1770915335
+      CastleLimestone_23: 1241408643
+      CastleLimestone_3: -2059393745
+      CastleLimestone_4: -173434792
+      CastleLimestone_5: 1268869898
+      CastleLimestone_6: 440253243
+      CastleLimestone_7: -1272417914
+      CastleLimestone_8: -1763100094
+      CastleLimestone_9: 1744307838
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

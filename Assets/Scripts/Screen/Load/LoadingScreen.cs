@@ -12,7 +12,7 @@ public sealed class LoadingScreen : MonoBehaviour
     [SerializeField] private TMP_Text tipText;
 
     [Header("Scene Settings")]
-    [SerializeField] private string fallbackSceneName = "DungeonFantasy";
+    [SerializeField] private string fallbackSceneName = "Abandoned  Castle";
     [SerializeField] private float minimumLoadingTime = 0.6f;
 
     [Header("Tip Settings")]

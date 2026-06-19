@@ -1,0 +1,971 @@
+fileFormatVersion: 2
+guid: 551ab4de0c7733a47829cc4cb8582c57
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_0
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 898
+        width: 204
+        height: 125
+      alignment: 9
+      pivot: {x: 0.5294118, y: 0.14400001}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c3df0f42d59412b46adad7c633ed5b54
+      internalID: 1701595724
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_1
+      rect:
+        serializedVersion: 2
+        x: 280
+        y: 877
+        width: 83
+        height: 167
+      alignment: 9
+      pivot: {x: 0.5828497, y: 0.29570985}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 39aad8a63378c7e458bd69c8087e1596
+      internalID: -1628176707
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_2
+      rect:
+        serializedVersion: 2
+        x: 407
+        y: 856
+        width: 185
+        height: 202
+      alignment: 9
+      pivot: {x: 0.53513515, y: 0.2970297}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d4a02b01353670740bab7e951af6be5f
+      internalID: -1281348357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_3
+      rect:
+        serializedVersion: 2
+        x: 680
+        y: 893
+        width: 385
+        height: 145
+      alignment: 9
+      pivot: {x: 0.51754993, y: 0.9002782}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ade6e4e48ddb21d48949a04e3f9ef11b
+      internalID: 1980477921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_4
+      rect:
+        serializedVersion: 2
+        x: 9
+        y: 748
+        width: 302
+        height: 107
+      alignment: 9
+      pivot: {x: 0.5397351, y: 0.41121495}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0e4ea711f6dc8da4eb7bcfd4d4281466
+      internalID: 1390031892
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_5
+      rect:
+        serializedVersion: 2
+        x: 334
+        y: 772
+        width: 75
+        height: 59
+      alignment: 9
+      pivot: {x: 0.50666666, y: 0.13559322}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b71db6d690034eb4e8899c469cbed76b
+      internalID: -653949383
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_6
+      rect:
+        serializedVersion: 2
+        x: 429
+        y: 776
+        width: 52
+        height: 75
+      alignment: 9
+      pivot: {x: 0.5, y: 0.13333334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0f24534f6b2ed3d4487a23bb7299f8e0
+      internalID: -629098523
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_7
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 774
+        width: 50
+        height: 61
+      alignment: 9
+      pivot: {x: 0.53999996, y: 0.114754096}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e54ec4c1b96dcb1428ad735dbd8a25ca
+      internalID: 1688769060
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_8
+      rect:
+        serializedVersion: 2
+        x: 575
+        y: 640
+        width: 82
+        height: 193
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8585cc769088e2d4da7efcdb24495818
+      internalID: -130933998
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_9
+      rect:
+        serializedVersion: 2
+        x: 672
+        y: 748
+        width: 193
+        height: 77
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c62d5bd394bdecf488de7c53dfab4121
+      internalID: -252135144
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_10
+      rect:
+        serializedVersion: 2
+        x: 896
+        y: 748
+        width: 192
+        height: 77
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 30edd47a9dfd88549a94990e2752090a
+      internalID: -5922959
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_11
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 587
+        width: 395
+        height: 154
+      alignment: 9
+      pivot: {x: 0.51392406, y: 0.66883117}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 04a150af2d860a7469725837451dd4a3
+      internalID: -2074623080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_12
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 635
+        width: 82
+        height: 131
+      alignment: 9
+      pivot: {x: 0.5609756, y: 0.122137405}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fe0d5b5466c69b24ca80a343ff0496da
+      internalID: -1791817674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_13
+      rect:
+        serializedVersion: 2
+        x: 672
+        y: 512
+        width: 193
+        height: 213
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9c858579338ca844081263bdda5fa4b8
+      internalID: -712748453
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_14
+      rect:
+        serializedVersion: 2
+        x: 896
+        y: 512
+        width: 192
+        height: 213
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: eabdfc0394a0da14a9a5d557382ba131
+      internalID: -1397784202
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_15
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 329
+        width: 119
+        height: 250
+      alignment: 9
+      pivot: {x: 0.53781515, y: 0.74}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dfbccc2ccc704144196210cc3ba5cc70
+      internalID: -1656374989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_16
+      rect:
+        serializedVersion: 2
+        x: 168
+        y: 501
+        width: 123
+        height: 76
+      alignment: 9
+      pivot: {x: 0.5121951, y: 0.57894737}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b3cc71959fd4cb849aae255cdeaee60e
+      internalID: 2081252438
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_17
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 520
+        width: 34
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5, y: 0.6052632}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 43dd4e6e213e58741aaf3e575453d2cd
+      internalID: 78213590
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_18
+      rect:
+        serializedVersion: 2
+        x: 366
+        y: 467
+        width: 90
+        height: 117
+      alignment: 9
+      pivot: {x: 0.52238804, y: 0.1724138}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 06de101384998404d97b26752e2b01c0
+      internalID: 110350707
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_19
+      rect:
+        serializedVersion: 2
+        x: 474
+        y: 555
+        width: 19
+        height: 45
+      alignment: 9
+      pivot: {x: 0.5263158, y: 0.17777778}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bb3c108a1d4807b43be68091a3bf098d
+      internalID: 932902683
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_20
+      rect:
+        serializedVersion: 2
+        x: 474
+        y: 536
+        width: 66
+        height: 96
+      alignment: 9
+      pivot: {x: 0.45652175, y: 0.20833334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3831d9eb1f5e9564fb8b07a8d0cbfb6a
+      internalID: -256655264
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_21
+      rect:
+        serializedVersion: 2
+        x: 575
+        y: 437
+        width: 82
+        height: 194
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8d097c1f1d242ee4b8d34c6ea907bf6e
+      internalID: -1733231588
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_23
+      rect:
+        serializedVersion: 2
+        x: 488
+        y: 423
+        width: 53
+        height: 112
+      alignment: 9
+      pivot: {x: 0.5471698, y: 0.2857143}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4a472fd087c1e41408c39dfa44a2d094
+      internalID: 1172794312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_24
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 345
+        width: 111
+        height: 127
+      alignment: 9
+      pivot: {x: 0.5045045, y: 0.27559054}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1d37badae91104a4794ada4db1bb3b3e
+      internalID: 1712283371
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_25
+      rect:
+        serializedVersion: 2
+        x: 336
+        y: 343
+        width: 134
+        height: 117
+      alignment: 9
+      pivot: {x: 0.4925373, y: 0.35897437}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1f0219120824fe04b94b1056d3776c9d
+      internalID: -1023333593
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_26
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 223
+        width: 139
+        height: 194
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 00c7790250cf7e740b10221f5fe85c73
+      internalID: 829531080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_27
+      rect:
+        serializedVersion: 2
+        x: 673
+        y: 285
+        width: 192
+        height: 196
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: be32f3dc55990a94e925554b25764414
+      internalID: 450517806
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_28
+      rect:
+        serializedVersion: 2
+        x: 896
+        y: 288
+        width: 192
+        height: 193
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b4d2cf2f7d06dd94a9969187d11be55e
+      internalID: 226372775
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_29
+      rect:
+        serializedVersion: 2
+        x: 63
+        y: 32
+        width: 385
+        height: 261
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 44d03a4c060401745b6244f3931be1bd
+      internalID: -1902312380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_30
+      rect:
+        serializedVersion: 2
+        x: 495
+        y: 20
+        width: 146
+        height: 193
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab8c05bb0c5dae542a5c97ff5da23b36
+      internalID: 1901561437
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_31
+      rect:
+        serializedVersion: 2
+        x: 672
+        y: 63
+        width: 193
+        height: 194
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c6ba33ce650464b46924f44e3446f18b
+      internalID: 686224487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_32
+      rect:
+        serializedVersion: 2
+        x: 910
+        y: 148
+        width: 194
+        height: 109
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2cbf5b517c1c37341981778f78c85391
+      internalID: 1289614287
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_33
+      rect:
+        serializedVersion: 2
+        x: 910
+        y: 20
+        width: 194
+        height: 109
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 075db544a3fa0044ba9d116c839ca99a
+      internalID: -604479187
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_22
+      rect:
+        serializedVersion: 2
+        x: 428
+        y: 774
+        width: 123
+        height: 77
+      alignment: 9
+      pivot: {x: 0.49593493, y: 0.116883114}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 65f5be583985a964d855a6429969bba4
+      internalID: 1270720779
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_34
+      rect:
+        serializedVersion: 2
+        x: 595
+        y: 834
+        width: 92
+        height: 56
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f08cc23d328337640b1ea442605a2942
+      internalID: -1793845482
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: StoneAndRoadsSpriteSheet_35
+      rect:
+        serializedVersion: 2
+        x: 694
+        y: 832
+        width: 102
+        height: 56
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ed8a78ccc8550d24fa478111b9c997cf
+      internalID: 1378543890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      StoneAndRoadsSpriteSheet_0: 1701595724
+      StoneAndRoadsSpriteSheet_1: -1628176707
+      StoneAndRoadsSpriteSheet_10: -5922959
+      StoneAndRoadsSpriteSheet_11: -2074623080
+      StoneAndRoadsSpriteSheet_12: -1791817674
+      StoneAndRoadsSpriteSheet_13: -712748453
+      StoneAndRoadsSpriteSheet_14: -1397784202
+      StoneAndRoadsSpriteSheet_15: -1656374989
+      StoneAndRoadsSpriteSheet_16: 2081252438
+      StoneAndRoadsSpriteSheet_17: 78213590
+      StoneAndRoadsSpriteSheet_18: 110350707
+      StoneAndRoadsSpriteSheet_19: 932902683
+      StoneAndRoadsSpriteSheet_2: -1281348357
+      StoneAndRoadsSpriteSheet_20: -256655264
+      StoneAndRoadsSpriteSheet_21: -1733231588
+      StoneAndRoadsSpriteSheet_22: 1270720779
+      StoneAndRoadsSpriteSheet_23: 1172794312
+      StoneAndRoadsSpriteSheet_24: 1712283371
+      StoneAndRoadsSpriteSheet_25: -1023333593
+      StoneAndRoadsSpriteSheet_26: 829531080
+      StoneAndRoadsSpriteSheet_27: 450517806
+      StoneAndRoadsSpriteSheet_28: 226372775
+      StoneAndRoadsSpriteSheet_29: -1902312380
+      StoneAndRoadsSpriteSheet_3: 1980477921
+      StoneAndRoadsSpriteSheet_30: 1901561437
+      StoneAndRoadsSpriteSheet_31: 686224487
+      StoneAndRoadsSpriteSheet_32: 1289614287
+      StoneAndRoadsSpriteSheet_33: -604479187
+      StoneAndRoadsSpriteSheet_34: -1793845482
+      StoneAndRoadsSpriteSheet_35: 1378543890
+      StoneAndRoadsSpriteSheet_4: 1390031892
+      StoneAndRoadsSpriteSheet_5: -653949383
+      StoneAndRoadsSpriteSheet_6: -629098523
+      StoneAndRoadsSpriteSheet_7: 1688769060
+      StoneAndRoadsSpriteSheet_8: -130933998
+      StoneAndRoadsSpriteSheet_9: -252135144
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -8579,6 +8579,7 @@ GameObject:
   - component: {fileID: 478774334}
   - component: {fileID: 478774336}
   - component: {fileID: 478774335}
+  - component: {fileID: 478774337}
   m_Layer: 5
   m_Name: GameSettingPanel
   m_TagString: Untagged
@@ -8648,6 +8649,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 478774333}
   m_CullTransparentMesh: 1
+--- !u!114 &478774337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478774333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40a3205fb1cfb6244964bddbab948969, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MysticJourney.Screen.GameSetting.GameSettingUIManager
+  masterVolumeSlider: {fileID: 241048220}
+  musicVolumeSlider: {fileID: 1233544193}
+  sfxVolumeSlider: {fileID: 1941889783}
+  muteAllToggle: {fileID: 892858192}
+  displayModeDropdown: {fileID: 1698272638}
+  resolutionDropdown: {fileID: 1526036368}
+  damageNumbersToggle: {fileID: 231639736}
+  saveChangeButton: {fileID: 1534020606}
 --- !u!1 &478868630
 GameObject:
   m_ObjectHideFlags: 0
@@ -18367,7 +18388,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1051049304}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2007973302}
+        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
+        m_MethodName: OpenPanel
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 478774333}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1051049304
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35152,6 +35185,7 @@ MonoBehaviour:
   dungeonPanel: {fileID: 0}
   friendPanel: {fileID: 0}
   mailboxPanel: {fileID: 0}
+  settingPanel: {fileID: 478774333}
 --- !u!1 &2008733543
 GameObject:
   m_ObjectHideFlags: 0

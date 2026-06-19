@@ -18,6 +18,7 @@ public class UIManager : MonoBehaviour
     public GameObject dungeonPanel;
     public GameObject friendPanel;
     public GameObject mailboxPanel;
+    public GameObject settingPanel;
 
     private GameObject currentPanel;
 
