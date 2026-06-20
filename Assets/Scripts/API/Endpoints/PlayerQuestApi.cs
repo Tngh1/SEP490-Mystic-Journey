@@ -7,39 +7,9 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    public class PlayerQuestApi : MonoBehaviour
+    public class PlayerQuestApi : BaseApiService<PlayerQuestApi>
     {
-        private static PlayerQuestApi _instance;
-
-        public static PlayerQuestApi Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    var go = new GameObject("[PlayerQuestApi]");
-                    DontDestroyOnLoad(go);
-                    _instance = go.AddComponent<PlayerQuestApi>();
-                }
-                return _instance;
-            }
-        }
-
-        private void Awake()
-        {
-            if (_instance != null && _instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-
-        public void GetMyQuests(
-            Action<List<PlayerQuestResponse>> onSuccess,
-            Action<ApiException> onError)
+        public void GetMyQuests(Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Get<PlayerQuestListWrapper>(
                 ApiConfig.PlayerQuestMe,
@@ -50,20 +20,15 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] GetMyQuests FAIL | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"GetMyQuests FAIL | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void GetQuestDetail(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void GetQuestDetail(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.PlayerQuestDetail, questId);
-
             ApiClient.Instance.Get<PlayerQuestSingleWrapper>(
                 endpoint,
                 wrapper =>
@@ -73,23 +38,17 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] GetQuestDetail FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"GetQuestDetail FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void AcceptQuest(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void AcceptQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new AcceptQuestRequest { QuestId = questId };
-
             ApiClient.Instance.Post<AcceptQuestRequest, PlayerQuestSingleWrapper>(
-                ApiConfig.PlayerQuestAccept,
-                body,
+                ApiConfig.PlayerQuestAccept, body,
                 wrapper =>
                 {
                     Debug.Log($"[PlayerQuestApi] AcceptQuest OK | questId={questId} status={wrapper?.Data?.Status}");
@@ -97,29 +56,18 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] AcceptQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"AcceptQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void BatchUpdateProgress(
-            List<QuestProgressItem> updates,
-            Action<List<PlayerQuestResponse>> onSuccess,
-            Action<ApiException> onError)
+        public void BatchUpdateProgress(List<QuestProgressItem> updates, Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
-            if (updates == null || updates.Count == 0)
-            {
-                onSuccess?.Invoke(new List<PlayerQuestResponse>());
-                return;
-            }
-
+            if (updates == null || updates.Count == 0) { onSuccess?.Invoke(new List<PlayerQuestResponse>()); return; }
             var body = new BatchProgressRequest { Updates = updates };
-
             ApiClient.Instance.Put<BatchProgressRequest, BatchProgressWrapper>(
-                ApiConfig.PlayerQuestBatch,
-                body,
+                ApiConfig.PlayerQuestBatch, body,
                 wrapper =>
                 {
                     Debug.Log($"[PlayerQuestApi] BatchUpdateProgress OK | updated={wrapper?.Data?.Count ?? 0}");
@@ -127,23 +75,17 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] BatchUpdateProgress FAIL | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"BatchUpdateProgress FAIL | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void CompleteQuest(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void CompleteQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new CompleteQuestRequest { QuestId = questId };
-
             ApiClient.Instance.Post<CompleteQuestRequest, PlayerQuestSingleWrapper>(
-                ApiConfig.PlayerQuestComplete,
-                body,
+                ApiConfig.PlayerQuestComplete, body,
                 wrapper =>
                 {
                     Debug.Log($"[PlayerQuestApi] CompleteQuest OK | questId={questId}");
@@ -151,23 +93,17 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] CompleteQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"CompleteQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void ClaimReward(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void ClaimReward(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new ClaimQuestRequest { QuestId = questId };
-
             ApiClient.Instance.Post<ClaimQuestRequest, PlayerQuestSingleWrapper>(
-                ApiConfig.PlayerQuestClaim,
-                body,
+                ApiConfig.PlayerQuestClaim, body,
                 wrapper =>
                 {
                     Debug.Log($"[PlayerQuestApi] ClaimReward OK | questId={questId}");
@@ -175,11 +111,10 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] ClaimReward FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"ClaimReward FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
     }
 }
