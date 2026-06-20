@@ -2,6 +2,7 @@
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MainFeatureUnlockRuntime : MonoBehaviour
 {
@@ -71,8 +72,30 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         var questTracker = FindSceneObject("QuestTracker");
         if (questTracker != null)
             questTracker.SetActive(true);
+
+        ApplyButtonGroupVisibility("BottomRightMenu");
     }
 
+    private void ApplyButtonGroupVisibility(string groupName)
+    {
+        var group = FindSceneObject(groupName);
+        if (group == null)
+            return;
+
+        var buttons = group.GetComponentsInChildren<Button>(true);
+        var hasVisibleButton = false;
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            var button = buttons[i];
+            if (button != null && button.gameObject != group && button.gameObject.activeSelf)
+            {
+                hasVisibleButton = true;
+                break;
+            }
+        }
+
+        group.SetActive(hasVisibleButton);
+    }
     private void SetFeatureVisible(string buttonName, string panelName, bool visible)
     {
         SetVisible(buttonName, visible);
@@ -112,6 +135,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         CacheObject("GuildButton");
         CacheObject("GuildPanel");
         CacheObject("QuestTracker");
+        CacheObject("BottomRightMenu");
     }
 
     private void CacheObject(string objectName)

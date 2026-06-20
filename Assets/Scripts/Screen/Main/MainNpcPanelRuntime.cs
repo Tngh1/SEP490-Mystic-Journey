@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,10 +24,16 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private TextSlot roleText;
     private TextSlot dialogueText;
     private TextSlot questHintText;
-    private GameObject actionButtonObject;
-    private Button actionButton;
+    private readonly List<Button> actionButtons = new List<Button>();
+    private readonly List<TextSlot> actionButtonLabels = new List<TextSlot>();
+    private readonly List<NPCDialogueResponse> currentDialogues = new List<NPCDialogueResponse>();
+    private readonly List<PlayerQuestResponse> currentLinkedQuests = new List<PlayerQuestResponse>();
+    private readonly HashSet<int> processingQuestIds = new HashSet<int>();
+
+    private NPCDialogueResponse currentStoryDialogue;
     private Button closeButton;
     private int firstQuestId;
+    private int currentNpcId;
     private Coroutine imageRoutine;
     private bool didBind;
 
@@ -115,17 +121,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var actionArea = FindDescendant(npcPanel.transform, "ActionArea")?.transform ?? npcPanel.transform;
         questHintText = questHintText.IsValid ? questHintText : FindTextSlot(actionArea, "QuestHintText", "HintText", "QuestText", skip: nameText, skip2: roleText, skip3: dialogueText);
 
-        actionButtonObject = actionButtonObject != null ? actionButtonObject :
-                             FindDescendant(actionArea, "OpenQuestButton") ??
-                             FindDescendant(actionArea, "QuestButton") ??
-                             FindDescendant(actionArea, "ActionButton") ??
-                             actionArea.gameObject;
-        actionButton = BindButton(actionButtonObject, OpenFirstQuest);
+        BindFixedActionButtons(actionArea);
 
         var closeObject = FindDescendant(npcPanel.transform, "CloseNpcButton") ?? FindDescendant(npcPanel.transform, "CloseButton");
         closeButton = BindButton(closeObject, ClosePanel);
 
-        SetActionVisible(false);
+        SetActionsVisible(false);
         npcPanel.SetActive(false);
         didBind = true;
     }
@@ -133,11 +134,16 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private void RenderLocal(WorldInteractable interactable)
     {
         firstQuestId = interactable.QuestId ?? 0;
+        currentNpcId = interactable.NpcId;
+        currentStoryDialogue = null;
+        currentDialogues.Clear();
+        currentLinkedQuests.Clear();
+
         SetText(nameText, Safe(interactable.DisplayName, "Elder Rowan"));
         SetText(roleText, Safe(interactable.Description, "Tutorial elder and main quest giver."));
         SetText(dialogueText, Safe(interactable.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
         SetText(questHintText, firstQuestId > 0 ? "Quest available" : string.Empty);
-        SetActionVisible(firstQuestId > 0);
+        ConfigureDefaultActions();
     }
 
     private void RenderApiResponse(TalkToNpcResponse response, WorldInteractable fallback)
@@ -150,36 +156,31 @@ public class MainNpcPanelRuntime : MonoBehaviour
             .ThenBy(q => q.QuestId)
             .ToList() ?? new List<PlayerQuestResponse>();
 
-        firstQuestId = linkedQuests.FirstOrDefault()?.QuestId ?? 0;
-
-        SetText(nameText, Safe(npc?.Name, fallback.DisplayName));
-        SetText(roleText, Safe(npc?.Description, fallback.Description));
-        SetText(dialogueText, BuildDialogue(response, fallback, linkedQuests));
-        SetText(questHintText, BuildQuestHint(linkedQuests));
-        SetActionVisible(firstQuestId > 0);
-        ApplyPortrait(npc);
-    }
-
-    private string BuildDialogue(TalkToNpcResponse response, WorldInteractable fallback, List<PlayerQuestResponse> linkedQuests)
-    {
         var dialogues = response?.Npc?.Dialogues?
             .Where(d => d != null && d.IsActive)
             .OrderBy(d => d.DisplayOrder)
             .ToList() ?? new List<NPCDialogueResponse>();
 
-        var lines = new List<string>();
-        var intro = dialogues.FirstOrDefault(d => !d.LinkedQuestId.HasValue);
-        var questDialogue = PickQuestDialogue(dialogues, linkedQuests);
+        currentDialogues.Clear();
+        currentDialogues.AddRange(dialogues);
+        currentLinkedQuests.Clear();
+        currentLinkedQuests.AddRange(linkedQuests);
+        currentStoryDialogue = PickQuestDialogue(dialogues, linkedQuests) ?? dialogues.FirstOrDefault();
+        firstQuestId = currentStoryDialogue?.LinkedQuestId ?? linkedQuests.FirstOrDefault()?.QuestId ?? 0;
+        currentNpcId = npc?.NPCId ?? fallback.NpcId;
 
-        if (!string.IsNullOrWhiteSpace(intro?.Content))
-            lines.Add(intro.Content);
-        if (!string.IsNullOrWhiteSpace(questDialogue?.Content) && questDialogue != intro)
-            lines.Add(questDialogue.Content);
+        SetText(nameText, Safe(npc?.Name, fallback.DisplayName));
+        SetText(roleText, Safe(npc?.Description, fallback.Description));
+        SetText(dialogueText, BuildIntroDialogue(dialogues, fallback));
+        SetText(questHintText, BuildQuestHint(linkedQuests));
+        ConfigureNpcActions();
+        ApplyPortrait(npc);
+    }
 
-        if (lines.Count == 0)
-            lines.Add(Safe(fallback.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
-
-        return string.Join("\n\n", lines);
+    private static string BuildIntroDialogue(List<NPCDialogueResponse> dialogues, WorldInteractable fallback)
+    {
+        var intro = dialogues?.FirstOrDefault(d => !d.LinkedQuestId.HasValue);
+        return Safe(intro?.Content, Safe(fallback.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
     }
 
     private static NPCDialogueResponse PickQuestDialogue(List<NPCDialogueResponse> dialogues, List<PlayerQuestResponse> linkedQuests)
@@ -208,6 +209,420 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return $"{quest.QuestTitle} [{status}]";
     }
 
+    private void BindFixedActionButtons(Transform actionArea)
+    {
+        actionButtons.Clear();
+        actionButtonLabels.Clear();
+
+        if (actionArea == null)
+            return;
+
+        var buttons = actionArea.GetComponentsInChildren<Button>(true)
+            .Where(button => button != null && button.transform != actionArea)
+            .OrderBy(button => button.transform.GetSiblingIndex())
+            .Take(4)
+            .ToList();
+
+        for (var i = 0; i < buttons.Count; i++)
+        {
+            actionButtons.Add(buttons[i]);
+            actionButtonLabels.Add(FindTextSlot(buttons[i].transform, "Text (TMP)", "Text", "Label", "TitleText"));
+        }
+    }
+
+    private void ConfigureDefaultActions()
+    {
+        SetActionButton(0, "Talk", true, OnStoryDialogueAction);
+        SetActionButton(1, "Do you have any question?", false, OnQuestionAction);
+        SetActionButton(2, "Do you have anything for me?", firstQuestId > 0, OnGiftHintAction);
+        SetActionButton(3, "Goodbye.", true, ClosePanel);
+    }
+
+    private void ConfigureNpcActions()
+    {
+        var hasQuestion = HasDialogueType("Question") || HasDialogueType("Help");
+        var hasGiftOrHint = currentLinkedQuests.Count > 0 || HasDialogueType("Gift") || HasDialogueType("Hint");
+
+        SetActionButton(0, BuildStoryActionLabel(currentStoryDialogue), true, OnStoryDialogueAction);
+        SetActionButton(1, "Do you have any question?", hasQuestion, OnQuestionAction);
+        SetActionButton(2, BuildGiftHintActionLabel(), hasGiftOrHint, OnGiftHintAction);
+        SetActionButton(3, "Goodbye.", true, ClosePanel);
+    }
+
+    private void SetActionButton(int index, string label, bool visible, UnityEngine.Events.UnityAction action)
+    {
+        if (index < 0 || index >= actionButtons.Count)
+            return;
+
+        var button = actionButtons[index];
+        if (button == null)
+            return;
+
+        button.gameObject.SetActive(visible);
+        button.interactable = visible;
+        if (index < actionButtonLabels.Count)
+            SetText(actionButtonLabels[index], label);
+
+        if (button.onClick == null)
+            button.onClick = new Button.ButtonClickedEvent();
+        button.onClick.RemoveAllListeners();
+        if (action != null)
+            button.onClick.AddListener(action);
+    }
+
+    private void SetActionsVisible(bool visible)
+    {
+        for (var i = 0; i < actionButtons.Count; i++)
+        {
+            if (actionButtons[i] != null)
+            {
+                actionButtons[i].gameObject.SetActive(visible);
+                actionButtons[i].interactable = visible;
+            }
+        }
+    }
+
+    private void OnStoryDialogueAction()
+    {
+        var dialogue = currentStoryDialogue ?? currentDialogues.FirstOrDefault();
+        if (dialogue == null)
+        {
+            SetText(dialogueText, "I have no tale for you right now.");
+            return;
+        }
+
+        firstQuestId = dialogue.LinkedQuestId ?? firstQuestId;
+        SetText(dialogueText, Safe(dialogue.Content, "Listen closely. Your path begins here."));
+
+        var linkedQuest = FindLinkedQuest(dialogue.LinkedQuestId);
+        if (linkedQuest != null)
+            SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { linkedQuest }));
+
+        HandleLinkedQuestFromStory(dialogue, linkedQuest);
+    }
+
+    private void HandleLinkedQuestFromStory(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
+    {
+        var questId = dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
+        if (questId <= 0 || processingQuestIds.Contains(questId))
+            return;
+
+        var manager = GetQuestManager();
+        if (manager == null)
+        {
+            SetText(questHintText, "Quest system is not ready.");
+            return;
+        }
+
+        var quest = ResolveQuest(questId, linkedQuest, manager);
+        if (QuestManager.IsStatus(quest, "Claimed"))
+        {
+            SetText(questHintText, "Reward already claimed.");
+            return;
+        }
+
+        if (QuestManager.IsStatus(quest, "Completed"))
+        {
+            RouteToQuestReward(questId, "Quest completed. Claim your reward.");
+            return;
+        }
+
+        if (QuestManager.IsStatus(quest, "InProgress"))
+        {
+            if (ShouldAutoCompleteNpcTalkQuest(quest))
+            {
+                CompleteTalkQuestAndRouteToReward(manager, questId, quest);
+                return;
+            }
+
+            SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { quest }));
+            return;
+        }
+
+        AcceptLinkedQuest(manager, questId, quest, dialogue);
+    }
+
+    private void AcceptLinkedQuest(QuestManager manager, int questId, PlayerQuestResponse quest, NPCDialogueResponse dialogue)
+    {
+        processingQuestIds.Add(questId);
+        manager.AcceptQuest(
+            questId,
+            () =>
+            {
+                var acceptedQuest = ResolveQuest(questId, quest, manager);
+                if (acceptedQuest != null)
+                {
+                    acceptedQuest.Status = string.IsNullOrWhiteSpace(acceptedQuest.Status) ? "InProgress" : acceptedQuest.Status;
+                    acceptedQuest.Progress = Mathf.Max(acceptedQuest.Progress, 0);
+                    SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { acceptedQuest }));
+                }
+
+                if (ShouldAutoCompleteNpcTalkQuest(acceptedQuest))
+                {
+                    CompleteTalkQuestAndRouteToReward(manager, questId, acceptedQuest);
+                    return;
+                }
+
+                processingQuestIds.Remove(questId);
+                NotifyQuestAccepted(acceptedQuest ?? quest, dialogue);
+                ClosePanel();
+                WorldRuntimeEvents.RaiseQuestsChanged();
+            },
+            error =>
+            {
+                processingQuestIds.Remove(questId);
+                SetText(questHintText, Safe(error, "Could not accept quest."));
+            }
+        );
+    }
+
+    private void CompleteTalkQuestAndRouteToReward(QuestManager manager, int questId, PlayerQuestResponse quest)
+    {
+        if (manager == null || questId <= 0)
+        {
+            processingQuestIds.Remove(questId);
+            WorldRuntimeEvents.RaiseQuestsChanged();
+            return;
+        }
+
+        processingQuestIds.Add(questId);
+        manager.CompleteQuest(
+            questId,
+            () =>
+            {
+                processingQuestIds.Remove(questId);
+                var completedQuest = ResolveQuest(questId, quest, manager);
+                if (completedQuest != null)
+                {
+                    completedQuest.Status = "Completed";
+                    completedQuest.Progress = Mathf.Max(1, completedQuest.TargetAmount);
+                }
+
+                RouteToQuestReward(questId, "Quest completed. Claim your reward.");
+            },
+            error =>
+            {
+                processingQuestIds.Remove(questId);
+                Debug.LogWarning($"[MainNpcPanelRuntime] Auto complete talk quest failed: {error}");
+                WorldRuntimeEvents.RaiseQuestsChanged();
+            }
+        );
+    }
+
+    private void RouteToQuestReward(int questId, string message)
+    {
+        ClosePanel();
+
+        var questPanelRuntime = MainQuestPanelRuntime.Instance ?? FindQuestPanelRuntime();
+        if (questPanelRuntime != null)
+        {
+            questPanelRuntime.OpenQuestPanelForReward(questId);
+            if (!string.IsNullOrWhiteSpace(message))
+                questPanelRuntime.ShowQuestPopup(message);
+        }
+        else if (UIManager.Instance != null)
+        {
+            UIManager.Instance.OpenQuestPanel();
+        }
+
+        WorldRuntimeEvents.RaiseQuestsChanged();
+    }
+
+    private static PlayerQuestResponse ResolveQuest(int questId, PlayerQuestResponse fallback, QuestManager manager)
+    {
+        if (questId <= 0)
+            return fallback;
+
+        return manager?.GetQuestResponse(questId) ?? fallback;
+    }
+
+    private static bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
+    {
+        return quest != null && string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private void TurnInQuestItemAndRoute(PlayerQuestResponse quest)
+    {
+        if (quest == null || quest.QuestId <= 0)
+            return;
+
+        if (currentNpcId <= 0)
+        {
+            SetText(dialogueText, "I cannot receive quest items right now.");
+            return;
+        }
+
+        if (processingQuestIds.Contains(quest.QuestId))
+            return;
+
+        var manager = GetQuestManager();
+        if (manager == null)
+        {
+            SetText(questHintText, "Quest system is not ready.");
+            return;
+        }
+
+        processingQuestIds.Add(quest.QuestId);
+        SetText(dialogueText, "Let me take a look at what you brought.");
+
+        manager.TurnInQuestItem(
+            currentNpcId,
+            quest.QuestId,
+            response =>
+            {
+                processingQuestIds.Remove(quest.QuestId);
+
+                if (response?.Quest != null)
+                {
+                    ReplaceLinkedQuest(response.Quest);
+                    SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { response.Quest }));
+                }
+
+                if (response == null)
+                {
+                    SetText(dialogueText, "I could not receive those items.");
+                    return;
+                }
+
+                SetText(dialogueText, Safe(response.Message, "Quest item handed over."));
+                WorldRuntimeEvents.RaiseQuestsChanged();
+
+                if (response.Success && QuestManager.IsStatus(response.Quest, "Completed"))
+                    RouteToQuestReward(quest.QuestId, "Quest completed. Claim your reward.");
+            },
+            error =>
+            {
+                processingQuestIds.Remove(quest.QuestId);
+                SetText(dialogueText, Safe(error, "Could not hand over quest items."));
+            }
+        );
+    }
+
+    private void ReplaceLinkedQuest(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return;
+
+        for (var i = 0; i < currentLinkedQuests.Count; i++)
+        {
+            if (currentLinkedQuests[i] != null && currentLinkedQuests[i].QuestId == quest.QuestId)
+            {
+                currentLinkedQuests[i] = quest;
+                return;
+            }
+        }
+
+        currentLinkedQuests.Add(quest);
+    }
+
+    private string BuildGiftHintActionLabel()
+    {
+        var quest = QuestManager.PickPreferredQuest(currentLinkedQuests);
+        if (quest == null)
+            return "Do you have anything for me?";
+
+        if (QuestManager.IsStatus(quest, "Completed"))
+            return "I finished this quest.";
+
+        if (QuestManager.IsStatus(quest, "InProgress") && IsCollectQuest(quest))
+            return HasEnoughQuestProgress(quest) ? "I have the items." : "Any hint for this task?";
+
+        return "Do you have anything for me?";
+    }
+
+    private static bool IsCollectQuest(PlayerQuestResponse quest)
+    {
+        return quest != null && string.Equals(quest.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasEnoughQuestProgress(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return false;
+
+        var target = Mathf.Max(1, quest.TargetAmount);
+        return quest.Progress >= target;
+    }
+
+    private static string BuildMissingQuestItemHint(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
+    {
+        var target = Mathf.Max(1, quest?.TargetAmount ?? 1);
+        var progress = Mathf.Clamp(quest?.Progress ?? 0, 0, target);
+        var missing = Mathf.Max(0, target - progress);
+        if (missing <= 0)
+            return "Bring those items to me and I will finish the quest for you.";
+
+        var targetName = Safe(quest?.ObjectiveTarget, "quest item");
+        var location = Safe(quest?.ObjectiveLocation, Safe(quest?.RegionName, quest?.MapName));
+        var baseHint = !string.IsNullOrWhiteSpace(dialogue?.Content)
+            ? dialogue.Content
+            : $"Collect {targetName} at {location}.";
+        return $"{baseHint}\nStill need {missing} more {targetName}.";
+    }
+    private void NotifyQuestAccepted(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
+    {
+        var title = Safe(quest?.QuestTitle, Safe(dialogue?.LinkedQuestTitle, "New quest"));
+        var questPanelRuntime = MainQuestPanelRuntime.Instance ?? FindQuestPanelRuntime();
+        if (questPanelRuntime != null)
+            questPanelRuntime.ShowQuestPopup($"Quest Accepted!\n{title} has been added to your quest log.");
+        else
+            Debug.Log($"[QuestPopup] Quest Accepted! {title} has been added to your quest log.");
+    }
+    private void OnQuestionAction()
+    {
+        var dialogue = FindDialogueByType("Question", "Help");
+        SetText(dialogueText, Safe(dialogue?.Content, "Ask freely. Use E to talk to NPCs, P to collect or interact with objects, and the Quest Tracker to follow your current main quest."));
+    }
+
+    private void OnGiftHintAction()
+    {
+        var dialogue = FindDialogueByType("Gift", "Hint");
+        var quest = QuestManager.PickPreferredQuest(currentLinkedQuests);
+        if (quest == null)
+        {
+            SetText(dialogueText, Safe(dialogue?.Content, "I have no gift for you right now. Come back when your path has moved forward."));
+            SetText(questHintText, string.Empty);
+            return;
+        }
+
+        firstQuestId = quest.QuestId;
+        SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { quest }));
+
+        if (QuestManager.IsStatus(quest, "Completed"))
+        {
+            RouteToQuestReward(quest.QuestId, "Quest completed. Claim your reward.");
+            return;
+        }
+
+        if (QuestManager.IsStatus(quest, "InProgress"))
+        {
+            if (ShouldAutoCompleteNpcTalkQuest(quest))
+            {
+                var manager = GetQuestManager();
+                CompleteTalkQuestAndRouteToReward(manager, quest.QuestId, quest);
+                return;
+            }
+
+            if (IsCollectQuest(quest))
+            {
+                if (HasEnoughQuestProgress(quest))
+                {
+                    TurnInQuestItemAndRoute(quest);
+                    return;
+                }
+
+                SetText(dialogueText, BuildMissingQuestItemHint(quest, dialogue));
+                return;
+            }
+
+            var hint = !string.IsNullOrWhiteSpace(dialogue?.Content) ? dialogue.Content : $"Hint: {BuildObjectiveHint(quest)}";
+            SetText(dialogueText, hint);
+            return;
+        }
+
+        SetText(dialogueText, "There is something I can entrust to you. Listen to my story first, then follow your Quest Tracker.");
+    }
     private void OpenFirstQuest()
     {
         if (firstQuestId <= 0)
@@ -238,14 +653,71 @@ public class MainNpcPanelRuntime : MonoBehaviour
             npcPanel.SetActive(false);
     }
 
-    private void SetActionVisible(bool visible)
+
+
+    private bool HasDialogueType(string responseType)
     {
-        if (actionButtonObject != null)
-            actionButtonObject.SetActive(visible);
-        if (actionButton != null)
-            actionButton.interactable = visible;
+        return FindDialogueByType(responseType) != null;
     }
 
+    private NPCDialogueResponse FindDialogueByType(params string[] responseTypes)
+    {
+        if (responseTypes == null || responseTypes.Length == 0)
+            return null;
+
+        for (var i = 0; i < responseTypes.Length; i++)
+        {
+            var responseType = responseTypes[i];
+            if (string.IsNullOrWhiteSpace(responseType))
+                continue;
+
+            var dialogue = currentDialogues.FirstOrDefault(d => d != null && string.Equals(d.ResponseType, responseType, StringComparison.OrdinalIgnoreCase));
+            if (dialogue != null)
+                return dialogue;
+        }
+
+        return null;
+    }
+    private PlayerQuestResponse FindLinkedQuest(int? questId)
+    {
+        if (!questId.HasValue)
+            return null;
+
+        return currentLinkedQuests.FirstOrDefault(q => q != null && q.QuestId == questId.Value);
+    }
+
+    private static string BuildStoryActionLabel(NPCDialogueResponse dialogue)
+    {
+        if (!string.IsNullOrWhiteSpace(dialogue?.Content))
+            return Shorten(dialogue.Content, 72);
+
+        return "Tell me about the story.";
+    }
+
+    private static string BuildObjectiveHint(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return "Check your Quest Tracker for the next step.";
+
+        var target = Mathf.Max(1, quest.TargetAmount);
+        var progress = Mathf.Clamp(quest.Progress, 0, target);
+        var objective = Safe(quest.ObjectiveType, "Explore");
+        var targetName = Safe(quest.ObjectiveTarget, "the marked target");
+        var location = Safe(quest.ObjectiveLocation, Safe(quest.RegionName, quest.MapName));
+        return $"{objective}: {targetName} at {location} ({progress}/{target}).";
+    }
+
+    private static string Shorten(string value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var trimmed = value.Trim();
+        if (trimmed.Length <= maxLength)
+            return trimmed;
+
+        return trimmed.Substring(0, Mathf.Max(0, maxLength - 3)).TrimEnd() + "...";
+    }
     private void ApplyPortrait(NPCResponse npc)
     {
         if (portraitImage == null || npc == null)
@@ -512,4 +984,6 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
     }
 }
+
+
 

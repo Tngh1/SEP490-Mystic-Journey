@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -134,6 +134,27 @@ public class QuestManager : MonoBehaviour
         );
     }
 
+
+    public void TurnInQuestItem(int npcId, int questId, Action<TurnInQuestItemResponse> onSuccess, Action<string> onError = null)
+    {
+        WorldApi.Instance.TurnInQuestItem(
+            npcId,
+            questId,
+            response =>
+            {
+                if (response?.Quest != null)
+                    UpsertQuestState(response.Quest);
+
+                OnQuestProgressChanged?.Invoke(questId);
+                onSuccess?.Invoke(response);
+            },
+            err =>
+            {
+                Debug.LogError($"[QuestManager] TurnInQuestItem FAIL: {err.Message}");
+                onError?.Invoke(err.Message);
+            }
+        );
+    }
     /// <summary>Kiá»ƒm tra map cÃ³ thá»ƒ vÃ o khÃ´ng (unlockQuestId = Claimed).</summary>
     public bool CanEnterMap(MapData map)
     {

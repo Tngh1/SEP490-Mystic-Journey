@@ -94,6 +94,27 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
+
+        public void TurnInQuestItem(
+            int npcId,
+            int questId,
+            Action<TurnInQuestItemResponse> onSuccess,
+            Action<ApiException> onError)
+        {
+            var body = new TurnInQuestItemRequest
+            {
+                NPCId = npcId,
+                QuestId = questId
+            };
+
+            ApiClient.Instance.Post<TurnInQuestItemRequest, ApiResponse<TurnInQuestItemResponse>>(
+                ApiConfig.WorldNpcTurnIn,
+                body,
+                response => onSuccess?.Invoke(response.Data),
+                onError,
+                requiresAuth: true
+            );
+        }
         public void InteractObject(
             string objectKey,
             string interactionType,
