@@ -1,121 +1,70 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class UIQuestPanelView : MonoBehaviour
 {
+    [Header("List Prefabs")]
     [SerializeField] private Transform questListContent;
     [SerializeField] private UIQuestListItem questSlotTemplate;
     [SerializeField] private Transform rewardListContent;
     [SerializeField] private UIQuestRewardSlot rewardSlotTemplate;
 
-    public Transform QuestListContent
-    {
-        get
-        {
-            Bind();
-            return questListContent;
-        }
-    }
+    [Header("Detail Text Slots")]
+    [SerializeField] private TMP_Text questTitleTMP;
+    [SerializeField] private Text questTitleText;
+    [SerializeField] private TMP_Text questTypeTMP;
+    [SerializeField] private Text questTypeText;
+    [SerializeField] private TMP_Text objectiveTMP;
+    [SerializeField] private Text objectiveText;
+    [SerializeField] private TMP_Text progressTMP;
+    [SerializeField] private Text progressText;
+    [SerializeField] private TMP_Text descriptionTMP;
+    [SerializeField] private Text descriptionText;
+    [SerializeField] private TMP_Text questGiverTMP;
+    [SerializeField] private Text questGiverText;
+    [SerializeField] private TMP_Text rewardsTMP;
+    [SerializeField] private Text rewardsText;
 
-    public UIQuestListItem QuestSlotTemplate
-    {
-        get
-        {
-            Bind();
-            return questSlotTemplate;
-        }
-    }
+    public Transform QuestListContent => questListContent;
+    public UIQuestListItem QuestSlotTemplate => questSlotTemplate;
+    public Transform RewardListContent => rewardListContent;
+    public UIQuestRewardSlot RewardSlotTemplate => rewardSlotTemplate;
 
-    public Transform RewardListContent
-    {
-        get
-        {
-            Bind();
-            return rewardListContent;
-        }
-    }
-
-    public UIQuestRewardSlot RewardSlotTemplate
-    {
-        get
-        {
-            Bind();
-            return rewardSlotTemplate;
-        }
-    }
+    public TMP_Text QuestTitleTMP => questTitleTMP;
+    public Text QuestTitleText => questTitleText;
+    public TMP_Text QuestTypeTMP => questTypeTMP;
+    public Text QuestTypeText => questTypeText;
+    public TMP_Text ObjectiveTMP => objectiveTMP;
+    public Text ObjectiveText => objectiveText;
+    public TMP_Text ProgressTMP => progressTMP;
+    public Text ProgressText => progressText;
+    public TMP_Text DescriptionTMP => descriptionTMP;
+    public Text DescriptionText => descriptionText;
+    public TMP_Text QuestGiverTMP => questGiverTMP;
+    public Text QuestGiverText => questGiverText;
+    public TMP_Text RewardsTMP => rewardsTMP;
+    public Text RewardsText => rewardsText;
 
     private void Awake()
     {
-        Bind();
+        ValidateReferences();
     }
 
     private void OnValidate()
     {
-        Bind();
+        ValidateReferences();
     }
 
-    public GameObject Find(string objectName)
-    {
-        return FindDescendant(transform, objectName);
-    }
-
-    private void Bind()
+    private void ValidateReferences()
     {
         if (questListContent == null)
-        {
-            var listPanel = FindDescendant(transform, "QuestListPanel")?.transform;
-            var leftSection = FindDescendant(transform, "LeftSection")?.transform;
-            var root = listPanel != null ? listPanel : leftSection;
-            if (root != null)
-            {
-                var scroll = root.GetComponentInChildren<ScrollRect>(true);
-                questListContent = scroll != null && scroll.content != null
-                    ? scroll.content
-                    : (FindDescendant(root, "Content")?.transform ?? root);
-            }
-        }
-
+            Debug.LogError("[UIQuestPanelView] questListContent missing.", this);
         if (questSlotTemplate == null)
-        {
-            var namedSlot = FindDescendant(transform, "New_QuestSlot") ?? FindDescendant(transform, "QuestSlot");
-            if (namedSlot != null)
-                questSlotTemplate = namedSlot.GetComponent<UIQuestListItem>() ?? namedSlot.AddComponent<UIQuestListItem>();
-        }
-
+            Debug.LogError("[UIQuestPanelView] questSlotTemplate prefab missing.", this);
         if (rewardListContent == null)
-        {
-            // Yuuko update: Ưu tiên tìm ReclaimList trước
-            var reclaimList = FindDescendant(transform, "ReclaimList")?.transform ??
-                              FindDescendant(transform, "RewardsContent")?.transform ??
-                              FindDescendant(transform, "RewardList")?.transform ??
-                              FindDescendant(transform, "Rewards")?.transform;
-
-            if (reclaimList != null)
-            {
-                // Tự động tìm ScrollRect và lấy Content bên trong ReclaimList
-                var scroll = reclaimList.GetComponentInChildren<ScrollRect>(true);
-                rewardListContent = scroll != null && scroll.content != null
-                    ? scroll.content
-                    : (FindDescendant(reclaimList, "Content")?.transform ?? reclaimList);
-            }
-        }
-
-        if (rewardSlotTemplate == null && rewardListContent != null)
-            rewardSlotTemplate = rewardListContent.GetComponentInChildren<UIQuestRewardSlot>(true);
-    }
-
-    private static GameObject FindDescendant(Transform root, string objectName)
-    {
-        if (root == null || string.IsNullOrWhiteSpace(objectName))
-            return null;
-
-        var all = root.GetComponentsInChildren<Transform>(true);
-        for (var i = 0; i < all.Length; i++)
-        {
-            if (all[i] != null && all[i].name == objectName)
-                return all[i].gameObject;
-        }
-
-        return null;
+            Debug.LogError("[UIQuestPanelView] rewardListContent missing.", this);
+        if (rewardSlotTemplate == null)
+            Debug.LogError("[UIQuestPanelView] rewardSlotTemplate prefab missing.", this);
     }
 }

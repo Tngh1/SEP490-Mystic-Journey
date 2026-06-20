@@ -89,6 +89,7 @@ namespace MysticJourney.API.Core
         public const string WorldState = "/api/world/state";
         public const string WorldPosition = "/api/world/position";
         public const string WorldNpcTalk = "/api/world/npc/talk";
+        public const string WorldNpcTurnIn = "/api/world/npc/turn-in";
         public const string WorldChestOpen = "/api/world/chests/open";
         public const string WorldInteractObject = "/api/world/interactions";
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";

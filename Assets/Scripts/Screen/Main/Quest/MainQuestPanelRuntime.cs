@@ -27,8 +27,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private readonly List<UIQuestListItem> questSlots = new List<UIQuestListItem>();
     private readonly List<UIQuestRewardSlot> rewardSlots = new List<UIQuestRewardSlot>();
 
-    private UIQuestListItem questSlotTemplate;
-    private UIQuestRewardSlot rewardSlotTemplate;
     private GameObject popupLayer;
     private UIQuestPanelView questPanelView;
     private UIQuestPopupView questPopupView;
@@ -56,6 +54,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private TextSlot detailTitle;
     private TextSlot detailType;
     private TextSlot objectiveText;
+    private TextSlot detailProgress;
     private TextSlot descriptionText;
     private TextSlot questGiverText;
     private TextSlot rewardsText;
@@ -113,6 +112,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
     public void OpenQuestPanelForQuest(int questId)
     {
         pendingSelectedQuestId = questId;
+        OpenQuestPanel();
+    }
+
+    public void OpenQuestPanelForReward(int questId)
+    {
+        pendingSelectedQuestId = questId;
+        filter = "Completed";
         OpenQuestPanel();
     }
 
@@ -186,31 +192,23 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
 
         questPanelView = questPanelView != null ? questPanelView : questPanel.GetComponent<UIQuestPanelView>();
-        questListContent = questListContent != null ? questListContent : (questPanelView != null ? questPanelView.QuestListContent : null) ?? FindQuestListContent();
-        questSlotTemplate = questSlotTemplate != null ? questSlotTemplate : (questPanelView != null ? questPanelView.QuestSlotTemplate : null) ?? FindQuestSlotTemplate();
-        HideSceneQuestTemplate();
-
-        rewardListContent = rewardListContent != null ? rewardListContent : (questPanelView != null ? questPanelView.RewardListContent : null) ?? FindRewardListContent();
-        EnsureRewardContentLayout();
-        rewardSlotTemplate = rewardSlotTemplate != null ? rewardSlotTemplate : (questPanelView != null ? questPanelView.RewardSlotTemplate : null) ?? FindRewardSlotTemplate();
-        rewardSlotPrefab = rewardSlotPrefab != null ? rewardSlotPrefab : LoadRewardSlotPrefab();
-        if (rewardSlotTemplate != null && rewardSlotTemplate.gameObject.scene.IsValid())
-            rewardSlotTemplate.gameObject.SetActive(false);
-
-        var rightSection = FindDescendant(questPanel.transform, "RightSection")?.transform;
-        if (rightSection != null)
+        if (questPanelView != null)
         {
-            detailTitle = detailTitle.IsValid ? detailTitle : FindTextSlot(rightSection, "QuestTitleText", "TitleQuest", "QuestTitle", "TitleText");
-            detailType = detailType.IsValid ? detailType : FindTextSlot(rightSection, "QuestTypeText", "TypeText", "QuestType", skip: detailTitle);
+            questListContent = questListContent != null ? questListContent : questPanelView.QuestListContent;
+            questSlotPrefab = questSlotPrefab != null ? questSlotPrefab : questPanelView.QuestSlotTemplate;
+            rewardListContent = rewardListContent != null ? rewardListContent : questPanelView.RewardListContent;
+            rewardSlotPrefab = rewardSlotPrefab != null ? rewardSlotPrefab : questPanelView.RewardSlotTemplate;
 
-            // Yuuko update: Đã thêm "ProgessText" vào mảng tìm kiếm để khớp với lỗi gõ thiếu chữ r trên object của bạn
-            objectiveText = objectiveText.IsValid ? objectiveText : FindTextSlot(rightSection, "ProgessText", "ObjectiveText", "ProgressText", skip: detailTitle, skip2: detailType);
-
-            descriptionText = descriptionText.IsValid ? descriptionText : FindTextSlot(rightSection, "DescriptionText", "Description", skip: detailTitle, skip2: detailType, skip3: objectiveText);
-            questGiverText = questGiverText.IsValid ? questGiverText : FindTextSlot(rightSection, "QuestGiverText", "GiverText", "NpcNameText", skip: detailTitle, skip2: detailType, skip3: objectiveText, skip4: descriptionText);
-            rewardsText = rewardsText.IsValid ? rewardsText : FindTextSlot(rightSection, "RewardsText", "RewardText", "Reward", skip: detailTitle, skip2: detailType, skip3: objectiveText, skip4: descriptionText, skip5: questGiverText);
+            detailTitle = detailTitle.IsValid ? detailTitle : new TextSlot(questPanelView.QuestTitleTMP, questPanelView.QuestTitleText);
+            detailType = detailType.IsValid ? detailType : new TextSlot(questPanelView.QuestTypeTMP, questPanelView.QuestTypeText);
+            objectiveText = objectiveText.IsValid ? objectiveText : new TextSlot(questPanelView.ObjectiveTMP, questPanelView.ObjectiveText);
+            detailProgress = detailProgress.IsValid ? detailProgress : new TextSlot(questPanelView.ProgressTMP, questPanelView.ProgressText);
+            descriptionText = descriptionText.IsValid ? descriptionText : new TextSlot(questPanelView.DescriptionTMP, questPanelView.DescriptionText);
+            questGiverText = questGiverText.IsValid ? questGiverText : new TextSlot(questPanelView.QuestGiverTMP, questPanelView.QuestGiverText);
+            rewardsText = rewardsText.IsValid ? rewardsText : new TextSlot(questPanelView.RewardsTMP, questPanelView.RewardsText);
         }
 
+        EnsureRewardContentLayout();
         if (questPopup != null)
         {
             questPopupView = questPopupView != null ? questPopupView : questPopup.GetComponent<UIQuestPopupView>();
@@ -277,16 +275,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (claimedButton != null)
             claimedButton.interactable = false;
     }
-
-    private void HideSceneQuestTemplate()
-    {
-        var sceneTemplate = FindDescendant(questPanel.transform, "New_QuestSlot") ?? FindDescendant(questPanel.transform, "QuestSlot");
-        if (sceneTemplate != null && sceneTemplate.scene.IsValid())
-            sceneTemplate.SetActive(false);
-
-        if (questSlotTemplate != null && questSlotTemplate.gameObject.scene.IsValid())
-            questSlotTemplate.gameObject.SetActive(false);
-    }
+
 
     private void SetFilter(string nextFilter)
     {
@@ -341,7 +330,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             if (!didWarnMissingListTemplate)
             {
-                Debug.LogWarning("[MainQuestPanelRuntime] Quest list needs a New_QuestSlot under LeftSection/QuestListPanel/Scroll View/Viewport/Content or a questSlotPrefab reference.");
+                Debug.LogError("[MainQuestPanelRuntime] Quest list requires questListContent and a questSlotTemplate prefab assigned on UIQuestPanelView.");
                 didWarnMissingListTemplate = true;
             }
             return;
@@ -356,7 +345,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
             var quest = visible[i];
             slot.gameObject.SetActive(true);
-            slot.transform.SetSiblingIndex(i + TemplateOffset(questSlotTemplate));
+            slot.transform.SetSiblingIndex(i);
             slot.Setup(quest, selectedQuest != null && selectedQuest.QuestId == quest.QuestId, OnQuestSelected, GetQuestSprite(quest));
         }
 
@@ -409,7 +398,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 continue;
 
             slot.gameObject.SetActive(true);
-            slot.transform.SetSiblingIndex(i + TemplateOffset(rewardSlotTemplate));
+            slot.transform.SetSiblingIndex(i);
             slot.Setup(rewards[i].Name, rewards[i].Amount, rewards[i].Sprite);
         }
 
@@ -607,6 +596,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
         );
     }
 
+    public void ShowQuestPopup(string message)
+    {
+        ShowPopup(message);
+    }
+
     private void ShowPopup(string message)
     {
         BindUi();
@@ -700,84 +694,14 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
     private UIQuestListItem GetQuestSlotSource()
     {
-        return questSlotPrefab != null ? questSlotPrefab : questSlotTemplate;
+        return questSlotPrefab;
     }
 
     private UIQuestRewardSlot GetRewardSlotSource()
     {
-        if (rewardSlotPrefab != null)
-            return rewardSlotPrefab;
-        if (rewardSlotTemplate != null)
-            return rewardSlotTemplate;
-
-        rewardSlotPrefab = LoadRewardSlotPrefab();
         return rewardSlotPrefab;
     }
-
-    private Transform FindQuestListContent()
-    {
-        var listPanel = FindDescendant(questPanel.transform, "QuestListPanel")?.transform;
-        var leftSection = FindDescendant(questPanel.transform, "LeftSection")?.transform;
-        var root = listPanel != null ? listPanel : leftSection;
-        if (root == null)
-            return null;
-
-        var scroll = root.GetComponentInChildren<ScrollRect>(true);
-        if (scroll != null && scroll.content != null)
-            return scroll.content;
-
-        var content = FindDescendant(root, "Content");
-        return content != null ? content.transform : root;
-    }
-
-    private UIQuestListItem FindQuestSlotTemplate()
-    {
-        if (questPanel == null)
-            return null;
-
-        var named = FindDescendant(questPanel.transform, "New_QuestSlot") ?? FindDescendant(questPanel.transform, "QuestSlot");
-        if (named != null)
-            return EnsureQuestSlotComponent(named);
-
-        if (questListContent != null)
-        {
-            for (var i = 0; i < questListContent.childCount; i++)
-            {
-                var child = questListContent.GetChild(i);
-                if (child != null && child.name.IndexOf("Quest", StringComparison.OrdinalIgnoreCase) >= 0)
-                    return EnsureQuestSlotComponent(child.gameObject);
-            }
-        }
-
-        return questPanel.GetComponentInChildren<UIQuestListItem>(true);
-    }
-
-    private Transform FindRewardListContent()
-    {
-        if (questPanel == null)
-            return null;
-
-        var rewards = FindDescendant(questPanel.transform, "RewardsContent") ??
-                      FindDescendant(questPanel.transform, "RewardList") ??
-                      FindDescendant(questPanel.transform, "Rewards") ??
-                      FindDescendant(questPanel.transform, "ReclaimList");
-
-        if (rewards == null)
-            return null;
-
-        var root = rewards.transform;
-        var scroll = root.GetComponentInChildren<ScrollRect>(true);
-        if (scroll != null && scroll.content != null)
-            return scroll.content;
-
-        var content = FindDescendant(root, "Content");
-        return content != null ? content.transform : root;
-    }
-
-    private static UIQuestRewardSlot LoadRewardSlotPrefab()
-    {
-        return Resources.Load<UIQuestRewardSlot>("Quest/QuestRewardSlot_Prefab");
-    }
+
 
     private void EnsureRewardContentLayout()
     {
@@ -797,25 +721,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = false;
     }
-
-    private UIQuestRewardSlot FindRewardSlotTemplate()
-    {
-        if (rewardListContent == null)
-            return null;
-
-        var existing = rewardListContent.GetComponentInChildren<UIQuestRewardSlot>(true);
-        if (existing != null)
-            return existing;
-
-        for (var i = 0; i < rewardListContent.childCount; i++)
-        {
-            var child = rewardListContent.GetChild(i);
-            if (child != null && child.name.IndexOf("Reward", StringComparison.OrdinalIgnoreCase) >= 0)
-                return EnsureRewardSlotComponent(child.gameObject);
-        }
-
-        return null;
-    }
+
 
     private Sprite GetQuestSprite(PlayerQuestResponse quest)
     {
@@ -906,11 +812,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             item = target.AddComponent<UIQuestRewardSlot>();
         return item;
     }
-
-    private static int TemplateOffset(Component template)
-    {
-        return template != null && template.transform.parent != null && template.gameObject.activeSelf ? 1 : 0;
-    }
+
 
     private static bool CanCompleteLocally(PlayerQuestResponse quest)
     {
@@ -951,6 +853,26 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return $"{objective}: {targetName} at {location}  {current}/{target}";
     }
 
+    private static string ObjectiveTextLine(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return string.Empty;
+
+        var objective = Safe(quest.ObjectiveType, "Explore");
+        var targetName = Safe(quest.ObjectiveTarget, "target");
+        var location = Safe(quest.ObjectiveLocation, Safe(quest.RegionName, quest.MapName));
+        return $"{objective}: {targetName} at {location}";
+    }
+
+    private static string ProgressOnlyLine(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return string.Empty;
+
+        var current = Mathf.Clamp(quest.Progress, 0, Mathf.Max(1, quest.TargetAmount));
+        var target = Mathf.Max(1, quest.TargetAmount);
+        return $"{current}/{target}";
+    }
     private static string RewardLine(PlayerQuestResponse quest)
     {
         if (quest == null)
@@ -1122,3 +1044,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 }
+
+
+

@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum WorldInteractableKind
 {
     Npc,
-    Object
+    Object,
+    QuestItem
 }
 
 public class WorldInteractable : MonoBehaviour
@@ -59,10 +60,19 @@ public class WorldInteractable : MonoBehaviour
         linkedQuestIds = linkedQuestId > 0 ? new[] { linkedQuestId } : new int[0];
     }
 
+    public void ConfigureQuestItem(string key, string itemName, int linkedQuestId, int delta, float radius)
+    {
+        ConfigureObject(key, itemName, "Collect", linkedQuestId, delta, radius);
+        kind = WorldInteractableKind.QuestItem;
+    }
+
     public string GetPromptText()
     {
         if (kind == WorldInteractableKind.Npc)
             return $"{DisplayName}\nPress E to talk";
+
+        if (kind == WorldInteractableKind.QuestItem)
+            return $"{DisplayName}\nPress P to collect";
 
         return $"{DisplayName}\nPress P to {InteractionType}";
     }

@@ -36,7 +36,7 @@ public class PlayerWorldInteractor : MonoBehaviour
             RefreshInteractables();
         }
 
-        current = FindNearestInteractable(WorldInteractableKind.Npc) ?? FindNearestInteractable(WorldInteractableKind.Object);
+        current = FindNearestInteractable(WorldInteractableKind.Npc) ?? FindNearestWorldObject();
         if (current != null)
             WorldInteractionPromptRuntime.Show(current.GetPromptText());
         else
@@ -46,7 +46,7 @@ public class PlayerWorldInteractor : MonoBehaviour
             TryInteract(WorldInteractableKind.Npc);
 
         if (Input.GetKeyDown(KeyCode.P))
-            TryInteract(WorldInteractableKind.Object);
+            TryInteractWorldObject();
     }
 
     private void OnDisable()
@@ -91,6 +91,21 @@ public class PlayerWorldInteractor : MonoBehaviour
         InteractWithObject(target);
     }
 
+
+    private void TryInteractWorldObject()
+    {
+        if (IsNpcPanelOpen())
+            return;
+        if (Time.time < nextInteractTime)
+            return;
+
+        var target = FindNearestWorldObject();
+        if (target == null)
+            return;
+
+        nextInteractTime = Time.time + 0.25f;
+        InteractWithObject(target);
+    }
     private void InteractWithObject(WorldInteractable target)
     {
         if (target == null)
@@ -102,7 +117,7 @@ public class PlayerWorldInteractor : MonoBehaviour
             return;
         }
 
-        if (!target.QuestId.HasValue)
+        if (!target.QuestId.HasValue && target.Kind != WorldInteractableKind.QuestItem)
         {
             WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);
             Debug.LogWarning($"[PlayerWorldInteractor] {target.DisplayName} is not linked to an active quest yet.");
@@ -117,6 +132,7 @@ public class PlayerWorldInteractor : MonoBehaviour
             response =>
             {
                 Debug.Log($"[PlayerWorldInteractor] {target.DisplayName}: {response?.Message ?? "interacted"}");
+                WorldRuntimeEvents.RaiseMessage(response?.Message ?? $"{target.DisplayName} interacted.");
                 WorldRuntimeEvents.RaiseQuestsChanged();
             },
             error => Debug.LogWarning($"[PlayerWorldInteractor] InteractObject failed: {error.Message}")
@@ -148,6 +164,31 @@ public class PlayerWorldInteractor : MonoBehaviour
         return nearest;
     }
 
+
+    private WorldInteractable FindNearestWorldObject()
+    {
+        WorldInteractable nearest = null;
+        var bestDistance = float.MaxValue;
+        var position = transform.position;
+
+        foreach (var item in interactables)
+        {
+            if (item == null || !item.gameObject.activeInHierarchy)
+                continue;
+
+            if (item.Kind != WorldInteractableKind.Object && item.Kind != WorldInteractableKind.QuestItem)
+                continue;
+
+            var distance = Vector2.Distance(position, item.transform.position);
+            if (distance > item.InteractionRadius || distance >= bestDistance)
+                continue;
+
+            nearest = item;
+            bestDistance = distance;
+        }
+
+        return nearest;
+    }
     private void RefreshSceneLinks()
     {
         WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);

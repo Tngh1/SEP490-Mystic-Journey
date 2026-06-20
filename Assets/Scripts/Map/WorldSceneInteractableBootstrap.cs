@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using MysticJourney.API.Core;
@@ -60,6 +60,7 @@ public static class WorldSceneInteractableBootstrap
 
         ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", 0, 2.25f);
         ConfigureObject(scene, "Stone", "ElfForest.AncientStoneMarker", "Ancient Stone Marker", "Interact", 0, 2.5f);
+        ConfigureTaggedQuestItems(scene, null);
     }
 
     private static void ApplyApiState(Scene scene, WorldStateResponse state)
@@ -106,6 +107,8 @@ public static class WorldSceneInteractableBootstrap
             Contains(q.ObjectiveTarget, "Ancient Stone Marker"));
         if (stoneQuest != null)
             ConfigureObject(scene, "Stone", "ElfForest.AncientStoneMarker", "Ancient Stone Marker", "Interact", stoneQuest.QuestId, 2.5f);
+
+        ConfigureTaggedQuestItems(scene, state);
     }
 
     private static GameObject FindOrCreateElderObject(Scene scene, Vector3 position)
@@ -140,6 +143,67 @@ public static class WorldSceneInteractableBootstrap
         interactable.ConfigureObject(objectKey, displayName, interactionType, questId, 1, radius);
     }
 
+
+    private static void ConfigureTaggedQuestItems(Scene scene, WorldStateResponse state)
+    {
+        foreach (var obj in FindSceneObjectsByTag(scene, "QuestItem"))
+        {
+            var itemName = ResolveQuestItemName(obj.name);
+            var objectKey = BuildObjectKey(itemName);
+            var questId = FindCollectQuestId(state, itemName);
+            var interactable = obj.GetComponent<WorldInteractable>();
+            if (interactable == null)
+                interactable = obj.AddComponent<WorldInteractable>();
+            interactable.ConfigureQuestItem(objectKey, itemName, questId, 1, 2.25f);
+        }
+    }
+
+    private static int FindCollectQuestId(WorldStateResponse state, string itemName)
+    {
+        var quest = state?.Quests?.FirstOrDefault(q =>
+            q != null &&
+            string.Equals(q.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase) &&
+            (Contains(q.ObjectiveTarget, itemName) || Contains(itemName, q.ObjectiveTarget)));
+        return quest?.QuestId ?? 0;
+    }
+
+    private static string ResolveQuestItemName(string objectName)
+    {
+        var pretty = PrettyName(objectName);
+        if (Contains(pretty, "Branch") || Contains(pretty, "Willow") || Contains(pretty, "Canh"))
+            return "Old Willow Branch";
+        return Contains(pretty, "Flower") ? "White Flower" : pretty;
+    }
+
+    private static string BuildObjectKey(string displayName)
+    {
+        var compact = PrettyName(displayName).Replace(" ", string.Empty);
+        return string.IsNullOrWhiteSpace(compact) ? "ElfForest.QuestItem" : $"ElfForest.{compact}";
+    }
+
+    private static string PrettyName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+            return "Quest Item";
+
+        return objectName
+            .Replace("(Clone)", string.Empty)
+            .Replace("_", " ")
+            .Trim();
+    }
+
+    private static IEnumerable<GameObject> FindSceneObjectsByTag(Scene scene, string tag)
+    {
+        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        foreach (var obj in objects)
+        {
+            if (obj == null || obj.scene != scene)
+                continue;
+
+            if (string.Equals(obj.tag, tag, StringComparison.OrdinalIgnoreCase))
+                yield return obj;
+        }
+    }
     private static string FirstDialogue(NPCResponse npc)
     {
         return npc?.Dialogues?
@@ -152,7 +216,7 @@ public static class WorldSceneInteractableBootstrap
 
     private static bool Contains(string source, string value)
     {
-        return !string.IsNullOrWhiteSpace(source) && source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+        return !string.IsNullOrWhiteSpace(source) && !string.IsNullOrWhiteSpace(value) && source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static GameObject FindSceneObject(Scene scene, string objectName)
