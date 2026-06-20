@@ -2047,9 +2047,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b13d28da2d8a00e45ad135d5d142b35b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuUIManager
-  waitPanel: {fileID: 2111822034}
+  startPanel: {fileID: 2111822034}
   loginPanel: {fileID: 1207455105}
-  registerPanel: {fileID: 0}
+  websitePanel: {fileID: 1402093198}
+  websiteUrl: https://yourwebsite.com
 --- !u!1 &1207455105
 GameObject:
   m_ObjectHideFlags: 0
