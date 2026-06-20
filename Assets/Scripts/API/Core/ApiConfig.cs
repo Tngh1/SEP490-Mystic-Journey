@@ -21,6 +21,8 @@ namespace MysticJourney.API.Core
         public const string PlayerProfileIdKey = "mj_player_profile_id";
         public const string AccountIdKey = "mj_account_id";
         public const string UserNameKey = "mj_user_name";
+        public const string PlayerLevelKey = "mj_player_level";
+        public const string PlayerClassKey = "mj_player_class";
         public const string LastMapNameKey = "mj_last_map_name";
         public const string PositionXKey = "mj_position_x";
         public const string PositionYKey = "mj_position_y";
@@ -87,6 +89,7 @@ namespace MysticJourney.API.Core
         public const string WorldState = "/api/world/state";
         public const string WorldPosition = "/api/world/position";
         public const string WorldNpcTalk = "/api/world/npc/talk";
+        public const string WorldNpcTurnIn = "/api/world/npc/turn-in";
         public const string WorldChestOpen = "/api/world/chests/open";
         public const string WorldInteractObject = "/api/world/interactions";
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";

@@ -77,8 +77,21 @@ namespace MysticJourney.API.Models.Response
         public bool Success { get; set; }
         public string Message { get; set; }
         public PlayerQuestResponse Quest { get; set; }
+        public int? CollectedItemId { get; set; }
+        public string CollectedItemName { get; set; }
+        public int CollectedQuantity { get; set; }
     }
 
+    [Serializable]
+    public class TurnInQuestItemResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public PlayerQuestResponse Quest { get; set; }
+        public int? ConsumedItemId { get; set; }
+        public string ConsumedItemName { get; set; }
+        public int ConsumedQuantity { get; set; }
+    }
     [Serializable]
     public class PlayerDailyLoginResponse
     {
@@ -150,6 +163,12 @@ namespace MysticJourney.API.Models.Request
         public int ProgressDelta { get; set; } = 1;
     }
 
+    [Serializable]
+    public class TurnInQuestItemRequest
+    {
+        public int NPCId { get; set; }
+        public int QuestId { get; set; }
+    }
     [Serializable]
     public class OpenWorldChestRequest
     {

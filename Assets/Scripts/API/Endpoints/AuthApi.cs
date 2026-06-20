@@ -64,6 +64,7 @@ namespace MysticJourney.API.Endpoints
 
                     PlayerPrefs.SetInt(ApiConfig.AccountIdKey, response.AccountId);
                     PlayerPrefs.SetString(ApiConfig.UserNameKey, response.UserName);
+                    SaveProfileSession(response.PlayerProfileId, response.Level, response.PlayerClass);
                     SaveWorldSession(response.LastMapName, response.PositionX, response.PositionY);
                     PlayerPrefs.Save();
 
@@ -87,6 +88,7 @@ namespace MysticJourney.API.Endpoints
                 ApiConfig.Me,
                 response =>
                 {
+                    SaveProfileSession(response.PlayerProfileId, response.Level, response.PlayerClass);
                     SaveWorldSession(response.LastMapName, response.PositionX, response.PositionY);
                     Debug.Log($"[AuthApi] GetMe OK | UserName={response.UserName} | Role={response.Role} | LastMap={response.LastMapName}");
                     onSuccess?.Invoke(response);
@@ -120,6 +122,23 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true
             );
+        }
+
+        private static void SaveProfileSession(int? playerProfileId, int level, string playerClass)
+        {
+            if (playerProfileId.HasValue)
+            {
+                PlayerPrefs.SetInt(ApiConfig.PlayerProfileIdKey, playerProfileId.Value);
+                WorldState.PlayerProfileId = playerProfileId.Value;
+            }
+
+            var safeLevel = Mathf.Max(1, level);
+            PlayerPrefs.SetInt(ApiConfig.PlayerLevelKey, safeLevel);
+            WorldState.PlayerLevel = safeLevel;
+
+            var safeClass = string.IsNullOrWhiteSpace(playerClass) ? "Knight" : playerClass.Trim();
+            PlayerPrefs.SetString(ApiConfig.PlayerClassKey, safeClass);
+            WorldState.PlayerClass = safeClass;
         }
 
         private static void SaveWorldSession(string mapName, double positionX, double positionY)
