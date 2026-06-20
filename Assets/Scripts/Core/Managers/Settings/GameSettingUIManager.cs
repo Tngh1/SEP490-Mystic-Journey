@@ -67,12 +67,8 @@ namespace MysticJourney.Screen.GameSetting
 
         private void LoadCurrentSettings()
         {
-<<<<<<< HEAD:Assets/Scripts/Core/Managers/Settings/GameSettingUIManager.cs
             var settings = SettingsService.Instance;
             settings.Load();
-=======
-            // TODO: Sau này load từ API hoặc PlayerPrefs
->>>>>>> 3401475262946c5cd42c446c26436a45745fdb58:Assets/Scripts/Screen/Main/Setting/GameSettingUIManager.cs
 
             if (masterVolumeSlider != null)
                 masterVolumeSlider.value = settings.MasterVolume;
@@ -87,18 +83,12 @@ namespace MysticJourney.Screen.GameSetting
             if (resolutionDropdown != null)
                 resolutionDropdown.value = settings.ResolutionIndex;
             if (damageNumbersToggle != null)
-<<<<<<< HEAD:Assets/Scripts/Core/Managers/Settings/GameSettingUIManager.cs
                 damageNumbersToggle.SetState(settings.ShowDamageNumbers);
-        }
-
-        public void OnSaveChangeClicked()
-=======
-                damageNumbersToggle.isOn = true;
 
             savedState = CaptureCurrentState();
         }
 
-        private void OnSaveChangeClicked()
+        public void OnSaveChangeClicked()
         {
             SaveSettings();
 
@@ -143,7 +133,6 @@ namespace MysticJourney.Screen.GameSetting
         }
 
         private void SaveSettings()
->>>>>>> 3401475262946c5cd42c446c26436a45745fdb58:Assets/Scripts/Screen/Main/Setting/GameSettingUIManager.cs
         {
             var settings = SettingsService.Instance;
 
@@ -155,24 +144,8 @@ namespace MysticJourney.Screen.GameSetting
             if (resolutionDropdown != null) settings.SetResolution(resolutionDropdown.value);
             if (damageNumbersToggle != null) settings.SetShowDamageNumbers(damageNumbersToggle.isOn);
 
-<<<<<<< HEAD:Assets/Scripts/Core/Managers/Settings/GameSettingUIManager.cs
             settings.Save();
             Debug.Log("[GameSettingUIManager] Settings saved.");
-=======
-            Debug.Log($"MasterVolume : {masterVolumeSlider?.value ?? 0f}");
-            Debug.Log($"MusicVolume  : {musicVolumeSlider?.value ?? 0f}");
-            Debug.Log($"SFXVolume    : {sfxVolumeSlider?.value ?? 0f}");
-            Debug.Log($"MuteAll      : {muteAllToggle?.isOn}");
-
-            Debug.Log($"DisplayMode  : {displayMode}");
-            Debug.Log($"Resolution   : {resolution}");
-            Debug.Log($"DamageNumber : {damageNumbersToggle?.isOn}");
-
-            Debug.Log("=================================================");
-
-            // TODO:
-            // Call API SaveGameSettings()
-            // hoặc PlayerPrefs.Save()
         }
 
         private void CloseSettingsPanel()
@@ -213,7 +186,6 @@ namespace MysticJourney.Screen.GameSetting
 
                 current.DisplayMode != savedState.DisplayMode ||
                 current.Resolution != savedState.Resolution;
->>>>>>> 3401475262946c5cd42c446c26436a45745fdb58:Assets/Scripts/Screen/Main/Setting/GameSettingUIManager.cs
         }
 
         private string GetDropdownText(TMP_Dropdown dropdown)
