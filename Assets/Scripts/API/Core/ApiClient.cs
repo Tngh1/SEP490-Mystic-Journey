@@ -65,6 +65,8 @@ namespace MysticJourney.API.Core
             PlayerPrefs.DeleteKey(ApiConfig.PlayerProfileIdKey);
             PlayerPrefs.DeleteKey(ApiConfig.AccountIdKey);
             PlayerPrefs.DeleteKey(ApiConfig.UserNameKey);
+            PlayerPrefs.DeleteKey(ApiConfig.PlayerLevelKey);
+            PlayerPrefs.DeleteKey(ApiConfig.PlayerClassKey);
             PlayerPrefs.DeleteKey(ApiConfig.LastMapNameKey);
             PlayerPrefs.DeleteKey(ApiConfig.PositionXKey);
             PlayerPrefs.DeleteKey(ApiConfig.PositionYKey);

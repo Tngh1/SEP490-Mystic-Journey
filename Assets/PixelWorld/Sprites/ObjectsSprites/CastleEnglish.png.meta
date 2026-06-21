@@ -1,0 +1,465 @@
+fileFormatVersion: 2
+guid: f2449f6493a3b6548abb79f506f613b1
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: CastleEnglish_0
+      rect:
+        serializedVersion: 2
+        x: 63
+        y: 1248
+        width: 181
+        height: 193
+      alignment: 9
+      pivot: {x: 0.50276244, y: 0.031088082}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dc2223f51b7d9a44785feb145eafe430
+      internalID: 2116075158
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_1
+      rect:
+        serializedVersion: 2
+        x: 319
+        y: 767
+        width: 579
+        height: 725
+      alignment: 9
+      pivot: {x: 0.50086355, y: 0.013793103}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0c1eb71da15acb54bae48a588678b5e6
+      internalID: -1616339315
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_2
+      rect:
+        serializedVersion: 2
+        x: 922
+        y: 1270
+        width: 308
+        height: 238
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3ae59f87f1c071244ad00bd90315469c
+      internalID: 1990988444
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_3
+      rect:
+        serializedVersion: 2
+        x: 1236
+        y: 1272
+        width: 302
+        height: 192
+      alignment: 9
+      pivot: {x: 0.47803745, y: 0.78124875}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 94d347bba60346748b2eddb1f579c1fa
+      internalID: -1558859728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_4
+      rect:
+        serializedVersion: 2
+        x: 31
+        y: 1136
+        width: 269
+        height: 66
+      alignment: 9
+      pivot: {x: 0.49840367, y: 0.5855861}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 70b664f762a29d54b9be68a5c8bc7714
+      internalID: 2001255254
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_5
+      rect:
+        serializedVersion: 2
+        x: 959
+        y: 778
+        width: 555
+        height: 472
+      alignment: 9
+      pivot: {x: 0.5063063, y: 0.6398305}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ca88b4782587c9d4fbc39d68cee98d22
+      internalID: -837347335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_6
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 1013
+        width: 270
+        height: 112
+      alignment: 9
+      pivot: {x: 0.5, y: 0.026785716}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e9242947806db4547870d09be541d997
+      internalID: 235376803
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_7
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 797
+        width: 83
+        height: 197
+      alignment: 9
+      pivot: {x: 0.5060239, y: 0.9245054}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 53845b0f672fce54392d23425e81e347
+      internalID: 598154765
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_8
+      rect:
+        serializedVersion: 2
+        x: 319
+        y: 22
+        width: 579
+        height: 725
+      alignment: 9
+      pivot: {x: 0.50259066, y: 0.020689655}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 91fba9d3311a1e34696a887df85e8a9c
+      internalID: -124021465
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_9
+      rect:
+        serializedVersion: 2
+        x: 970
+        y: 20
+        width: 578
+        height: 727
+      alignment: 9
+      pivot: {x: 0.49826992, y: 0.0261348}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b20f3009d8c14254ea8768edbbb6ee8b
+      internalID: -1755495745
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_10
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 647
+        width: 261
+        height: 117
+      alignment: 9
+      pivot: {x: 0.5038191, y: 0.05605438}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c0eee4b6efb3a8446bfb029c27f091cd
+      internalID: 1400176046
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_11
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 534
+        width: 254
+        height: 109
+      alignment: 9
+      pivot: {x: 0.5013082, y: 0.6249787}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d4a0b2f0929602c46b5b90e8a34ef614
+      internalID: 57225028
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_12
+      rect:
+        serializedVersion: 2
+        x: 205
+        y: 469
+        width: 51
+        height: 38
+      alignment: 9
+      pivot: {x: 0.5160454, y: 0.16621318}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c47ee0552c5316a4b9d713baa5384875
+      internalID: -2076273245
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleEnglish_13
+      rect:
+        serializedVersion: 2
+        x: 59
+        y: 459
+        width: 84
+        height: 53
+      alignment: 9
+      pivot: {x: 0.502272, y: 0.21913119}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1fd02fbbf9daccf4aad528a75ae7fd00
+      internalID: 1204373621
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      CastleEnglish_0: 2116075158
+      CastleEnglish_1: -1616339315
+      CastleEnglish_10: 1400176046
+      CastleEnglish_11: 57225028
+      CastleEnglish_12: -2076273245
+      CastleEnglish_13: 1204373621
+      CastleEnglish_2: 1990988444
+      CastleEnglish_3: -1558859728
+      CastleEnglish_4: 2001255254
+      CastleEnglish_5: -837347335
+      CastleEnglish_6: 235376803
+      CastleEnglish_7: 598154765
+      CastleEnglish_8: -124021465
+      CastleEnglish_9: -1755495745
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,1363 @@
+fileFormatVersion: 2
+guid: c900e434a12bac746bcf411f02f1850e
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_0
+      rect:
+        serializedVersion: 2
+        x: 37
+        y: 1644
+        width: 498
+        height: 376
+      alignment: 9
+      pivot: {x: 0.49598393, y: 0.10638297}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c1d6203b2a20a174e8f51ee3fd14f09b
+      internalID: 467401543
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_1
+      rect:
+        serializedVersion: 2
+        x: 583
+        y: 1619
+        width: 434
+        height: 424
+      alignment: 9
+      pivot: {x: 0.4544118, y: 0.33046076}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3c11b5ef547847d419dae8f43d1cd38e
+      internalID: -2001872260
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_2
+      rect:
+        serializedVersion: 2
+        x: 1079
+        y: 1643
+        width: 147
+        height: 361
+      alignment: 9
+      pivot: {x: 0.5034005, y: 0.007175097}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 00ce3c0a4d24a694da97b7e7f50ffd04
+      internalID: 1794588042
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_3
+      rect:
+        serializedVersion: 2
+        x: 1256
+        y: 1643
+        width: 124
+        height: 182
+      alignment: 9
+      pivot: {x: 0.45116302, y: 0.022783551}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a200a55ab2421b4bbbc0f120f380027
+      internalID: 1354043651
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_4
+      rect:
+        serializedVersion: 2
+        x: 1434
+        y: 1484
+        width: 153
+        height: 496
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3214847c3bcfed4408eb0ae24c0ae89e
+      internalID: 1384626256
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_5
+      rect:
+        serializedVersion: 2
+        x: 1611
+        y: 1472
+        width: 234
+        height: 553
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a006abbd44180e4f9519d2f8524fc9a
+      internalID: 380615328
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_6
+      rect:
+        serializedVersion: 2
+        x: 1887
+        y: 1711
+        width: 129
+        height: 305
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dadbde6ceb2c12b428ad4501f8a80210
+      internalID: -1083556102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_7
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 1484
+        width: 487
+        height: 147
+      alignment: 9
+      pivot: {x: 0.50102663, y: 0.68731564}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5390c4ca0533b1e4c9663b2cab89c76d
+      internalID: -1971685113
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_9
+      rect:
+        serializedVersion: 2
+        x: 588
+        y: 1287
+        width: 405
+        height: 314
+      alignment: 9
+      pivot: {x: 0.5209877, y: 0.81528664}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f5d7a622751e144428d9d8409333d31a
+      internalID: 888248071
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_10
+      rect:
+        serializedVersion: 2
+        x: 1089
+        y: 1515
+        width: 132
+        height: 114
+      alignment: 9
+      pivot: {x: 0.48954448, y: 0.8562087}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 37d553823c2da8a49bce2443935d8420
+      internalID: 430643616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_12
+      rect:
+        serializedVersion: 2
+        x: 1260
+        y: 1556
+        width: 116
+        height: 61
+      alignment: 9
+      pivot: {x: 0.54761904, y: 0.7868852}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 29bb3332f8505c248b9beb9408f9803b
+      internalID: -1665041211
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_13
+      rect:
+        serializedVersion: 2
+        x: 1888
+        y: 1396
+        width: 129
+        height: 300
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6c7495d97fab8e5419a3bdd295c3cfbf
+      internalID: 454983549
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_14
+      rect:
+        serializedVersion: 2
+        x: 37
+        y: 1036
+        width: 528
+        height: 427
+      alignment: 9
+      pivot: {x: 0.46780303, y: 0.056206085}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6ef7fce315817904cae550e3f4eaba4b
+      internalID: 825477020
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_15
+      rect:
+        serializedVersion: 2
+        x: 585
+        y: 975
+        width: 60
+        height: 280
+      alignment: 9
+      pivot: {x: 0.4996867, y: 0.016159493}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cb4bd2316c6660146994b86468bba394
+      internalID: 22535106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_16
+      rect:
+        serializedVersion: 2
+        x: 804
+        y: 975
+        width: 192
+        height: 250
+      alignment: 9
+      pivot: {x: 0.5154292, y: 0.027001953}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2982d009101853249a1d5665c22052c3
+      internalID: -1539739742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_17
+      rect:
+        serializedVersion: 2
+        x: 1029
+        y: 1004
+        width: 60
+        height: 446
+      alignment: 9
+      pivot: {x: 0.5166667, y: 0.0134529155}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e6d2ca2845df0c344ad5c02fe8e9682a
+      internalID: 367519976
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_18
+      rect:
+        serializedVersion: 2
+        x: 1119
+        y: 1004
+        width: 60
+        height: 444
+      alignment: 9
+      pivot: {x: 0.48333335, y: 0.015765766}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c6a7be87247d65d4fb193378005dc08e
+      internalID: 1369283909
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_19
+      rect:
+        serializedVersion: 2
+        x: 1188
+        y: 1004
+        width: 48
+        height: 364
+      alignment: 9
+      pivot: {x: 0.5, y: 0.9491525}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a9c8b8ce154f484418ceed1557de45c3
+      internalID: -1305553125
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_20
+      rect:
+        serializedVersion: 2
+        x: 1256
+        y: 1068
+        width: 145
+        height: 376
+      alignment: 9
+      pivot: {x: 0.49655172, y: 0.0026595744}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 14b0e6f9b4c65b94284b0d7f76aa9da5
+      internalID: 505313723
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_21
+      rect:
+        serializedVersion: 2
+        x: 1441
+        y: 1088
+        width: 139
+        height: 320
+      alignment: 9
+      pivot: {x: 0.5971223, y: 0.803125}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f3fab12eb7a2afd4b9d1ed4aa4dc2f0e
+      internalID: -1024163875
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_22
+      rect:
+        serializedVersion: 2
+        x: 1639
+        y: 1159
+        width: 191
+        height: 250
+      alignment: 9
+      pivot: {x: 0.513089, y: 0.748}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a436691eebfe7b7489035d9bb7f0c2ca
+      internalID: -1479454273
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_23
+      rect:
+        serializedVersion: 2
+        x: 1904
+        y: 1174
+        width: 96
+        height: 179
+      alignment: 9
+      pivot: {x: 0.5416667, y: 0.6815642}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 816564c5acc57524fb2ad0369f33f401
+      internalID: 815112
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_24
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 883
+        width: 504
+        height: 146
+      alignment: 9
+      pivot: {x: 0.49801606, y: 0.6946307}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f789f13d345ccfb4096d294edbbbacbe
+      internalID: -2001706915
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_26
+      rect:
+        serializedVersion: 2
+        x: 676
+        y: 975
+        width: 91
+        height: 168
+      alignment: 9
+      pivot: {x: 0.48331058, y: 0.05467769}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d41f2d3e9febf06409624872e086a2d5
+      internalID: -1595626290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_27
+      rect:
+        serializedVersion: 2
+        x: 1015
+        y: 878
+        width: 125
+        height: 99
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d30e3d71da81b274da7db0a6695bbbb6
+      internalID: 1854953315
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_28
+      rect:
+        serializedVersion: 2
+        x: 1262
+        y: 863
+        width: 133
+        height: 163
+      alignment: 9
+      pivot: {x: 0.5037594, y: 0.6319018}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 94287db13ee8cd74a840f7ce6a8f05a7
+      internalID: 1470272226
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_29
+      rect:
+        serializedVersion: 2
+        x: 1642
+        y: 876
+        width: 185
+        height: 232
+      alignment: 9
+      pivot: {x: 0.5027027, y: 0.76724136}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6fa16c125b66a614195698de9025fbb4
+      internalID: -1521884721
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_30
+      rect:
+        serializedVersion: 2
+        x: 592
+        y: 867
+        width: 53
+        height: 100
+      alignment: 9
+      pivot: {x: 0.5660378, y: 0.78999996}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1b3588e63993f724b843189682cf3714
+      internalID: 1520564305
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_31
+      rect:
+        serializedVersion: 2
+        x: 676
+        y: 867
+        width: 91
+        height: 61
+      alignment: 9
+      pivot: {x: 0.50549453, y: 0.625}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 55801c13267a0dd4985e1feba78e849a
+      internalID: 1580849916
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_32
+      rect:
+        serializedVersion: 2
+        x: 804
+        y: 867
+        width: 192
+        height: 99
+      alignment: 9
+      pivot: {x: 0.5182387, y: 0.6434085}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4628a821452fa7f4f8492fad52ee57be
+      internalID: 273698086
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_33
+      rect:
+        serializedVersion: 2
+        x: 1142
+        y: 859
+        width: 112
+        height: 116
+      alignment: 9
+      pivot: {x: 0.49107146, y: 0.12068965}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 01d038e48f181aa4a946306638a2c69a
+      internalID: 283877097
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_34
+      rect:
+        serializedVersion: 2
+        x: 37
+        y: 416
+        width: 188
+        height: 437
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 373b4802de2ae2945b338d1f6d1a7015
+      internalID: 246309197
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_35
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 667
+        width: 203
+        height: 156
+      alignment: 9
+      pivot: {x: 0.49753693, y: 0.012820513}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 687473ca06d80ed45abf166bdc0af33b
+      internalID: 58485146
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_36
+      rect:
+        serializedVersion: 2
+        x: 589
+        y: 661
+        width: 342
+        height: 183
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0054644807}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fd1755fbfdf8ecb45b5b50b980a176ef
+      internalID: 976429981
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_37
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 569
+        width: 132
+        height: 252
+      alignment: 9
+      pivot: {x: 0.48410958, y: 0.011712937}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 453e65b327c6a264a8c3157904fe8332
+      internalID: -1886054428
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_38
+      rect:
+        serializedVersion: 2
+        x: 1131
+        y: 568
+        width: 198
+        height: 244
+      alignment: 9
+      pivot: {x: 0.5, y: 0.021311475}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d1c882e91c9ab4d4ea841e4d7053b892
+      internalID: -367202055
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_39
+      rect:
+        serializedVersion: 2
+        x: 1365
+        y: 571
+        width: 75
+        height: 265
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 99319cbc6362c624ab8705b5d90a9f1d
+      internalID: 84865812
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_40
+      rect:
+        serializedVersion: 2
+        x: 1487
+        y: 361
+        width: 256
+        height: 370
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 28a1c5f177140c147adab70327285476
+      internalID: 2112454948
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_41
+      rect:
+        serializedVersion: 2
+        x: 1839
+        y: 366
+        width: 145
+        height: 376
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6d92a13f92924e4599246d8b585e7d9
+      internalID: -1373191878
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_42
+      rect:
+        serializedVersion: 2
+        x: 301
+        y: 490
+        width: 178
+        height: 139
+      alignment: 9
+      pivot: {x: 0.53932583, y: 0.64028776}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c1d409423bd80bb45a10b3fcbf78c8de
+      internalID: -1953214971
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_43
+      rect:
+        serializedVersion: 2
+        x: 599
+        y: 448
+        width: 322
+        height: 162
+      alignment: 9
+      pivot: {x: 0.5093168, y: 0.69135803}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 946a4f87401855444a16a765c967b34f
+      internalID: -285389671
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_44
+      rect:
+        serializedVersion: 2
+        x: 969
+        y: 342
+        width: 110
+        height: 182
+      alignment: 9
+      pivot: {x: 0.5181818, y: 0.73626375}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2c0b8e8252e9a9c4e84de58a0074a533
+      internalID: 1309803097
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_45
+      rect:
+        serializedVersion: 2
+        x: 1147
+        y: 364
+        width: 170
+        height: 167
+      alignment: 9
+      pivot: {x: 0.5058824, y: 0.6407186}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a4c895314a402804dbf40ed22dc1d886
+      internalID: -1092576731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_46
+      rect:
+        serializedVersion: 2
+        x: 1365
+        y: 445
+        width: 75
+        height: 64
+      alignment: 9
+      pivot: {x: 0.48000002, y: 0.75}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7691083968048c84a91e438d3718dc02
+      internalID: -1901610284
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_47
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 28
+        width: 165
+        height: 335
+      alignment: 9
+      pivot: {x: 0.5454545, y: 0.85373133}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8c3ef1329ba08b64796790a716283f44
+      internalID: 511453603
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_48
+      rect:
+        serializedVersion: 2
+        x: 286
+        y: 288
+        width: 239
+        height: 149
+      alignment: 9
+      pivot: {x: 0.50209206, y: 0.0067114094}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f3f416f85714d19459d2238bc63a0d45
+      internalID: -1867057613
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_49
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 140
+        width: 198
+        height: 244
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 73beb25cb718dd0459c4b6a571647d97
+      internalID: 136411190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_50
+      rect:
+        serializedVersion: 2
+        x: 792
+        y: 124
+        width: 170
+        height: 167
+      alignment: 9
+      pivot: {x: 0.5058824, y: 0.6646707}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ec2730a65c3ddc54284cf180fc87253c
+      internalID: 2094686046
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_51
+      rect:
+        serializedVersion: 2
+        x: 1846
+        y: 140
+        width: 133
+        height: 162
+      alignment: 9
+      pivot: {x: 0.48872182, y: 0.6234568}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4a26e3a74cf14ea4a9dd0b413ef81972
+      internalID: -436511839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_52
+      rect:
+        serializedVersion: 2
+        x: 292
+        y: 108
+        width: 227
+        height: 148
+      alignment: 9
+      pivot: {x: 0.49339205, y: 0.6891892}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a9cfd30ed8856a04f978b926f309e8f2
+      internalID: 496741987
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_53
+      rect:
+        serializedVersion: 2
+        x: 1501
+        y: 44
+        width: 231
+        height: 238
+      alignment: 9
+      pivot: {x: 0.5021645, y: 0.789916}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f2802e5c61d411340b7f835d07426daa
+      internalID: 1501859773
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_8
+      rect:
+        serializedVersion: 2
+        x: 1055
+        y: 152
+        width: 108
+        height: 87
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: daa0107ba6770c74db68f4d05b20bfd6
+      internalID: -179405881
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BuildingsSnowSpriteSheet_11
+      rect:
+        serializedVersion: 2
+        x: 1203
+        y: 162
+        width: 65
+        height: 56
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7544c3b56260c48488186fca73c3bcae
+      internalID: 751014208
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      BuildingsSnowSpriteSheet_0: 467401543
+      BuildingsSnowSpriteSheet_1: -2001872260
+      BuildingsSnowSpriteSheet_10: 430643616
+      BuildingsSnowSpriteSheet_11: 751014208
+      BuildingsSnowSpriteSheet_12: -1665041211
+      BuildingsSnowSpriteSheet_13: 454983549
+      BuildingsSnowSpriteSheet_14: 825477020
+      BuildingsSnowSpriteSheet_15: 22535106
+      BuildingsSnowSpriteSheet_16: -1539739742
+      BuildingsSnowSpriteSheet_17: 367519976
+      BuildingsSnowSpriteSheet_18: 1369283909
+      BuildingsSnowSpriteSheet_19: -1305553125
+      BuildingsSnowSpriteSheet_2: 1794588042
+      BuildingsSnowSpriteSheet_20: 505313723
+      BuildingsSnowSpriteSheet_21: -1024163875
+      BuildingsSnowSpriteSheet_22: -1479454273
+      BuildingsSnowSpriteSheet_23: 815112
+      BuildingsSnowSpriteSheet_24: -2001706915
+      BuildingsSnowSpriteSheet_25: 1730949782
+      BuildingsSnowSpriteSheet_26: -1595626290
+      BuildingsSnowSpriteSheet_27: 1854953315
+      BuildingsSnowSpriteSheet_28: 1470272226
+      BuildingsSnowSpriteSheet_29: -1521884721
+      BuildingsSnowSpriteSheet_3: 1354043651
+      BuildingsSnowSpriteSheet_30: 1520564305
+      BuildingsSnowSpriteSheet_31: 1580849916
+      BuildingsSnowSpriteSheet_32: 273698086
+      BuildingsSnowSpriteSheet_33: 283877097
+      BuildingsSnowSpriteSheet_34: 246309197
+      BuildingsSnowSpriteSheet_35: 58485146
+      BuildingsSnowSpriteSheet_36: 976429981
+      BuildingsSnowSpriteSheet_37: -1886054428
+      BuildingsSnowSpriteSheet_38: -367202055
+      BuildingsSnowSpriteSheet_39: 84865812
+      BuildingsSnowSpriteSheet_4: 1384626256
+      BuildingsSnowSpriteSheet_40: 2112454948
+      BuildingsSnowSpriteSheet_41: -1373191878
+      BuildingsSnowSpriteSheet_42: -1953214971
+      BuildingsSnowSpriteSheet_43: -285389671
+      BuildingsSnowSpriteSheet_44: 1309803097
+      BuildingsSnowSpriteSheet_45: -1092576731
+      BuildingsSnowSpriteSheet_46: -1901610284
+      BuildingsSnowSpriteSheet_47: 511453603
+      BuildingsSnowSpriteSheet_48: -1867057613
+      BuildingsSnowSpriteSheet_49: 136411190
+      BuildingsSnowSpriteSheet_5: 380615328
+      BuildingsSnowSpriteSheet_50: 2094686046
+      BuildingsSnowSpriteSheet_51: -436511839
+      BuildingsSnowSpriteSheet_52: 496741987
+      BuildingsSnowSpriteSheet_53: 1501859773
+      BuildingsSnowSpriteSheet_6: -1083556102
+      BuildingsSnowSpriteSheet_7: -1971685113
+      BuildingsSnowSpriteSheet_8: -179405881
+      BuildingsSnowSpriteSheet_9: 888248071
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

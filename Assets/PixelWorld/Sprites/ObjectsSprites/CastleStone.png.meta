@@ -1,0 +1,833 @@
+fileFormatVersion: 2
+guid: 6ff60416342dbc94c85ce9d290393c24
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 4
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: CastleStone_0
+      rect:
+        serializedVersion: 2
+        x: 11
+        y: 1719
+        width: 106
+        height: 192
+      alignment: 9
+      pivot: {x: 0.5, y: 0.020833334}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 41f9e9165762c2d448b884a395d40098
+      internalID: 1145322428
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_1
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 1684
+        width: 142
+        height: 227
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0132158585}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e3972efb6e839de43bb247cb3b761320
+      internalID: -44474140
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_2
+      rect:
+        serializedVersion: 2
+        x: 313
+        y: 1669
+        width: 106
+        height: 242
+      alignment: 9
+      pivot: {x: 0.5, y: 0.016528925}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ceaf1aa694e155840adef07a0b9b4f6e
+      internalID: -645039123
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_3
+      rect:
+        serializedVersion: 2
+        x: 435
+        y: 1672
+        width: 124
+        height: 235
+      alignment: 9
+      pivot: {x: 0.47580644, y: 0.021276595}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8514482538337b645b59aad18ea6b081
+      internalID: -536498454
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_4
+      rect:
+        serializedVersion: 2
+        x: 595
+        y: 1564
+        width: 569
+        height: 329
+      alignment: 9
+      pivot: {x: 0.49912128, y: 0.015197569}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 28fa9c235a46c724ab4cdf903dc50340
+      internalID: -1477072346
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_5
+      rect:
+        serializedVersion: 2
+        x: 1209
+        y: 1391
+        width: 223
+        height: 502
+      alignment: 9
+      pivot: {x: 0.5067265, y: 0.00996016}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 82933f29cf26e314084a83534ec78d93
+      internalID: -892365712
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_6
+      rect:
+        serializedVersion: 2
+        x: 18
+        y: 1472
+        width: 105
+        height: 235
+      alignment: 9
+      pivot: {x: 0.50476193, y: 0.017021276}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 63c74b2476daa534e8a8e90af4d976a0
+      internalID: 2126101568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_7
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 1489
+        width: 137
+        height: 151
+      alignment: 9
+      pivot: {x: 0.50364965, y: 0.6929786}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 501f4326e9a252d4c96b5199a83433d7
+      internalID: 373954441
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_8
+      rect:
+        serializedVersion: 2
+        x: 439
+        y: 1472
+        width: 98
+        height: 185
+      alignment: 9
+      pivot: {x: 0.5408163, y: 0.8}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3522e63a965f5a04db32b846df3fead5
+      internalID: -2133037374
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_9
+      rect:
+        serializedVersion: 2
+        x: 592
+        y: 1210
+        width: 569
+        height: 329
+      alignment: 9
+      pivot: {x: 0.5026362, y: 0.015197569}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2962002281f6d3e4ebc837f456d28d6d
+      internalID: -474612863
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_10
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 1115
+        width: 470
+        height: 329
+      alignment: 9
+      pivot: {x: 0.50212765, y: 0.036474165}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bed3f1c10cf328648bf8792416f15f79
+      internalID: -1219127554
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_11
+      rect:
+        serializedVersion: 2
+        x: 604
+        y: 1016
+        width: 545
+        height: 169
+      alignment: 9
+      pivot: {x: 0.50091743, y: 0.8284024}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4755041ab96705749b5bfa8a9287affb
+      internalID: -1725756949
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_12
+      rect:
+        serializedVersion: 2
+        x: 1216
+        y: 864
+        width: 223
+        height: 502
+      alignment: 9
+      pivot: {x: 0.5112108, y: 0.007968128}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5543f753f1ba5474387bdd433df95355
+      internalID: 634710050
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_13
+      rect:
+        serializedVersion: 2
+        x: 40
+        y: 954
+        width: 455
+        height: 153
+      alignment: 9
+      pivot: {x: 0.50109893, y: 0.8888889}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4545d0b593313594689f80585b58e209
+      internalID: -1141733402
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_14
+      rect:
+        serializedVersion: 2
+        x: 604
+        y: 491
+        width: 465
+        height: 502
+      alignment: 9
+      pivot: {x: 0.4989246, y: 0.028040973}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b54d0977a8d325449784e7c0d8b0c87
+      internalID: 80815826
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_15
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 387
+        width: 253
+        height: 523
+      alignment: 9
+      pivot: {x: 0.5019763, y: 0.0114722755}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a3e6a05d1d4ea1a4b91aba05341a89b8
+      internalID: 1307461743
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_16
+      rect:
+        serializedVersion: 2
+        x: 306
+        y: 387
+        width: 253
+        height: 523
+      alignment: 9
+      pivot: {x: 0.5059289, y: 0.0076481835}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 198482fc7aea4844496775a7eac712c3
+      internalID: 994494144
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_17
+      rect:
+        serializedVersion: 2
+        x: 1085
+        y: 556
+        width: 135
+        height: 297
+      alignment: 9
+      pivot: {x: 0.4962963, y: 0.026936026}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 889f6645413eee54a95aa9d7490919af
+      internalID: -1610286902
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_18
+      rect:
+        serializedVersion: 2
+        x: 1232
+        y: 593
+        width: 191
+        height: 260
+      alignment: 9
+      pivot: {x: 0.50261784, y: 0.81153846}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1e40739cb3b65a74fa38765ec34ff6b9
+      internalID: -2099032063
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_19
+      rect:
+        serializedVersion: 2
+        x: 45
+        y: 38
+        width: 227
+        height: 308
+      alignment: 9
+      pivot: {x: 0.5110132, y: 0.8279221}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5f577d2f2da587047907af441dd8e25d
+      internalID: 721877825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_20
+      rect:
+        serializedVersion: 2
+        x: 310
+        y: 151
+        width: 266
+        height: 195
+      alignment: 9
+      pivot: {x: 0.5, y: 0.0051282053}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7db060c8aa6def24fbde94155e400a43
+      internalID: -418434129
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_21
+      rect:
+        serializedVersion: 2
+        x: 623
+        y: 206
+        width: 428
+        height: 260
+      alignment: 9
+      pivot: {x: 0.23364486, y: 0.7807692}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e8c871521c96f434ea0594075459599f
+      internalID: 473829028
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_22
+      rect:
+        serializedVersion: 2
+        x: 1085
+        y: 208
+        width: 135
+        height: 337
+      alignment: 9
+      pivot: {x: 0.5037037, y: 0.008902077}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab67007f038f2684aa410fbef7f99ad5
+      internalID: -1275729073
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_23
+      rect:
+        serializedVersion: 2
+        x: 1232
+        y: 322
+        width: 191
+        height: 260
+      alignment: 9
+      pivot: {x: 0.5078534, y: 0.7923077}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd2072d10599a8644aee3879be75b186
+      internalID: 839058960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_24
+      rect:
+        serializedVersion: 2
+        x: 337
+        y: 38
+        width: 29
+        height: 72
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7278df213be0b454b922d68cbe06524f
+      internalID: 963410556
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_25
+      rect:
+        serializedVersion: 2
+        x: 394
+        y: 18
+        width: 25
+        height: 92
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47d0d0085f998a248897d08f45c8e503
+      internalID: 2022230021
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_26
+      rect:
+        serializedVersion: 2
+        x: 447
+        y: 45
+        width: 48
+        height: 47
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1d94d1dacbfb7eb46b0360d1be39c71b
+      internalID: -1429215436
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_27
+      rect:
+        serializedVersion: 2
+        x: 1094
+        y: 3
+        width: 117
+        height: 194
+      alignment: 9
+      pivot: {x: 0.50427353, y: 0.8092783}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a682a7fdd68f5dd4e8242380070ce49f
+      internalID: 59490969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_28
+      rect:
+        serializedVersion: 2
+        x: 843
+        y: 1056
+        width: 64
+        height: 113
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a22731d487ed43c4b8f81440e050c8a5
+      internalID: -1475880757
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CastleStone_29
+      rect:
+        serializedVersion: 2
+        x: 655
+        y: 2
+        width: 269
+        height: 197
+      alignment: 9
+      pivot: {x: 0.4795539, y: 0.035532996}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fc8ad9ad71069084fad2178fb6d13d6e
+      internalID: -1605053628
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      CastleStone_0: 1145322428
+      CastleStone_1: -44474140
+      CastleStone_10: -1219127554
+      CastleStone_11: -1725756949
+      CastleStone_12: 634710050
+      CastleStone_13: -1141733402
+      CastleStone_14: 80815826
+      CastleStone_15: 1307461743
+      CastleStone_16: 994494144
+      CastleStone_17: -1610286902
+      CastleStone_18: -2099032063
+      CastleStone_19: 721877825
+      CastleStone_2: -645039123
+      CastleStone_20: -418434129
+      CastleStone_21: 473829028
+      CastleStone_22: -1275729073
+      CastleStone_23: 839058960
+      CastleStone_24: 963410556
+      CastleStone_25: 2022230021
+      CastleStone_26: -1429215436
+      CastleStone_27: 59490969
+      CastleStone_28: -1475880757
+      CastleStone_29: -1605053628
+      CastleStone_3: -536498454
+      CastleStone_4: -1477072346
+      CastleStone_5: -892365712
+      CastleStone_6: 2126101568
+      CastleStone_7: 373954441
+      CastleStone_8: -2133037374
+      CastleStone_9: -474612863
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
