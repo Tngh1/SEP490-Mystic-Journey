@@ -5,7 +5,9 @@ public class PlayerBehaviour : MonoBehaviour
 {
     public static PlayerBehaviour Instance { get; private set; }
     [SerializeField] private float movingSpeed = 4f;
+#pragma warning disable CS0067
     public event EventHandler OnPlayerAttack;
+#pragma warning restore CS0067
     private Box3 box3;
 
     private Rigidbody2D rb;

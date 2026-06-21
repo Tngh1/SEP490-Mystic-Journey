@@ -5,36 +5,8 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    public class QuestApi : MonoBehaviour
+    public class QuestApi : BaseApiService<QuestApi>
     {
-        private static QuestApi _instance;
-
-        public static QuestApi Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    var go = new GameObject("[QuestApi]");
-                    DontDestroyOnLoad(go);
-                    _instance = go.AddComponent<QuestApi>();
-                }
-                return _instance;
-            }
-        }
-
-        private void Awake()
-        {
-            if (_instance != null && _instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-
         public void GetAll(
             int page,
             int pageSize,
@@ -55,36 +27,33 @@ namespace MysticJourney.API.Endpoints
                 endpoint,
                 response =>
                 {
-                    Debug.Log($"[QuestApi] GetAll OK | TotalCount={response.TotalCount}");
+                    SafeDebugLog($"GetAll OK | TotalCount={response.TotalCount}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[QuestApi] GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false
-            );
+                requiresAuth: false);
         }
 
         public void GetById(int questId, Action<QuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.QuestById, questId);
-
             ApiClient.Instance.Get<QuestResponse>(
                 endpoint,
                 response =>
                 {
-                    Debug.Log($"[QuestApi] GetById OK | questId={questId} | Title={response.Title}");
+                    SafeDebugLog($"GetById OK | questId={questId} | Title={response.Title}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    Debug.LogError($"[QuestApi] GetById FAIL | questId={questId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"GetById FAIL | questId={questId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false
-            );
+                requiresAuth: false);
         }
     }
 }

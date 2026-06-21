@@ -519,7 +519,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.000091553, y: -0.000045776}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &22549613
@@ -10478,6 +10478,10 @@ MonoBehaviour:
   resolutionDropdown: {fileID: 1526036368}
   damageNumbersToggle: {fileID: 231639736}
   saveChangeButton: {fileID: 1534020606}
+  settingsCloseButton: {fileID: 0}
+  confirmPanel: {fileID: 0}
+  popupOkButton: {fileID: 0}
+  popupCloseButton: {fileID: 0}
 --- !u!1 &478868630
 GameObject:
   m_ObjectHideFlags: 0
@@ -13297,7 +13301,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 626068223}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af42f97339349024798c41ea95373d96, type: 3}
+  m_Script: {fileID: 11500000, guid: 27b1292c6552b75408704ed5107b005a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistentSceneLoader
 --- !u!1 &628116382
@@ -13997,7 +14001,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -26.971, y: -54}
+  m_AnchoredPosition: {x: -26.970947, y: -54}
   m_SizeDelta: {x: -667.1516, y: -728.1981}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &666529343
@@ -40214,7 +40218,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.000015259, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1825409148
@@ -43970,7 +43974,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2007973299}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d2785b54b9404024a8e885924f00164c, type: 3}
+  m_Script: {fileID: 11500000, guid: 126c48b26265a26478b3cb9375891d00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIManager
   inventoryPanel: {fileID: 1277073981}
@@ -43981,7 +43985,7 @@ MonoBehaviour:
   dailyPanel: {fileID: 419256380}
   gachaPanel: {fileID: 0}
   mapPanel: {fileID: 0}
-  questPanel: {fileID: 0}
+  questPanel: {fileID: 2100001001}
   chatPanel: {fileID: 0}
   dungeonPanel: {fileID: 0}
   friendPanel: {fileID: 0}
@@ -45788,7 +45792,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.02, y: 0.16}
   m_AnchorMax: {x: 0.36, y: 0.86}
-  m_AnchoredPosition: {x: 13.330078, y: -51}
+  m_AnchoredPosition: {x: 13.329895, y: -51}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2100001033
@@ -46306,7 +46310,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.04, y: 0.22}
   m_AnchorMax: {x: 0.24, y: 0.88}
-  m_AnchoredPosition: {x: -39, y: 121}
+  m_AnchoredPosition: {x: -39.00006, y: 121}
   m_SizeDelta: {x: -21.74, y: -196.29}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2100001093
