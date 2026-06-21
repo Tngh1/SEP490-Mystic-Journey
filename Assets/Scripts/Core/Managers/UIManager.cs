@@ -113,6 +113,12 @@ public class UIManager : MonoBehaviour
         KeepQuestTrackerVisible();
     }
 
+    public void OpenSkillPanel()
+    {
+        BindPanels();
+        OpenPanel(skillPanel);
+    }
+
     public void OpenQuestPanel()
     {
         BindPanels();
