@@ -24,21 +24,33 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // BE does not expose /api/dailyloginrewards/status; the actual status is derived client-side after fetching the world state.
         public void GetStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.Get<ApiResponse<PlayerDailyLoginResponse>>(
-                ApiConfig.DailyLoginStatus,
-                response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true);
+            SafeDebugLog("GetStatus skipped (BE does not expose daily-login/status endpoint).");
+            onError?.Invoke(new ApiException
+            {
+                StatusCode = 0,
+                ErrorCode = "NOT_IMPLEMENTED",
+                Message = "Daily-login status endpoint is not implemented on the backend."
+            });
         }
 
         public void Claim(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.PostEmpty<ApiResponse<ClaimDailyRewardResponse>>(
+            SafeDebugLog("Claim daily login reward...");
+            ApiClient.Instance.PostEmpty<ClaimDailyRewardResponse>(
                 ApiConfig.DailyLoginClaim,
-                response => onSuccess?.Invoke(response.Data),
-                onError,
+                response =>
+                {
+                    SafeDebugLog($"Claim OK | TotalDays={response?.TotalDaysClaimed}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"Claim FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
                 requiresAuth: true);
         }
     }
