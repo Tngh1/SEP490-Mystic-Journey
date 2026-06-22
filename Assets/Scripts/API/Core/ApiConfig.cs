@@ -42,9 +42,20 @@ namespace MysticJourney.API.Core
         public const string InventoryUnequip = "/api/inventory/unequip-item";
         public const string InventoryConsume = "/api/inventory/consume-item";
 
-        // Dungeons
+        // Dungeons (catalog – no auth)
         public const string DungeonAll = "/api/dungeons";
         public const string DungeonById = "/api/dungeons/{0}";
+
+        // Dungeon Session (in-game – requires auth)
+        public const string DungeonEnter       = "/api/dungeons/{0}/enter";
+        public const string DungeonProgress    = "/api/dungeons/session/{0}/progress";
+        public const string DungeonComplete    = "/api/dungeons/session/{0}/complete";
+        public const string DungeonClaimReward = "/api/dungeons/session/{0}/claim-reward";
+
+        // Character (requires auth)
+        public const string CharacterCreate  = "/api/characters";
+        public const string CharacterStats   = "/api/characters/stats";
+        public const string CharacterUpgrade = "/api/characters/upgrade";
 
         // Quest catalog
         public const string QuestAll = "/api/quests";

@@ -1,6 +1,11 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using MysticJourney.API.Core;
+using MysticJourney.API.Endpoints;
+using MysticJourney.API.Models.Request;
+using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 
 public class CharacterCreation : MonoBehaviour
 {
@@ -8,6 +13,7 @@ public class CharacterCreation : MonoBehaviour
     private TMP_InputField nameInput;
 
     private string selectedClass;
+    private bool _isCreating;
 
     public void SelectKnight()
     {
@@ -29,33 +35,56 @@ public class CharacterCreation : MonoBehaviour
 
     public void CreateCharacter()
     {
+        if (_isCreating) return;
+
         if (string.IsNullOrWhiteSpace(nameInput.text))
         {
-            Debug.Log("Enter Name");
+            Debug.LogWarning("[CharacterCreation] Enter Name");
             return;
         }
 
         if (string.IsNullOrEmpty(selectedClass))
         {
-            Debug.Log("Select Class");
+            Debug.LogWarning("[CharacterCreation] Select Class");
             return;
         }
 
-        WorldState.HasCharacter = true;
+        _isCreating = true;
 
-        WorldState.PlayerName =
-            nameInput.text;
+        var request = new CreateCharacterRequest
+        {
+            CharacterName = nameInput.text.Trim(),
+            SelectedClass = selectedClass
+        };
 
-        WorldState.PlayerClass =
-            selectedClass;
+        CharacterApi.Instance.CreateCharacter(
+            request,
+            response =>
+            {
+                _isCreating = false;
+                Debug.Log($"[CharacterCreation] Character created successfully: {response.Data.CharacterName}");
 
-        WorldState.CurrentMapName =
-            "Abandoned  Castle";
+                // Save basic stats to WorldState
+                WorldState.HasCharacter = true;
+                WorldState.PlayerProfileId = response.Data.PlayerProfileId;
+                WorldState.PlayerName = response.Data.CharacterName;
+                WorldState.PlayerClass = response.Data.PlayerClass;
+                
+                // Set starting map name and coordinate
+                WorldState.CurrentMapName = GameConstants.Scenes.AbandonedCastle;
+                WorldState.LastPosition = GameConstants.WorldDefaults.DefaultSpawnPosition;
 
-        WorldState.LastPosition =
-            new Vector3(0, 0, 0);
+                // Persist locally
+                WorldState.SaveToPlayerPrefs();
 
-        SceneManager.LoadScene("Loading");
-        Debug.Log("Selected Class: " + WorldState.PlayerClass);
+                // Go to the first map using GameBootstrap
+                SceneManager.LoadScene(GameConstants.Scenes.Bootstrap);
+            },
+            error =>
+            {
+                _isCreating = false;
+                Debug.LogError($"[CharacterCreation] Create character failed: {error.Message}");
+            }
+        );
     }
 }

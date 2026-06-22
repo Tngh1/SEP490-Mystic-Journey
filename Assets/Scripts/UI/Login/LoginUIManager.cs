@@ -2,6 +2,7 @@ using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -97,8 +98,16 @@ namespace MysticJourney.Screen.Login
 
                     OnLoginSuccess?.Invoke(response);
 
-                    if (!string.IsNullOrEmpty(sceneOnSuccess))
-                        StartCoroutine(LoadSceneAfterDelay(sceneOnSuccess, delayBeforeSceneLoad));
+                    if (response.PlayerProfileId == null || response.PlayerProfileId.Value <= 0)
+                    {
+                        Debug.Log("[LoginUIManager] Account has no character profile. Loading CharacterCreation scene...");
+                        StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.CharacterCreation, delayBeforeSceneLoad));
+                    }
+                    else
+                    {
+                        Debug.Log($"[LoginUIManager] Account has character (ID: {response.PlayerProfileId.Value}). Loading game via Bootstrap...");
+                        StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.Bootstrap, delayBeforeSceneLoad));
+                    }
                 },
                 error =>
                 {
