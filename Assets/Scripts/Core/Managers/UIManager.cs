@@ -113,6 +113,12 @@ public class UIManager : MonoBehaviour
         KeepQuestTrackerVisible();
     }
 
+    public void OpenSkillPanel()
+    {
+        BindPanels();
+        OpenPanel(skillPanel);
+    }
+
     public void OpenQuestPanel()
     {
         BindPanels();
@@ -165,6 +171,8 @@ public class UIManager : MonoBehaviour
         EnsureQuestManager();
         EnsureRuntime<MainQuestPanelRuntime>();
         EnsureRuntime<MainNpcPanelRuntime>();
+        EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");
+        EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
     }
 
     private void EnsureQuestManager()
@@ -194,6 +202,28 @@ public class UIManager : MonoBehaviour
         gameObject.AddComponent<T>();
     }
 
+    private void EnsurePanelRuntime<T>(GameObject panel, params string[] panelNames) where T : Component
+    {
+        var existing = Resources.FindObjectsOfTypeAll<T>();
+        foreach (var component in existing)
+        {
+            if (component != null && component.gameObject.scene.IsValid() && component.gameObject.scene.name == "Main")
+                return;
+        }
+
+        if (panel == null && panelNames != null)
+        {
+            foreach (var panelName in panelNames)
+            {
+                panel = FindSceneObject(panelName);
+                if (panel != null)
+                    break;
+            }
+        }
+
+        if (panel != null)
+            panel.AddComponent<T>();
+    }
     private IEnumerable<GameObject> GetPanels()
     {
         yield return inventoryPanel;

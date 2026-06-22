@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +26,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private TextSlot questHintText;
     private readonly List<Button> actionButtons = new List<Button>();
     private readonly List<TextSlot> actionButtonLabels = new List<TextSlot>();
+    private RectTransform actionAreaRect;
     private readonly List<NPCDialogueResponse> currentDialogues = new List<NPCDialogueResponse>();
     private readonly List<PlayerQuestResponse> currentLinkedQuests = new List<PlayerQuestResponse>();
     private readonly HashSet<int> processingQuestIds = new HashSet<int>();
@@ -119,6 +120,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
             dialogueText = FindTextSlot(npcPanel.transform, "DialogueText", "DialogText", "ContentText", "Text (TMP)", skip: nameText, skip2: roleText);
 
         var actionArea = FindDescendant(npcPanel.transform, "ActionArea")?.transform ?? npcPanel.transform;
+        actionAreaRect = actionArea as RectTransform ?? actionArea.GetComponent<RectTransform>();
         questHintText = questHintText.IsValid ? questHintText : FindTextSlot(actionArea, "QuestHintText", "HintText", "QuestText", skip: nameText, skip2: roleText, skip3: dialogueText);
 
         BindFixedActionButtons(actionArea);
@@ -268,6 +270,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
         button.onClick.RemoveAllListeners();
         if (action != null)
             button.onClick.AddListener(action);
+
+        RebuildActionLayout();
     }
 
     private void SetActionsVisible(bool visible)
@@ -279,6 +283,14 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 actionButtons[i].gameObject.SetActive(visible);
                 actionButtons[i].interactable = visible;
             }
+        }
+    }
+
+    private void RebuildActionLayout()
+    {
+        if (actionAreaRect != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(actionAreaRect);
         }
     }
 
@@ -984,6 +996,3 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
     }
 }
-
-
-

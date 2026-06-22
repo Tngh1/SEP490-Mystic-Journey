@@ -11,6 +11,9 @@ public class PersistentSceneLoader : MonoBehaviour
 
         loaded = true;
 
+        if (transform.parent != null)
+            transform.SetParent(null);
+
         DontDestroyOnLoad(gameObject);
     }
 }

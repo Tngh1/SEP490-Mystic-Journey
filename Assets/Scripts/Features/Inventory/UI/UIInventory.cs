@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UIInventory : MonoBehaviour
 {
@@ -10,58 +11,92 @@ public class UIInventory : MonoBehaviour
     [SerializeField] private Transform contentParent;
     [SerializeField] private int totalSlots = 64;
 
-    private List<UIInventorySlot> slots = new List<UIInventorySlot>();
+    private readonly List<UIInventorySlot> slots = new List<UIInventorySlot>();
 
-    // Tr?m trung chuy?n s? ki?n click ra ngo�i
     public Action<UIBaseItemSlot> OnInventorySlotClicked;
 
     private void Awake()
     {
         Instance = this;
-        CreateSlots();
+        BindReferences();
+        CreateSlots(totalSlots);
     }
 
-    private void CreateSlots()
+    public void Refresh(List<UIItemDisplayData> items)
     {
-        for (int i = 0; i < totalSlots; i++)
+        BindReferences();
+        items ??= new List<UIItemDisplayData>();
+
+        if (slotPrefab == null || contentParent == null)
+        {
+            Debug.LogWarning("[UIInventory] Slot prefab or content parent is missing.", this);
+            return;
+        }
+
+        CreateSlots(Mathf.Max(totalSlots, items.Count));
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (i < items.Count)
+            {
+                slots[i].gameObject.SetActive(true);
+                slots[i].SetupInventory(items[i]);
+            }
+            else
+            {
+                slots[i].ClearSlot();
+                slots[i].gameObject.SetActive(true);
+            }
+        }
+
+        var rect = contentParent.GetComponent<RectTransform>();
+        if (rect != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+    }
+
+    private void BindReferences()
+    {
+        if (contentParent == null)
+            contentParent = FindChild("Content") ?? transform;
+
+        if (slotPrefab == null)
+        {
+            slotPrefab = GetComponentInChildren<UIInventorySlot>(true);
+            if (slotPrefab != null && contentParent == transform && slotPrefab.transform.parent != null)
+                contentParent = slotPrefab.transform.parent;
+        }
+    }
+
+    private void CreateSlots(int desiredCount)
+    {
+        if (slotPrefab == null || contentParent == null)
+            return;
+
+        desiredCount = Mathf.Max(0, desiredCount);
+        while (slots.Count < desiredCount)
         {
             UIInventorySlot slot = Instantiate(slotPrefab, contentParent);
+            slot.transform.localScale = Vector3.one;
             slot.ClearSlot();
-
-            // ??ng k� l?ng nghe s? ki?n Click t? Slot n�y
             slot.OnSlotClicked += HandleSlotClicked;
-
             slots.Add(slot);
         }
     }
 
     private void HandleSlotClicked(UIBaseItemSlot clickedSlot)
     {
-        // Ph�ng lu?ng s? ki?n ra ngo�i (Cho Manager h?ng)
         OnInventorySlotClicked?.Invoke(clickedSlot);
     }
 
-    public void Refresh(List<UIItemDisplayData> items)
+    private Transform FindChild(string objectName)
     {
-        Debug.Log("REFRESH CALLED: " + items.Count + " items");
-
-        for (int i = 0; i < slots.Count; i++)
+        var children = GetComponentsInChildren<Transform>(true);
+        for (var i = 0; i < children.Length; i++)
         {
-            if (i < items.Count)
-            {
-                // C� data -> ?? data v�o
-                slots[i].gameObject.SetActive(true); // ??m b?o � ?ang b?t
-                slots[i].SetupInventory(items[i]);
-            }
-            else
-            {
-                // H?t data -> D?n d?p � tr?ng
-                slots[i].ClearSlot();
-
-                // L?u �: T�y thi?t k? c?a Mira. 
-                // N?u mu?n T�i ?? lu�n hi?n ?? 64 � (d� tr?ng r?ng) th� GI? NGUY�N d�ng SetActive(true).
-                // N?u mu?n T�i ?? t? co l?i v?a kh�t s? l??ng ??, th� th�m d�ng: slots[i].gameObject.SetActive(false);
-            }
+            if (children[i] != null && children[i].name == objectName)
+                return children[i];
         }
+
+        return null;
     }
 }

@@ -17,6 +17,7 @@ namespace MysticJourney.API.Models.Response
     internal class ErrorBodyResponse
     {
         public string message { get; set; }
+        public string errorCode { get; set; }
         public string error { get; set; }
     }
 }

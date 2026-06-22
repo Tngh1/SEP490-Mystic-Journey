@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -15,11 +15,11 @@ using MysticJourney.API.Models.Response;
 //       Tab "Skins" – PlayerSkins (từ bảng PlayerSkins, có PlayerSkinId riêng)
 //   • Mở UIItemDetailPopup khi click slot (UC 20.2 View Item Detail)
 //   • Xử lý nút hành động từ popup:
-//       - Equip Item       (UC 20.4)  – dùng InventoryItemId
-//       - Unequip Item     (UC 20.5)  – dùng InventoryItemId
-//       - Consume Item     (UC 20.3)  – dùng InventoryItemId
-//       - Equip Skin       (UC 20.6)  – dùng PlayerSkinId (KHÁC InventoryItemId)
-//       - Unequip Skin     (UC 20.7)  – dùng PlayerSkinId (KHÁC InventoryItemId)
+//       - Equip Item        (UC 20.4)  – dùng InventoryItemId
+//       - Unequip Item      (UC 20.5)  – dùng InventoryItemId
+//       - Consume Item      (UC 20.3)  – dùng InventoryItemId
+//       - Equip Skin        (UC 20.6)  – dùng PlayerSkinId (KHÁC InventoryItemId)
+//       - Unequip Skin      (UC 20.7)  – dùng PlayerSkinId (KHÁC InventoryItemId)
 //   • Refresh lại UI sau mỗi thao tác
 //
 // Cách dùng:
@@ -52,35 +52,24 @@ public class InventoryManager : MonoBehaviour
     [Header("State")]
     [SerializeField] private GameObject loadingIndicator;
     [SerializeField] private TMP_Text errorText;
+    [SerializeField] private float cacheSeconds = 5f;
 
     // -------------------------------------------------------------------------
     // Runtime State
     // -------------------------------------------------------------------------
     private InventorySummaryResponse _summary;
     private bool _showingSkins = false;
+    private bool _requestInFlight;
+    private bool _eventsBound;
+    private float _lastLoadedAt = -999f;
 
     // -------------------------------------------------------------------------
     // Unity Lifecycle
     // -------------------------------------------------------------------------
     private void Awake()
     {
-        // Đăng ký sự kiện click slot từ UIInventory
-        if (uiInventory != null)
-            uiInventory.OnInventorySlotClicked += HandleSlotClicked;
-
-        // Đăng ký sự kiện action từ popup
-        if (itemDetailPopup != null)
-        {
-            itemDetailPopup.OnEquipClicked       += HandleEquipItem;
-            itemDetailPopup.OnUnequipClicked     += HandleUnequipItem;
-            itemDetailPopup.OnConsumeClicked     += HandleConsumeItem;
-            itemDetailPopup.OnEquipSkinClicked   += HandleEquipSkin;
-            itemDetailPopup.OnUnequipSkinClicked += HandleUnequipSkin;
-        }
-
-        // Tab buttons
-        if (tabItemsButton) tabItemsButton.onClick.AddListener(() => ShowTab(false));
-        if (tabSkinsButton) tabSkinsButton.onClick.AddListener(() => ShowTab(true));
+        BindUiReferences();
+        BindEvents();
     }
 
     private void OnEnable()
@@ -92,8 +81,21 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     // UC 20.1 – Load Inventory
     // =========================================================================
-    public void LoadInventory()
+    public void LoadInventory(bool force = false)
     {
+        BindUiReferences();
+        BindEvents();
+
+        if (_requestInFlight)
+            return;
+
+        if (!force && _summary != null && Time.unscaledTime - _lastLoadedAt < cacheSeconds)
+        {
+            RefreshCurrentTab();
+            return;
+        }
+
+        _requestInFlight = true;
         SetLoading(true);
         SetError(null);
         itemDetailPopup?.Hide();
@@ -101,6 +103,7 @@ public class InventoryManager : MonoBehaviour
         InventoryApi.Instance.GetInventory(
             onSuccess: response =>
             {
+                _requestInFlight = false;
                 SetLoading(false);
                 if (response?.Data == null)
                 {
@@ -109,11 +112,13 @@ public class InventoryManager : MonoBehaviour
                 }
 
                 _summary = response.Data;
+                _lastLoadedAt = Time.unscaledTime;
                 UpdateStatsDisplay();
                 RefreshCurrentTab();
             },
             onError: error =>
             {
+                _requestInFlight = false;
                 SetLoading(false);
                 SetError($"Lỗi tải inventory: {error.Message}");
                 Debug.LogError($"[InventoryManager] LoadInventory FAIL: {error.Message}");
@@ -131,7 +136,7 @@ public class InventoryManager : MonoBehaviour
         // Tab Items: rawData là InventoryItemResponse
         if (!_showingSkins && slot.RawData is InventoryItemResponse item)
         {
-            Sprite icon = ItemIconDatabase.Instance?.GetIcon(item.ItemId);
+            Sprite icon = ResolveIcon(item.ItemId, item.IconUrl);
             itemDetailPopup?.Show(item, icon);
             return;
         }
@@ -139,7 +144,7 @@ public class InventoryManager : MonoBehaviour
         // Tab Skins: rawData là PlayerSkinSummaryResponse
         if (_showingSkins && slot.RawData is PlayerSkinSummaryResponse skin)
         {
-            Sprite icon = ItemIconDatabase.Instance?.GetIcon(skin.SkinId);
+            Sprite icon = ResolveIcon(skin.SkinId, skin.IconUrl);
             itemDetailPopup?.ShowSkin(skin, icon);
         }
     }
@@ -290,16 +295,16 @@ public class InventoryManager : MonoBehaviour
 
             foreach (var skin in skins)
             {
-                Sprite icon = ItemIconDatabase.Instance?.GetIcon(skin.SkinId);
+                Sprite icon = ResolveIcon(skin.SkinId, skin.IconUrl);
                 displayList.Add(new UIItemDisplayData
                 {
-                    itemId     = skin.PlayerSkinId,  // dùng PlayerSkinId làm id hiển thị
-                    itemName   = skin.SkinName,
-                    icon       = icon,
-                    quantity   = 1,
-                    rarity     = skin.SkinRarity,
+                    itemId = skin.PlayerSkinId,  // dùng PlayerSkinId làm id hiển thị
+                    itemName = skin.SkinName,
+                    icon = icon,
+                    quantity = 1,
+                    rarity = skin.SkinRarity,
                     isEquipped = skin.IsEquipped,
-                    rawData    = skin                 // PlayerSkinSummaryResponse để popup dùng
+                    rawData = skin                  // PlayerSkinSummaryResponse để popup dùng
                 });
             }
         }
@@ -319,16 +324,16 @@ public class InventoryManager : MonoBehaviour
 
             foreach (var item in allItems)
             {
-                Sprite icon = ItemIconDatabase.Instance?.GetIcon(item.ItemId);
+                Sprite icon = ResolveIcon(item.ItemId, item.IconUrl);
                 displayList.Add(new UIItemDisplayData
                 {
-                    itemId     = item.InventoryItemId,
-                    itemName   = item.ItemName,
-                    icon       = icon,
-                    quantity   = item.Quantity,
-                    rarity     = item.ItemRarity,
+                    itemId = item.InventoryItemId,
+                    itemName = item.ItemName,
+                    icon = icon,
+                    quantity = item.Quantity,
+                    rarity = item.ItemRarity,
                     isEquipped = item.IsEquipped,
-                    rawData    = item  // InventoryItemResponse để popup dùng
+                    rawData = item  // InventoryItemResponse để popup dùng
                 });
             }
         }
@@ -336,14 +341,102 @@ public class InventoryManager : MonoBehaviour
         uiInventory.Refresh(displayList);
     }
 
+    private void BindUiReferences()
+    {
+        if (uiInventory == null)
+            uiInventory = GetComponentInChildren<UIInventory>(true) ?? UIInventory.Instance;
+        if (itemDetailPopup == null)
+            itemDetailPopup = GetComponentInChildren<UIItemDetailPopup>(true);
+
+        tabItemsButton = tabItemsButton != null ? tabItemsButton : FindButton("TabItemsButton", "ItemsButton", "ItemTabButton");
+        tabSkinsButton = tabSkinsButton != null ? tabSkinsButton : FindButton("TabSkinsButton", "SkinsButton", "SkinTabButton");
+        tabItemsHighlight = tabItemsHighlight != null ? tabItemsHighlight : FindObject("TabItemsHighlight", "ItemsHighlight", "ItemTabHighlight");
+        tabSkinsHighlight = tabSkinsHighlight != null ? tabSkinsHighlight : FindObject("TabSkinsHighlight", "SkinsHighlight", "SkinTabHighlight");
+
+        if (loadingIndicator == null)
+            loadingIndicator = FindObject("LoadingIndicator", "Loading", "Spinner");
+        if (errorText == null)
+            errorText = FindText("ErrorText", "MessageText", "StatusText");
+    }
+
+    private void BindEvents()
+    {
+        if (_eventsBound)
+            return;
+
+        if (uiInventory != null)
+            uiInventory.OnInventorySlotClicked += HandleSlotClicked;
+
+        if (itemDetailPopup != null)
+        {
+            itemDetailPopup.OnEquipClicked += HandleEquipItem;
+            itemDetailPopup.OnUnequipClicked += HandleUnequipItem;
+            itemDetailPopup.OnConsumeClicked += HandleConsumeItem;
+            itemDetailPopup.OnEquipSkinClicked += HandleEquipSkin;
+            itemDetailPopup.OnUnequipSkinClicked += HandleUnequipSkin;
+        }
+
+        if (tabItemsButton) tabItemsButton.onClick.AddListener(() => ShowTab(false));
+        if (tabSkinsButton) tabSkinsButton.onClick.AddListener(() => ShowTab(true));
+
+        _eventsBound = uiInventory != null || itemDetailPopup != null || tabItemsButton != null || tabSkinsButton != null;
+    }
+
+    private Sprite ResolveIcon(int itemId, string iconUrl)
+    {
+        if (ItemIconDatabase.Instance != null && ItemIconDatabase.Instance.TryGetIcon(itemId, out var localIcon))
+            return localIcon;
+
+        var cachedRemote = RemoteSpriteCache.GetCached(iconUrl);
+        if (cachedRemote != null)
+            return cachedRemote;
+
+        if (!string.IsNullOrWhiteSpace(iconUrl))
+        {
+            RemoteSpriteCache.Load(this, iconUrl, sprite =>
+            {
+                if (sprite != null && isActiveAndEnabled && _summary != null)
+                    RefreshCurrentTab();
+            });
+        }
+
+        return null;
+    }
+
+    private Button FindButton(params string[] names)
+    {
+        var obj = FindObject(names);
+        return obj == null ? null : obj.GetComponent<Button>();
+    }
+
+    private TMP_Text FindText(params string[] names)
+    {
+        var obj = FindObject(names);
+        return obj == null ? null : obj.GetComponent<TMP_Text>();
+    }
+
+    private GameObject FindObject(params string[] names)
+    {
+        var children = GetComponentsInChildren<Transform>(true);
+        for (var i = 0; i < children.Length; i++)
+        {
+            for (var j = 0; j < names.Length; j++)
+            {
+                if (children[i] != null && children[i].name == names[j])
+                    return children[i].gameObject;
+            }
+        }
+
+        return null;
+    }
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
     private void UpdateStatsDisplay()
     {
         if (_summary == null) return;
-        if (totalItemsText)  totalItemsText.text  = $"Items: {_summary.TotalItems}";
-        if (totalSkinsText)  totalSkinsText.text  = $"Skins: {_summary.TotalSkins}";
+        if (totalItemsText) totalItemsText.text = $"Items: {_summary.TotalItems}";
+        if (totalSkinsText) totalSkinsText.text = $"Skins: {_summary.TotalSkins}";
         if (bagCapacityText) bagCapacityText.text = $"Bag: {(_summary.BagItems?.Length ?? 0)}/{_summary.BagCapacity}";
     }
 

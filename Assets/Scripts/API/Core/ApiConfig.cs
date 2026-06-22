@@ -28,9 +28,9 @@ namespace MysticJourney.API.Core
         public const string PositionYKey = "mj_position_y";
 
         // Auth / Account
-        public const string LoginGame = "/api/accounts/login-game";
-        public const string Logout = "/api/accounts/logout";
-        public const string Me = "/api/accounts/me";
+        public const string LoginGame = "/api/auth/login";
+        public const string Logout = "/api/auth/logout";
+        public const string Me = "/api/auth/me";
 
         // Player Profile
         public const string PlayerProfileById = "/api/playerprofiles/{0}";
@@ -67,11 +67,20 @@ namespace MysticJourney.API.Core
 
         // Daily Login
         public const string DailyLoginRewards = "/api/dailyloginrewards";
-        public const string DailyLoginStatus = "/api/dailyloginrewards/status";
-        public const string DailyLoginClaim = "/api/dailyloginrewards/claim";
+        // BE does not expose /status; client uses /api/world/daily-login/claim to claim
+        public const string DailyLoginStatus = "/api/world/daily-login/claim";
+        public const string DailyLoginClaim = "/api/world/daily-login/claim";
 
         // Shop
         public const string ShopItems = "/api/shopitems";
+
+        // Skills
+        public const string SkillAll = "/api/skills";
+        public const string SkillById = "/api/skills/{0}";
+        public const string PlayerMeSkills = "/api/playerprofiles/me/skills";
+        // BE does NOT expose /api/player-skills/* — upgrade/equip disabled until SkillsController is added
+        public const string PlayerSkillUpgrade = "/api/player-skills/upgrade";
+        public const string PlayerSkillEquip = "/api/player-skills/equip";
 
         // Skins
         public const string SkinEquip = "/api/skins/equip";
