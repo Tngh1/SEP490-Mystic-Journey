@@ -11,12 +11,12 @@ namespace MysticJourney.API.Endpoints
     {
         public void GetMyQuests(Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.Get<PlayerQuestListWrapper>(
+            ApiClient.Instance.Get<List<PlayerQuestResponse>>(
                 ApiConfig.PlayerQuestMe,
-                wrapper =>
+                quests =>
                 {
-                    Debug.Log($"[PlayerQuestApi] GetMyQuests OK | Count={wrapper?.Data?.Count ?? 0}");
-                    onSuccess?.Invoke(wrapper?.Data ?? new List<PlayerQuestResponse>());
+                    Debug.Log($"[PlayerQuestApi] GetMyQuests OK | Count={quests?.Count ?? 0}");
+                    onSuccess?.Invoke(quests ?? new List<PlayerQuestResponse>());
                 },
                 error =>
                 {
@@ -29,12 +29,12 @@ namespace MysticJourney.API.Endpoints
         public void GetQuestDetail(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.PlayerQuestDetail, questId);
-            ApiClient.Instance.Get<PlayerQuestSingleWrapper>(
+            ApiClient.Instance.Get<PlayerQuestResponse>(
                 endpoint,
-                wrapper =>
+                quest =>
                 {
                     Debug.Log($"[PlayerQuestApi] GetQuestDetail OK | questId={questId}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
@@ -47,12 +47,12 @@ namespace MysticJourney.API.Endpoints
         public void AcceptQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new AcceptQuestRequest { QuestId = questId };
-            ApiClient.Instance.Post<AcceptQuestRequest, PlayerQuestSingleWrapper>(
+            ApiClient.Instance.Post<AcceptQuestRequest, PlayerQuestResponse>(
                 ApiConfig.PlayerQuestAccept, body,
-                wrapper =>
+                quest =>
                 {
-                    Debug.Log($"[PlayerQuestApi] AcceptQuest OK | questId={questId} status={wrapper?.Data?.Status}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    Debug.Log($"[PlayerQuestApi] AcceptQuest OK | questId={questId} status={quest?.Status}");
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
@@ -66,12 +66,12 @@ namespace MysticJourney.API.Endpoints
         {
             if (updates == null || updates.Count == 0) { onSuccess?.Invoke(new List<PlayerQuestResponse>()); return; }
             var body = new BatchProgressRequest { Updates = updates };
-            ApiClient.Instance.Put<BatchProgressRequest, BatchProgressWrapper>(
+            ApiClient.Instance.Put<BatchProgressRequest, List<PlayerQuestResponse>>(
                 ApiConfig.PlayerQuestBatch, body,
-                wrapper =>
+                quests =>
                 {
-                    Debug.Log($"[PlayerQuestApi] BatchUpdateProgress OK | updated={wrapper?.Data?.Count ?? 0}");
-                    onSuccess?.Invoke(wrapper?.Data ?? new List<PlayerQuestResponse>());
+                    Debug.Log($"[PlayerQuestApi] BatchUpdateProgress OK | updated={quests?.Count ?? 0}");
+                    onSuccess?.Invoke(quests ?? new List<PlayerQuestResponse>());
                 },
                 error =>
                 {
@@ -84,12 +84,12 @@ namespace MysticJourney.API.Endpoints
         public void CompleteQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new CompleteQuestRequest { QuestId = questId };
-            ApiClient.Instance.Post<CompleteQuestRequest, PlayerQuestSingleWrapper>(
+            ApiClient.Instance.Post<CompleteQuestRequest, PlayerQuestResponse>(
                 ApiConfig.PlayerQuestComplete, body,
-                wrapper =>
+                quest =>
                 {
                     Debug.Log($"[PlayerQuestApi] CompleteQuest OK | questId={questId}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
@@ -102,12 +102,12 @@ namespace MysticJourney.API.Endpoints
         public void ClaimReward(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new ClaimQuestRequest { QuestId = questId };
-            ApiClient.Instance.Post<ClaimQuestRequest, PlayerQuestSingleWrapper>(
+            ApiClient.Instance.Post<ClaimQuestRequest, PlayerQuestResponse>(
                 ApiConfig.PlayerQuestClaim, body,
-                wrapper =>
+                quest =>
                 {
                     Debug.Log($"[PlayerQuestApi] ClaimReward OK | questId={questId}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {

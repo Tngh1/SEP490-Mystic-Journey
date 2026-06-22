@@ -1,19 +1,21 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 public class UIShopSlot : UIBaseItemSlot
 {
     [Header("Shop Specifics")]
-    [SerializeField] private TMP_Text nameText;       // H?ng c?c NameText
+    [FormerlySerializedAs("nameText")]
+    [SerializeField] private TMP_Text shopNameText;       // H?ng c?c NameText
     [SerializeField] private GameObject priceGroup;   // H?ng c?c Coin (c?c cha)
     [SerializeField] private TMP_Text priceText;      // H?ng c?c CoinText
-    [SerializeField] private Image currencyIconImage; // (Tùy ch?n: N?u có icon Vàng/Gem c?nh text)
+    [SerializeField] private Image currencyIconImage; // (Tï¿½y ch?n: N?u cï¿½ icon Vï¿½ng/Gem c?nh text)
     [SerializeField] private Button buyButton;        // H?ng c?c BuyButton
 
     private void Awake()
     {
-        // G?n s? ki?n: Khi nút Mua b? b?m, nó s? hét lên báo cho Manager bi?t
+        // G?n s? ki?n: Khi nï¿½t Mua b? b?m, nï¿½ s? hï¿½t lï¿½n bï¿½o cho Manager bi?t
         if (buyButton != null)
         {
             buyButton.onClick.AddListener(OnBuyButtonClicked);
@@ -28,16 +30,16 @@ public class UIShopSlot : UIBaseItemSlot
             return;
         }
 
-        // G?i Lõi ?? v? Icon, Khung, S? l??ng
+        // G?i Lï¿½i ?? v? Icon, Khung, S? l??ng
         base.SetupCore(data);
 
-        // 1. V? Tên V?t Ph?m
-        if (nameText != null)
+        // 1. V? Tï¿½n V?t Ph?m
+        if (shopNameText != null)
         {
-            nameText.text = data.itemName;
+            shopNameText.text = data.itemName;
         }
 
-        // 2. V? Giá Ti?n
+        // 2. V? Giï¿½ Ti?n
         if (priceGroup != null)
         {
             priceGroup.SetActive(true);
@@ -54,13 +56,13 @@ public class UIShopSlot : UIBaseItemSlot
     {
         base.ClearSlot();
         if (priceGroup != null) priceGroup.SetActive(false);
-        if (nameText != null) nameText.text = string.Empty;
+        if (shopNameText != null) shopNameText.text = string.Empty;
     }
 
-    // X? lý khi nút "Mua" ???c b?m
+    // X? lï¿½ khi nï¿½t "Mua" ???c b?m
     private void OnBuyButtonClicked()
     {
-        // Dùng chung lu?ng Click c?a class Cha ?? truy?n Data sang ShopManager
+        // Dï¿½ng chung lu?ng Click c?a class Cha ?? truy?n Data sang ShopManager
         OnSlotClicked?.Invoke(this);
     }
 }

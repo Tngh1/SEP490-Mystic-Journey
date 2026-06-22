@@ -23,7 +23,7 @@ namespace MysticJourney.API.Core
                 if (_instance == null)
                 {
                     var go = new GameObject("[ApiClient]");
-                    DontDestroyOnLoad(go);
+                    PreserveAcrossScenes(go);
                     _instance = go.AddComponent<ApiClient>();
                 }
                 return _instance;
@@ -39,7 +39,17 @@ namespace MysticJourney.API.Core
                 return;
             }
             _instance = this;
-            DontDestroyOnLoad(gameObject);
+            PreserveAcrossScenes(gameObject);
+        }
+
+        private static void PreserveAcrossScenes(GameObject go)
+        {
+            if (go == null) return;
+
+            if (go.transform.parent != null)
+                go.transform.SetParent(null);
+
+            DontDestroyOnLoad(go);
         }
 
         // ── Token Management ──────────────────────────────────────
@@ -205,6 +215,10 @@ namespace MysticJourney.API.Core
         // Tự động unwrap .data nếu body là envelope, ngược lại trả raw.
         private static T UnwrapEnvelope<T>(string rawBody)
         {
+            var targetType = typeof(T);
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>))
+                return JsonConvert.DeserializeObject<T>(rawBody);
+
             try
             {
                 var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);

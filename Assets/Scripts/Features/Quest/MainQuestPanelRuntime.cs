@@ -403,10 +403,14 @@ public class MainQuestPanelRuntime : MonoBehaviour
             slot.gameObject.SetActive(true);
             slot.transform.SetSiblingIndex(i);
             slot.Setup(rewards[i].Name, rewards[i].Amount, rewards[i].Sprite);
+            slot.SetClaimed(QuestUtils.IsStatus(quest, "Claimed"));
         }
 
         for (var i = rewards.Count; i < rewardSlots.Count; i++)
+        {
+            rewardSlots[i].SetClaimed(false);
             rewardSlots[i].gameObject.SetActive(false);
+        }
     }
 
     private List<RewardViewData> BuildRewards(PlayerQuestResponse quest)
@@ -425,6 +429,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             var itemName = !string.IsNullOrWhiteSpace(quest.RewardItemName) ? quest.RewardItemName : $"Item #{quest.RewardItemId.Value}";
             rewards.Add(new RewardViewData(itemName, "x1", GetLibrarySprite($"item:{quest.RewardItemId}", itemName)));
+        }
+        if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
+        {
+            var skillName = RewardSkillLabel(quest);
+            rewards.Add(new RewardViewData(skillName, "Skill", GetRewardSkillSprite(quest, skillName)));
         }
 
         return rewards;
@@ -736,6 +745,16 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return GetLibrarySprite($"quest:{quest.QuestId}", quest.QuestId.ToString(), quest.QuestTitle);
     }
 
+    private Sprite GetRewardSkillSprite(PlayerQuestResponse quest, string skillName)
+    {
+        if (quest == null)
+            return null;
+
+        return quest.RewardSkillId.HasValue
+            ? GetLibrarySprite($"skill:{quest.RewardSkillId.Value}", quest.RewardSkillId.Value.ToString(), skillName)
+            : GetLibrarySprite(skillName);
+    }
+
     private Sprite GetLibrarySprite(params string[] ids)
     {
         if (imageLibrary == null || ids == null)
@@ -893,8 +912,20 @@ public class MainQuestPanelRuntime : MonoBehaviour
             parts.Add($"Gems +{quest.RewardGems:0}");
         if (!string.IsNullOrWhiteSpace(quest.RewardItemName))
             parts.Add($"Item: {quest.RewardItemName}");
+        if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
+            parts.Add($"Skill: {RewardSkillLabel(quest)}");
 
         return parts.Count == 0 ? "No reward." : string.Join(" | ", parts);
+    }
+
+    private static string RewardSkillLabel(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return string.Empty;
+
+        return !string.IsNullOrWhiteSpace(quest.RewardSkillName)
+            ? quest.RewardSkillName
+            : quest.RewardSkillId.HasValue ? $"Skill #{quest.RewardSkillId.Value}" : string.Empty;
     }
 
     private static string Safe(string value, string fallback)

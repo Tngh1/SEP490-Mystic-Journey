@@ -94,6 +94,13 @@ namespace MysticJourney.Core.Utilities
             if (quest.RewardGold > 0) parts.Add($"Gold +{quest.RewardGold:0}");
             if (quest.RewardGems > 0) parts.Add($"Gems +{quest.RewardGems:0}");
             if (!string.IsNullOrWhiteSpace(quest.RewardItemName)) parts.Add($"Item: {quest.RewardItemName}");
+            if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
+            {
+                var skillLabel = !string.IsNullOrWhiteSpace(quest.RewardSkillName)
+                    ? quest.RewardSkillName
+                    : $"Skill #{quest.RewardSkillId.Value}";
+                parts.Add($"Skill: {skillLabel}");
+            }
 
             return parts.Count == 0 ? "No reward." : string.Join(" | ", parts);
         }
