@@ -34,7 +34,7 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
                 }
 
                 var go = new GameObject($"[{typeof(T).Name}]");
-                DontDestroyOnLoad(go);
+                PreserveAcrossScenes(go);
                 _instance = go.AddComponent<T>();
                 return _instance;
             }
@@ -49,16 +49,23 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
             return;
         }
         _instance = (T)(MonoBehaviour)this;
-        DontDestroyOnLoad(gameObject);
+        PreserveAcrossScenes(gameObject);
+    }
+
+    private static void PreserveAcrossScenes(GameObject go)
+    {
+        if (go == null) return;
+
+        if (go.transform.parent != null)
+            go.transform.SetParent(null);
+
+        DontDestroyOnLoad(go);
     }
 
     protected virtual void OnDestroy()
     {
         if (_instance == this)
-        {
             _instance = null;
-            _applicationIsQuitting = true;
-        }
     }
 
     protected virtual void OnApplicationQuit()

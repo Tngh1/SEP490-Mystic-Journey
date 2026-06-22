@@ -11,6 +11,9 @@ public class GameBootstrap : MonoBehaviour
         Debug.Log("=== GAME BOOTSTRAP START ===");
 
         var bootstrapScene = gameObject.scene;
+        if (transform.parent != null)
+            transform.SetParent(null);
+
         DontDestroyOnLoad(gameObject);
 
         yield return LoadWorldSession();

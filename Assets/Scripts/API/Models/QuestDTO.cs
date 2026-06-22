@@ -22,6 +22,8 @@ namespace MysticJourney.API.Models.Response
         public decimal RewardGems { get; set; }
         public int? RewardItemId { get; set; }
         public string RewardItemName { get; set; }
+        public int? RewardSkillId { get; set; }
+        public string RewardSkillName { get; set; }
         public bool IsActive { get; set; }
     }
 }

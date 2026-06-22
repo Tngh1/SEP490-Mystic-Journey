@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -14,28 +14,22 @@ public class ItemIconDatabase : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        cache = (items ?? new List<ItemIconEntry>())
+            .Where(x => x != null && x.icon != null)
+            .GroupBy(x => x.itemId)
+            .ToDictionary(group => group.Key, group => group.First().icon);
+    }
 
-        cache = items.ToDictionary(
-            x => x.itemId,
-            x => x.icon
-        );
+    public bool TryGetIcon(int itemId, out Sprite icon)
+    {
+        if (cache == null)
+            cache = new Dictionary<int, Sprite>();
 
-        Debug.Log("CACHE COUNT: " + cache.Count);
+        return cache.TryGetValue(itemId, out icon) && icon != null;
     }
 
     public Sprite GetIcon(int itemId)
     {
-        Debug.Log("REQUEST ICON ID: " + itemId);
-
-        if (cache.TryGetValue(itemId, out Sprite icon))
-        {
-            Debug.Log("FOUND ICON");
-
-            return icon;
-        }
-
-        Debug.LogError("ICON NOT FOUND");
-
-        return null;
+        return TryGetIcon(itemId, out var icon) ? icon : null;
     }
 }
