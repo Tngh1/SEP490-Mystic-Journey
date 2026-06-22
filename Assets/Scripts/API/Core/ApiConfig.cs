@@ -5,7 +5,7 @@ namespace MysticJourney.API.Core
     public static class ApiConfig
     {
         // URL gốc của backend. Đổi thành domain thật khi deploy.
-        // Local:      "http://localhost:5176"
+        // Local:      "http://localhost:7116"
         // Production: "https://api.mysticjourney.com"
         public const string BaseUrl = "http://localhost:5176";
 

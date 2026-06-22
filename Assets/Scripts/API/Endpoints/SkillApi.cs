@@ -87,12 +87,12 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void EquipPlayerSkill(int playerSkillId, bool isEquipped, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
+        public void EquipPlayerSkill(int playerSkillId, bool isEquipped, int? slotIndex, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
-            SafeDebugLog($"EquipPlayerSkill → playerSkillId={playerSkillId}, isEquipped={isEquipped}");
+            SafeDebugLog($"EquipPlayerSkill → playerSkillId={playerSkillId}, isEquipped={isEquipped}, slotIndex={slotIndex}");
 
             // Tạo gói dữ liệu DTO gửi lên Server
-            var body = new EquipSkillRequest { PlayerSkillId = playerSkillId, IsEquipped = isEquipped };
+            var body = new EquipSkillRequest { PlayerSkillId = playerSkillId, IsEquipped = isEquipped, SlotIndex = slotIndex };
 
             ApiClient.Instance.Post<EquipSkillRequest, PlayerSkillResponse>(
                 ApiConfig.PlayerSkillEquip,

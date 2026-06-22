@@ -18,6 +18,11 @@ public class SkillPopup : MonoBehaviour
     {
         currentServerData = server;
 
+
+        if (upgradeButton != null)
+        {
+            upgradeButton.interactable = true;
+        }
         // Ảnh lấy từ Client
         popupIcon.sprite = visual.skillIcon;
 
@@ -28,6 +33,18 @@ public class SkillPopup : MonoBehaviour
         // Hiển thị Effective Damage đã được BLL tính toán
         popupStats.text = $"Cấp độ: {server.Level} \nSát thương: {server.EffectiveDamage} \nHồi chiêu: {server.CooldownSeconds}s";
 
+        gameObject.SetActive(true);
+    }
+
+    // Hiển thị khi player chưa sở hữu skill này
+    public void ShowLockedPopup(SkillData visual)
+    {
+        currentServerData = null;
+        popupIcon.sprite = visual.skillIcon;
+        popupName.text = "Khóa";
+        popupDesc.text = "Bạn chưa sở hữu kỹ năng này.";
+        popupStats.text = "Vui lòng mở khóa từ cửa hàng hoặc nâng cấp nhân vật.";
+        upgradeButton.interactable = false;
         gameObject.SetActive(true);
     }
 

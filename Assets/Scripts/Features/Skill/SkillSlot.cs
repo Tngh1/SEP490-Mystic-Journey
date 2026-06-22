@@ -1,55 +1,75 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using MysticJourney.API.Endpoints; // Khai báo thư viện API của bạn
+using MysticJourney.API.Endpoints;
+using MysticJourney.Core.Services;
 
 public class SkillSlot : MonoBehaviour, IDropHandler
 {
     public int requiredLevel;
-    public int playerLevel = 1;
+    // slotIndex: 0..2
+    public int slotIndex = 0; // 0..2
+
+    // playerLevel read from GameStateService
+    private int playerLevel => GameStateService.Instance?.PlayerLevel ?? 1;
 
     public Image equippedIcon;
     public GameObject lockImage;
 
     void Start()
     {
-        if (playerLevel < requiredLevel)
-            lockImage.SetActive(true);
-        else
-            lockImage.SetActive(false);
+        // Default required levels per slot: slot0 -> 1, slot1 -> 5, slot2 -> 10
+        int[] slotRequired = new int[] { 1, 5, 10 };
+        if (slotIndex >= 0 && slotIndex < slotRequired.Length)
+        {
+            requiredLevel = slotRequired[slotIndex];
+        }
+
+        lockImage.SetActive(playerLevel < requiredLevel);
     }
 
     public void OnDrop(PointerEventData eventData)
     {
         if (playerLevel < requiredLevel)
         {
-            Debug.Log("Ô này bị khóa, chưa đủ level!");
+            Debug.Log("Slot locked: player level too low.");
             return;
         }
 
         SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
-        if (droppedSkill != null)
+
+        // Ensure the dropped skill has server data (owned by player)
+        if (droppedSkill != null && droppedSkill.serverData != null)
         {
-            // Lấy ID thật từ dữ liệu Server của thẻ skill bị kéo
+            // Get real PlayerSkillId from the dropped skill's server data
             int targetPlayerSkillId = droppedSkill.serverData.PlayerSkillId;
 
-            // Gọi API lên Server để xin phép trang bị
+            // Call API to request equipping
             SkillApi.Instance.EquipPlayerSkill(
                 targetPlayerSkillId,
-                true, // true = muốn trang bị
+                true, // true = equip
+                slotIndex,
                 onSuccess: (response) =>
                 {
-                    // Khi Server phản hồi OK (200), ta mới hiển thị hình ảnh
+                    // On success, display the icon in the slot
                     equippedIcon.sprite = droppedSkill.visualData.skillIcon;
                     equippedIcon.color = Color.white;
-                    Debug.Log($"Trang bị thành công: {response.SkillName} lên ô!");
+                    Debug.Log($"Equipped successfully: {response.SkillName} to slot {slotIndex}!");
+
+                        // Refresh skill list so other slots / items reflect new state
+                        var mgr = FindAnyObjectByType<SkillPanelManager>();
+                        if (mgr != null) mgr.RefreshSkillList();
                 },
                 onError: (error) =>
                 {
-                    // Nếu lỗi (vd: Server check thấy skill này đang thời gian chờ cooldown, ko cho trang bị)
-                    Debug.LogError("Server từ chối trang bị: " + error.Message);
+                    Debug.LogError("Server rejected equip: " + error.Message);
                 }
             );
+        }
+        else
+        {
+            // Optional: notify if user attempts to equip a locked/invalid skill
+            Debug.LogWarning("Skill is locked or invalid and cannot be equipped.");
         }
     }
 }
