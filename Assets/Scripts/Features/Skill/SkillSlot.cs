@@ -1,29 +1,24 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using MysticJourney.API.Endpoints; // Khai báo thư viện API của bạn
 
 public class SkillSlot : MonoBehaviour, IDropHandler
 {
-    public int requiredLevel; // Level yêu cầu của ô này
-    public int playerLevel = 1; // Tạm thời để level 1, sau này bạn lấy từ script Player
+    public int requiredLevel;
+    public int playerLevel = 1;
 
     public Image equippedIcon;
-    public GameObject lockImage; // Hình ổ khóa
+    public GameObject lockImage;
 
     void Start()
     {
-        // Kiểm tra khóa ô
         if (playerLevel < requiredLevel)
-        {
             lockImage.SetActive(true);
-        }
         else
-        {
             lockImage.SetActive(false);
-        }
     }
 
-    // Khi có một vật thể thả vào đây
     public void OnDrop(PointerEventData eventData)
     {
         if (playerLevel < requiredLevel)
@@ -32,13 +27,29 @@ public class SkillSlot : MonoBehaviour, IDropHandler
             return;
         }
 
-        // Lấy thông tin skill vừa thả vào
         SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
         if (droppedSkill != null)
         {
-            equippedIcon.sprite = droppedSkill.mySkillData.skillIcon; // Gán hình skill vào ô
-            equippedIcon.color = Color.white; // Làm cho hình rõ lên (nếu trước đó đang trong suốt)
-            Debug.Log("Đã trang bị skill: " + droppedSkill.mySkillData.skillName);
+            // Lấy ID thật từ dữ liệu Server của thẻ skill bị kéo
+            int targetPlayerSkillId = droppedSkill.serverData.PlayerSkillId;
+
+            // Gọi API lên Server để xin phép trang bị
+            SkillApi.Instance.EquipPlayerSkill(
+                targetPlayerSkillId,
+                true, // true = muốn trang bị
+                onSuccess: (response) =>
+                {
+                    // Khi Server phản hồi OK (200), ta mới hiển thị hình ảnh
+                    equippedIcon.sprite = droppedSkill.visualData.skillIcon;
+                    equippedIcon.color = Color.white;
+                    Debug.Log($"Trang bị thành công: {response.SkillName} lên ô!");
+                },
+                onError: (error) =>
+                {
+                    // Nếu lỗi (vd: Server check thấy skill này đang thời gian chờ cooldown, ko cho trang bị)
+                    Debug.LogError("Server từ chối trang bị: " + error.Message);
+                }
+            );
         }
     }
 }

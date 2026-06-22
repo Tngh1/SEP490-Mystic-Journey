@@ -73,6 +73,13 @@ namespace MysticJourney.API.Core
         // Shop
         public const string ShopItems = "/api/shopitems";
 
+        // Skills
+        public const string SkillAll = "/api/skills";
+        public const string SkillById = "/api/skills/{0}";
+        public const string PlayerMeSkills = "/api/playerprofiles/me/skills";
+        public const string PlayerSkillUpgrade = "/api/player-skills/upgrade";
+        public const string PlayerSkillEquip = "/api/player-skills/equip";
+
         // Skins
         public const string SkinEquip = "/api/skins/equip";
         public const string SkinUnequip = "/api/skins/unequip";
