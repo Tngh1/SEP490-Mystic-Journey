@@ -98,14 +98,14 @@ namespace MysticJourney.Screen.Login
 
                     OnLoginSuccess?.Invoke(response);
 
-                    if (response.PlayerProfileId == null || response.PlayerProfileId.Value <= 0)
+                    if (string.IsNullOrEmpty(response.PlayerClass))
                     {
-                        Debug.Log("[LoginUIManager] Account has no character profile. Loading CharacterCreation scene...");
+                        Debug.Log("[LoginUIManager] Account has no character class. Loading CharacterCreation scene...");
                         StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.CharacterCreation, delayBeforeSceneLoad));
                     }
                     else
                     {
-                        Debug.Log($"[LoginUIManager] Account has character (ID: {response.PlayerProfileId.Value}). Loading game via Bootstrap...");
+                        Debug.Log($"[LoginUIManager] Account has character class: {response.PlayerClass}. Loading game via Bootstrap...");
                         StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.Bootstrap, delayBeforeSceneLoad));
                     }
                 },
