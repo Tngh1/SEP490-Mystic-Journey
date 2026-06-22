@@ -31,8 +31,8 @@ namespace MysticJourney.API.Models.Response
         public string TargetType { get; set; }
         public string ClassRequirement { get; set; }
         public int CooldownSeconds { get; set; }
-        public int BaseDamage { get; set; }
-        public int DamagePerLevel { get; set; }
+        public double BaseDamage { get; set; }
+        public double DamagePerLevel { get; set; }
         public double DamageGrowthPercent { get; set; }
         public int UnlockLevel { get; set; }
         public bool IsActive { get; set; }
@@ -53,10 +53,10 @@ namespace MysticJourney.API.Models.Response
         public int Experience { get; set; }
         public bool IsEquipped { get; set; }
         public int CooldownSeconds { get; set; }
-        public int BaseDamage { get; set; }
-        public int DamagePerLevel { get; set; }
+        public double BaseDamage { get; set; }
+        public double DamagePerLevel { get; set; }
         public double DamageGrowthPercent { get; set; }
-        public int EffectiveDamage { get; set; }
+        public double EffectiveDamage { get; set; }
         public int UnlockLevel { get; set; }
         public string UnlockedAt { get; set; }
     }

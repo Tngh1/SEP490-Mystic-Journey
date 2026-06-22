@@ -8714,7 +8714,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 318658196}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.99999595
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -32659,7 +32659,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1411402812}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.08715578, y: 0, z: 0, w: 0.9961947}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -32668,11 +32668,11 @@ RectTransform:
   - {fileID: 1171922777}
   - {fileID: 1639923925}
   m_Father: {fileID: 454974911}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 10, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000008816136}
-  m_SizeDelta: {x: 0, y: 300}
+  m_AnchoredPosition: {x: 0, y: -0.0000038392204}
+  m_SizeDelta: {x: 0, y: 555.52}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1411402814
 MonoBehaviour:
@@ -32695,7 +32695,7 @@ MonoBehaviour:
   m_StartCorner: 0
   m_StartAxis: 0
   m_CellSize: {x: 80, y: 80}
-  m_Spacing: {x: 10, y: 10}
+  m_Spacing: {x: 30, y: 30}
   m_Constraint: 0
   m_ConstraintCount: 2
 --- !u!1 &1412271141
@@ -38274,7 +38274,7 @@ MonoBehaviour:
   m_HorizontalScrollbarVisibility: 2
   m_VerticalScrollbarVisibility: 2
   m_HorizontalScrollbarSpacing: -3
-  m_VerticalScrollbarSpacing: -3
+  m_VerticalScrollbarSpacing: 25
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
