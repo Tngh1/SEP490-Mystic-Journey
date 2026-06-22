@@ -96,6 +96,18 @@ namespace MysticJourney.Screen.Login
                     Debug.Log($"  HasToken (sau)  : {ApiClient.Instance.HasToken()}");
                     Debug.Log("================================================");
 
+                    WorldState.HasCharacter = !string.IsNullOrEmpty(response.PlayerClass);
+                    WorldState.PlayerProfileId = response.PlayerProfileId ?? 0;
+                    WorldState.PlayerName = response.PlayerDisplayName ?? response.UserName;
+                    WorldState.PlayerClass = response.PlayerClass;
+                    WorldState.PlayerLevel = response.Level;
+                    if (!string.IsNullOrEmpty(response.LastMapName))
+                    {
+                        WorldState.CurrentMapName = response.LastMapName;
+                        WorldState.LastPosition = new UnityEngine.Vector3((float)response.PositionX, (float)response.PositionY, 0f);
+                    }
+                    WorldState.SaveToPlayerPrefs();
+
                     OnLoginSuccess?.Invoke(response);
 
                     if (string.IsNullOrEmpty(response.PlayerClass))

@@ -87,6 +87,7 @@ public class GameBootstrap : MonoBehaviour
                             if (state != null)
                                 WorldState.PlayerProfileId = state.PlayerProfileId;
 
+                            LoadLocalWorldSession();
                             done = true;
                         },
                         error =>
