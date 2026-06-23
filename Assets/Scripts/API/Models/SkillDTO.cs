@@ -73,7 +73,7 @@ namespace MysticJourney.API.Models.Response
     public class PlayerMeSkillsResponse
     {
         public int PlayerProfileId { get; set; }
-        public List<PlayerSkillResponse> Skills { get; set; }
+        public List<PlayerSkillResponse> Skills { get; set; } = new List<PlayerSkillResponse>();
         public int TotalCount { get; set; }
     }
 }

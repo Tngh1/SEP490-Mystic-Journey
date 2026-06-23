@@ -1,31 +1,115 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro; // BẮT BUỘC THÊM DÒNG NÀY CHO TEXTMESHPRO
 using MysticJourney.API.Endpoints;
 using MysticJourney.Core.Services;
-using MysticJourney.API.Models.Response; // Thêm dòng này
+using MysticJourney.API.Models.Response;
 
 public class SkillSlot : MonoBehaviour, IDropHandler
 {
-    // 👇 THÊM DÒNG NÀY: Khai báo Đài phát thanh (Sự kiện toàn cục)
     public static event System.Action<int, SkillData, PlayerSkillResponse> OnSkillEquipped;
 
+    [Header("Master Data")]
+    public SkillData[] allSkillsInGame;
+
+    [Header("Slot Settings")]
     public int requiredLevel;
     public int playerLevel = 1;
     public int slotIndex;
     public Image equippedIcon;
     public GameObject lockImage;
 
+    [Header("Cooldown UI")]
+    public Image cooldownOverlay;
+
+    // 👇 ĐÃ ĐỔI SANG BIẾN CỦA TEXTMESHPRO
+    public TextMeshProUGUI cooldownText;
+
+    private bool _isCooldown = false;
+    private float _cooldownTimer = 0f;
+    private float _cooldownDuration = 1f;
+
+    private void OnEnable() => PlayerCombat.OnSkillCast += HandleSkillCast;
+    private void OnDisable() => PlayerCombat.OnSkillCast -= HandleSkillCast;
+
     void Start()
     {
-        if (playerLevel < requiredLevel) lockImage.SetActive(true);
-        else lockImage.SetActive(false);
+        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
+        if (lockImage != null) lockImage.SetActive(currentLevel < requiredLevel);
+
+        if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
+
+        // Ẩn số đếm ngược khi mới vào game
+        if (cooldownText != null) cooldownText.text = "";
+
+        LoadInitialSkill();
+    }
+
+    private void Update()
+    {
+        if (_isCooldown && cooldownOverlay != null)
+        {
+            _cooldownTimer -= Time.deltaTime;
+            cooldownOverlay.fillAmount = _cooldownTimer / _cooldownDuration;
+
+            // HIỂN THỊ SỐ ĐẾM NGƯỢC
+            if (cooldownText != null)
+            {
+                cooldownText.text = Mathf.CeilToInt(_cooldownTimer).ToString();
+            }
+
+            if (_cooldownTimer <= 0)
+            {
+                _isCooldown = false;
+                cooldownOverlay.fillAmount = 0f;
+
+                // Ẩn số đếm ngược khi hồi xong
+                if (cooldownText != null) cooldownText.text = "";
+            }
+        }
+    }
+
+    private void HandleSkillCast(int castedSlotIndex, float cooldownTime)
+    {
+        if (this.slotIndex == castedSlotIndex && cooldownOverlay != null)
+        {
+            _isCooldown = true;
+            _cooldownDuration = cooldownTime;
+            _cooldownTimer = cooldownTime;
+            cooldownOverlay.fillAmount = 1f;
+
+            if (cooldownText != null) cooldownText.text = Mathf.CeilToInt(cooldownTime).ToString();
+        }
+    }
+
+    private void LoadInitialSkill()
+    {
+        SkillApi.Instance.GetMySkills(
+            (response) =>
+            {
+                var mySkill = response.Skills?.Find(s => s.EquippedSlot.HasValue && s.EquippedSlot.Value == this.slotIndex);
+                if (mySkill != null)
+                {
+                    SkillData visualData = System.Array.Find(allSkillsInGame, d => d.skillId == mySkill.SkillId);
+                    if (equippedIcon != null && visualData != null)
+                    {
+                        equippedIcon.sprite = visualData.skillIcon;
+                        equippedIcon.color = Color.white;
+                    }
+                    SkillSlot.BroadcastSkillEquipped(slotIndex, visualData, mySkill);
+                }
+            },
+            (error) => { Debug.LogWarning("Không thể tải kỹ năng HUD: " + error.Message); }
+        );
     }
 
     public void OnDrop(PointerEventData eventData)
     {
         if (eventData == null || eventData.pointerDrag == null) return;
-        if (playerLevel < requiredLevel) return;
+
+        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
+        if (currentLevel < requiredLevel) return;
 
         SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
         if (droppedSkill != null && droppedSkill.serverData != null)
@@ -44,27 +128,23 @@ public class SkillSlot : MonoBehaviour, IDropHandler
             int targetPlayerSkillId = droppedSkill.serverData.PlayerSkillId;
 
             SkillApi.Instance.EquipPlayerSkill(
-    targetPlayerSkillId,
-    true,
-    slotIndex,
-    (response) => // Tham số 4: Thành công
-    {
-        if (equippedIcon != null && droppedSkill.visualData != null)
-        {
-            equippedIcon.sprite = droppedSkill.visualData.skillIcon;
-            equippedIcon.color = Color.white;
-        }
-        SkillSlot.BroadcastSkillEquipped(slotIndex, droppedSkill.visualData, response);
-        Debug.Log($"Equipped successfully!");
-    },
-    (error) => // Tham số 5: Thất bại
-    {
-        Debug.LogError("Server rejected equip: " + error.Message);
-    }
-        );
+                targetPlayerSkillId,
+                true,
+                slotIndex,
+                (response) =>
+                {
+                    if (equippedIcon != null && droppedSkill.visualData != null)
+                    {
+                        equippedIcon.sprite = droppedSkill.visualData.skillIcon;
+                        equippedIcon.color = Color.white;
+                    }
+                    SkillSlot.BroadcastSkillEquipped(slotIndex, droppedSkill.visualData, response);
+                },
+                (error) => { Debug.LogError("Server rejected equip: " + error.Message); }
+            );
         }
     }
-    // Hàm này cho phép các file bên ngoài nhờ SkillSlot phát loa sự kiện
+
     public static void BroadcastSkillEquipped(int slotIndex, SkillData visualData, PlayerSkillResponse serverData)
     {
         OnSkillEquipped?.Invoke(slotIndex, visualData, serverData);

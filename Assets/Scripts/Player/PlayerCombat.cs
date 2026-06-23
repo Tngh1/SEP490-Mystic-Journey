@@ -47,7 +47,7 @@ public class PlayerCombat : MonoBehaviour
     private float nextSkill3Time;
 
     private Dictionary<int, float> _skillDamages = new Dictionary<int, float>();
-
+    public static event System.Action<int, float> OnSkillCast;
     private void Awake()
     {
         if (animator == null) animator = GetComponent<Animator>();
@@ -157,6 +157,7 @@ public class PlayerCombat : MonoBehaviour
         nextTime = Time.time + cooldown;
         animator.SetTrigger(animTrigger);
 
+        OnSkillCast?.Invoke(slotIndex, cooldown);
         // Bắt đầu đếm ngược thời gian delay trước khi tung Kỹ năng
         StartCoroutine(ExecuteSkillWithDelay(prefab, slotIndex, skillCastDelay));
     }
