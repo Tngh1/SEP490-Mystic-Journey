@@ -78,6 +78,7 @@ namespace MysticJourney.API.Core
 
         // Daily Login
         public const string DailyLoginRewards = "/api/dailyloginrewards";
+        public const string DailyLoginRewardsCurrentMonth = "/api/dailyloginrewards/current-month";
         // BE does not expose /status; client uses /api/world/daily-login/claim to claim
         public const string DailyLoginStatus = "/api/world/daily-login/claim";
         public const string DailyLoginClaim = "/api/world/daily-login/claim";

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
@@ -15,6 +15,14 @@ public class DailyLoginPanelRuntime : MonoBehaviour
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button claimButton;
     [SerializeField] private float rewardsCacheSeconds = 60f;
+
+    [Header("Default Reward Icons")]
+    [Tooltip("Icon hiển thị cho phần thưởng Gold khi không có ItemId")]
+    [SerializeField] private Sprite goldIcon;
+    [Tooltip("Icon hiển thị cho phần thưởng EXP")]
+    [SerializeField] private Sprite expIcon;
+    [Tooltip("Icon hiển thị cho phần thưởng Gems/Diamond")]
+    [SerializeField] private Sprite gemIcon;
 
     private readonly List<DailyLoginRewardResponse> rewards = new List<DailyLoginRewardResponse>();
     private PlayerDailyLoginResponse status;
@@ -62,14 +70,13 @@ public class DailyLoginPanelRuntime : MonoBehaviour
 
         if (needsRewards)
         {
-            DailyLoginApi.Instance.GetAll(
-                1,
-                60,
+            // Gọi endpoint current-month: tự động trả về đúng số ngày tháng hiện tại
+            DailyLoginApi.Instance.GetCurrentMonth(
                 response =>
                 {
                     rewards.Clear();
-                    if (response?.Items != null)
-                        rewards.AddRange(response.Items.Where(item => item != null && item.IsActive));
+                    if (response != null)
+                        rewards.AddRange(response.Where(item => item != null && item.IsActive));
                     rewardsLoaded = true;
                     rewardsLoadedAt = Time.unscaledTime;
                     Done();
@@ -201,8 +208,25 @@ public class DailyLoginPanelRuntime : MonoBehaviour
 
     private Sprite ResolveRewardIcon(DailyLoginRewardResponse reward)
     {
-        if (reward?.RewardItemId != null && ItemIconDatabase.Instance != null && ItemIconDatabase.Instance.TryGetIcon(reward.RewardItemId.Value, out var icon))
+        if (reward == null)
+            return null;
+
+        // Ưu tiên icon từ ItemIconDatabase (khi có RewardItemId)
+        if (reward.RewardItemId != null && ItemIconDatabase.Instance != null &&
+            ItemIconDatabase.Instance.TryGetIcon(reward.RewardItemId.Value, out var icon))
             return icon;
+
+        // Fallback: dùng icon mặc định theo loại phần thưởng
+        var type = reward.RewardType ?? string.Empty;
+        if (string.Equals(type, "Gold", System.StringComparison.OrdinalIgnoreCase) && goldIcon != null)
+            return goldIcon;
+        if ((string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase)) && expIcon != null)
+            return expIcon;
+        if ((string.Equals(type, "Gem", System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(type, "Gems", System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(type, "Diamond", System.StringComparison.OrdinalIgnoreCase)) && gemIcon != null)
+            return gemIcon;
 
         return null;
     }

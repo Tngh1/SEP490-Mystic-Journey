@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -111,13 +111,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
 
         portraitImage = portraitImage != null ? portraitImage : FindPortraitImage();
-        nameText = nameText.IsValid ? nameText : FindTextSlot(npcPanel.transform, "NpcNameText", "NPCNameText", "NameText", "TitleText");
+        nameText = nameText.IsValid ? nameText : FindTextSlot(npcPanel.transform, "NameNPC", "NpcNameText", "NPCNameText", "NameText");
         roleText = roleText.IsValid ? roleText : FindTextSlot(npcPanel.transform, "NpcRoleText", "RoleText", "DescriptionText", skip: nameText);
 
         var dialogueArea = FindDescendant(npcPanel.transform, "DialogueTextArea")?.transform ?? npcPanel.transform;
-        dialogueText = dialogueText.IsValid ? dialogueText : FindTextSlot(dialogueArea, "DialogueText", "DialogText", "ContentText", "Text (TMP)");
+        dialogueText = dialogueText.IsValid ? dialogueText : FindTextSlot(dialogueArea, "NPCText", "DialogueText", "DialogText", "ContentText");
         if (!dialogueText.IsValid)
-            dialogueText = FindTextSlot(npcPanel.transform, "DialogueText", "DialogText", "ContentText", "Text (TMP)", skip: nameText, skip2: roleText);
+            dialogueText = FindTextSlot(npcPanel.transform, "NPCText", "DialogueText", "DialogText", "ContentText", skip: nameText, skip2: roleText);
 
         var actionArea = FindDescendant(npcPanel.transform, "ActionArea")?.transform ?? npcPanel.transform;
         actionAreaRect = actionArea as RectTransform ?? actionArea.GetComponent<RectTransform>();
@@ -234,7 +234,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void ConfigureDefaultActions()
     {
-        SetActionButton(0, "Talk", true, OnStoryDialogueAction);
+        SetActionButton(0, "Hello.", true, OnStoryDialogueAction);
         SetActionButton(1, "Do you have any question?", false, OnQuestionAction);
         SetActionButton(2, "Do you have anything for me?", firstQuestId > 0, OnGiftHintAction);
         SetActionButton(3, "Goodbye.", true, ClosePanel);
@@ -245,7 +245,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var hasQuestion = HasDialogueType("Question") || HasDialogueType("Help");
         var hasGiftOrHint = currentLinkedQuests.Count > 0 || HasDialogueType("Gift") || HasDialogueType("Hint");
 
-        SetActionButton(0, BuildStoryActionLabel(currentStoryDialogue), true, OnStoryDialogueAction);
+        SetActionButton(0, BuildStoryActionLabel(currentStoryDialogue, FindLinkedQuest(currentStoryDialogue?.LinkedQuestId)), true, OnStoryDialogueAction);
         SetActionButton(1, "Do you have any question?", hasQuestion, OnQuestionAction);
         SetActionButton(2, BuildGiftHintActionLabel(), hasGiftOrHint, OnGiftHintAction);
         SetActionButton(3, "Goodbye.", true, ClosePanel);
@@ -698,12 +698,60 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return currentLinkedQuests.FirstOrDefault(q => q != null && q.QuestId == questId.Value);
     }
 
-    private static string BuildStoryActionLabel(NPCDialogueResponse dialogue)
+    private static string BuildStoryActionLabel(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
-        if (!string.IsNullOrWhiteSpace(dialogue?.Content))
-            return Shorten(dialogue.Content, 72);
+        if (linkedQuest != null)
+            return BuildPlayerQuestActionLabel(linkedQuest);
+
+        if (dialogue != null && string.Equals(dialogue.ResponseType, "Dialogue", StringComparison.OrdinalIgnoreCase))
+            return "Tell me about this place.";
 
         return "Tell me about the story.";
+    }
+
+    private static string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
+    {
+        if (QuestManager.IsStatus(quest, "Claimed"))
+            return "Thank you for your help.";
+
+        if (QuestManager.IsStatus(quest, "Completed"))
+            return "I completed the quest.";
+
+        if (QuestManager.IsStatus(quest, "InProgress"))
+        {
+            if (ShouldAutoCompleteNpcTalkQuest(quest))
+                return "I am here to report.";
+
+            if (IsCollectQuest(quest))
+                return HasEnoughQuestProgress(quest) ? "I brought the items." : "I am still working on it.";
+
+            if (IsObjectiveType(quest, "EquipSkill"))
+                return "I will equip my first skill.";
+
+            if (IsObjectiveType(quest, "Defeat"))
+                return "I will defeat them.";
+
+            return "I am working on it.";
+        }
+
+        if (IsCollectQuest(quest))
+            return "I will gather them.";
+
+        if (ShouldAutoCompleteNpcTalkQuest(quest))
+            return "I am ready to listen.";
+
+        if (IsObjectiveType(quest, "EquipSkill"))
+            return "I will prepare my skill.";
+
+        if (IsObjectiveType(quest, "Defeat"))
+            return "I will handle the monsters.";
+
+        return "I will help.";
+    }
+
+    private static bool IsObjectiveType(PlayerQuestResponse quest, string objectiveType)
+    {
+        return quest != null && string.Equals(quest.ObjectiveType, objectiveType, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string BuildObjectiveHint(PlayerQuestResponse quest)
@@ -886,6 +934,22 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return null;
     }
 
+
+    private static Button FindActionButton(Transform root, params string[] names)
+    {
+        if (root == null || names == null)
+            return null;
+
+        for (var i = 0; i < names.Length; i++)
+        {
+            var child = FindDescendant(root, names[i]);
+            var button = child != null ? child.GetComponent<Button>() : null;
+            if (button != null)
+                return button;
+        }
+
+        return null;
+    }
     private static GameObject FindDescendant(Transform root, string objectName)
     {
         if (root == null || string.IsNullOrWhiteSpace(objectName))
@@ -912,22 +976,6 @@ public class MainNpcPanelRuntime : MonoBehaviour
             var child = FindDescendant(root, names[i]);
             var slot = TextSlot.From(child);
             if (slot.IsValid && !slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3))
-                return slot;
-        }
-
-        var tmps = root.GetComponentsInChildren<TMP_Text>(true);
-        for (var i = 0; i < tmps.Length; i++)
-        {
-            var slot = new TextSlot(tmps[i], null);
-            if (!slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3))
-                return slot;
-        }
-
-        var texts = root.GetComponentsInChildren<Text>(true);
-        for (var i = 0; i < texts.Length; i++)
-        {
-            var slot = new TextSlot(null, texts[i]);
-            if (!slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3))
                 return slot;
         }
 
