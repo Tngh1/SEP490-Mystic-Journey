@@ -51,6 +51,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private TextSlot primaryActionButtonText;
     private bool usePrimaryActionButton;
 
+    private TextSlot acceptQuestButtonText;
+    private TextSlot completeQuestButtonText;
+    private TextSlot declineQuestButtonText;
+    private TextSlot claimQuestButtonText;
+    private TextSlot claimedButtonText;
+
     private TextSlot trackerNumber;
     private TextSlot trackerTitle;
     private TextSlot trackerStatus;
@@ -249,11 +255,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 questPopup.SetActive(false);
         }
 
-        BindPanelButton("AllButton", () => SetFilter("All"));
-        BindPanelButton("InProgressButton", () => SetFilter("InProgress"));
-        BindPanelButton("CompletedButton", () => SetFilter("Completed"));
-        BindPanelButton("AllRegionsButton", () => SetFilter("All"));
-        BindPanelButton("RefreshButton", RefreshWorldAndQuests);
+        BindPanelButton("AllButton", () => SetFilter("All"), "All");
+        BindPanelButton("InProgressButton", () => SetFilter("InProgress"), "In Progress");
+        BindPanelButton("CompletedButton", () => SetFilter("Completed"), "Completed");
+        BindPanelButton("AllRegionsButton", () => SetFilter("All"), "All Regions");
+        BindPanelButton("RefreshButton", RefreshWorldAndQuests, "Refresh");
         
         if (questPanelView != null && questPanelView.CloseButton != null)
             BindButton(questPanelView.CloseButton.gameObject, CloseQuestPanel);
@@ -289,6 +295,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
             .Where(obj => obj != null)
             .Distinct()
             .ToList();
+
+        acceptQuestButtonText = acceptQuestButtonText.IsValid ? acceptQuestButtonText : FindButtonLabel(acceptQuestButtonObject);
+        completeQuestButtonText = completeQuestButtonText.IsValid ? completeQuestButtonText : FindButtonLabel(completeQuestButtonObject);
+        declineQuestButtonText = declineQuestButtonText.IsValid ? declineQuestButtonText : FindButtonLabel(declineQuestButtonObject);
+        claimQuestButtonText = claimQuestButtonText.IsValid ? claimQuestButtonText : FindButtonLabel(claimQuestButtonObject);
+        claimedButtonText = claimedButtonText.IsValid ? claimedButtonText : FindButtonLabel(claimedButtonObject);
 
         usePrimaryActionButton = foundActionObjects.Count <= 1 && declineQuestButtonObject == null;
         primaryActionButtonObject = usePrimaryActionButton
@@ -511,6 +523,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         SetActive(completeQuestButtonObject, QuestUtils.IsStatus(quest, "InProgress"));
         SetActive(claimQuestButtonObject, QuestUtils.IsStatus(quest, "Completed"));
         SetActive(claimedButtonObject, QuestUtils.IsStatus(quest, "Claimed"));
+
+        SetText(acceptQuestButtonText, "Accept Quest");
+        SetText(completeQuestButtonText, "Complete Quest");
+        SetText(declineQuestButtonText, "Decline Quest");
+        SetText(claimQuestButtonText, "Claim Reward");
+        SetText(claimedButtonText, "Claimed");
 
         // Cập nhật trạng thái Decline
         SetActive(declineQuestButtonObject, QuestUtils.IsStatus(quest, "NotStarted") || QuestUtils.IsStatus(quest, "InProgress"));
@@ -871,13 +889,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
-    private void BindPanelButton(string objectName, UnityEngine.Events.UnityAction action)
+    private void BindPanelButton(string objectName, UnityEngine.Events.UnityAction action, string label = null)
     {
         if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
             return;
 
         var target = FindDescendant(questPanel.transform, objectName);
         BindButton(target, action);
+        if (!string.IsNullOrWhiteSpace(label))
+            SetText(FindButtonLabel(target), label);
     }
 
     private static Button BindButton(GameObject target, UnityEngine.Events.UnityAction action)
@@ -1073,6 +1093,17 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return default;
     }
 
+    private static TextSlot FindButtonLabel(GameObject buttonObject)
+    {
+        if (buttonObject == null)
+            return default;
+
+        var slot = FindTextSlot(buttonObject.transform, "Text (TMP)", "Text", "Label", "TitleText");
+        if (!slot.IsValid)
+            slot = FindTextSlot(buttonObject.transform, "Item Label", "ButtonText", "Caption", "NameText");
+        return slot;
+    }
+
     private static void SetText(TextSlot slot, string value)
     {
         slot.Set(value);
@@ -1123,12 +1154,20 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             if (tmp != null)
             {
+                if (!tmp.gameObject.activeSelf)
+                    tmp.gameObject.SetActive(true);
+                tmp.enabled = true;
                 tmp.text = value ?? string.Empty;
                 return;
             }
 
             if (text != null)
+            {
+                if (!text.gameObject.activeSelf)
+                    text.gameObject.SetActive(true);
+                text.enabled = true;
                 text.text = value ?? string.Empty;
+            }
         }
 
         public bool Equals(TextSlot other)
