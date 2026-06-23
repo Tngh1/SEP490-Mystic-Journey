@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using MysticJourney.Core.Services;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 
@@ -12,6 +13,9 @@ public class SkillPanelManager : MonoBehaviour
     [Header("Master Data")]
     // Kéo toàn bộ file SkillData từ thư mục ScriptableObjects vào mảng này
     public SkillData[] allSkillsInGame;
+
+    [Header("Slots")]
+    public SkillSlot[] skillSlots; // assign 3 slots in inspector
 
     private void OnEnable()
     {
@@ -42,28 +46,84 @@ public class SkillPanelManager : MonoBehaviour
 
     private void PopulateUI(List<PlayerSkillResponse> playerSkills)
     {
-        if (playerSkills == null || playerSkills.Count == 0) return;
+        // 1. Tạo một danh sách ảo để ghép nối dữ liệu tĩnh (Visual) và dữ liệu thật (Server)
+        var sortedSkillList = new List<(SkillData visual, PlayerSkillResponse server)>();
 
-        foreach (var serverSkill in playerSkills)
+        foreach (var data in allSkillsInGame)
         {
-            // Tìm ảnh có ID tương ứng
-            SkillData matchedVisual = null;
-            foreach (var data in allSkillsInGame)
+            PlayerSkillResponse owned = null;
+            if (playerSkills != null)
             {
-                if (data.skillId == serverSkill.SkillId)
+                owned = playerSkills.Find(ps => ps.SkillId == data.skillId);
+            }
+            sortedSkillList.Add((data, owned));
+        }
+
+        // 2. THỰC HIỆN SẮP XẾP DANH SÁCH
+        sortedSkillList.Sort((a, b) =>
+        {
+            bool aUnlocked = a.server != null;
+            bool bUnlocked = b.server != null;
+
+            // Nếu A mở khóa, B khóa -> A xếp trước
+            if (aUnlocked && !bUnlocked) return -1;
+
+            // Nếu A khóa, B mở khóa -> B xếp trước
+            if (!aUnlocked && bUnlocked) return 1;
+
+            // Nếu cùng mở hoặc cùng khóa, sắp xếp theo thứ tự ID để danh sách không bị lộn xộn
+            return a.visual.skillId.CompareTo(b.visual.skillId);
+        });
+
+        // Qua met voi Phat
+        // 3. Tiến hành vẽ giao diện dựa trên danh sách đã sắp xếp xong
+        foreach (var item in sortedSkillList)
+        {
+            GameObject newSkillObj = Instantiate(skillItemPrefab, contentArea);
+            SkillItem itemScript = newSkillObj.GetComponent<SkillItem>();
+            itemScript.Setup(item.visual, item.server);
+        }
+
+        // =========================================================
+        // (Phần code xử lý skillSlots của bạn ở bên dưới GIỮ NGUYÊN)
+        // Reset slots visuals
+        if (skillSlots != null)
+        {
+            foreach (var s in skillSlots)
+            {
+                if (s != null && s.equippedIcon != null)
                 {
-                    matchedVisual = data;
-                    break;
+                    s.equippedIcon.sprite = null;
+                    s.equippedIcon.color = new Color(1, 1, 1, 0); // hide
                 }
             }
 
-            if (matchedVisual != null)
+            // Update slot lock visuals according to current player level
+            int playerLevel = GameStateService.Instance?.PlayerLevel ?? 1;
+            foreach (var s in skillSlots)
             {
-                // Instantiate và gán dữ liệu
-                GameObject newSkillObj = Instantiate(skillItemPrefab, contentArea);
-                SkillItem itemScript = newSkillObj.GetComponent<SkillItem>();
+                if (s == null) continue;
+                if (s.lockImage != null)
+                    s.lockImage.SetActive(playerLevel < s.requiredLevel);
+            }
 
-                itemScript.Setup(matchedVisual, serverSkill);
+            // Fill slots according to playerSkills equipped info
+            if (playerSkills != null)
+            {
+                foreach (var ps in playerSkills)
+                {
+                    if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < skillSlots.Length)
+                    {
+                        var slot = skillSlots[ps.EquippedSlot.Value];
+                        // find visual icon from master data
+                        var visual = System.Array.Find(allSkillsInGame, d => d.skillId == ps.SkillId);
+                        if (visual != null && slot != null && slot.equippedIcon != null)
+                        {
+                            slot.equippedIcon.sprite = visual.skillIcon;
+                            slot.equippedIcon.color = Color.white;
+                        }
+                    }
+                }
             }
         }
     }
