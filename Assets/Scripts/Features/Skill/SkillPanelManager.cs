@@ -75,6 +75,7 @@ public class SkillPanelManager : MonoBehaviour
             return a.visual.skillId.CompareTo(b.visual.skillId);
         });
 
+        // Qua met voi Phat
         // 3. Tiến hành vẽ giao diện dựa trên danh sách đã sắp xếp xong
         foreach (var item in sortedSkillList)
         {
