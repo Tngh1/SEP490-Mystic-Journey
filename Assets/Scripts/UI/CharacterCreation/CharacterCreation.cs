@@ -12,25 +12,65 @@ public class CharacterCreation : MonoBehaviour
     [SerializeField]
     private TMP_InputField nameInput;
 
+    [Header("Class Selection Lights (Optional drag & drop)")]
+    [SerializeField] private GameObject knightLight;
+    [SerializeField] private GameObject mageLight;
+    [SerializeField] private GameObject archerLight;
+
     private string selectedClass;
     private bool _isCreating;
+
+    private void Start()
+    {
+        FindLights();
+        UpdateClassLights(); // Turn off all lights initially until a class is explicitly selected
+    }
+
+    private void FindLights()
+    {
+        // Try finding active/inactive Light objects by name and parent area name to avoid inspector dependency
+        var allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+        foreach (var t in allTransforms)
+        {
+            if (t == null) continue;
+            if (t.name == "Light" && t.parent != null)
+            {
+                if (t.parent.name == "KnightArea" && knightLight == null)
+                    knightLight = t.gameObject;
+                else if (t.parent.name == "MageArea" && mageLight == null)
+                    mageLight = t.gameObject;
+                else if (t.parent.name == "ArcherArea" && archerLight == null)
+                    archerLight = t.gameObject;
+            }
+        }
+    }
+
+    private void UpdateClassLights()
+    {
+        if (knightLight != null) knightLight.SetActive(selectedClass == "Knight");
+        if (mageLight != null) mageLight.SetActive(selectedClass == "Mage");
+        if (archerLight != null) archerLight.SetActive(selectedClass == "Archer");
+    }
 
     public void SelectKnight()
     {
         selectedClass = "Knight";
         Debug.Log("Knight Selected");
+        UpdateClassLights();
     }
 
     public void SelectMage()
     {
         selectedClass = "Mage";
         Debug.Log("Mage Selected");
+        UpdateClassLights();
     }
 
     public void SelectArcher()
     {
         selectedClass = "Archer";
         Debug.Log("Archer Selected");
+        UpdateClassLights();
     }
 
     public void CreateCharacter()
