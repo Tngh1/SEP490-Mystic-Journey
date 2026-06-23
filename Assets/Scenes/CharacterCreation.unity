@@ -286,6 +286,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterCreation
   nameInput: {fileID: 1644418819}
+  knightLight: {fileID: 0}
+  mageLight: {fileID: 0}
+  archerLight: {fileID: 0}
 --- !u!4 &123847051
 Transform:
   m_ObjectHideFlags: 0
@@ -996,7 +999,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 14, y: -162}
-  m_SizeDelta: {x: 400, y: 400}
+  m_SizeDelta: {x: 400, y: 500}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &701547393
 MonoBehaviour:
@@ -1267,12 +1270,12 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1603699764}
-  - {fileID: 1644418818}
   - {fileID: 1580975115}
   - {fileID: 1539757633}
   - {fileID: 410961564}
   - {fileID: 1595849951}
   - {fileID: 1851364989}
+  - {fileID: 1644418818}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1610,7 +1613,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: "\u200B"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3d37888e0bee4f74d874c1d944c1b67e, type: 2}
   m_sharedMaterial: {fileID: 8870641874997295789, guid: 3d37888e0bee4f74d874c1d944c1b67e, type: 2}
@@ -1799,7 +1802,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 166, y: -262}
-  m_SizeDelta: {x: 400, y: 400}
+  m_SizeDelta: {x: 400, y: 520}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1098017064
 MonoBehaviour:
@@ -2894,7 +2897,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -132, y: -264}
-  m_SizeDelta: {x: 400, y: 400}
+  m_SizeDelta: {x: 400, y: 520}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1827268602
 MonoBehaviour:
