@@ -9,4 +9,6 @@ public class SkillData : ScriptableObject
     [Header("Visual & Client Assets")]
     public Sprite skillIcon;
     public GameObject skillPrefab; // Hiệu ứng tung chiêu
+    [Header("Gameplay")]
+    public string classRequirement = ""; // "Knight", "Archer", "Mage" - use empty for any class
 }

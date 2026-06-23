@@ -25,13 +25,7 @@ public class SkillPanelManager : MonoBehaviour
 
     public void RefreshSkillList()
     {
-        // Dọn dẹp UI cũ trước khi tải mới
-        foreach (Transform child in contentArea)
-        {
-            Destroy(child.gameObject);
-        }
-
-        // Gọi API từ class SkillApi của bạn
+        // Dọn dẹp UI cũ được dời vào trong PopulateUI để tránh lỗi bất đồng bộ
         SkillApi.Instance.GetMySkills(
             onSuccess: (response) =>
             {
@@ -46,22 +40,29 @@ public class SkillPanelManager : MonoBehaviour
 
     private void PopulateUI(List<PlayerSkillResponse> playerSkills)
     {
-        // Defensive checks to avoid uncaught exceptions during API callbacks
-        if (skillItemPrefab == null)
+        if (skillItemPrefab == null || contentArea == null) return;
+
+        // 1. DỌN DẸP UI TRIỆT ĐỂ (Chống bug nhân đôi hình)
+        foreach (Transform child in contentArea)
         {
-            Debug.LogError("[UI] The variable skillItemPrefab of SkillPanelManager has not been assigned. Please assign it in the inspector.");
-            return;
+            Destroy(child.gameObject);
+            child.SetParent(null); // Tách Object ra khỏi danh sách ngay lập tức
         }
-        if (contentArea == null)
-        {
-            Debug.LogError("[UI] The variable contentArea of SkillPanelManager has not been assigned. Please assign it in the inspector.");
-            return;
-        }
-        // 1. Tạo một danh sách ảo để ghép nối dữ liệu tĩnh (Visual) và dữ liệu thật (Server)
+
+        // 2. LẤY CLASS HIỆN TẠI CỦA NGƯỜI CHƠI
+        string playerClass = GameStateService.Instance?.PlayerClass ?? "";
+
         var sortedSkillList = new List<(SkillData visual, PlayerSkillResponse server)>();
 
         foreach (var data in allSkillsInGame)
         {
+            // 3. TÍNH NĂNG LỌC: Bỏ qua các kỹ năng không thuộc Class của mình (hoặc không phải All)
+            bool isAllClass = string.IsNullOrWhiteSpace(data.classRequirement) || data.classRequirement.Equals("All", System.StringComparison.OrdinalIgnoreCase);
+            bool isMyClass = !string.IsNullOrWhiteSpace(playerClass) && data.classRequirement.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
+
+            if (!isAllClass && !isMyClass)
+                continue; // ⬅️ Nếu không hợp hệ, lập tức bỏ qua, không hiển thị lên UI
+
             PlayerSkillResponse owned = null;
             if (playerSkills != null)
             {
@@ -70,24 +71,18 @@ public class SkillPanelManager : MonoBehaviour
             sortedSkillList.Add((data, owned));
         }
 
-        // 2. THỰC HIỆN SẮP XẾP DANH SÁCH
+        // 4. THỰC HIỆN SẮP XẾP DANH SÁCH (Đã lọc)
         sortedSkillList.Sort((a, b) =>
         {
             bool aUnlocked = a.server != null;
             bool bUnlocked = b.server != null;
 
-            // Nếu A mở khóa, B khóa -> A xếp trước
             if (aUnlocked && !bUnlocked) return -1;
-
-            // Nếu A khóa, B mở khóa -> B xếp trước
             if (!aUnlocked && bUnlocked) return 1;
-
-            // Nếu cùng mở hoặc cùng khóa, sắp xếp theo thứ tự ID để danh sách không bị lộn xộn
             return a.visual.skillId.CompareTo(b.visual.skillId);
         });
 
-        // Qua met voi Phat
-        // 3. Tiến hành vẽ giao diện dựa trên danh sách đã sắp xếp xong
+        // 5. Tiến hành vẽ giao diện 
         foreach (var item in sortedSkillList)
         {
             GameObject newSkillObj = Instantiate(skillItemPrefab, contentArea);
@@ -97,7 +92,6 @@ public class SkillPanelManager : MonoBehaviour
 
         // =========================================================
         // (Phần code xử lý skillSlots của bạn ở bên dưới GIỮ NGUYÊN)
-        // Reset slots visuals
         if (skillSlots != null)
         {
             foreach (var s in skillSlots)
@@ -109,16 +103,14 @@ public class SkillPanelManager : MonoBehaviour
                 }
             }
 
-            // Update slot lock visuals according to current player level
-            int playerLevel = GameStateService.Instance?.PlayerLevel ?? 1;
+            int pLevel = GameStateService.Instance?.PlayerLevel ?? 1;
             foreach (var s in skillSlots)
             {
                 if (s == null) continue;
                 if (s.lockImage != null)
-                    s.lockImage.SetActive(playerLevel < s.requiredLevel);
+                    s.lockImage.SetActive(pLevel < s.requiredLevel);
             }
 
-            // Fill slots according to playerSkills equipped info
             if (playerSkills != null)
             {
                 foreach (var ps in playerSkills)
@@ -126,12 +118,14 @@ public class SkillPanelManager : MonoBehaviour
                     if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < skillSlots.Length)
                     {
                         var slot = skillSlots[ps.EquippedSlot.Value];
-                        // find visual icon from master data
                         var visual = System.Array.Find(allSkillsInGame, d => d.skillId == ps.SkillId);
                         if (visual != null && slot != null && slot.equippedIcon != null)
                         {
                             slot.equippedIcon.sprite = visual.skillIcon;
                             slot.equippedIcon.color = Color.white;
+
+                            // 👇 THÊM DÒNG NÀY: Phát loa để nạp dữ liệu cho HUD & Nhân vật lúc mới vào game
+                            SkillSlot.BroadcastSkillEquipped(ps.EquippedSlot.Value, visual, ps);
                         }
                     }
                 }
