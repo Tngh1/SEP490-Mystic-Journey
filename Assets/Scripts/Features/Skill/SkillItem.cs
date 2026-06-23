@@ -12,9 +12,8 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
 
     [Header("UI Components")]
     public Image myIcon;
-    public TextMeshProUGUI levelText; // (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
-    public GameObject lockOverlay; // Hình khóa khi chưa sở hữu
-
+    public TextMeshProUGUI levelText;// (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
+    public GameObject lockOverlay;
     private SkillPopup popupManager;
     private Transform originalParent;
     private CanvasGroup canvasGroup;
@@ -33,12 +32,14 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         serverData = sData;
 
         myIcon.sprite = visualData.skillIcon;
-        // Nếu player không sở hữu skill này -> locked
+
+        // KIỂM TRA: Nếu chưa sở hữu (bị khóa)
         if (serverData == null)
         {
             if (levelText != null) levelText.text = "";
             if (lockOverlay != null) lockOverlay.SetActive(true);
         }
+        // KIỂM TRA: Nếu đã sở hữu
         else
         {
             if (levelText != null) levelText.text = "Lv." + serverData.Level;
@@ -48,13 +49,6 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // Nếu chưa sở hữu thì hiển thị popup khóa hoặc thông tin unlock
-        if (serverData == null)
-        {
-            popupManager.ShowLockedPopup(visualData);
-            return;
-        }
-
         // Truyền CẢ HAI loại dữ liệu sang Popup
         popupManager.ShowPopup(visualData, serverData);
     }
@@ -62,9 +56,6 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
     // 1. Khi bắt đầu KÉO -> Đưa skill lên trên cùng để không bị che
     public void OnBeginDrag(PointerEventData eventData)
     {
-        // Nếu chưa sở hữu thì không cho kéo
-        if (serverData == null) return;
-
         originalParent = transform.parent;
         // Bật ra ngoài Canvas (transform.root thường là Canvas cao nhất)
         transform.SetParent(transform.root);
@@ -79,16 +70,12 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
     // 2. Đang KÉO -> Hình chạy theo vị trí chuột
     public void OnDrag(PointerEventData eventData)
     {
-        if (serverData == null) return;
         transform.position = Input.mousePosition;
     }
 
     // 3. Thả tay ra (Dừng KÉO)
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Nếu chưa sở hữu thì không có hành vi kéo
-        if (serverData == null) return;
-
         // Trả object về lại chỗ cũ trong danh sách (Scroll View)
         transform.SetParent(originalParent);
 

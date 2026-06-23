@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class UIManager : MonoBehaviour
@@ -43,6 +43,7 @@ public class UIManager : MonoBehaviour
         BindPanels();
         CloseAll();
         KeepQuestTrackerVisible();
+        EnsurePlayerHUDController();
     }
 
     public void OpenPanel(GameObject panel)
@@ -277,6 +278,22 @@ public class UIManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void EnsurePlayerHUDController()
+    {
+        var hudGo = FindSceneObject("HUD");
+        if (hudGo != null)
+        {
+            if (hudGo.GetComponent<PlayerHUDController>() == null)
+            {
+                hudGo.AddComponent<PlayerHUDController>();
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[UIManager] HUD GameObject not found in scene.");
+        }
     }
 }
 

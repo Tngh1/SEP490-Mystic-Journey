@@ -2,6 +2,7 @@ using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -95,10 +96,30 @@ namespace MysticJourney.Screen.Login
                     Debug.Log($"  HasToken (sau)  : {ApiClient.Instance.HasToken()}");
                     Debug.Log("================================================");
 
+                    WorldState.HasCharacter = !string.IsNullOrEmpty(response.PlayerClass);
+                    WorldState.PlayerProfileId = response.PlayerProfileId ?? 0;
+                    WorldState.PlayerName = response.PlayerDisplayName ?? response.UserName;
+                    WorldState.PlayerClass = response.PlayerClass;
+                    WorldState.PlayerLevel = response.Level;
+                    if (!string.IsNullOrEmpty(response.LastMapName))
+                    {
+                        WorldState.CurrentMapName = response.LastMapName;
+                        WorldState.LastPosition = new UnityEngine.Vector3((float)response.PositionX, (float)response.PositionY, 0f);
+                    }
+                    WorldState.SaveToPlayerPrefs();
+
                     OnLoginSuccess?.Invoke(response);
 
-                    if (!string.IsNullOrEmpty(sceneOnSuccess))
-                        StartCoroutine(LoadSceneAfterDelay(sceneOnSuccess, delayBeforeSceneLoad));
+                    if (string.IsNullOrEmpty(response.PlayerClass))
+                    {
+                        Debug.Log("[LoginUIManager] Account has no character class. Loading CharacterCreation scene...");
+                        StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.CharacterCreation, delayBeforeSceneLoad));
+                    }
+                    else
+                    {
+                        Debug.Log($"[LoginUIManager] Account has character class: {response.PlayerClass}. Loading game via Bootstrap...");
+                        StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.Bootstrap, delayBeforeSceneLoad));
+                    }
                 },
                 error =>
                 {

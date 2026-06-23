@@ -13,6 +13,7 @@ namespace MysticJourney.API.Models.Response
         public int MaxMembers { get; set; }
         public int Difficulty { get; set; }         // 1–5
         public int RecommendedPower { get; set; }
+        public int EnergyCost { get; set; }         // Energy để enter + claim reward
         public int? ChestId { get; set; }
         public bool IsActive { get; set; }
     }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -92,6 +92,7 @@ public class InventoryManager : MonoBehaviour
         if (!force && _summary != null && Time.unscaledTime - _lastLoadedAt < cacheSeconds)
         {
             RefreshCurrentTab();
+            LoadPlayerStats();
             return;
         }
 
@@ -99,6 +100,8 @@ public class InventoryManager : MonoBehaviour
         SetLoading(true);
         SetError(null);
         itemDetailPopup?.Hide();
+
+        LoadPlayerStats();
 
         InventoryApi.Instance.GetInventory(
             onSuccess: response =>
@@ -458,5 +461,75 @@ public class InventoryManager : MonoBehaviour
     {
         Debug.LogWarning($"[InventoryManager] Action error: {msg}");
         SetError(msg);
+    }
+
+    private void LoadPlayerStats()
+    {
+        CharacterApi.Instance.GetMyStats(
+            onSuccess: response =>
+            {
+                if (response.Success && response.Data != null)
+                {
+                    UpdatePlayerStatsUI(response.Data);
+                }
+            },
+            onError: error =>
+            {
+                Debug.LogWarning($"[InventoryManager] Failed to load character stats: {error.Message}");
+            }
+        );
+    }
+
+    private Transform FindStatsPanel()
+    {
+        var trans = transform.Find("LeftSection/StatsPanel");
+        if (trans == null)
+            trans = transform.Find("LeftSection/'StatsPanel '");
+        if (trans == null)
+        {
+            var allChildren = GetComponentsInChildren<Transform>(true);
+            foreach (var t in allChildren)
+            {
+                if (t.name.Contains("StatsPanel"))
+                    return t;
+            }
+        }
+        return trans;
+    }
+
+    private void UpdateStatRow(Transform statsPanel, string rowName, string label, string value)
+    {
+        var row = statsPanel.Find(rowName);
+        if (row != null)
+        {
+            var labelText = row.Find("Text (TMP)")?.GetComponent<TMP_Text>();
+            var valueText = row.Find("ValueText")?.GetComponent<TMP_Text>();
+            if (labelText != null) labelText.text = label;
+            if (valueText != null) valueText.text = value;
+        }
+        else
+        {
+            Debug.LogWarning($"[InventoryManager] Row '{rowName}' not found in stats panel.");
+        }
+    }
+
+    private void UpdatePlayerStatsUI(PlayerStatsResponse stats)
+    {
+        var statsPanel = FindStatsPanel();
+        if (statsPanel == null)
+        {
+            Debug.LogWarning("[InventoryManager] StatsPanel not found.");
+            return;
+        }
+
+        UpdateStatRow(statsPanel, "HPRow", "HP", $"{stats.CurrentHp} / {stats.MaxHp}");
+        UpdateStatRow(statsPanel, "ATKRow", "ATK", stats.Atk.ToString());
+        UpdateStatRow(statsPanel, "DEFRow", "DEF", stats.Def.ToString());
+        UpdateStatRow(statsPanel, "STRRow", "Speed", stats.MoveSpeed.ToString("F1"));
+        UpdateStatRow(statsPanel, "AGIRow", "Atk Spd", stats.AttackSpeed.ToString("F2"));
+
+        float critRatePercent = stats.CritRate * 100f;
+        float critDmgPercent = stats.CritDamage * 100f;
+        UpdateStatRow(statsPanel, "INTRow", "Crit", $"{critRatePercent:0.#}% / {critDmgPercent:0.#}%");
     }
 }

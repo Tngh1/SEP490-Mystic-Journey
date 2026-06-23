@@ -53,8 +53,7 @@ namespace MysticJourney.API.Models.Response
         public int Level { get; set; }
         public int Experience { get; set; }
         public bool IsEquipped { get; set; }
-        public int? EquippedSlot { get; set; }
-        public int CooldownSeconds { get; set; }
+        public int? EquippedSlot { get; set; }        public int CooldownSeconds { get; set; }
         public double BaseDamage { get; set; }
         public double DamagePerLevel { get; set; }
         public double DamageGrowthPercent { get; set; }

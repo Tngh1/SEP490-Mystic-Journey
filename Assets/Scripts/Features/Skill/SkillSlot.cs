@@ -1,64 +1,60 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using MysticJourney.API.Endpoints;
-using MysticJourney.Core.Services;
+using MysticJourney.API.Endpoints; // Khai báo thư viện API của bạn
 
 public class SkillSlot : MonoBehaviour, IDropHandler
 {
     public int requiredLevel;
-    // slotIndex: 0..2
-    public int slotIndex = 0; // 0..2
-
-    // playerLevel read from GameStateService
-    private int playerLevel => GameStateService.Instance?.PlayerLevel ?? 1;
-
+    public int playerLevel = 1;
+    public int slotIndex;
     public Image equippedIcon;
     public GameObject lockImage;
 
     void Start()
     {
-        // Default required levels per slot: slot0 -> 1, slot1 -> 5, slot2 -> 10
-        int[] slotRequired = new int[] { 1, 5, 10 };
-        if (slotIndex >= 0 && slotIndex < slotRequired.Length)
-        {
-            requiredLevel = slotRequired[slotIndex];
-        }
-
-        lockImage.SetActive(playerLevel < requiredLevel);
+        if (playerLevel < requiredLevel)
+            lockImage.SetActive(true);
+        else
+            lockImage.SetActive(false);
     }
 
     public void OnDrop(PointerEventData eventData)
     {
+        // 1. KIỂM TRA AN TOÀN KÉO THẢ: 
+        // Nếu chuột thả ra nhưng không có vật thể nào đang được kéo -> Bỏ qua ngay
+        if (eventData == null || eventData.pointerDrag == null) return;
+
+        // 2. Kiểm tra cấp độ người chơi
         if (playerLevel < requiredLevel)
         {
             Debug.Log("Slot locked: player level too low.");
             return;
         }
 
+        // 3. Lấy thông tin kỹ năng đang được kéo
         SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
 
-        // Ensure the dropped skill has server data (owned by player)
+        // 4. KIỂM TRA AN TOÀN DỮ LIỆU: 
+        // Đảm bảo kéo đúng ô SkillItem và Skill đó đã được người chơi sở hữu
         if (droppedSkill != null && droppedSkill.serverData != null)
         {
-            // Get real PlayerSkillId from the dropped skill's server data
             int targetPlayerSkillId = droppedSkill.serverData.PlayerSkillId;
 
-            // Call API to request equipping
+            // Gọi API lên Server để xin phép trang bị
             SkillApi.Instance.EquipPlayerSkill(
                 targetPlayerSkillId,
-                true, // true = equip
+                true, // true = muốn trang bị
                 slotIndex,
                 onSuccess: (response) =>
                 {
-                    // On success, display the icon in the slot
-                    equippedIcon.sprite = droppedSkill.visualData.skillIcon;
-                    equippedIcon.color = Color.white;
+                    // Cập nhật giao diện an toàn
+                    if (equippedIcon != null && droppedSkill.visualData != null)
+                    {
+                        equippedIcon.sprite = droppedSkill.visualData.skillIcon;
+                        equippedIcon.color = Color.white;
+                    }
                     Debug.Log($"Equipped successfully: {response.SkillName} to slot {slotIndex}!");
-
-                        // Refresh skill list so other slots / items reflect new state
-                        var mgr = FindAnyObjectByType<SkillPanelManager>();
-                        if (mgr != null) mgr.RefreshSkillList();
                 },
                 onError: (error) =>
                 {
@@ -68,8 +64,8 @@ public class SkillSlot : MonoBehaviour, IDropHandler
         }
         else
         {
-            // Optional: notify if user attempts to equip a locked/invalid skill
-            Debug.LogWarning("Skill is locked or invalid and cannot be equipped.");
+            // Bỏ qua im lặng hoặc log cảnh báo nếu người chơi cố tình kéo kỹ năng bị khóa
+            Debug.LogWarning("Kỹ năng này bị khóa hoặc không hợp lệ, không thể trang bị!");
         }
     }
 }

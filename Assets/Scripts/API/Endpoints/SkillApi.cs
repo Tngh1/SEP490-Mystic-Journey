@@ -87,6 +87,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // ĐÃ SỬA: Thêm tham số int? slotIndex và đưa vào body request
         public void EquipPlayerSkill(int playerSkillId, bool isEquipped, int? slotIndex, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"EquipPlayerSkill → playerSkillId={playerSkillId}, isEquipped={isEquipped}, slotIndex={slotIndex}");
