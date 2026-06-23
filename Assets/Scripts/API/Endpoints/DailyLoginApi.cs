@@ -71,5 +71,25 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        public void RetroClaim(int dayNumber, Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
+        {
+            SafeDebugLog($"Retro claim daily login reward for day {dayNumber}...");
+            var requestBody = new { DayNumber = dayNumber };
+            ApiClient.Instance.Post<object, ClaimDailyRewardResponse>(
+                ApiConfig.DailyLoginClaim.Replace("/claim", "/retro-claim"),
+                requestBody,
+                response =>
+                {
+                    SafeDebugLog($"RetroClaim OK | TotalDays={response?.TotalDaysClaimed}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"RetroClaim FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

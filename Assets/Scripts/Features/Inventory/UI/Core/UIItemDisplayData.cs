@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [System.Serializable]
 public class UIItemDisplayData
@@ -19,9 +19,10 @@ public class UIItemDisplayData
 
     // D? li?u cho Quest / Chest / Daily Login
     public bool isClaimed;
-    public bool isAvailable = true;
+    public bool isAvailable;
+    public bool isMissed;
     public int dayNumber;
-
-    // Ch?a d? li?u g?c t? API
+    
+    // Store raw data to allow custom logic on click
     public object rawData;
 }

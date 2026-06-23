@@ -159,7 +159,15 @@ public class QuestManager : MonoBehaviour
                 OnQuestAccepted?.Invoke(questId);
                 onSuccess?.Invoke();
             },
-            onError: err => { Debug.LogError($"[QuestManager] AcceptQuest FAIL: {err.Message}"); onError?.Invoke(err.Message); });
+            onError: err => 
+            { 
+                Debug.LogError($"[QuestManager] AcceptQuest FAIL: {err.Message}"); 
+                PlayerQuestApi.Instance.GetMyQuests(
+                    res => { HandleLoadedQuestResponses(res); },
+                    reloadErr => { }
+                );
+                onError?.Invoke(err.Message); 
+            });
     }
 
     public void GetQuestDetail(int questId, Action<PlayerQuestResponse> onSuccess, Action<string> onError = null)
@@ -248,6 +256,8 @@ public class QuestManager : MonoBehaviour
         return (completed, total);
     }
 
+    public IReadOnlyDictionary<int, PlayerQuestResponse> GetAllResponses() => _responses;
+
     public QuestData GetActiveQuestForCurrentMap()
     {
         return null;
@@ -291,6 +301,46 @@ public class QuestManager : MonoBehaviour
                         _snapshot.Remove(key);
                     foreach (var r in responses)
                         if (r != null) UpsertQuestState(r);
+
+                    // Auto-complete Collect/Defeat quests that reached target —
+                    // player should not need to press Complete manually.
+                    foreach (var r in responses)
+                    {
+                        if (r == null) continue;
+                        var objectiveType = r.ObjectiveType ?? string.Empty;
+                        var isAutoComplete =
+                            string.Equals(objectiveType, "Collect",  StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(objectiveType, "Defeat",   StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(objectiveType, "Explore",  StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(objectiveType, "Interact", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase);
+
+                        if (!isAutoComplete) continue;
+                        if (!string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        var qid = r.QuestId;
+                        Debug.Log($"[QuestManager] Auto-completing questId={qid} ({objectiveType})");
+                        CompleteQuest(qid,
+                            onSuccess: () =>
+                            {
+                                Debug.Log($"[QuestManager] Auto-complete done questId={qid}");
+                                var qp = MainQuestPanelRuntime.Instance;
+                                if (qp != null) qp.ShowQuestPopup("Quest completed!");
+
+                                ClaimReward(qid,
+                                    onSuccess: () =>
+                                    {
+                                        if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                                        WorldRuntimeEvents.RaiseQuestsChanged();
+                                    },
+                                    onError: err =>
+                                    {
+                                        Debug.LogWarning($"[QuestManager] Auto-claim fail questId={qid}: {err}");
+                                        WorldRuntimeEvents.RaiseQuestsChanged();
+                                    });
+                            },
+                            onError: err => Debug.LogWarning($"[QuestManager] Auto-complete fail questId={qid}: {err}"));
+                    }
                 },
                 onError: err =>
                 {
@@ -368,7 +418,30 @@ public class QuestManager : MonoBehaviour
         _cache.Clear();
         _responses.Clear();
         foreach (var response in responses ?? new List<PlayerQuestResponse>())
+        {
             UpsertQuestState(response);
+            
+            var objectiveType = response.ObjectiveType ?? string.Empty;
+            var isAutoComplete =
+                string.Equals(objectiveType, "Collect",  StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(objectiveType, "Defeat",   StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(objectiveType, "Explore",  StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(objectiveType, "Interact", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase);
+
+            if (isAutoComplete && string.Equals(response.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                var qid = response.QuestId;
+                ClaimReward(qid,
+                    onSuccess: () =>
+                    {
+                        var qp = MainQuestPanelRuntime.Instance;
+                        if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                        WorldRuntimeEvents.RaiseQuestsChanged();
+                    },
+                    onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={qid}: {err}"));
+            }
+        }
 
         ApplyOfflineQueue();
 
@@ -392,6 +465,32 @@ public class QuestManager : MonoBehaviour
             version = 0,
             isDirty = false,
         };
+    }
+
+    public void AutoCompleteEquipSkillQuest()
+    {
+        foreach (var kvp in _responses)
+        {
+            var q = kvp.Value;
+            if (QuestUtils.IsStatus(q, "InProgress") && string.Equals(q.ObjectiveType, "EquipSkill", StringComparison.OrdinalIgnoreCase))
+            {
+                CompleteQuest(q.QuestId,
+                    onSuccess: () =>
+                    {
+                        var qp = MainQuestPanelRuntime.Instance;
+                        if (qp != null) qp.ShowQuestPopup("Quest completed!");
+
+                        ClaimReward(q.QuestId,
+                            onSuccess: () =>
+                            {
+                                if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                                WorldRuntimeEvents.RaiseQuestsChanged();
+                            },
+                            onError: err => Debug.LogWarning($"[QuestManager] Auto-claim EquipSkill fail: {err}"));
+                    },
+                    onError: err => Debug.LogWarning($"[QuestManager] Auto-complete EquipSkill fail: {err}"));
+            }
+        }
     }
 
     // ── Static Utility Methods (delegated to QuestUtils) ─────────────────────────
