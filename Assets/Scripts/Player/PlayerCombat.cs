@@ -1,4 +1,4 @@
-﻿using MysticJourney.API.Models.Response;
+using MysticJourney.API.Models.Response;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -55,6 +55,21 @@ public class PlayerCombat : MonoBehaviour
     }
 
     #region Skills Logic
+    public void OnAttack(InputValue value)
+    {
+        if (value.isPressed)
+        {
+            Attack();
+        }
+    }
+
+    private void Attack()
+    {
+        if (IsBusy() || Time.time < nextAttackTime) return;
+        nextAttackTime = Time.time + attackCooldown;
+        animator.SetTrigger("Attack");
+    }
+
     public void OnSkill1(InputValue value) => TryCastSkill(skill1Prefab, 0, ref nextSkill1Time, skill1Cooldown, "Skill1");
     public void OnSkill2(InputValue value) => TryCastSkill(skill2Prefab, 1, ref nextSkill2Time, skill2Cooldown, "Skill2");
     public void OnSkill3(InputValue value) => TryCastSkill(skill3Prefab, 2, ref nextSkill3Time, skill3Cooldown, "Skill3");
