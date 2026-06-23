@@ -522,14 +522,13 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        UpdateStatRow(statsPanel, "HPRow", "HP", $"{stats.CurrentHp} / {stats.MaxHp}");
+        UpdateStatRow(statsPanel, "HPRow", "HP", stats.MaxHp.ToString());
         UpdateStatRow(statsPanel, "ATKRow", "ATK", stats.Atk.ToString());
         UpdateStatRow(statsPanel, "DEFRow", "DEF", stats.Def.ToString());
-        UpdateStatRow(statsPanel, "STRRow", "Speed", stats.MoveSpeed.ToString("F1"));
-        UpdateStatRow(statsPanel, "AGIRow", "Atk Spd", stats.AttackSpeed.ToString("F2"));
-
-        float critRatePercent = stats.CritRate * 100f;
-        float critDmgPercent = stats.CritDamage * 100f;
-        UpdateStatRow(statsPanel, "INTRow", "Crit", $"{critRatePercent:0.#}% / {critDmgPercent:0.#}%");
+        UpdateStatRow(statsPanel, "SPDRow", "SPD", stats.MoveSpeed.ToString("F1"));
+        UpdateStatRow(statsPanel, "ASPRow", "ASP", stats.AttackSpeed.ToString("F2"));
+        UpdateStatRow(statsPanel, "CRITRow", "CRT", $"{(stats.CritRate * 100f):0.#}%");
+        UpdateStatRow(statsPanel, "CRITDAMAGERow", "CRTD", $"{(stats.CritDamage * 100f):0.#}%");
+        UpdateStatRow(statsPanel, "DMGBonusRow", "%DMG", $"{(stats.DamageBonus * 100f):0.#}%");
     }
 }
