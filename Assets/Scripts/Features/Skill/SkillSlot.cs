@@ -1,10 +1,15 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using MysticJourney.API.Endpoints; // Khai báo thư viện API của bạn
+using MysticJourney.API.Endpoints;
+using MysticJourney.Core.Services;
+using MysticJourney.API.Models.Response; // Thêm dòng này
 
 public class SkillSlot : MonoBehaviour, IDropHandler
 {
+    // 👇 THÊM DÒNG NÀY: Khai báo Đài phát thanh (Sự kiện toàn cục)
+    public static event System.Action<int, SkillData, PlayerSkillResponse> OnSkillEquipped;
+
     public int requiredLevel;
     public int playerLevel = 1;
     public int slotIndex;
@@ -13,59 +18,55 @@ public class SkillSlot : MonoBehaviour, IDropHandler
 
     void Start()
     {
-        if (playerLevel < requiredLevel)
-            lockImage.SetActive(true);
-        else
-            lockImage.SetActive(false);
+        if (playerLevel < requiredLevel) lockImage.SetActive(true);
+        else lockImage.SetActive(false);
     }
 
     public void OnDrop(PointerEventData eventData)
     {
-        // 1. KIỂM TRA AN TOÀN KÉO THẢ: 
-        // Nếu chuột thả ra nhưng không có vật thể nào đang được kéo -> Bỏ qua ngay
         if (eventData == null || eventData.pointerDrag == null) return;
+        if (playerLevel < requiredLevel) return;
 
-        // 2. Kiểm tra cấp độ người chơi
-        if (playerLevel < requiredLevel)
-        {
-            Debug.Log("Slot locked: player level too low.");
-            return;
-        }
-
-        // 3. Lấy thông tin kỹ năng đang được kéo
         SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
-
-        // 4. KIỂM TRA AN TOÀN DỮ LIỆU: 
-        // Đảm bảo kéo đúng ô SkillItem và Skill đó đã được người chơi sở hữu
         if (droppedSkill != null && droppedSkill.serverData != null)
         {
+            var playerClass = GameStateService.Instance?.PlayerClass ?? "";
+            var requiredClass = droppedSkill.visualData != null ? droppedSkill.visualData.classRequirement : "";
+
+            bool isAllClass = string.IsNullOrWhiteSpace(requiredClass) || requiredClass.Equals("All", System.StringComparison.OrdinalIgnoreCase);
+            bool isMyClass = !string.IsNullOrWhiteSpace(playerClass) && requiredClass.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
+            if (!isAllClass && !isMyClass)
+            {
+                Debug.LogWarning($"Cannot equip: skill requires class {requiredClass}.");
+                return;
+            }
+
             int targetPlayerSkillId = droppedSkill.serverData.PlayerSkillId;
 
-            // Gọi API lên Server để xin phép trang bị
             SkillApi.Instance.EquipPlayerSkill(
-                targetPlayerSkillId,
-                true, // true = muốn trang bị
-                slotIndex,
-                onSuccess: (response) =>
-                {
-                    // Cập nhật giao diện an toàn
-                    if (equippedIcon != null && droppedSkill.visualData != null)
-                    {
-                        equippedIcon.sprite = droppedSkill.visualData.skillIcon;
-                        equippedIcon.color = Color.white;
-                    }
-                    Debug.Log($"Equipped successfully: {response.SkillName} to slot {slotIndex}!");
-                },
-                onError: (error) =>
-                {
-                    Debug.LogError("Server rejected equip: " + error.Message);
-                }
-            );
-        }
-        else
+    targetPlayerSkillId,
+    true,
+    slotIndex,
+    (response) => // Tham số 4: Thành công
+    {
+        if (equippedIcon != null && droppedSkill.visualData != null)
         {
-            // Bỏ qua im lặng hoặc log cảnh báo nếu người chơi cố tình kéo kỹ năng bị khóa
-            Debug.LogWarning("Kỹ năng này bị khóa hoặc không hợp lệ, không thể trang bị!");
+            equippedIcon.sprite = droppedSkill.visualData.skillIcon;
+            equippedIcon.color = Color.white;
         }
+        SkillSlot.BroadcastSkillEquipped(slotIndex, droppedSkill.visualData, response);
+        Debug.Log($"Equipped successfully!");
+    },
+    (error) => // Tham số 5: Thất bại
+    {
+        Debug.LogError("Server rejected equip: " + error.Message);
+    }
+        );
+        }
+    }
+    // Hàm này cho phép các file bên ngoài nhờ SkillSlot phát loa sự kiện
+    public static void BroadcastSkillEquipped(int slotIndex, SkillData visualData, PlayerSkillResponse serverData)
+    {
+        OnSkillEquipped?.Invoke(slotIndex, visualData, serverData);
     }
 }

@@ -110,5 +110,25 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        public void DismantlePlayerSkill(int playerSkillId, int? targetPlayerSkillId, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
+        {
+            SafeDebugLog($"DismantlePlayerSkill → playerSkillId={playerSkillId}, targetPlayerSkillId={targetPlayerSkillId}");
+            var body = new DismantlePlayerSkillRequest { PlayerSkillId = playerSkillId, TargetPlayerSkillId = targetPlayerSkillId };
+            ApiClient.Instance.Post<DismantlePlayerSkillRequest, PlayerSkillResponse>(
+                ApiConfig.PlayerSkillDismantle,
+                body,
+                response =>
+                {
+                    SafeDebugLog($"DismantlePlayerSkill OK | playerSkillId={playerSkillId}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"DismantlePlayerSkill FAIL | {error.StatusCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }
