@@ -46,6 +46,17 @@ public class SkillPanelManager : MonoBehaviour
 
     private void PopulateUI(List<PlayerSkillResponse> playerSkills)
     {
+        // Defensive checks to avoid uncaught exceptions during API callbacks
+        if (skillItemPrefab == null)
+        {
+            Debug.LogError("[UI] The variable skillItemPrefab of SkillPanelManager has not been assigned. Please assign it in the inspector.");
+            return;
+        }
+        if (contentArea == null)
+        {
+            Debug.LogError("[UI] The variable contentArea of SkillPanelManager has not been assigned. Please assign it in the inspector.");
+            return;
+        }
         // 1. Tạo một danh sách ảo để ghép nối dữ liệu tĩnh (Visual) và dữ liệu thật (Server)
         var sortedSkillList = new List<(SkillData visual, PlayerSkillResponse server)>();
 

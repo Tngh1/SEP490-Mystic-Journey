@@ -1,7 +1,8 @@
+using MysticJourney.API.Models.Response; // Thêm namespace của bạn
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using MysticJourney.API.Models.Response; // Thêm namespace của bạn
 
 public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -11,8 +12,8 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
 
     [Header("UI Components")]
     public Image myIcon;
-    public Text levelText; // (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
-
+    public TextMeshProUGUI levelText;// (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
+    public GameObject lockOverlay;
     private SkillPopup popupManager;
     private Transform originalParent;
     private CanvasGroup canvasGroup;
@@ -31,7 +32,19 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         serverData = sData;
 
         myIcon.sprite = visualData.skillIcon;
-        if (levelText != null) levelText.text = "Lv." + serverData.Level;
+
+        // KIỂM TRA: Nếu chưa sở hữu (bị khóa)
+        if (serverData == null)
+        {
+            if (levelText != null) levelText.text = "";
+            if (lockOverlay != null) lockOverlay.SetActive(true);
+        }
+        // KIỂM TRA: Nếu đã sở hữu
+        else
+        {
+            if (levelText != null) levelText.text = "Lv." + serverData.Level;
+            if (lockOverlay != null) lockOverlay.SetActive(false);
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)
