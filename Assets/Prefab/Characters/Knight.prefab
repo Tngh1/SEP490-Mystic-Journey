@@ -286,6 +286,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   animator: {fileID: 3595454145502944361}
   attackCooldown: 0.5
+  meleeRange: 1.2
+  meleeDamage: 25
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8
   firePoint: {fileID: 0}
   skill1Prefab: {fileID: 0}
   skill2Prefab: {fileID: 0}

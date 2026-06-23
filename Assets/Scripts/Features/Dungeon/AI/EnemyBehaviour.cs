@@ -11,7 +11,8 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float roamingTimeMax = 2f;
     [SerializeField] private bool isChasingEnemy = false;
     [SerializeField] private bool isAttackingEnemy = false;
-
+    // Thêm biến này lên đầu class
+    [SerializeField] private int attackDamage = 10;
     private NavMeshAgent navMeshAgent;
     private State currentState;
     private Vector3 roamPosition;
@@ -187,7 +188,15 @@ public class EnemyBehaviour : MonoBehaviour
     {
         if (Time.time > nextAttackTime)
         {
+            // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
+
+            // Gây sát thương thẳng lên PlayerEntity
+            if (PlayerEntity.Instance != null)
+            {
+                PlayerEntity.Instance.TakeDamage(attackDamage);
+            }
+
             nextAttackTime = Time.time + attackRate;
         }
     }

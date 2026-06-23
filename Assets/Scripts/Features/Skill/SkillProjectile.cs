@@ -21,10 +21,17 @@ public class SkillProjectile : MonoBehaviour
     // Khi chạm quái, bạn gọi hàm gây sát thương ở đây
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("Enemy"))
+        if (collision.CompareTag("Monster"))
         {
-            // collision.GetComponent<EnemyHealth>().TakeDamage(_damage);
-            Destroy(gameObject); // Chạm quái thì nổ hoặc biến mất
+            // Lấy component EnemyEntity của quái vật bị va chạm
+            EnemyEntity enemy = collision.GetComponent<EnemyEntity>();
+            if (enemy != null)
+            {
+                // Ép kiểu (int) vì _damage đang là float, còn TakeDamage nhận int
+                enemy.TakeDamage((int)_damage);
+            }
+
+            Destroy(gameObject); // Chạm quái thì kỹ năng nổ/biến mất
         }
     }
 }
