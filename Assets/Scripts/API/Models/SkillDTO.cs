@@ -17,6 +17,13 @@ namespace MysticJourney.API.Models.Request
         public bool IsEquipped { get; set; }
         public int? SlotIndex { get; set; }
     }
+
+    [Serializable]
+    public class DismantlePlayerSkillRequest
+    {
+        public int PlayerSkillId { get; set; }
+        public int? TargetPlayerSkillId { get; set; }
+    }
 }
 
 namespace MysticJourney.API.Models.Response
