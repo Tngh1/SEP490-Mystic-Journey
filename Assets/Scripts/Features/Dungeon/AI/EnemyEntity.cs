@@ -22,10 +22,10 @@ public class EnemyEntity : MonoBehaviour
         enemyBehaviour = GetComponent<EnemyBehaviour>();
         currentHealth = maxHealth * 2;
     }
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        Debug.Log("Attack");
-    }
+    //private void OnTriggerEnter2D(Collider2D collision)
+    //{
+    //    Debug.Log("Attack");
+    //}
 
     public void TakeDamage(int damage)
     {
