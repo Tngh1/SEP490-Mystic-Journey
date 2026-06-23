@@ -139,6 +139,13 @@ public class SkillSlot : MonoBehaviour, IDropHandler
                         equippedIcon.color = Color.white;
                     }
                     SkillSlot.BroadcastSkillEquipped(slotIndex, droppedSkill.visualData, response);
+
+                    // Auto-complete EquipSkill quest
+                    var qm = FindObjectOfType<QuestManager>();
+                    if (qm != null)
+                    {
+                        qm.AutoCompleteEquipSkillQuest();
+                    }
                 },
                 (error) => { Debug.LogError("Server rejected equip: " + error.Message); }
             );

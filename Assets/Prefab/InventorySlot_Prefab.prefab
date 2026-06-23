@@ -140,7 +140,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -6211543391720018479, guid: 52213c5523b6c0f4c836baeb1dae4663, type: 3}
+  m_Sprite: {fileID: -3321425618214142412, guid: 52213c5523b6c0f4c836baeb1dae4663, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -222,7 +222,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -289,6 +289,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIInventorySlot
   iconImage: {fileID: 9142255893472601091}
+  itemNameText: {fileID: 0}
+  quantityText: {fileID: 0}
+  rarityBorder: {fileID: 0}
+  selectHighlight: {fileID: 0}
   equippedIndicator: {fileID: 0}
 --- !u!1 &4799354046948720519
 GameObject:
@@ -355,7 +359,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 8241487561582969347, guid: 8a4ce00fbb7c12846825a81cac2829a0, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1

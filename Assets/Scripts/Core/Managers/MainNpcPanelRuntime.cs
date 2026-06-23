@@ -234,10 +234,10 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void ConfigureDefaultActions()
     {
-        SetActionButton(0, "Hello.", true, OnStoryDialogueAction);
-        SetActionButton(1, "Do you have any question?", false, OnQuestionAction);
-        SetActionButton(2, "Do you have anything for me?", firstQuestId > 0, OnGiftHintAction);
-        SetActionButton(3, "Goodbye.", true, ClosePanel);
+        SetActionButton(0, "Greetings.", true, OnStoryDialogueAction);
+        SetActionButton(1, "I need some guidance.", false, OnQuestionAction);
+        SetActionButton(2, "Do you have any advice for me?", firstQuestId > 0, OnGiftHintAction);
+        SetActionButton(3, "Farewell.", true, ClosePanel);
     }
 
     private void ConfigureNpcActions()
@@ -246,9 +246,9 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var hasGiftOrHint = currentLinkedQuests.Count > 0 || HasDialogueType("Gift") || HasDialogueType("Hint");
 
         SetActionButton(0, BuildStoryActionLabel(currentStoryDialogue, FindLinkedQuest(currentStoryDialogue?.LinkedQuestId)), true, OnStoryDialogueAction);
-        SetActionButton(1, "Do you have any question?", hasQuestion, OnQuestionAction);
+        SetActionButton(1, "I need some guidance.", hasQuestion, OnQuestionAction);
         SetActionButton(2, BuildGiftHintActionLabel(), hasGiftOrHint, OnGiftHintAction);
-        SetActionButton(3, "Goodbye.", true, ClosePanel);
+        SetActionButton(3, "Farewell.", true, ClosePanel);
     }
 
     private void SetActionButton(int index, string label, bool visible, UnityEngine.Events.UnityAction action)
@@ -348,6 +348,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
             }
 
             SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { quest }));
+            OpenFirstQuest();
             return;
         }
 
@@ -402,7 +403,6 @@ public class MainNpcPanelRuntime : MonoBehaviour
             questId,
             () =>
             {
-                processingQuestIds.Remove(questId);
                 var completedQuest = ResolveQuest(questId, quest, manager);
                 if (completedQuest != null)
                 {
@@ -410,7 +410,25 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     completedQuest.Progress = Mathf.Max(1, completedQuest.TargetAmount);
                 }
 
-                RouteToQuestReward(questId, "Quest completed. Claim your reward.");
+                var qp = MainQuestPanelRuntime.Instance;
+                if (qp != null) qp.ShowQuestPopup("Quest completed!");
+
+                // Auto-claim after completing talk quest
+                manager.ClaimReward(
+                    questId,
+                    onSuccess: () =>
+                    {
+                        processingQuestIds.Remove(questId);
+                        if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                        WorldRuntimeEvents.RaiseQuestsChanged();
+                        ClosePanel();
+                    },
+                    onError: err =>
+                    {
+                        processingQuestIds.Remove(questId);
+                        Debug.LogWarning($"[MainNpcPanelRuntime] Auto claim failed: {err}");
+                        RouteToQuestReward(questId, "Quest completed. Claim your reward.");
+                    });
             },
             error =>
             {
@@ -500,8 +518,30 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 SetText(dialogueText, Safe(response.Message, "Quest item handed over."));
                 WorldRuntimeEvents.RaiseQuestsChanged();
 
+                // Khi quest Collect hoàn thành → tự động Claim luôn, không cần player bấm tay.
+                // Quest tiếp theo sẽ unlock ngay lập tức.
                 if (response.Success && QuestManager.IsStatus(response.Quest, "Completed"))
-                    RouteToQuestReward(quest.QuestId, "Quest completed. Claim your reward.");
+                {
+                    var completedQuestId = quest.QuestId;
+                    var qp = MainQuestPanelRuntime.Instance;
+                    if (qp != null) qp.ShowQuestPopup("Quest completed! Claiming your reward...");
+                    manager.ClaimReward(
+                        completedQuestId,
+                        onSuccess: () =>
+                        {
+                            Debug.Log($"[MainNpcPanelRuntime] Auto-claimed questId={completedQuestId}");
+                            if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                            WorldRuntimeEvents.RaiseQuestsChanged();
+                            ClosePanel();
+                        },
+                        onError: err =>
+                        {
+                            // Fallback: route sang Reward panel để player claim tay nếu auto-claim thất bại
+                            Debug.LogWarning($"[MainNpcPanelRuntime] Auto-claim failed ({err}), routing to panel.");
+                            RouteToQuestReward(completedQuestId, "Quest completed. Claim your reward.");
+                        });
+                }
+
             },
             error =>
             {
@@ -532,15 +572,23 @@ public class MainNpcPanelRuntime : MonoBehaviour
     {
         var quest = QuestManager.PickPreferredQuest(currentLinkedQuests);
         if (quest == null)
-            return "Do you have anything for me?";
+            return "Do you have any advice for me?";
 
         if (QuestManager.IsStatus(quest, "Completed"))
-            return "I finished this quest.";
+            return "I have finished this quest.";
 
-        if (QuestManager.IsStatus(quest, "InProgress") && IsCollectQuest(quest))
-            return HasEnoughQuestProgress(quest) ? "I have the items." : "Any hint for this task?";
+        if (QuestManager.IsStatus(quest, "InProgress"))
+        {
+            if (IsCollectQuest(quest))
+                return HasEnoughQuestProgress(quest) ? "I have the items you need." : "Any hints for this task?";
 
-        return "Do you have anything for me?";
+            if (ShouldAutoCompleteNpcTalkQuest(quest))
+                return "Could we discuss my journey?";
+
+            return "Any hints for this task?";
+        }
+
+        return "Do you have any advice for me?";
     }
 
     private static bool IsCollectQuest(PlayerQuestResponse quest)
@@ -563,14 +611,14 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var progress = Mathf.Clamp(quest?.Progress ?? 0, 0, target);
         var missing = Mathf.Max(0, target - progress);
         if (missing <= 0)
-            return "Bring those items to me and I will finish the quest for you.";
+            return "You have gathered everything! Hand them over, and I will reward you.";
 
         var targetName = Safe(quest?.ObjectiveTarget, "quest item");
         var location = Safe(quest?.ObjectiveLocation, Safe(quest?.RegionName, quest?.MapName));
         var baseHint = !string.IsNullOrWhiteSpace(dialogue?.Content)
             ? dialogue.Content
-            : $"Collect {targetName} at {location}.";
-        return $"{baseHint}\nStill need {missing} more {targetName}.";
+            : $"You need to collect {targetName} at {location}.";
+        return $"{baseHint}\nI still need {missing} more {targetName} from you.";
     }
     private void NotifyQuestAccepted(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
@@ -584,7 +632,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private void OnQuestionAction()
     {
         var dialogue = FindDialogueByType("Question", "Help");
-        SetText(dialogueText, Safe(dialogue?.Content, "Ask freely. Use E to talk to NPCs, P to collect or interact with objects, and the Quest Tracker to follow your current main quest."));
+        SetText(dialogueText, Safe(dialogue?.Content, "Feel free to ask. Press E to talk to others, P to gather items, and always keep an eye on your Quest Tracker to know what to do next."));
     }
 
     private void OnGiftHintAction()
@@ -625,11 +673,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 }
 
                 SetText(dialogueText, BuildMissingQuestItemHint(quest, dialogue));
+                OpenFirstQuest();
                 return;
             }
 
             var hint = !string.IsNullOrWhiteSpace(dialogue?.Content) ? dialogue.Content : $"Hint: {BuildObjectiveHint(quest)}";
             SetText(dialogueText, hint);
+            OpenFirstQuest();
             return;
         }
 
@@ -712,39 +762,39 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private static string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
     {
         if (QuestManager.IsStatus(quest, "Claimed"))
-            return "Thank you for your help.";
+            return "Thank you for your guidance.";
 
         if (QuestManager.IsStatus(quest, "Completed"))
-            return "I completed the quest.";
+            return "I completed the task.";
 
         if (QuestManager.IsStatus(quest, "InProgress"))
         {
             if (ShouldAutoCompleteNpcTalkQuest(quest))
-                return "I am here to report.";
+                return "Let's talk about my task.";
 
             if (IsCollectQuest(quest))
-                return HasEnoughQuestProgress(quest) ? "I brought the items." : "I am still working on it.";
+                return HasEnoughQuestProgress(quest) ? "I brought the items." : "I am still gathering them.";
 
             if (IsObjectiveType(quest, "EquipSkill"))
-                return "I will equip my first skill.";
+                return "I am ready to learn a skill.";
 
             if (IsObjectiveType(quest, "Defeat"))
-                return "I will defeat them.";
+                return "I will defeat the monsters.";
 
             return "I am working on it.";
         }
 
         if (IsCollectQuest(quest))
-            return "I will gather them.";
+            return "I will gather the items.";
 
         if (ShouldAutoCompleteNpcTalkQuest(quest))
             return "I am ready to listen.";
 
         if (IsObjectiveType(quest, "EquipSkill"))
-            return "I will prepare my skill.";
+            return "Teach me a new skill.";
 
         if (IsObjectiveType(quest, "Defeat"))
-            return "I will handle the monsters.";
+            return "I will handle the threat.";
 
         return "I will help.";
     }

@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -33,6 +33,7 @@ public class UIDailyLogin : MonoBehaviour
             return;
         }
 
+        // Tự động Instantiate nếu thiếu slot
         for (int i = 0; i < dailyItems.Count; i++)
         {
             if (i >= slots.Count)
@@ -47,10 +48,11 @@ public class UIDailyLogin : MonoBehaviour
             slots[i].SetupDaily(dailyItems[i]);
         }
 
-        for (var i = dailyItems.Count; i < slots.Count; i++)
+        // Ẩn các slot thừa
+        for (int i = dailyItems.Count; i < slots.Count; i++)
         {
             slots[i].ClearSlot();
-            slots[i].gameObject.SetActive(false);
+            slots[i].gameObject.SetActive(false); 
         }
 
         var rect = contentParent.GetComponent<RectTransform>();
@@ -65,14 +67,20 @@ public class UIDailyLogin : MonoBehaviour
 
     private void BindReferences()
     {
-        if (contentParent == null)
-            contentParent = FindChild("Content") ?? transform;
-
-        if (dailySlotPrefab == null)
+        // Nếu danh sách slots chưa có gì, tiến hành tìm kiếm toàn bộ con có chứa UIDailySlot
+        if (slots.Count == 0)
         {
-            dailySlotPrefab = GetComponentInChildren<UIDailySlot>(true);
-            if (dailySlotPrefab != null && contentParent == transform && dailySlotPrefab.transform.parent != null)
-                contentParent = dailySlotPrefab.transform.parent;
+            var foundSlots = GetComponentsInChildren<UIDailySlot>(true);
+            foreach (var slot in foundSlots)
+            {
+                // Tránh add trùng lặp và gắn sự kiện click
+                if (!slots.Contains(slot))
+                {
+                    slot.OnSlotClicked -= HandleSlotClicked;
+                    slot.OnSlotClicked += HandleSlotClicked;
+                    slots.Add(slot);
+                }
+            }
         }
     }
 

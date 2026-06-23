@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -56,6 +56,9 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             itemNameText.text = string.Empty;
         if (quantityText != null)
             quantityText.text = string.Empty;
+        if (rarityBorder != null)
+            rarityBorder.enabled = false;
+            
         SetHighlight(false);
     }
 
@@ -70,6 +73,21 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         if (rarityBorder == null)
             return;
 
+        // If the rarity border doesn't have a sprite, it will render as a solid block and hide the icon.
+        // Disable it unless a frame sprite is assigned.
+        if (rarityBorder.sprite == null)
+        {
+            rarityBorder.enabled = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(rarity) || rarity.Trim().ToLowerInvariant() == "common")
+        {
+            rarityBorder.enabled = false;
+            return;
+        }
+
+        rarityBorder.enabled = true;
         rarityBorder.color = RarityToColor(rarity);
     }
 

@@ -949,10 +949,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (quest == null)
             return false;
 
-        if (string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return quest.Progress >= Mathf.Max(1, quest.TargetAmount);
+        var targetAmount = Mathf.Max(1, quest.TargetAmount);
+        return quest.Progress >= targetAmount;
     }
 
     private static string StatusLabel(PlayerQuestResponse quest)

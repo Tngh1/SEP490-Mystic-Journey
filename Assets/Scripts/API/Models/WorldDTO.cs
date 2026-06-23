@@ -101,6 +101,10 @@ namespace MysticJourney.API.Models.Response
         public int TotalDaysClaimed { get; set; }
         public string LastClaimedAt { get; set; }
         public bool IsClaimedToday { get; set; }
+        public int CurrentYear { get; set; }
+        public int CurrentMonth { get; set; }
+        public int RetroClaimCount { get; set; }
+        public List<int> ClaimedDays { get; set; }
     }
 
     [Serializable]
