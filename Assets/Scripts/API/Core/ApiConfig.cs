@@ -78,6 +78,7 @@ namespace MysticJourney.API.Core
 
         // Daily Login
         public const string DailyLoginRewards = "/api/dailyloginrewards";
+        public const string DailyLoginRewardsCurrentMonth = "/api/dailyloginrewards/current-month";
         // BE does not expose /status; client uses /api/world/daily-login/claim to claim
         public const string DailyLoginStatus = "/api/world/daily-login/claim";
         public const string DailyLoginClaim = "/api/world/daily-login/claim";
@@ -92,6 +93,7 @@ namespace MysticJourney.API.Core
         // BE does NOT expose /api/player-skills/* — upgrade/equip disabled until SkillsController is added
         public const string PlayerSkillUpgrade = "/api/player-skills/upgrade";
         public const string PlayerSkillEquip = "/api/player-skills/equip";
+        public const string PlayerSkillDismantle = "/api/player-skills/dismantle";
 
         // Skins
         public const string SkinEquip = "/api/skins/equip";

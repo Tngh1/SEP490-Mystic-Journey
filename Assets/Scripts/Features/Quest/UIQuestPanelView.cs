@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +26,15 @@ public class UIQuestPanelView : MonoBehaviour
     [SerializeField] private TMP_Text rewardsTMP;
     [SerializeField] private Text rewardsText;
 
+    [Header("Action Buttons")]
+    [SerializeField] private Button acceptQuestButton;
+    [SerializeField] private Button completeQuestButton;
+    [SerializeField] private Button declineQuestButton;
+    [SerializeField] private Button claimQuestButton;
+    [SerializeField] private Button claimedButton;
+    [SerializeField] private Button primaryActionButton;
+    [SerializeField] private Button closeButton;
+
     public Transform QuestListContent => questListContent;
     public UIQuestListItem QuestSlotTemplate => questSlotTemplate;
     public Transform RewardListContent => rewardListContent;
@@ -45,6 +54,14 @@ public class UIQuestPanelView : MonoBehaviour
     public Text QuestGiverText => questGiverText;
     public TMP_Text RewardsTMP => rewardsTMP;
     public Text RewardsText => rewardsText;
+
+    public Button AcceptQuestButton => acceptQuestButton;
+    public Button CompleteQuestButton => completeQuestButton;
+    public Button DeclineQuestButton => declineQuestButton;
+    public Button ClaimQuestButton => claimQuestButton;
+    public Button ClaimedButton => claimedButton;
+    public Button PrimaryActionButton => primaryActionButton;
+    public Button CloseButton => closeButton;
 
     private void Awake()
     {

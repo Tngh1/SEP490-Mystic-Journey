@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,6 +51,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private TextSlot primaryActionButtonText;
     private bool usePrimaryActionButton;
 
+    private TextSlot acceptQuestButtonText;
+    private TextSlot completeQuestButtonText;
+    private TextSlot declineQuestButtonText;
+    private TextSlot claimQuestButtonText;
+    private TextSlot claimedButtonText;
+
+    private TextSlot trackerNumber;
     private TextSlot trackerTitle;
     private TextSlot trackerStatus;
     private TextSlot detailTitle;
@@ -152,6 +159,18 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return;
         }
 
+        // Render immediately from QuestManager local cache (no API call) so UI is always in sync
+        // with the latest known server state (e.g. after TurnInQuestItem / AcceptQuest etc.)
+        var cached = manager.GetMainQuests();
+        if (cached.Count > 0)
+        {
+            quests.Clear();
+            quests.AddRange(cached);
+            selectedQuest = PickSelectedQuest(null);
+            RenderAll();
+        }
+
+        // Then also hit the API to get any newer state
         manager.LoadMainQuests(
             (loadedQuests, activeQuest) =>
             {
@@ -163,8 +182,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             error =>
             {
                 Debug.LogWarning($"[MainQuestPanelRuntime] Load quests failed: {error}");
-                quests.Clear();
-                selectedQuest = null;
+                // Don't clear – keep whatever was shown from cache
                 RenderAll();
             }
         );
@@ -181,8 +199,10 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             questTracker.SetActive(true);
             BindButton(questTracker, OpenQuestPanel);
-            trackerTitle = trackerTitle.IsValid ? trackerTitle : FindTextSlot(questTracker.transform, "TrackerTitle", "QuestTitle", "TitleQuest", "TitleText");
-            trackerStatus = trackerStatus.IsValid ? trackerStatus : FindTextSlot(questTracker.transform, "TrackerStatus", "ObjectiveText", "ProgressText", "Text (TMP)", skip: trackerTitle);
+            // Bind each named child Text separately — tên chính xác theo Hierarchy
+            trackerNumber = trackerNumber.IsValid ? trackerNumber : FindTextSlot(questTracker.transform, "QuestNumber", "TrackerNumber");
+            trackerTitle  = trackerTitle.IsValid  ? trackerTitle  : FindTextSlot(questTracker.transform, "QuestName",   "TrackerTitle", "QuestTitle", "TitleText");
+            trackerStatus = trackerStatus.IsValid ? trackerStatus : FindTextSlot(questTracker.transform, "QuestStatus",  "TrackerStatus", "ObjectiveText", "ProgressText");
         }
 
         if (questPanel == null)
@@ -210,7 +230,23 @@ public class MainQuestPanelRuntime : MonoBehaviour
             rewardsText = rewardsText.IsValid ? rewardsText : new TextSlot(questPanelView.RewardsTMP, questPanelView.RewardsText);
         }
 
+        // Only use aggressive fallbacks if UIQuestPanelView is completely missing
+        if (questPanelView == null)
+        {
+            questListContent = questListContent != null ? questListContent : FindDescendant(questPanel.transform, "QuestListContent")?.transform;
+            rewardListContent = rewardListContent != null ? rewardListContent : FindDescendant(questPanel.transform, "RewardListContent")?.transform;
+
+            detailTitle = detailTitle.IsValid ? detailTitle : FindTextSlot(questPanel.transform, "QuestTitle", "DetailTitle", "TitleText");
+            detailType = detailType.IsValid ? detailType : FindTextSlot(questPanel.transform, "QuestType", "Type", "TypeText");
+            objectiveText = objectiveText.IsValid ? objectiveText : FindTextSlot(questPanel.transform, "Objective", "QuestObjective", "ObjectiveText");
+            detailProgress = detailProgress.IsValid ? detailProgress : FindTextSlot(questPanel.transform, "Progress", "QuestProgress", "ProgressText");
+            descriptionText = descriptionText.IsValid ? descriptionText : FindTextSlot(questPanel.transform, "Description", "QuestDescription", "DescriptionText");
+            questGiverText = questGiverText.IsValid ? questGiverText : FindTextSlot(questPanel.transform, "QuestGiver", "Giver", "GiverText");
+            rewardsText = rewardsText.IsValid ? rewardsText : FindTextSlot(questPanel.transform, "Rewards", "RewardsTitle", "RewardsText");
+        }
+
         EnsureRewardContentLayout();
+        EnsureQuestListContentLayout();
         if (questPopup != null)
         {
             questPopupView = questPopupView != null ? questPopupView : questPopup.GetComponent<UIQuestPopupView>();
@@ -219,12 +255,16 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 questPopup.SetActive(false);
         }
 
-        BindPanelButton("AllButton", () => SetFilter("All"));
-        BindPanelButton("InProgressButton", () => SetFilter("InProgress"));
-        BindPanelButton("CompletedButton", () => SetFilter("Completed"));
-        BindPanelButton("AllRegionsButton", () => SetFilter("All"));
-        BindPanelButton("RefreshButton", RefreshWorldAndQuests);
-        BindPanelButton("CloseButton", CloseQuestPanel);
+        BindPanelButton("AllButton", () => SetFilter("All"), "All");
+        BindPanelButton("InProgressButton", () => SetFilter("InProgress"), "In Progress");
+        BindPanelButton("CompletedButton", () => SetFilter("Completed"), "Completed");
+        BindPanelButton("AllRegionsButton", () => SetFilter("All"), "All Regions");
+        BindPanelButton("RefreshButton", RefreshWorldAndQuests, "Refresh");
+        
+        if (questPanelView != null && questPanelView.CloseButton != null)
+            BindButton(questPanelView.CloseButton.gameObject, CloseQuestPanel);
+        else
+            BindPanelButton("CloseButton", CloseQuestPanel);
 
         BindQuestActionButtons();
 
@@ -234,20 +274,38 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private void BindQuestActionButtons()
     {
         // Yuuko update: Đã bổ sung DeclineQuestButton cho khớp với ActionButtons của bạn
-        acceptQuestButtonObject = FindDescendant(questPanel.transform, "AcceptQuestButton");
-        completeQuestButtonObject = FindDescendant(questPanel.transform, "CompleteQuestButton");
-        declineQuestButtonObject = FindDescendant(questPanel.transform, "DeclineQuestButton");
-        claimQuestButtonObject = FindDescendant(questPanel.transform, "ClaimQuestButton");
-        claimedButtonObject = FindDescendant(questPanel.transform, "ClaimedButton");
+        if (questPanelView != null)
+        {
+            acceptQuestButtonObject = questPanelView.AcceptQuestButton != null ? questPanelView.AcceptQuestButton.gameObject : FindDescendant(questPanel.transform, "AcceptQuestButton");
+            completeQuestButtonObject = questPanelView.CompleteQuestButton != null ? questPanelView.CompleteQuestButton.gameObject : FindDescendant(questPanel.transform, "CompleteQuestButton");
+            declineQuestButtonObject = questPanelView.DeclineQuestButton != null ? questPanelView.DeclineQuestButton.gameObject : FindDescendant(questPanel.transform, "DeclineQuestButton");
+            claimQuestButtonObject = questPanelView.ClaimQuestButton != null ? questPanelView.ClaimQuestButton.gameObject : FindDescendant(questPanel.transform, "ClaimQuestButton");
+            claimedButtonObject = questPanelView.ClaimedButton != null ? questPanelView.ClaimedButton.gameObject : FindDescendant(questPanel.transform, "ClaimedButton");
+        }
+        else
+        {
+            acceptQuestButtonObject = FindDescendant(questPanel.transform, "AcceptQuestButton");
+            completeQuestButtonObject = FindDescendant(questPanel.transform, "CompleteQuestButton");
+            declineQuestButtonObject = FindDescendant(questPanel.transform, "DeclineQuestButton");
+            claimQuestButtonObject = FindDescendant(questPanel.transform, "ClaimQuestButton");
+            claimedButtonObject = FindDescendant(questPanel.transform, "ClaimedButton");
+        }
 
         var foundActionObjects = new List<GameObject> { acceptQuestButtonObject, completeQuestButtonObject, claimQuestButtonObject }
             .Where(obj => obj != null)
             .Distinct()
             .ToList();
 
+        acceptQuestButtonText = acceptQuestButtonText.IsValid ? acceptQuestButtonText : FindButtonLabel(acceptQuestButtonObject);
+        completeQuestButtonText = completeQuestButtonText.IsValid ? completeQuestButtonText : FindButtonLabel(completeQuestButtonObject);
+        declineQuestButtonText = declineQuestButtonText.IsValid ? declineQuestButtonText : FindButtonLabel(declineQuestButtonObject);
+        claimQuestButtonText = claimQuestButtonText.IsValid ? claimQuestButtonText : FindButtonLabel(claimQuestButtonObject);
+        claimedButtonText = claimedButtonText.IsValid ? claimedButtonText : FindButtonLabel(claimedButtonObject);
+
         usePrimaryActionButton = foundActionObjects.Count <= 1 && declineQuestButtonObject == null;
         primaryActionButtonObject = usePrimaryActionButton
-            ? foundActionObjects.FirstOrDefault()
+            ? (questPanelView != null && questPanelView.PrimaryActionButton != null ? questPanelView.PrimaryActionButton.gameObject : null)
+              ?? foundActionObjects.FirstOrDefault()
               ?? FindDescendant(questPanel.transform, "QuestActionButton")
               ?? FindDescendant(questPanel.transform, "PrimaryActionButton")
               ?? FindDescendant(questPanel.transform, "AcceptButton")
@@ -318,13 +376,26 @@ public class MainQuestPanelRuntime : MonoBehaviour
         var active = QuestUtils.PickPreferredQuest(quests);
         if (active == null)
         {
+            SetText(trackerNumber, string.Empty);
             SetText(trackerTitle, "Quest Tracker");
-            SetText(trackerStatus, ApiClient.Instance.HasToken() ? "No main quest available." : "Login to load quests.");
+            SetText(trackerStatus, ApiClient.Instance.HasToken() ? "No quest available." : "Login to load quests.");
             return;
         }
 
-        SetText(trackerTitle, active.QuestTitle);
-        SetText(trackerStatus, $"{StatusLabel(active)}\n{ObjectiveLine(active)}");
+        // QuestNumber: "Quest {id}:" hoặc chỉ số thứ tự trong danh sách
+        var questIndex = quests.IndexOf(active);
+        var numberLabel = questIndex >= 0 ? $"Quest {questIndex + 1}:" : $"Quest {active.QuestId}:";
+        SetText(trackerNumber, numberLabel);
+
+        // QuestName: chỉ tên quest, không kèm status hay số đếm
+        SetText(trackerTitle, active.QuestTitle ?? string.Empty);
+
+        // QuestStatus: trạng thái + tóm tắt objective (không có số đếm để tránh lộn với text khác)
+        var statusLabel = QuestUtils.StatusLabel(active);
+        var objectiveLine = ObjectiveTextLine(active);
+        SetText(trackerStatus, string.IsNullOrWhiteSpace(objectiveLine)
+            ? statusLabel
+            : $"{statusLabel}\n{objectiveLine}");
     }
 
     private void RenderQuestList()
@@ -380,7 +451,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         SetText(detailTitle, selectedQuest.QuestTitle);
         SetText(detailType, $"{Safe(selectedQuest.QuestType, "Main Quest")} - Lv.{selectedQuest.RequiredLevel}");
-        SetText(objectiveText, ObjectiveLine(selectedQuest));
+        SetText(objectiveText, ObjectiveTextLine(selectedQuest));
+        SetText(detailProgress, ProgressOnlyLine(selectedQuest));
         SetText(descriptionText, Safe(selectedQuest.QuestDescription, "No description."));
         SetText(questGiverText, $"Quest Giver\n{Safe(selectedQuest.QuestGiverName, "Elder Rowan")}");
         SetText(rewardsText, RewardLine(selectedQuest));
@@ -451,6 +523,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         SetActive(completeQuestButtonObject, QuestUtils.IsStatus(quest, "InProgress"));
         SetActive(claimQuestButtonObject, QuestUtils.IsStatus(quest, "Completed"));
         SetActive(claimedButtonObject, QuestUtils.IsStatus(quest, "Claimed"));
+
+        SetText(acceptQuestButtonText, "Accept Quest");
+        SetText(completeQuestButtonText, "Complete Quest");
+        SetText(declineQuestButtonText, "Decline Quest");
+        SetText(claimQuestButtonText, "Claim Reward");
+        SetText(claimedButtonText, "Claimed");
 
         // Cập nhật trạng thái Decline
         SetActive(declineQuestButtonObject, QuestUtils.IsStatus(quest, "NotStarted") || QuestUtils.IsStatus(quest, "InProgress"));
@@ -735,6 +813,31 @@ public class MainQuestPanelRuntime : MonoBehaviour
         layout.childForceExpandHeight = false;
     }
 
+    private void EnsureQuestListContentLayout()
+    {
+        if (questListContent == null)
+            return;
+
+        if (questListContent.GetComponent<HorizontalLayoutGroup>() != null ||
+            questListContent.GetComponent<GridLayoutGroup>() != null ||
+            questListContent.GetComponent<VerticalLayoutGroup>() != null)
+            return;
+
+        var layout = questListContent.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout.spacing = 8f;
+        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        var fitter = questListContent.gameObject.GetComponent<ContentSizeFitter>();
+        if (fitter == null)
+            fitter = questListContent.gameObject.AddComponent<ContentSizeFitter>();
+        
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+    }
+
 
 
     private Sprite GetQuestSprite(PlayerQuestResponse quest)
@@ -786,13 +889,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
-    private void BindPanelButton(string objectName, UnityEngine.Events.UnityAction action)
+    private void BindPanelButton(string objectName, UnityEngine.Events.UnityAction action, string label = null)
     {
         if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
             return;
 
         var target = FindDescendant(questPanel.transform, objectName);
         BindButton(target, action);
+        if (!string.IsNullOrWhiteSpace(label))
+            SetText(FindButtonLabel(target), label);
     }
 
     private static Button BindButton(GameObject target, UnityEngine.Events.UnityAction action)
@@ -985,23 +1090,18 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 return slot;
         }
 
-        var tmps = root.GetComponentsInChildren<TMP_Text>(true);
-        for (var i = 0; i < tmps.Length; i++)
-        {
-            var slot = new TextSlot(tmps[i], null);
-            if (!slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3) && !slot.Equals(skip4) && !slot.Equals(skip5))
-                return slot;
-        }
-
-        var texts = root.GetComponentsInChildren<Text>(true);
-        for (var i = 0; i < texts.Length; i++)
-        {
-            var slot = new TextSlot(null, texts[i]);
-            if (!slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3) && !slot.Equals(skip4) && !slot.Equals(skip5))
-                return slot;
-        }
-
         return default;
+    }
+
+    private static TextSlot FindButtonLabel(GameObject buttonObject)
+    {
+        if (buttonObject == null)
+            return default;
+
+        var slot = FindTextSlot(buttonObject.transform, "Text (TMP)", "Text", "Label", "TitleText");
+        if (!slot.IsValid)
+            slot = FindTextSlot(buttonObject.transform, "Item Label", "ButtonText", "Caption", "NameText");
+        return slot;
     }
 
     private static void SetText(TextSlot slot, string value)
@@ -1054,12 +1154,20 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             if (tmp != null)
             {
+                if (!tmp.gameObject.activeSelf)
+                    tmp.gameObject.SetActive(true);
+                tmp.enabled = true;
                 tmp.text = value ?? string.Empty;
                 return;
             }
 
             if (text != null)
+            {
+                if (!text.gameObject.activeSelf)
+                    text.gameObject.SetActive(true);
+                text.enabled = true;
                 text.text = value ?? string.Empty;
+            }
         }
 
         public bool Equals(TextSlot other)

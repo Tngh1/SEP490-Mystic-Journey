@@ -24,6 +24,24 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        /// <summary>Lấy reward cho đúng số ngày tháng hiện tại từ server.</summary>
+        public void GetCurrentMonth(Action<System.Collections.Generic.List<DailyLoginRewardResponse>> onSuccess, Action<ApiException> onError)
+        {
+            ApiClient.Instance.Get<System.Collections.Generic.List<DailyLoginRewardResponse>>(
+                ApiConfig.DailyLoginRewardsCurrentMonth,
+                response =>
+                {
+                    SafeDebugLog($"GetCurrentMonth OK | Days={response?.Count}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"GetCurrentMonth FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: false);
+        }
+
         // BE does not expose /api/dailyloginrewards/status; the actual status is derived client-side after fetching the world state.
         public void GetStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
         {
