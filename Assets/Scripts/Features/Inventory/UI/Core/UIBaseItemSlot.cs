@@ -1,0 +1,126 @@
+﻿using System;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
+{
+    [Header("Core UI Elements")]
+    [SerializeField] protected Image iconImage;
+    [SerializeField] protected TMP_Text itemNameText;
+    [SerializeField] protected TMP_Text quantityText;
+    [SerializeField] protected Image rarityBorder;
+    [SerializeField] protected GameObject selectHighlight;
+
+    public Action<UIBaseItemSlot> OnSlotClicked;
+    public object RawData { get; protected set; }
+
+    public virtual void SetupCore(UIItemDisplayData data)
+    {
+        BindCore();
+
+        if (data == null)
+        {
+            ClearSlot();
+            return;
+        }
+
+        RawData = data.rawData;
+
+        if (iconImage != null)
+        {
+            iconImage.enabled = data.icon != null;
+            if (data.icon != null)
+                iconImage.sprite = data.icon;
+        }
+
+        if (itemNameText != null)
+            itemNameText.text = data.itemName ?? string.Empty;
+
+        if (quantityText != null)
+            quantityText.text = data.quantity > 1 ? $"x{data.quantity}" : string.Empty;
+
+        SetHighlight(false);
+        SetRarityColor(data.rarity);
+    }
+
+    public virtual void ClearSlot()
+    {
+        BindCore();
+
+        RawData = null;
+        if (iconImage != null)
+            iconImage.enabled = false;
+        if (itemNameText != null)
+            itemNameText.text = string.Empty;
+        if (quantityText != null)
+            quantityText.text = string.Empty;
+        SetHighlight(false);
+    }
+
+    public void SetHighlight(bool isActive)
+    {
+        if (selectHighlight != null)
+            selectHighlight.SetActive(isActive);
+    }
+
+    protected virtual void SetRarityColor(string rarity)
+    {
+        if (rarityBorder == null)
+            return;
+
+        rarityBorder.color = RarityToColor(rarity);
+    }
+
+    public virtual void OnPointerClick(PointerEventData eventData)
+    {
+        if (RawData != null)
+            OnSlotClicked?.Invoke(this);
+    }
+
+    protected void BindCore()
+    {
+        if (iconImage == null)
+            iconImage = FindChild("Icon", "ItemIcon", "Image")?.GetComponent<Image>();
+        if (itemNameText == null)
+            itemNameText = FindChild("Name", "ItemName", "Title", "TitleText")?.GetComponent<TMP_Text>();
+        if (quantityText == null)
+            quantityText = FindChild("Quantity", "QuantityText", "Amount", "AmountText")?.GetComponent<TMP_Text>();
+        if (rarityBorder == null)
+            rarityBorder = FindChild("RarityBorder", "Border", "Frame")?.GetComponent<Image>();
+        if (selectHighlight == null)
+            selectHighlight = FindChild("SelectHighlight", "Highlight", "Selected")?.gameObject;
+    }
+
+    private Transform FindChild(params string[] names)
+    {
+        var children = GetComponentsInChildren<Transform>(true);
+        for (var i = 0; i < children.Length; i++)
+        {
+            for (var j = 0; j < names.Length; j++)
+            {
+                if (children[i] != null && children[i].name == names[j])
+                    return children[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static Color RarityToColor(string rarity)
+    {
+        if (string.IsNullOrWhiteSpace(rarity))
+            return Color.white;
+
+        switch (rarity.Trim().ToLowerInvariant())
+        {
+            case "common": return Color.white;
+            case "uncommon": return new Color(0.35f, 0.9f, 0.45f);
+            case "rare": return new Color(0.35f, 0.62f, 1f);
+            case "epic": return new Color(0.75f, 0.45f, 1f);
+            case "legendary": return new Color(1f, 0.72f, 0.2f);
+            default: return Color.white;
+        }
+    }
+}

@@ -7,179 +7,114 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    public class PlayerQuestApi : MonoBehaviour
+    public class PlayerQuestApi : BaseApiService<PlayerQuestApi>
     {
-        private static PlayerQuestApi _instance;
-
-        public static PlayerQuestApi Instance
+        public void GetMyQuests(Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
-            get
-            {
-                if (_instance == null)
-                {
-                    var go = new GameObject("[PlayerQuestApi]");
-                    DontDestroyOnLoad(go);
-                    _instance = go.AddComponent<PlayerQuestApi>();
-                }
-                return _instance;
-            }
-        }
-
-        private void Awake()
-        {
-            if (_instance != null && _instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-
-        public void GetMyQuests(
-            Action<List<PlayerQuestResponse>> onSuccess,
-            Action<ApiException> onError)
-        {
-            ApiClient.Instance.Get<PlayerQuestListWrapper>(
+            ApiClient.Instance.Get<List<PlayerQuestResponse>>(
                 ApiConfig.PlayerQuestMe,
-                wrapper =>
+                quests =>
                 {
-                    Debug.Log($"[PlayerQuestApi] GetMyQuests OK | Count={wrapper?.Data?.Count ?? 0}");
-                    onSuccess?.Invoke(wrapper?.Data ?? new List<PlayerQuestResponse>());
+                    Debug.Log($"[PlayerQuestApi] GetMyQuests OK | Count={quests?.Count ?? 0}");
+                    onSuccess?.Invoke(quests ?? new List<PlayerQuestResponse>());
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] GetMyQuests FAIL | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"GetMyQuests FAIL | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void GetQuestDetail(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void GetQuestDetail(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.PlayerQuestDetail, questId);
-
-            ApiClient.Instance.Get<PlayerQuestSingleWrapper>(
+            ApiClient.Instance.Get<PlayerQuestResponse>(
                 endpoint,
-                wrapper =>
+                quest =>
                 {
                     Debug.Log($"[PlayerQuestApi] GetQuestDetail OK | questId={questId}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] GetQuestDetail FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"GetQuestDetail FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void AcceptQuest(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void AcceptQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new AcceptQuestRequest { QuestId = questId };
-
-            ApiClient.Instance.Post<AcceptQuestRequest, PlayerQuestSingleWrapper>(
-                ApiConfig.PlayerQuestAccept,
-                body,
-                wrapper =>
+            ApiClient.Instance.Post<AcceptQuestRequest, PlayerQuestResponse>(
+                ApiConfig.PlayerQuestAccept, body,
+                quest =>
                 {
-                    Debug.Log($"[PlayerQuestApi] AcceptQuest OK | questId={questId} status={wrapper?.Data?.Status}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    Debug.Log($"[PlayerQuestApi] AcceptQuest OK | questId={questId} status={quest?.Status}");
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] AcceptQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"AcceptQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void BatchUpdateProgress(
-            List<QuestProgressItem> updates,
-            Action<List<PlayerQuestResponse>> onSuccess,
-            Action<ApiException> onError)
+        public void BatchUpdateProgress(List<QuestProgressItem> updates, Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
-            if (updates == null || updates.Count == 0)
-            {
-                onSuccess?.Invoke(new List<PlayerQuestResponse>());
-                return;
-            }
-
+            if (updates == null || updates.Count == 0) { onSuccess?.Invoke(new List<PlayerQuestResponse>()); return; }
             var body = new BatchProgressRequest { Updates = updates };
-
-            ApiClient.Instance.Put<BatchProgressRequest, BatchProgressWrapper>(
-                ApiConfig.PlayerQuestBatch,
-                body,
-                wrapper =>
+            ApiClient.Instance.Put<BatchProgressRequest, List<PlayerQuestResponse>>(
+                ApiConfig.PlayerQuestBatch, body,
+                quests =>
                 {
-                    Debug.Log($"[PlayerQuestApi] BatchUpdateProgress OK | updated={wrapper?.Data?.Count ?? 0}");
-                    onSuccess?.Invoke(wrapper?.Data ?? new List<PlayerQuestResponse>());
+                    Debug.Log($"[PlayerQuestApi] BatchUpdateProgress OK | updated={quests?.Count ?? 0}");
+                    onSuccess?.Invoke(quests ?? new List<PlayerQuestResponse>());
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] BatchUpdateProgress FAIL | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"BatchUpdateProgress FAIL | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void CompleteQuest(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void CompleteQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new CompleteQuestRequest { QuestId = questId };
-
-            ApiClient.Instance.Post<CompleteQuestRequest, PlayerQuestSingleWrapper>(
-                ApiConfig.PlayerQuestComplete,
-                body,
-                wrapper =>
+            ApiClient.Instance.Post<CompleteQuestRequest, PlayerQuestResponse>(
+                ApiConfig.PlayerQuestComplete, body,
+                quest =>
                 {
                     Debug.Log($"[PlayerQuestApi] CompleteQuest OK | questId={questId}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] CompleteQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"CompleteQuest FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
 
-        public void ClaimReward(
-            int questId,
-            Action<PlayerQuestResponse> onSuccess,
-            Action<ApiException> onError)
+        public void ClaimReward(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new ClaimQuestRequest { QuestId = questId };
-
-            ApiClient.Instance.Post<ClaimQuestRequest, PlayerQuestSingleWrapper>(
-                ApiConfig.PlayerQuestClaim,
-                body,
-                wrapper =>
+            ApiClient.Instance.Post<ClaimQuestRequest, PlayerQuestResponse>(
+                ApiConfig.PlayerQuestClaim, body,
+                quest =>
                 {
                     Debug.Log($"[PlayerQuestApi] ClaimReward OK | questId={questId}");
-                    onSuccess?.Invoke(wrapper?.Data);
+                    onSuccess?.Invoke(quest);
                 },
                 error =>
                 {
-                    Debug.LogError($"[PlayerQuestApi] ClaimReward FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
+                    SafeDebugError($"ClaimReward FAIL | questId={questId} | {error.StatusCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true
-            );
+                requiresAuth: true);
         }
     }
 }

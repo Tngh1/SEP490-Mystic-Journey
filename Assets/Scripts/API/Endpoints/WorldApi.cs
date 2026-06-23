@@ -2,40 +2,14 @@ using System;
 using MysticJourney.API.Core;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Services;
+using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    public class WorldApi : MonoBehaviour
+    public class WorldApi : BaseApiService<WorldApi>
     {
-        private static WorldApi _instance;
-
-        public static WorldApi Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    var go = new GameObject("[WorldApi]");
-                    DontDestroyOnLoad(go);
-                    _instance = go.AddComponent<WorldApi>();
-                }
-                return _instance;
-            }
-        }
-
-        private void Awake()
-        {
-            if (_instance != null && _instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-
         public void GetState(Action<WorldStateResponse> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Get<ApiResponse<WorldStateResponse>>(
@@ -44,7 +18,8 @@ namespace MysticJourney.API.Endpoints
                 {
                     if (response.Success && response.Data != null)
                     {
-                        WorldState.PlayerProfileId = response.Data.PlayerProfileId;
+                        var state = GameStateService.Instance;
+                        state.PlayerProfileId = response.Data.PlayerProfileId;
                         ApplyWorldPosition(response.Data.Position);
                     }
                     onSuccess?.Invoke(response.Data);
@@ -62,7 +37,7 @@ namespace MysticJourney.API.Endpoints
         {
             var body = new UpdateWorldPositionRequest
             {
-                MapName = string.IsNullOrWhiteSpace(mapName) ? "ElfForest" : mapName.Trim(),
+                MapName = string.IsNullOrWhiteSpace(mapName) ? GameConstants.WorldDefaults.DefaultMap : mapName.Trim(),
                 PositionX = position.x,
                 PositionY = position.y
             };
@@ -84,16 +59,11 @@ namespace MysticJourney.API.Endpoints
         public void TalkToNpc(int npcId, Action<TalkToNpcResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new TalkToNpcRequest { NPCId = npcId };
-
             ApiClient.Instance.Post<TalkToNpcRequest, ApiResponse<TalkToNpcResponse>>(
-                ApiConfig.WorldNpcTalk,
-                body,
+                ApiConfig.WorldNpcTalk, body,
                 response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true
-            );
+                onError, requiresAuth: true);
         }
-
 
         public void TurnInQuestItem(
             int npcId,
@@ -101,20 +71,13 @@ namespace MysticJourney.API.Endpoints
             Action<TurnInQuestItemResponse> onSuccess,
             Action<ApiException> onError)
         {
-            var body = new TurnInQuestItemRequest
-            {
-                NPCId = npcId,
-                QuestId = questId
-            };
-
+            var body = new TurnInQuestItemRequest { NPCId = npcId, QuestId = questId };
             ApiClient.Instance.Post<TurnInQuestItemRequest, ApiResponse<TurnInQuestItemResponse>>(
-                ApiConfig.WorldNpcTurnIn,
-                body,
+                ApiConfig.WorldNpcTurnIn, body,
                 response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true
-            );
+                onError, requiresAuth: true);
         }
+
         public void InteractObject(
             string objectKey,
             string interactionType,
@@ -131,40 +94,24 @@ namespace MysticJourney.API.Endpoints
                 QuestId = questId,
                 ProgressDelta = Mathf.Max(1, progressDelta)
             };
-
             ApiClient.Instance.Post<InteractObjectRequest, ApiResponse<InteractObjectResponse>>(
-                ApiConfig.WorldInteractObject,
-                body,
+                ApiConfig.WorldInteractObject, body,
                 response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true
-            );
+                onError, requiresAuth: true);
         }
 
-        public void OpenChestByChestId(
-            int chestId,
-            Action<OpenChestResponse> onSuccess,
-            Action<ApiException> onError)
-        {
-            OpenChest(new OpenWorldChestRequest { ChestId = chestId }, onSuccess, onError);
-        }
+        public void OpenChestByChestId(int chestId, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
+            => OpenChest(new OpenWorldChestRequest { ChestId = chestId }, onSuccess, onError);
 
-        public void OpenChestByPlayerChestId(
-            int playerChestId,
-            Action<OpenChestResponse> onSuccess,
-            Action<ApiException> onError)
-        {
-            OpenChest(new OpenWorldChestRequest { PlayerChestId = playerChestId }, onSuccess, onError);
-        }
+        public void OpenChestByPlayerChestId(int playerChestId, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
+            => OpenChest(new OpenWorldChestRequest { PlayerChestId = playerChestId }, onSuccess, onError);
 
         public void ClaimDailyLoginReward(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.PostEmpty<ApiResponse<ClaimDailyRewardResponse>>(
                 ApiConfig.WorldDailyLoginClaim,
                 response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true
-            );
+                onError, requiresAuth: true);
         }
 
         public void GetDailyLoginStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
@@ -172,35 +119,27 @@ namespace MysticJourney.API.Endpoints
             ApiClient.Instance.Get<ApiResponse<PlayerDailyLoginResponse>>(
                 ApiConfig.DailyLoginStatus,
                 response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true
-            );
+                onError, requiresAuth: true);
         }
 
-        private void OpenChest(
-            OpenWorldChestRequest body,
-            Action<OpenChestResponse> onSuccess,
-            Action<ApiException> onError)
+        private void OpenChest(OpenWorldChestRequest body, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Post<OpenWorldChestRequest, ApiResponse<OpenChestResponse>>(
-                ApiConfig.WorldChestOpen,
-                body,
+                ApiConfig.WorldChestOpen, body,
                 response => onSuccess?.Invoke(response.Data),
-                onError,
-                requiresAuth: true
-            );
+                onError, requiresAuth: true);
         }
 
         private static void ApplyWorldPosition(PlayerWorldPositionResponse position)
         {
-            if (position == null)
-                return;
+            if (position == null) return;
 
-            var mapName = string.IsNullOrWhiteSpace(position.MapName) ? "ElfForest" : position.MapName.Trim();
+            var state = GameStateService.Instance;
+            var mapName = string.IsNullOrWhiteSpace(position.MapName) ? GameConstants.WorldDefaults.DefaultMap : position.MapName.Trim();
             var vector = new Vector3((float)position.PositionX, (float)position.PositionY, 0f);
 
-            WorldState.CurrentMapName = mapName;
-            WorldState.LastPosition = vector;
+            state.CurrentMapName = mapName;
+            state.LastPosition = vector;
 
             PlayerPrefs.SetString(ApiConfig.LastMapNameKey, mapName);
             PlayerPrefs.SetFloat(ApiConfig.PositionXKey, vector.x);
