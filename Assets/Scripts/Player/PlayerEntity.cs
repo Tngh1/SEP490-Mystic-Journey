@@ -6,11 +6,13 @@ public class PlayerEntity : MonoBehaviour
     [SerializeField] private int maxHealth = 200;
     private int currentHealth;
 
-    // Dùng Singleton để Quái vật dễ dàng tìm thấy người chơi
     public static PlayerEntity Instance { get; private set; }
 
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;
+
+    // 👇 SỰ KIỆN TĨNH: Phát sóng mỗi khi máu thay đổi (Truyền đi Máu hiện tại và Máu tối đa)
+    public static event Action<int, int> OnHealthChanged;
 
     private void Awake()
     {
@@ -18,10 +20,49 @@ public class PlayerEntity : MonoBehaviour
         currentHealth = maxHealth;
     }
 
+    private void Start()
+    {
+        // Khi nhân vật vừa xuất hiện, gửi ngay sự kiện để UI hiển thị mức máu đầy ban đầu (fallback)
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        // Lấy dữ liệu thật từ API
+        if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
+        {
+            MysticJourney.API.Endpoints.CharacterApi.Instance.GetMyStats(
+                response =>
+                {
+                    if (response != null && response.Data != null)
+                    {
+                        maxHealth = response.Data.MaxHp;
+                        currentHealth = response.Data.CurrentHp;
+                        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                    }
+                },
+                error =>
+                {
+                    Debug.LogWarning($"[PlayerEntity] GetMyStats failed: {error.Message}");
+                }
+            );
+        }
+    }
+
+    private Coroutine syncHpCoroutine;
+
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage;
-        Debug.Log($"[Player] Bị quái cào {damage} máu. Còn lại: {currentHealth}/{maxHealth}");
+        bool isCrit = UnityEngine.Random.Range(0f, 100f) <= 10f;
+        int finalDamage = isCrit ? Mathf.RoundToInt(damage * 1.5f) : damage;
+
+        currentHealth -= finalDamage;
+        if (currentHealth < 0) currentHealth = 0;
+
+        if (DamagePopupManager.Instance != null)
+        {
+            DamagePopupManager.Instance.Create(transform.position, finalDamage, isCrit, true);
+        }
+
+        // 👇 KHI BỊ ĐÁNH, GỌI SỰ KIỆN NÀY ĐỂ BÁO CHO UI CẬP NHẬT
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
         OnTakeHit?.Invoke(this, EventArgs.Empty);
 
@@ -29,12 +70,31 @@ public class PlayerEntity : MonoBehaviour
         {
             Die();
         }
+
+        // --- ĐỒNG BỘ MÁU VỀ API (DEBOUNCE 1 GIÂY) ---
+        if (syncHpCoroutine != null)
+        {
+            StopCoroutine(syncHpCoroutine);
+        }
+        syncHpCoroutine = StartCoroutine(SyncHpRoutine());
+    }
+
+    private System.Collections.IEnumerator SyncHpRoutine()
+    {
+        yield return new WaitForSeconds(1f);
+        if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
+        {
+            MysticJourney.API.Endpoints.CharacterApi.Instance.UpdateHp(
+                currentHealth,
+                response => { /* Sync OK */ },
+                error => { Debug.LogWarning($"[PlayerEntity] Sync HP failed: {error.Message}"); }
+            );
+        }
     }
 
     private void Die()
     {
         Debug.Log("Người chơi đã chết!");
         OnDeath?.Invoke(this, EventArgs.Empty);
-        // Ở đây sau này bạn có thể gọi màn hình Game Over hoặc Reset Level
     }
 }

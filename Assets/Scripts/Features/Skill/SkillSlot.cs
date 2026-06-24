@@ -42,8 +42,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler
 
         // Ẩn số đếm ngược khi mới vào game
         if (cooldownText != null) cooldownText.text = "";
-
-        LoadInitialSkill();
     }
 
     private void Update()
@@ -82,28 +80,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler
             if (cooldownText != null) cooldownText.text = Mathf.CeilToInt(cooldownTime).ToString();
         }
     }
-
-    private void LoadInitialSkill()
-    {
-        SkillApi.Instance.GetMySkills(
-            (response) =>
-            {
-                var mySkill = response.Skills?.Find(s => s.EquippedSlot.HasValue && s.EquippedSlot.Value == this.slotIndex);
-                if (mySkill != null)
-                {
-                    SkillData visualData = System.Array.Find(allSkillsInGame, d => d.skillId == mySkill.SkillId);
-                    if (equippedIcon != null && visualData != null)
-                    {
-                        equippedIcon.sprite = visualData.skillIcon;
-                        equippedIcon.color = Color.white;
-                    }
-                    SkillSlot.BroadcastSkillEquipped(slotIndex, visualData, mySkill);
-                }
-            },
-            (error) => { Debug.LogWarning("Không thể tải kỹ năng HUD: " + error.Message); }
-        );
-    }
-
     public void OnDrop(PointerEventData eventData)
     {
         if (eventData == null || eventData.pointerDrag == null) return;

@@ -48,6 +48,7 @@ GameObject:
   - component: {fileID: 8240704587495171820}
   - component: {fileID: 5587384846498592370}
   - component: {fileID: 3662501889512300832}
+  - component: {fileID: 759539283934771186}
   m_Layer: 0
   m_Name: Mage
   m_TagString: Untagged
@@ -289,6 +290,8 @@ MonoBehaviour:
   attackCooldown: 0.5
   basicAttackDelay: 0.2
   basicAttackDamage: 25
+  critRate: 20
+  critDamageMultiplier: 1.5
   basicAttackPrefab: {fileID: 8045538818045477298, guid: 09d6db1b772905c49944f0dce333f0bc, type: 3}
   meleeRange: 1.2
   enemyLayer:
@@ -302,3 +305,16 @@ MonoBehaviour:
   skill1Cooldown: 3
   skill2Cooldown: 5
   skill3Cooldown: 8
+--- !u!114 &759539283934771186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101978762884820572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55645bff9d1790a4dbceb5bc48660ab9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerEntity
+  maxHealth: 200

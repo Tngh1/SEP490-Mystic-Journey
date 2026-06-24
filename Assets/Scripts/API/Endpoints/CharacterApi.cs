@@ -90,5 +90,30 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        // ── PUT /api/characters/hp ────────────────────────────────────────────
+        /// <summary>
+        /// Đồng bộ máu hiện tại về Backend
+        /// </summary>
+        public void UpdateHp(
+            int currentHp,
+            Action<ApiResponse<object>> onSuccess,
+            Action<ApiException> onError)
+        {
+            var body = new UpdateHpRequest { currentHp = currentHp };
+            ApiClient.Instance.Put<UpdateHpRequest, ApiResponse<object>>(
+                ApiConfig.CharacterHp,
+                body,
+                response =>
+                {
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"UpdateHp FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

@@ -56,6 +56,7 @@ namespace MysticJourney.API.Core
         public const string CharacterCreate  = "/api/characters";
         public const string CharacterStats   = "/api/characters/stats";
         public const string CharacterUpgrade = "/api/characters/upgrade";
+        public const string CharacterHp      = "/api/characters/hp";
 
         // Quest catalog
         public const string QuestAll = "/api/quests";

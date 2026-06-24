@@ -48,6 +48,7 @@ GameObject:
   - component: {fileID: 5457670027549794729}
   - component: {fileID: 3884950144262116676}
   - component: {fileID: 75771915763769350}
+  - component: {fileID: 8415173338828809175}
   m_Layer: 0
   m_Name: Knight
   m_TagString: Untagged
@@ -285,16 +286,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   animator: {fileID: 3595454145502944361}
+  maxCastRange: 6
   attackCooldown: 0.5
+  basicAttackDelay: 0.2
+  basicAttackDamage: 25
+  critRate: 20
+  critDamageMultiplier: 1.5
+  basicAttackPrefab: {fileID: 0}
   meleeRange: 1.2
-  meleeDamage: 25
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
   firePoint: {fileID: 0}
+  skillCastDelay: 0.2
   skill1Prefab: {fileID: 0}
   skill2Prefab: {fileID: 0}
   skill3Prefab: {fileID: 0}
   skill1Cooldown: 3
   skill2Cooldown: 5
   skill3Cooldown: 8
+--- !u!114 &8415173338828809175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8459041412210492460}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55645bff9d1790a4dbceb5bc48660ab9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerEntity
+  maxHealth: 200

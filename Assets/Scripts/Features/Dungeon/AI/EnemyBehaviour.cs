@@ -65,6 +65,19 @@ public class EnemyBehaviour : MonoBehaviour
         chasingSpeed = navMeshAgent.speed * chasingSpeedMultiplier;
     }
 
+    public void UpdateStatsFromAPI(int apiAttack, float apiMoveSpeed)
+    {
+        attackDamage = apiAttack;
+        if (navMeshAgent != null && apiMoveSpeed > 0)
+        {
+            // Base API speed 100 ~ 3.5f Unity speed
+            float calculatedSpeed = (apiMoveSpeed / 100f) * 3.5f;
+            navMeshAgent.speed = calculatedSpeed;
+            roamingSpeed = calculatedSpeed;
+            chasingSpeed = calculatedSpeed * chasingSpeedMultiplier;
+        }
+    }
+
     private void Update()
     {
         StateController();

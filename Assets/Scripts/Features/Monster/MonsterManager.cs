@@ -11,7 +11,20 @@ using UnityEngine;
 /// </summary>
 public class MonsterManager : MonoBehaviour
 {
-    public static MonsterManager Instance { get; private set; }
+    private static MonsterManager _instance;
+    public static MonsterManager Instance 
+    { 
+        get 
+        {
+            if (_instance == null)
+            {
+                var go = new GameObject("[MonsterManager]");
+                _instance = go.AddComponent<MonsterManager>();
+                DontDestroyOnLoad(go);
+            }
+            return _instance;
+        }
+    }
 
     public event Action OnSpawnsLoaded;
     public event Action OnCatalogLoaded;
@@ -24,13 +37,13 @@ public class MonsterManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
-        Instance = this;
+        _instance = this;
         DontDestroyOnLoad(gameObject);
     }
 
