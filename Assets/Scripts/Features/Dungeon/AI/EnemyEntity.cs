@@ -1,4 +1,5 @@
 using System;
+using MysticJourney.API.Core;
 using UnityEngine;
 
 public class EnemyEntity : MonoBehaviour
@@ -10,10 +11,18 @@ public class EnemyEntity : MonoBehaviour
 
     private int currentHealth;
     [SerializeField] private int maxHealth;
+    [SerializeField] private int monsterId;
+    [SerializeField] private int monsterSpawnId;
+    [SerializeField] private bool useApiStats = true;
     private bool isDead = false;
+
+    public int MonsterId => monsterId;
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => maxHealth;
 
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;
+    public event Action<int, int> OnHealthChanged;
 
     private void Start()
     {
@@ -21,18 +30,57 @@ public class EnemyEntity : MonoBehaviour
         capsuleColl = GetComponent<CapsuleCollider2D>();
         boxColl = GetComponent<BoxCollider2D>();
         enemyBehaviour = GetComponent<EnemyBehaviour>();
-        currentHealth = maxHealth * 2;
+
+        Debug.Log($"[EnemyEntity] Start: {gameObject.name} | UseApi={useApiStats} | ID={monsterId} | ManagerNull?={MonsterManager.Instance == null}");
+
+        if (useApiStats && monsterId > 0 && MonsterManager.Instance != null)
+        {
+            var cached = MonsterManager.Instance.GetCachedMonster(monsterId);
+            Debug.Log($"[EnemyEntity] Cached for {monsterId} is null? {cached == null}");
+            if (cached != null)
+            {
+                ApplyApiStats(cached.MaxHp, cached.Atk, cached.MoveSpeed);
+            }
+            else
+            {
+                Debug.Log($"[EnemyEntity] Calling LoadMonsterDetail for {monsterId}");
+                MonsterManager.Instance.LoadMonsterDetail(monsterId, false, detail =>
+                {
+                    Debug.Log($"[EnemyEntity] LoadMonsterDetail callback for {monsterId}. detail is null? {detail == null}");
+                    if (detail != null && !isDead)
+                    {
+                        ApplyApiStats(detail.MaxHp, detail.Atk, detail.MoveSpeed);
+                    }
+                });
+            }
+        }
+        else
+        {
+            currentHealth = maxHealth;
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        }
     }
-    //private void OnTriggerEnter2D(Collider2D collision)
-    //{
-    //    Debug.Log("Attack");
-    //}
+
+    private void ApplyApiStats(int apiMaxHp, int apiAtk, int apiMoveSpeed)
+    {
+        Debug.Log($"[EnemyEntity] {gameObject.name} ApplyApiStats: HP={apiMaxHp}, ATK={apiAtk}, SPD={apiMoveSpeed}");
+        maxHealth = apiMaxHp;
+        currentHealth = maxHealth;
+        if (enemyBehaviour != null)
+        {
+            enemyBehaviour.UpdateStatsFromAPI(apiAtk, apiMoveSpeed);
+        }
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
 
     public void TakeDamage(int damage)
     {
         if (isDead) return;
         
         currentHealth -= damage;
+        if (currentHealth < 0) currentHealth = 0;
+
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
         OnTakeHit?.Invoke(this, EventArgs.Empty);
         Debug.Log("Damage");
         DetectDeath();
@@ -63,6 +111,12 @@ public class EnemyEntity : MonoBehaviour
 
             enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");
+
+            // Báo server khi hạ quái (XP, gold, drop random, khám phá bestiary)
+            if (monsterId > 0 && MonsterManager.Instance != null && ApiClient.Instance.HasToken())
+            {
+                MonsterManager.Instance.ReportDefeat(monsterId, monsterSpawnId > 0 ? monsterSpawnId : null);
+            }
 
             // Cộng dồn tiến độ cho Quest giết quái
             if (QuestManager.Instance != null)

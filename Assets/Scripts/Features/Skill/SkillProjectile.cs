@@ -8,30 +8,36 @@ public class SkillProjectile : MonoBehaviour
     public void Setup(float damage)
     {
         _damage = damage;
-        // Tự hủy sau 2 giây để tránh làm nặng bộ nhớ
         Destroy(gameObject, 2f);
     }
 
     void Update()
     {
-        // Bay theo hướng trục X của Object (đã được xoay hoặc lật theo nhân vật)
         transform.Translate(Vector3.right * speed * Time.deltaTime, Space.Self);
     }
 
-    // Khi chạm quái, bạn gọi hàm gây sát thương ở đây
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Monster"))
         {
-            // Lấy component EnemyEntity của quái vật bị va chạm
             EnemyEntity enemy = collision.GetComponent<EnemyEntity>();
             if (enemy != null)
             {
-                // Ép kiểu (int) vì _damage đang là float, còn TakeDamage nhận int
-                enemy.TakeDamage((int)_damage);
+                // 👇 Thêm logic Chí mạng cho Kỹ năng (Tạm để 20% crit, x1.5 sát thương)
+                bool isCrit = Random.Range(0f, 100f) <= 20f;
+                float finalDamage = isCrit ? _damage * 1.5f : _damage;
+                int damageInt = Mathf.RoundToInt(finalDamage);
+
+                enemy.TakeDamage(damageInt);
+
+                // 👇 Hiện số sát thương bay lên
+                if (DamagePopupManager.Instance != null)
+                {
+                    DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
+                }
             }
 
-            Destroy(gameObject); // Chạm quái thì kỹ năng nổ/biến mất
+            Destroy(gameObject); // Chạm quái thì đạn nổ biến mất
         }
     }
 }

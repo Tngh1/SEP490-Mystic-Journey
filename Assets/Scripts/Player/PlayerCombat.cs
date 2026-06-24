@@ -1,4 +1,4 @@
-﻿using MysticJourney.API.Models.Response;
+using MysticJourney.API.Models.Response;
 using System.Collections; // BẮT BUỘC THÊM DÒNG NÀY ĐỂ DÙNG COROUTINE
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,7 +18,8 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private float basicAttackDelay = 0.2f;
 
     [SerializeField] private float basicAttackDamage = 25f;
-
+    [SerializeField][Range(0f, 100f)] private float critRate = 20f; // 20% chí mạng
+    [SerializeField] private float critDamageMultiplier = 1.5f; // x1.5 sát thương
     [Tooltip("KÉO PREFAB MŨI TÊN / CẦU PHÉP VÀO ĐÂY. NẾU LÀ ĐẤU SĨ CHÉM GẦN -> HÃY ĐỂ TRỐNG (NONE)")]
     [SerializeField] private GameObject basicAttackPrefab;
 
@@ -57,6 +58,35 @@ public class PlayerCombat : MonoBehaviour
             Transform foundPoint = transform.Find("FirePoint");
             if (foundPoint != null) firePoint = foundPoint;
             else Debug.LogError($"[PlayerCombat] Không tìm thấy 'FirePoint' là con của {gameObject.name}!");
+        }
+    }
+
+    private void Start()
+    {
+        if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
+        {
+            MysticJourney.API.Endpoints.CharacterApi.Instance.GetMyStats(
+                response =>
+                {
+                    if (response != null && response.Data != null)
+                    {
+                        basicAttackDamage = response.Data.Atk;
+                        critRate = response.Data.CritRate * 100f; // API trả về 0.2 -> 20%
+                        critDamageMultiplier = response.Data.CritDamage;
+                    }
+                },
+                error =>
+                {
+                    Debug.LogWarning($"[PlayerCombat] GetMyStats failed: {error.Message}");
+                }
+            );
+
+            // Nạp kỹ năng cho Player và HUD lúc mới vào game (giống với cách tải Stats)
+            var skillPanelMgr = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+            if (skillPanelMgr != null)
+            {
+                skillPanelMgr.RefreshSkillList();
+            }
         }
     }
 
@@ -134,12 +164,34 @@ public class PlayerCombat : MonoBehaviour
     private void PerformMeleeSweep()
     {
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(firePoint.position, meleeRange, enemyLayer);
+
+        // 👇 TẠO DANH SÁCH LỌC TRÙNG (Chỉ đánh mỗi con quái 1 lần trong 1 nhát chém)
+        HashSet<EnemyEntity> damagedEnemies = new HashSet<EnemyEntity>();
+
         foreach (Collider2D enemyCollider in hitEnemies)
         {
             EnemyEntity enemy = enemyCollider.GetComponent<EnemyEntity>();
-            if (enemy != null)
+
+            // Nếu tìm thấy quái VÀ con quái này chưa bị chém trong nhát này
+            if (enemy != null && !damagedEnemies.Contains(enemy))
             {
-                enemy.TakeDamage((int)basicAttackDamage);
+                damagedEnemies.Add(enemy); // Đánh dấu là đã chém trúng nó rồi
+
+                // Tính toán chí mạng
+                bool isCrit = Random.Range(0f, 100f) <= critRate;
+                float finalDamage = basicAttackDamage;
+                if (isCrit) finalDamage *= critDamageMultiplier;
+
+                int damageInt = Mathf.RoundToInt(finalDamage);
+
+                // Gây sát thương
+                enemy.TakeDamage(damageInt);
+
+                // Hiện số máu bay lên
+                if (DamagePopupManager.Instance != null)
+                {
+                    DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
+                }
             }
         }
     }
