@@ -15,6 +15,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private Image expBarImage;
     [SerializeField] private Image hpBarImage;
     [SerializeField] private TMP_Text hpText;
+    [SerializeField] private TMP_Text energyText;
 
     [Header("HP Bar Color Customization")]
     [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
@@ -56,6 +57,14 @@ public class PlayerHUDController : MonoBehaviour
         if (expBarImage == null) expBarImage = transform.Find("TopBar/Button/ExpBar")?.GetComponent<Image>();
         if (hpBarImage == null) hpBarImage = transform.Find("BottomCenter/HPBar")?.GetComponent<Image>();
         if (hpText == null) hpText = transform.Find("BottomCenter/HPBar/HPText")?.GetComponent<TMP_Text>();
+        if (energyText == null)
+        {
+            energyText = transform.Find("TopBar/Center_Resources/EnergyBox/EnergyText")?.GetComponent<TMP_Text>();
+            if (energyText != null)
+            {
+                energyText.textWrappingMode = TextWrappingModes.NoWrap;
+            }
+        }
 
         // Log if anything is missing to help with debugging
         if (playerNameText == null) Debug.LogWarning("[PlayerHUDController] PlayerNameText reference is missing!");
@@ -63,6 +72,7 @@ public class PlayerHUDController : MonoBehaviour
         if (expBarImage == null) Debug.LogWarning("[PlayerHUDController] ExpBar reference is missing!");
         if (hpBarImage == null) Debug.LogWarning("[PlayerHUDController] HPBar reference is missing!");
         if (hpText == null) Debug.LogWarning("[PlayerHUDController] HPText reference is missing!");
+        if (energyText == null) Debug.LogWarning("[PlayerHUDController] EnergyText reference is missing!");
     }
 
     public void StartHUDLoop()
@@ -138,6 +148,11 @@ public class PlayerHUDController : MonoBehaviour
         if (levelText != null)
         {
             levelText.text = "Lv " + profile.Level;
+        }
+
+        if (energyText != null)
+        {
+            energyText.text = profile.Energy + "/" + profile.MaxEnergy;
         }
 
         if (expBarImage != null)

@@ -13,12 +13,18 @@ public class PlayerWorldPositionSync : MonoBehaviour
 
     private void Start()
     {
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
         lastSavedPosition = transform.position;
         CacheLocalPosition(transform.position, saveToPrefs: false);
     }
 
     private void Update()
     {
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
         var currentPosition = transform.position;
         CacheLocalPosition(currentPosition, saveToPrefs: false);
 
@@ -57,6 +63,9 @@ public class PlayerWorldPositionSync : MonoBehaviour
 
     private void OnDisable()
     {
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
         CacheLocalPosition(transform.position, saveToPrefs: true);
     }
 

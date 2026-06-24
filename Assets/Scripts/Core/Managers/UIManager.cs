@@ -21,6 +21,7 @@ public class UIManager : MonoBehaviour
     public GameObject mailboxPanel;
     public GameObject settingPanel;
     public GameObject npcPanel;
+    public GameObject chestPanel;
 
     private GameObject currentPanel;
 
@@ -174,6 +175,14 @@ public class UIManager : MonoBehaviour
         EnsureRuntime<MainNpcPanelRuntime>();
         EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");
         EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
+        EnsurePanelRuntime<UIChestRewardPanel>(chestPanel, "ChestPanel");
+        EnsurePanelRuntime<UIDungeonRoomPanel>(dungeonPanel, "DungeonPanel");
+
+        if (DungeonManager.Instance == null)
+        {
+            var dmObj = new GameObject("DungeonManager");
+            dmObj.AddComponent<DungeonManager>();
+        }
     }
 
     private void EnsureQuestManager()
@@ -242,6 +251,7 @@ public class UIManager : MonoBehaviour
         yield return mailboxPanel;
         yield return settingPanel;
         yield return npcPanel;
+        yield return chestPanel;
     }
 
     private void BindPanels()
@@ -261,6 +271,7 @@ public class UIManager : MonoBehaviour
         mailboxPanel = BindPanel(mailboxPanel, "MailboxPanel");
         settingPanel = BindPanel(settingPanel, "SettingPanel");
         npcPanel = BindPanel(npcPanel, "NPCPanel");
+        chestPanel = BindPanel(chestPanel, "ChestPanel");
     }
 
     private static GameObject BindPanel(GameObject current, string objectName)

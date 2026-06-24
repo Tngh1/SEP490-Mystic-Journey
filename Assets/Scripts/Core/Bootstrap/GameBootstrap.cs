@@ -18,8 +18,11 @@ public class GameBootstrap : MonoBehaviour
 
         yield return LoadWorldSession();
 
-        if (string.IsNullOrWhiteSpace(WorldState.CurrentMapName))
+        if (string.IsNullOrWhiteSpace(WorldState.CurrentMapName) || WorldState.CurrentMapName == "AbandonedMines")
+        {
             WorldState.CurrentMapName = "ElfForest";
+            WorldState.LastPosition = new Vector3(11.9f, 17.8f, 0f);
+        }
 
         yield return EnsureSceneLoaded("Main");
         yield return EnsureSceneLoaded(WorldState.CurrentMapName);
