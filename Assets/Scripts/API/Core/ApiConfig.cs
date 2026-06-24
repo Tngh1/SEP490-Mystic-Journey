@@ -115,5 +115,14 @@ namespace MysticJourney.API.Core
         public const string WorldChestOpen = "/api/world/chests/open";
         public const string WorldInteractObject = "/api/world/interactions";
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";
+
+        // Monsters
+        public const string MonsterAll = "/api/monsters";
+        public const string MonsterById = "/api/monsters/{0}";
+        public const string MonsterByIdForPlayer = "/api/monsters/{0}/me";
+        public const string MonsterCatalogForPlayer = "/api/monsters/me/catalog";
+        public const string MonsterSpawns = "/api/monsters/spawns";
+        public const string MonsterDiscover = "/api/monsters/{0}/discover";
+        public const string MonsterDefeat = "/api/monsters/{0}/defeat";
     }
 }

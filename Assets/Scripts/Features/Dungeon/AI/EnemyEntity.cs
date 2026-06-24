@@ -1,4 +1,5 @@
 using System;
+using MysticJourney.API.Core;
 using UnityEngine;
 
 public class EnemyEntity : MonoBehaviour
@@ -10,7 +11,12 @@ public class EnemyEntity : MonoBehaviour
 
     private int currentHealth;
     [SerializeField] private int maxHealth;
+    [SerializeField] private int monsterId;
+    [SerializeField] private int monsterSpawnId;
+    [SerializeField] private bool useApiStats = true;
     private bool isDead = false;
+
+    public int MonsterId => monsterId;
 
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;
@@ -21,7 +27,26 @@ public class EnemyEntity : MonoBehaviour
         capsuleColl = GetComponent<CapsuleCollider2D>();
         boxColl = GetComponent<BoxCollider2D>();
         enemyBehaviour = GetComponent<EnemyBehaviour>();
-        currentHealth = maxHealth * 2;
+
+        if (useApiStats && monsterId > 0 && MonsterManager.Instance != null)
+        {
+            var cached = MonsterManager.Instance.GetCachedMonster(monsterId);
+            if (cached != null)
+                maxHealth = cached.MaxHp;
+            else
+            {
+                MonsterManager.Instance.LoadMonsterDetail(monsterId, false, detail =>
+                {
+                    if (detail != null && !isDead)
+                    {
+                        maxHealth = detail.MaxHp;
+                        currentHealth = maxHealth;
+                    }
+                });
+            }
+        }
+
+        currentHealth = maxHealth;
     }
     //private void OnTriggerEnter2D(Collider2D collision)
     //{
@@ -63,6 +88,12 @@ public class EnemyEntity : MonoBehaviour
 
             enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");
+
+            // Báo server khi hạ quái (XP, gold, drop random, khám phá bestiary)
+            if (monsterId > 0 && MonsterManager.Instance != null && ApiClient.Instance.HasToken())
+            {
+                MonsterManager.Instance.ReportDefeat(monsterId, monsterSpawnId > 0 ? monsterSpawnId : null);
+            }
 
             // Cộng dồn tiến độ cho Quest giết quái
             if (QuestManager.Instance != null)
