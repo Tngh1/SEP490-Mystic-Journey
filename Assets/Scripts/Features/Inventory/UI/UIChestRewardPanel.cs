@@ -89,7 +89,24 @@ public class UIChestRewardPanel : MonoBehaviour
 
         if (titleText != null)
         {
-            titleText.text = string.IsNullOrEmpty(chestName) ? "Rương Phần Thưởng" : chestName;
+            titleText.text = (string.IsNullOrEmpty(chestName) || chestName == "Rương Phần Thưởng") ? "Exploration Successful" : chestName;
+        }
+
+        if (confirmButton != null)
+        {
+            var btnText = confirmButton.GetComponentInChildren<TMP_Text>();
+            if (btnText != null)
+            {
+                btnText.text = "Exit";
+            }
+            else
+            {
+                var legacyText = confirmButton.GetComponentInChildren<Text>();
+                if (legacyText != null)
+                {
+                    legacyText.text = "Exit";
+                }
+            }
         }
 
         // Deactivate old slots
@@ -105,14 +122,14 @@ public class UIChestRewardPanel : MonoBehaviour
         if (gold > 0)
         {
             var slot = GetOrCreateSlot(slotIndex++);
-            slot.Setup("Vàng", $"+{gold}", GetDefaultSprite("Gold"));
+            slot.Setup("Gold", $"+{gold}", GetDefaultSprite("Gold"));
         }
 
         // Add XP
         if (xp > 0)
         {
             var slot = GetOrCreateSlot(slotIndex++);
-            slot.Setup("Kinh Nghiệm", $"+{xp}", GetDefaultSprite("EXP"));
+            slot.Setup("Experience", $"+{xp}", GetDefaultSprite("EXP"));
         }
 
         // Add Items

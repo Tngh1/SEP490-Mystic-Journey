@@ -84,6 +84,9 @@ public class WorldInteractable : MonoBehaviour
         if (kind == WorldInteractableKind.Npc)
             return $"{DisplayName}\nPress E to talk";
 
+        if (objectKey == "dungeon_chest")
+            return $"{DisplayName}\nPress E to {InteractionType}";
+
         if (kind == WorldInteractableKind.QuestItem)
             return $"{DisplayName}\nPress P to collect";
 

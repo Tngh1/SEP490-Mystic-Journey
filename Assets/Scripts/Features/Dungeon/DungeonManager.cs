@@ -24,6 +24,9 @@ public class DungeonManager : MonoBehaviour
     public string PreviousMapSceneName { get; private set; } = "AbandonedCastle";
     public Vector3 PreviousPlayerPosition { get; private set; } = Vector3.zero;
 
+    private List<EnemyEntity> activeEnemies = new List<EnemyEntity>();
+    private bool bossKilled = false;
+
     private void Awake()
     {
         if (Instance == null)
@@ -64,6 +67,8 @@ public class DungeonManager : MonoBehaviour
         CurrentDungeonCost = cost;
         CurrentDungeonName = dungeonName;
         EnemiesKilledCount = 0;
+        bossKilled = false;
+        activeEnemies.Clear();
 
         // Save current map state to return later
         PreviousMapSceneName = WorldState.CurrentMapName;
@@ -228,10 +233,12 @@ public class DungeonManager : MonoBehaviour
         var enemies = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         Debug.Log($"[DungeonManager] Found {enemies.Length} enemies in scene.");
 
+        activeEnemies.Clear();
         foreach (var enemy in enemies)
         {
             if (enemy != null)
             {
+                activeEnemies.Add(enemy);
                 enemy.OnDeath -= HandleEnemyDeath;
                 enemy.OnDeath += HandleEnemyDeath;
             }
@@ -243,11 +250,20 @@ public class DungeonManager : MonoBehaviour
         if (sender is EnemyEntity enemy)
         {
             enemy.OnDeath -= HandleEnemyDeath;
+            if (activeEnemies.Contains(enemy))
+            {
+                activeEnemies.Remove(enemy);
+            }
             
             // Check if this enemy is the Boss (Ogre)
             bool isBoss = enemy.gameObject.name.ToLower().Contains("ogre") || 
                           enemy.gameObject.name.ToLower().Contains("boss") ||
                           enemy.name.ToLower().Contains("ogre");
+
+            if (isBoss)
+            {
+                bossKilled = true;
+            }
 
             UpdateMonsterKill(isBoss);
         }
@@ -256,20 +272,22 @@ public class DungeonManager : MonoBehaviour
     public void UpdateMonsterKill(bool isBoss)
     {
         EnemiesKilledCount++;
-        int percentage = isBoss ? 100 : Mathf.Min(99, EnemiesKilledCount * 10);
+        bool allDead = activeEnemies.Count == 0;
+        int totalEnemies = EnemiesKilledCount + activeEnemies.Count;
+        int percentage = allDead ? 100 : Mathf.Min(99, (EnemiesKilledCount * 100) / Mathf.Max(1, totalEnemies));
 
         var request = new UpdateDungeonProgressRequest
         {
             MonstersKilled = EnemiesKilledCount,
-            BossKilled = isBoss,
+            BossKilled = bossKilled || isBoss,
             CompletionPercentage = percentage
         };
 
         DungeonApi.Instance.UpdateProgress(CurrentSessionId, request,
             onSuccess: response =>
             {
-                Debug.Log($"[DungeonManager] Progress updated: Killed={EnemiesKilledCount}, Boss={isBoss}");
-                if (isBoss)
+                Debug.Log($"[DungeonManager] Progress updated: Killed={EnemiesKilledCount}, Boss={request.BossKilled}, AllDead={allDead}");
+                if (allDead)
                 {
                     CompleteDungeon();
                 }
@@ -277,7 +295,7 @@ public class DungeonManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogWarning($"[DungeonManager] UpdateProgress failed: {error.Message}");
-                if (isBoss)
+                if (allDead)
                 {
                     CompleteDungeon();
                 }
@@ -325,7 +343,7 @@ public class DungeonManager : MonoBehaviour
 
         foreach (var t in chests)
         {
-            if (t != null && (t.name == "Chest" || t.name == "Chest (1)" || t.name == "Chest (2)"))
+            if (t != null && (t.name == "Chest" || t.name == "Chest (1)" || t.name == "Chest (2)" || t.name == "DarkChest" || t.name.Contains("DarkChest")))
             {
                 t.gameObject.SetActive(true);
                 t.position = spawnPos;
