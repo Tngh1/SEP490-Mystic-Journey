@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MysticJourney.API.Core;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
@@ -67,13 +68,18 @@ namespace MysticJourney.API.Endpoints
         /// </summary>
         public void Enter(
             int dungeonConfigId,
+            List<string> partyMembers,
             Action<ApiResponse<EnterDungeonResponse>> onSuccess,
             Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.DungeonEnter, dungeonConfigId);
-            SafeDebugLog($"Enter → dungeonConfigId={dungeonConfigId}");
-            ApiClient.Instance.PostEmpty<ApiResponse<EnterDungeonResponse>>(
+            SafeDebugLog($"Enter → dungeonConfigId={dungeonConfigId} | PartyCount={partyMembers?.Count ?? 0}");
+
+            var body = new EnterDungeonRequest { PartyMembers = partyMembers ?? new List<string>() };
+
+            ApiClient.Instance.Post<EnterDungeonRequest, ApiResponse<EnterDungeonResponse>>(
                 endpoint,
+                body,
                 response =>
                 {
                     SafeDebugLog($"Enter OK | SessionId={response.Data?.DungeonSessionId} | Energy={response.Data?.PlayerCurrentEnergy}/{response.Data?.EnergyCost}");

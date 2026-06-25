@@ -58,7 +58,7 @@ public class DungeonManager : MonoBehaviour
                GameObject.Find("Mage(Clone)") ?? 
                GameObject.Find("Archer(Clone)");
     }
-    public void StartDungeon(int configId, string dungeonSceneName, int cost, string dungeonName)
+    public void StartDungeon(int configId, string dungeonSceneName, int cost, string dungeonName, List<string> partyMembers = null)
     {
         CurrentDungeonConfigId = configId;
         CurrentDungeonCost = cost;
@@ -80,7 +80,7 @@ public class DungeonManager : MonoBehaviour
         }
 
         // Call Enter API
-        DungeonApi.Instance.Enter(configId,
+        DungeonApi.Instance.Enter(configId, partyMembers ?? new List<string>(),
             onSuccess: response =>
             {
                 if (response.Success && response.Data != null)

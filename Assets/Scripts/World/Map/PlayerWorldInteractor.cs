@@ -36,14 +36,29 @@ public class PlayerWorldInteractor : MonoBehaviour
             RefreshInteractables();
         }
 
-        current = FindNearestInteractable(WorldInteractableKind.Npc) ?? FindNearestWorldObject();
+        current = FindNearestInteractable(WorldInteractableKind.Npc) ?? 
+                  FindNearestInteractable(WorldInteractableKind.Dungeon) ?? 
+                  FindNearestWorldObject();
         if (current != null)
             WorldInteractionPromptRuntime.Show(current.GetPromptText());
         else
             WorldInteractionPromptRuntime.Hide();
 
         if (Input.GetKeyDown(KeyCode.E))
-            TryInteract(WorldInteractableKind.Npc);
+        {
+            if (current != null && current.Kind == WorldInteractableKind.Dungeon)
+            {
+                var entrance = current.GetComponent<DungeonEntrance>();
+                if (entrance != null)
+                {
+                    entrance.Interact();
+                }
+            }
+            else
+            {
+                TryInteract(WorldInteractableKind.Npc);
+            }
+        }
 
         if (Input.GetKeyDown(KeyCode.P))
             TryInteractWorldObject();
