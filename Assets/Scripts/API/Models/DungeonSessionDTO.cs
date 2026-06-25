@@ -15,6 +15,7 @@ namespace MysticJourney.API.Models.Response
         public int PlayerCurrentEnergy { get; set; }
         public string EnterTime { get; set; }
         public string Status { get; set; }          // "Active"
+        public List<string> PartyMembers { get; set; }
     }
 
     // ── Response: POST /api/dungeons/session/{id}/progress ───────────────────
@@ -111,5 +112,12 @@ namespace MysticJourney.API.Models.Request
 
         /// <summary>JSON string tuỳ chọn cho dữ liệu mở rộng (tầng, bẫy, v.v.)</summary>
         public string ExtraData { get; set; }
+    }
+
+    // ── Request: POST /api/dungeons/{id}/enter ─────────────────────────────
+    [System.Serializable]
+    public class EnterDungeonRequest
+    {
+        public List<string> PartyMembers { get; set; }
     }
 }

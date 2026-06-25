@@ -5,7 +5,8 @@ public enum WorldInteractableKind
 {
     Npc,
     Object,
-    QuestItem
+    QuestItem,
+    Dungeon
 }
 
 public class WorldInteractable : MonoBehaviour
@@ -66,10 +67,25 @@ public class WorldInteractable : MonoBehaviour
         kind = WorldInteractableKind.QuestItem;
     }
 
+    public void ConfigureDungeon(int configId, float radius)
+    {
+        kind = WorldInteractableKind.Dungeon;
+        npcId = configId;
+        interactionRadius = Mathf.Max(0.5f, radius);
+        displayName = "Dungeon Entrance";
+        objectKey = "dungeon_" + configId;
+    }
+
     public string GetPromptText()
     {
+        if (kind == WorldInteractableKind.Dungeon)
+            return "Press E to Enter Dungeon";
+
         if (kind == WorldInteractableKind.Npc)
             return $"{DisplayName}\nPress E to talk";
+
+        if (objectKey == "dungeon_chest")
+            return $"{DisplayName}\nPress E to {InteractionType}";
 
         if (kind == WorldInteractableKind.QuestItem)
             return $"{DisplayName}\nPress P to collect";

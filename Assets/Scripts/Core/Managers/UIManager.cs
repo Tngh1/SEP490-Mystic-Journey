@@ -188,7 +188,7 @@ public class UIManager : MonoBehaviour
         EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");
         EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
         EnsurePanelRuntime<UIChestRewardPanel>(chestPanel, "ChestPanel");
-        EnsurePanelRuntime<UIDungeonRoomPanel>(dungeonPanel, "DungeonPanel");
+        EnsurePanelRuntime<UIDungeonRoomPanel>(dungeonPanel, "TeamPanel");
 
         if (DungeonManager.Instance == null)
         {
@@ -218,7 +218,7 @@ public class UIManager : MonoBehaviour
         var existing = Resources.FindObjectsOfTypeAll<T>();
         foreach (var component in existing)
         {
-            if (component != null && component.gameObject.scene.IsValid() && component.gameObject.scene.name == "Main")
+            if (component != null && component.gameObject.scene.IsValid() && !string.IsNullOrEmpty(component.gameObject.scene.name))
                 return;
         }
 
@@ -230,7 +230,7 @@ public class UIManager : MonoBehaviour
         var existing = Resources.FindObjectsOfTypeAll<T>();
         foreach (var component in existing)
         {
-            if (component != null && component.gameObject.scene.IsValid() && component.gameObject.scene.name == "Main")
+            if (component != null && component.gameObject.scene.IsValid() && !string.IsNullOrEmpty(component.gameObject.scene.name))
                 return;
         }
 
@@ -283,7 +283,7 @@ public class UIManager : MonoBehaviour
         mapPanel = BindPanel(mapPanel, "MapPanel");
         questPanel = BindPanel(questPanel, "QuestPanel");
         chatPanel = BindPanel(chatPanel, "ChatPanel");
-        dungeonPanel = BindPanel(dungeonPanel, "DungeonPanel");
+        dungeonPanel = BindPanel(dungeonPanel, "TeamPanel");
         friendPanel = BindPanel(friendPanel, "FriendPanel");
         mailboxPanel = BindPanel(mailboxPanel, "MailboxPanel");
         settingPanel = BindPanel(settingPanel, "GameSettingPanel"); // Lưu ý: trên scene của bạn là GameSettingPanel
@@ -302,7 +302,7 @@ public class UIManager : MonoBehaviour
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
         foreach (var obj in objects)
         {
-            if (obj != null && obj.name == objectName && obj.scene.IsValid() && obj.scene.name == "Main")
+            if (obj != null && obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
                 return obj;
         }
 

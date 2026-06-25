@@ -135,5 +135,23 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        public void GetFriends(Action<ApiResponse<PlayerProfileResponse[]>> onSuccess, Action<ApiException> onError)
+        {
+            SafeDebugLog("GetFriends...");
+            ApiClient.Instance.Get<ApiResponse<PlayerProfileResponse[]>>(
+                "api/playerprofiles/me/friends",
+                response =>
+                {
+                    SafeDebugLog($"GetFriends OK | Count={response.Data?.Length ?? 0}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"GetFriends FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

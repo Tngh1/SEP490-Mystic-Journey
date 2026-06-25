@@ -6,61 +6,62 @@ public class DungeonEntrance : MonoBehaviour
     [SerializeField] private string dungeonSceneName = "AbandonedMines";
     [SerializeField] private int energyCost = 20;
     [SerializeField] private string dungeonName = "Abandoned Mines";
-
-    private bool isTriggered = false;
+    [SerializeField] private float interactionRadius = 2.5f;
 
     private void Start()
     {
-        // Ensure this GameObject has a Collider2D configured as a trigger
-        Collider2D col = GetComponent<Collider2D>();
-        if (col == null)
+        // Add and configure WorldInteractable component dynamically to utilize the prompt system
+        var interactable = gameObject.GetComponent<WorldInteractable>() ?? gameObject.AddComponent<WorldInteractable>();
+        interactable.ConfigureDungeon(dungeonConfigId, interactionRadius);
+        Debug.Log($"[DungeonEntrance] Configured {gameObject.name} as Dungeon Entrance Interactable.");
+    }
+
+    public void Interact()
+    {
+        WorldInteractionPromptRuntime.Hide();
+        
+        GameObject targetPanel = null;
+        if (UIManager.Instance != null && UIManager.Instance.dungeonPanel != null)
         {
-            BoxCollider2D box = gameObject.AddComponent<BoxCollider2D>();
-            box.isTrigger = true;
-            box.size = new Vector2(2.5f, 2.5f); // Generous trigger area for easy testing
-            Debug.Log($"[DungeonEntrance] Automatically added BoxCollider2D (IsTrigger=true) to {gameObject.name}");
+            targetPanel = UIManager.Instance.dungeonPanel;
         }
         else
         {
-            col.isTrigger = true;
-            Debug.Log($"[DungeonEntrance] Set existing Collider2D on {gameObject.name} to Trigger");
-        }
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (isTriggered) return;
-
-        // Robust check for player including child colliders and names
-        bool isPlayer = collision.CompareTag("Player") || 
-                       collision.GetComponentInParent<PlayerMovement>() != null || 
-                       collision.gameObject.name.Contains("Knight") || 
-                       collision.gameObject.name.Contains("Mage") || 
-                       collision.gameObject.name.Contains("Archer") ||
-                       collision.transform.root.CompareTag("Player") ||
-                       collision.transform.root.name.Contains("Knight") ||
-                       collision.transform.root.name.Contains("Mage") ||
-                       collision.transform.root.name.Contains("Archer");
-
-        if (isPlayer)
-        {
-            isTriggered = true;
-            Debug.Log($"[DungeonEntrance] Player ({collision.gameObject.name}) entered trigger. Teleporting directly to: {dungeonSceneName}");
-            
-            if (DungeonManager.Instance != null)
+            // Fallback to searching the scene
+            var allGos = Resources.FindObjectsOfTypeAll<GameObject>();
+            foreach (var obj in allGos)
             {
-                DungeonManager.Instance.StartDungeon(dungeonConfigId, dungeonSceneName, energyCost, dungeonName);
+                if (obj != null && obj.name == "TeamPanel" && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
+                {
+                    targetPanel = obj;
+                    break;
+                }
+            }
+        }
+
+        if (targetPanel != null)
+        {
+            // Activate the panel first so that Awake() runs and UIDungeonRoomPanel.Instance is initialized!
+            if (UIManager.Instance != null && UIManager.Instance.dungeonPanel == targetPanel)
+            {
+                UIManager.Instance.ShowPanel(targetPanel);
             }
             else
             {
-                Debug.LogError("[DungeonEntrance] DungeonManager.Instance is null!");
-                isTriggered = false; // Reset to allow retry
+                targetPanel.SetActive(true);
             }
-        }
-    }
 
-    private void OnEnable()
-    {
-        isTriggered = false;
+            var lobbyScript = targetPanel.GetComponent<UIDungeonRoomPanel>();
+            if (lobbyScript == null)
+            {
+                lobbyScript = targetPanel.AddComponent<UIDungeonRoomPanel>();
+            }
+
+            lobbyScript.OpenForDungeon(dungeonConfigId, dungeonSceneName, energyCost, dungeonName);
+        }
+        else
+        {
+            Debug.LogError("[DungeonEntrance] TeamPanel UI GameObject not found!");
+        }
     }
 }

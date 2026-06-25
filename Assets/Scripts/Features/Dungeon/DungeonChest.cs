@@ -25,7 +25,7 @@ public class DungeonChest : MonoBehaviour
 
         // Add and configure WorldInteractable component dynamically to utilize the prompt system
         var interactable = gameObject.GetComponent<WorldInteractable>() ?? gameObject.AddComponent<WorldInteractable>();
-        interactable.ConfigureObject("dungeon_chest", "Rương Phần Thưởng", "Mở", 0, 1, interactionRadius);
+        interactable.ConfigureObject("dungeon_chest", "Reward Chest", "Open", 0, 1, interactionRadius);
         Debug.Log("[DungeonChest] Chest interaction initialized.");
     }
 
@@ -42,7 +42,7 @@ public class DungeonChest : MonoBehaviour
         if (dist <= interactionRadius)
         {
             // Listen to standard interaction key
-            if (Input.GetKeyDown(KeyCode.P))
+            if (Input.GetKeyDown(KeyCode.E))
             {
                 OpenChest();
             }
@@ -75,7 +75,7 @@ public class DungeonChest : MonoBehaviour
                     if (UIChestRewardPanel.Instance != null)
                     {
                         UIChestRewardPanel.Instance.ShowRewards(
-                            "Rương Phần Thưởng",
+                            "Exploration Successful",
                             response.Data.GoldEarned,
                             response.Data.ExperienceEarned,
                             response.Data.Items,
@@ -111,7 +111,7 @@ public class DungeonChest : MonoBehaviour
         if (UIChestRewardPanel.Instance != null)
         {
             UIChestRewardPanel.Instance.ShowRewards(
-                "Rương Phần Thưởng",
+                "Exploration Successful",
                 100, // mock gold
                 50,  // mock xp
                 null, // no items
