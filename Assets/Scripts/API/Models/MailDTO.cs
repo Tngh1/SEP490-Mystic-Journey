@@ -22,4 +22,14 @@ namespace MysticJourney.API.Models.Response
         public string SentAt { get; set; }
         public string ExpiredAt { get; set; }
     }
+
+    // Maps PlayerMeMailsResponseDto – returned by GET /api/playerprofiles/me/mails
+    [System.Serializable]
+    public class PlayerMeMailsResponse
+    {
+        public int PlayerProfileId { get; set; }
+        public MailResponse[] Mails { get; set; }
+        public int TotalCount { get; set; }
+        public int UnreadCount { get; set; }
+    }
 }

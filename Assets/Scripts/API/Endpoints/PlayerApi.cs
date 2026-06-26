@@ -153,5 +153,23 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        public void GetMyMails(Action<PlayerMeMailsResponse> onSuccess, Action<ApiException> onError)
+        {
+            SafeDebugLog("GetMyMails...");
+            ApiClient.Instance.Get<PlayerMeMailsResponse>(
+                ApiConfig.PlayerMeMails,
+                response =>
+                {
+                    SafeDebugLog($"GetMyMails OK");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"GetMyMails FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

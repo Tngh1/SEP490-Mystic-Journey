@@ -31,14 +31,14 @@ namespace MysticJourney.Screen.GameSetting
         [SerializeField] private TMP_Dropdown resolutionDropdown;
         [SerializeField] private ToggleButtonUI damageNumbersToggle;
 
-        [Header("Main Buttons")]
-        [SerializeField] private Button saveChangeButton;
-        [SerializeField] private Button settingsCloseButton;
+        [Header("Main Panel Buttons")]
+        [SerializeField] private Button saveChangeButton;     // Nút "Save Change" dưới quyển sách
+        [SerializeField] private Button settingsExitButton;   // Nút "X" góc trên phải của quyển sách
 
         [Header("Confirm Popup")]
         [SerializeField] private GameObject confirmPanel;
-        [SerializeField] private Button popupOkButton;
-        [SerializeField] private Button popupCloseButton;
+        [SerializeField] private Button popupOkButton;        // Nút "OK" trên popup (Lưu và thoát)
+        [SerializeField] private Button popupCancelButton;    // Nút "X" trên popup (Hủy thoát, ở lại cài đặt)
 
         private SettingState savedState;
 
@@ -47,22 +47,24 @@ namespace MysticJourney.Screen.GameSetting
             if (confirmPanel != null)
                 confirmPanel.SetActive(false);
 
-            saveChangeButton?.onClick.AddListener(OnSaveChangeClicked);
-            settingsCloseButton?.onClick.AddListener(OnSettingsCloseClicked);
+            // Gán sự kiện cho các nút Main Panel
+            if (saveChangeButton != null) saveChangeButton.onClick.AddListener(OnSaveChangeClicked);
+            if (settingsExitButton != null) settingsExitButton.onClick.AddListener(OnSettingsExitClicked);
 
-            popupOkButton?.onClick.AddListener(OnPopupOkClicked);
-            popupCloseButton?.onClick.AddListener(OnPopupCloseClicked);
+            // Gán sự kiện cho các nút Popup
+            if (popupOkButton != null) popupOkButton.onClick.AddListener(OnPopupOkClicked);
+            if (popupCancelButton != null) popupCancelButton.onClick.AddListener(OnPopupCancelClicked);
 
             LoadCurrentSettings();
         }
 
         private void OnDestroy()
         {
-            saveChangeButton?.onClick.RemoveListener(OnSaveChangeClicked);
-            settingsCloseButton?.onClick.RemoveListener(OnSettingsCloseClicked);
+            if (saveChangeButton != null) saveChangeButton.onClick.RemoveListener(OnSaveChangeClicked);
+            if (settingsExitButton != null) settingsExitButton.onClick.RemoveListener(OnSettingsExitClicked);
 
-            popupOkButton?.onClick.RemoveListener(OnPopupOkClicked);
-            popupCloseButton?.onClick.RemoveListener(OnPopupCloseClicked);
+            if (popupOkButton != null) popupOkButton.onClick.RemoveListener(OnPopupOkClicked);
+            if (popupCancelButton != null) popupCancelButton.onClick.RemoveListener(OnPopupCancelClicked);
         }
 
         private void LoadCurrentSettings()
@@ -70,35 +72,29 @@ namespace MysticJourney.Screen.GameSetting
             var settings = SettingsService.Instance;
             settings.Load();
 
-            if (masterVolumeSlider != null)
-                masterVolumeSlider.value = settings.MasterVolume;
-            if (musicVolumeSlider != null)
-                musicVolumeSlider.value = settings.MusicVolume;
-            if (sfxVolumeSlider != null)
-                sfxVolumeSlider.value = settings.SfxVolume;
-            if (muteAllToggle != null)
-                muteAllToggle.SetState(settings.IsMuted);
-            if (displayModeDropdown != null)
-                displayModeDropdown.value = settings.DisplayModeIndex;
-            if (resolutionDropdown != null)
-                resolutionDropdown.value = settings.ResolutionIndex;
-            if (damageNumbersToggle != null)
-                damageNumbersToggle.SetState(settings.ShowDamageNumbers);
+            if (masterVolumeSlider != null) masterVolumeSlider.value = settings.MasterVolume;
+            if (musicVolumeSlider != null) musicVolumeSlider.value = settings.MusicVolume;
+            if (sfxVolumeSlider != null) sfxVolumeSlider.value = settings.SfxVolume;
+            if (muteAllToggle != null) muteAllToggle.SetState(settings.IsMuted);
+            if (displayModeDropdown != null) displayModeDropdown.value = settings.DisplayModeIndex;
+            if (resolutionDropdown != null) resolutionDropdown.value = settings.ResolutionIndex;
+            if (damageNumbersToggle != null) damageNumbersToggle.SetState(settings.ShowDamageNumbers);
 
             savedState = CaptureCurrentState();
         }
+
+        // --- SỰ KIỆN MAIN PANEL ---
 
         public void OnSaveChangeClicked()
         {
             SaveSettings();
-
             savedState = CaptureCurrentState();
-
             Debug.Log("[GameSettingUIManager] Settings Saved.");
         }
 
-        private void OnSettingsCloseClicked()
+        private void OnSettingsExitClicked()
         {
+            // Nếu có thay đổi chưa lưu -> Bật Popup hỏi
             if (HasUnsavedChanges())
             {
                 if (confirmPanel != null)
@@ -107,30 +103,30 @@ namespace MysticJourney.Screen.GameSetting
                 return;
             }
 
+            // Nếu không có thay đổi gì -> Tắt bảng cài đặt luôn
             CloseSettingsPanel();
         }
+
+        // --- SỰ KIỆN POPUP ---
 
         private void OnPopupOkClicked()
         {
+            // Người dùng chọn OK -> Lưu lại -> Tắt popup -> Đóng bảng cài đặt
             SaveSettings();
-
             savedState = CaptureCurrentState();
 
-            if (confirmPanel != null)
-                confirmPanel.SetActive(false);
-
+            if (confirmPanel != null) confirmPanel.SetActive(false);
             CloseSettingsPanel();
         }
 
-        private void OnPopupCloseClicked()
+        private void OnPopupCancelClicked()
         {
-            if (confirmPanel != null)
-                confirmPanel.SetActive(false);
-
-            CloseSettingsPanel();
-
-            Debug.Log("[GameSettingUIManager] Closed without saving.");
+            // Người dùng chọn X trên popup -> Chỉ tắt popup để quay lại chỉnh sửa tiếp
+            if (confirmPanel != null) confirmPanel.SetActive(false);
+            Debug.Log("[GameSettingUIManager] Cancelled exit. Staying in settings.");
         }
+
+        // --- HÀM HỖ TRỢ ---
 
         private void SaveSettings()
         {
@@ -145,7 +141,6 @@ namespace MysticJourney.Screen.GameSetting
             if (damageNumbersToggle != null) settings.SetShowDamageNumbers(damageNumbersToggle.isOn);
 
             settings.Save();
-            Debug.Log("[GameSettingUIManager] Settings saved.");
         }
 
         private void CloseSettingsPanel()
@@ -160,10 +155,8 @@ namespace MysticJourney.Screen.GameSetting
                 MasterVolume = masterVolumeSlider != null ? masterVolumeSlider.value : 0f,
                 MusicVolume = musicVolumeSlider != null ? musicVolumeSlider.value : 0f,
                 SfxVolume = sfxVolumeSlider != null ? sfxVolumeSlider.value : 0f,
-
                 MuteAll = muteAllToggle != null && muteAllToggle.isOn,
                 DamageNumbers = damageNumbersToggle != null && damageNumbersToggle.isOn,
-
                 DisplayMode = displayModeDropdown != null ? displayModeDropdown.value : 0,
                 Resolution = resolutionDropdown != null ? resolutionDropdown.value : 0
             };
@@ -171,8 +164,7 @@ namespace MysticJourney.Screen.GameSetting
 
         private bool HasUnsavedChanges()
         {
-            if (savedState == null)
-                return false;
+            if (savedState == null) return false;
 
             SettingState current = CaptureCurrentState();
 
@@ -180,18 +172,10 @@ namespace MysticJourney.Screen.GameSetting
                 !Mathf.Approximately(current.MasterVolume, savedState.MasterVolume) ||
                 !Mathf.Approximately(current.MusicVolume, savedState.MusicVolume) ||
                 !Mathf.Approximately(current.SfxVolume, savedState.SfxVolume) ||
-
                 current.MuteAll != savedState.MuteAll ||
                 current.DamageNumbers != savedState.DamageNumbers ||
-
                 current.DisplayMode != savedState.DisplayMode ||
                 current.Resolution != savedState.Resolution;
-        }
-
-        private string GetDropdownText(TMP_Dropdown dropdown)
-        {
-            if (dropdown == null || dropdown.options.Count == 0) return string.Empty;
-            return dropdown.options[dropdown.value].text;
         }
     }
 }
