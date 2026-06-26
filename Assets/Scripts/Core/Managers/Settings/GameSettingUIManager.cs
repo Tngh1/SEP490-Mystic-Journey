@@ -1,6 +1,8 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using MysticJourney.API.Core;
 
 namespace MysticJourney.Screen.GameSetting
 {
@@ -90,6 +92,18 @@ namespace MysticJourney.Screen.GameSetting
             SaveSettings();
             savedState = CaptureCurrentState();
             Debug.Log("[GameSettingUIManager] Settings Saved.");
+        }
+
+        public void OnLogoutClicked()
+        {
+            // 1. Xóa toàn bộ dữ liệu phiên (Token, ID, v.v.)
+            ApiClient.Instance.ClearToken();
+
+            Debug.Log("[Settings] Đã đăng xuất, quay về màn hình Login.");
+
+            // 2. Load lại Scene Login
+            // Thay "LoginScene" bằng tên Scene đăng nhập thực tế của bạn
+            SceneManager.LoadScene("LoginScene");
         }
 
         private void OnSettingsExitClicked()
