@@ -10,16 +10,6 @@ using UnityEngine.UI;
 
 namespace MysticJourney.Screen.Login
 {
-    // Controller đơn giản cho màn hình Login trong MainMenuScene.
-    // Gắn script này vào GameObject Canvas trong scene MainMenuScene.unity.
-    // Kéo UsernameInput, PasswordInput, LoginButton vào Inspector.
-    // Điền tên scene muốn chuyển tới sau khi login OK vào field "Scene On Success".
-    //
-    // Flow:
-    //   1. User nhập Email/Username + Password → bấm LoginButton
-    //   2. Script gọi AuthApi.Instance.LoginGame()
-    //   3. In thông tin response ra Unity Console
-    //   4. Nếu login OK + có cấu hình scene → tự chuyển scene sau một khoảng delay
     public class LoginUIManager : MonoBehaviour
     {
         [Header("Input Fields (TMP)")]
@@ -30,13 +20,15 @@ namespace MysticJourney.Screen.Login
         [SerializeField] private Button loginButton;
 
         [Header("Scene Flow (chỉ chuyển khi login thành công)")]
-        [Tooltip("Tên scene sẽ load sau khi login OK. Để trống nếu muốn script khác tự xử lý.")]
-        [SerializeField] private string sceneOnSuccess = "Main";
-
         [Tooltip("Thời gian chờ (giây) trước khi chuyển scene, để user kịp đọc log.")]
         [SerializeField, Min(0f)] private float delayBeforeSceneLoad = 0.5f;
 
-        // Sự kiện cho script khác lắng nghe (vd: MainMenu chuyển scene khi login OK)
+        // --- BỔ SUNG BIẾN CHO FAILED POPUP ---
+        [Header("Failed Popup UI")]
+        [SerializeField] private GameObject failedPopup;     // Object FailedPopup tổng
+        [SerializeField] private TMP_Text errorText;         // Chữ hiển thị lỗi
+        [SerializeField] private Button popupExitButton;     // Nút X để đóng Popup
+
         public event System.Action<LoginGameResponse> OnLoginSuccess;
         public event System.Action<ApiException> OnLoginFailed;
 
@@ -49,12 +41,22 @@ namespace MysticJourney.Screen.Login
 
             if (loginButton != null)
                 loginButton.onClick.AddListener(OnLoginButtonClicked);
+
+            // Ẩn popup khi mới bắt đầu game và gán sự kiện cho nút đóng
+            if (failedPopup != null)
+                failedPopup.SetActive(false);
+
+            if (popupExitButton != null)
+                popupExitButton.onClick.AddListener(CloseFailedPopup);
         }
 
         private void OnDestroy()
         {
             if (loginButton != null)
                 loginButton.onClick.RemoveListener(OnLoginButtonClicked);
+
+            if (popupExitButton != null)
+                popupExitButton.onClick.RemoveListener(CloseFailedPopup);
         }
 
         // ── Click Handler ─────────────────────────────────────────
@@ -68,7 +70,7 @@ namespace MysticJourney.Screen.Login
 
             if (string.IsNullOrEmpty(emailOrUser) || string.IsNullOrEmpty(password))
             {
-                Debug.LogWarning("[LoginUIManager] Vui lòng nhập Email/Username và mật khẩu.");
+                ShowErrorPopup("Vui lòng nhập Username/Email và mật khẩu.");
                 return;
             }
 
@@ -83,17 +85,11 @@ namespace MysticJourney.Screen.Login
                     _isLoggingIn = false;
                     SetInteractable(true);
 
+                    if (failedPopup != null) failedPopup.SetActive(false); // Ẩn popup nếu đang bật
+
                     Debug.Log("========== [LoginUIManager] LOGIN OK ==========");
                     Debug.Log($"  UserName        : {response.UserName}");
-                    Debug.Log($"  Email           : {response.EmailAddress}");
                     Debug.Log($"  AccountId       : {response.AccountId}");
-                    Debug.Log($"  PlayerProfileId : {response.PlayerProfileId}");
-                    Debug.Log($"  DisplayName     : {response.PlayerDisplayName}");
-                    Debug.Log($"  RoleId          : {response.RoleId}");
-                    Debug.Log($"  AccessToken     : {Truncate(response.AccessToken, 40)}...");
-                    Debug.Log($"  AccessExpires   : {response.AccessTokenExpiresAt}");
-                    Debug.Log($"  RefreshExpires  : {response.RefreshTokenExpiresAt}");
-                    Debug.Log($"  HasToken (sau)  : {ApiClient.Instance.HasToken()}");
                     Debug.Log("================================================");
 
                     WorldState.HasCharacter = !string.IsNullOrEmpty(response.PlayerClass);
@@ -112,12 +108,12 @@ namespace MysticJourney.Screen.Login
 
                     if (string.IsNullOrEmpty(response.PlayerClass))
                     {
-                        Debug.Log("[LoginUIManager] Account has no character class. Loading CharacterCreation scene...");
+                        Debug.Log("[LoginUIManager] Loading CharacterCreation scene...");
                         StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.CharacterCreation, delayBeforeSceneLoad));
                     }
                     else
                     {
-                        Debug.Log($"[LoginUIManager] Account has character class: {response.PlayerClass}. Loading game via Bootstrap...");
+                        Debug.Log($"[LoginUIManager] Loading game via Bootstrap...");
                         StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.Bootstrap, delayBeforeSceneLoad));
                     }
                 },
@@ -126,16 +122,36 @@ namespace MysticJourney.Screen.Login
                     _isLoggingIn = false;
                     SetInteractable(true);
 
+                    // Hiển thị lỗi lên Popup UI
+                    ShowErrorPopup(!string.IsNullOrEmpty(error.Message) ? error.Message : "Đăng nhập thất bại. Vui lòng thử lại!");
+
                     Debug.LogError("========== [LoginUIManager] LOGIN FAIL ==========");
                     Debug.LogError($"  StatusCode : {error.StatusCode}");
-                    Debug.LogError($"  ErrorCode  : {error.ErrorCode}");
                     Debug.LogError($"  Message    : {error.Message}");
-                    Debug.LogError($"  RawBody    : {error.RawBody}");
                     Debug.LogError("=================================================");
 
                     OnLoginFailed?.Invoke(error);
                 }
             );
+        }
+
+        // ── Failed Popup Helpers ──────────────────────────────────
+
+        private void ShowErrorPopup(string message)
+        {
+            if (failedPopup == null || errorText == null) return;
+
+            errorText.text = message;
+            failedPopup.SetActive(true);
+
+            // Đẩy popup lên trên cùng (phòng trường hợp bị che)
+            failedPopup.transform.SetAsLastSibling();
+        }
+
+        public void CloseFailedPopup()
+        {
+            if (failedPopup != null)
+                failedPopup.SetActive(false);
         }
 
         // ── Helpers ───────────────────────────────────────────────
@@ -150,7 +166,6 @@ namespace MysticJourney.Screen.Login
                 yield break;
             }
 
-            Debug.Log($"[LoginUIManager] → Loading scene: {sceneName}");
             SceneManager.LoadScene(sceneName);
         }
 

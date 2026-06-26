@@ -88,8 +88,10 @@ public class UIItemDetailPopup : MonoBehaviour
 
     // Dữ liệu item đang hiển thị
     private InventoryItemResponse _currentItem;
+#pragma warning disable CS0414
     private PlayerSkinSummaryResponse _currentSkin;
     private bool _isSkinMode = false;
+#pragma warning restore CS0414
     private int _consumeQuantity = 1;
     private Sprite _currentIcon;
 

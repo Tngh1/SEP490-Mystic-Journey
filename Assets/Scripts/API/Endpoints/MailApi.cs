@@ -7,6 +7,25 @@ namespace MysticJourney.API.Endpoints
 {
     public class MailApi : BaseApiService<MailApi>
     {
+
+        public void GetMyMails(Action<PlayerMeMailsResponse> onSuccess, Action<ApiException> onError)
+        {
+            SafeDebugLog($"GetMyMails → Đang tải danh sách thư của người chơi hiện tại");
+            ApiClient.Instance.Get<PlayerMeMailsResponse>(
+                ApiConfig.PlayerMeMails,
+                response =>
+                {
+                    SafeDebugLog($"GetMyMails OK | Tổng thư: {response.TotalCount} | Chưa đọc: {response.UnreadCount}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"GetMyMails FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true); 
+        }
+
         public void GetById(int mailId, Action<MailResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.MailById, mailId);
@@ -45,17 +64,6 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
-        public void GetMyMails(Action<MailResponse[]> onSuccess, Action<ApiException> onError)
-        {
-            int profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
-            if (profileId <= 0)
-            {
-                SafeDebugError("GetMyMails FAIL: Chua co PlayerProfileId – hay LoginGame() truoc.");
-                onError?.Invoke(new ApiException { StatusCode = 0, ErrorCode = "NO_PROFILE_ID", Message = "PlayerProfileId not found. Please login first.", RawBody = "" });
-                return;
-            }
-            GetByPlayerId(profileId, onSuccess, onError);
-        }
 
         public void MarkAsRead(int mailId, Action<MailResponse> onSuccess, Action<ApiException> onError)
         {

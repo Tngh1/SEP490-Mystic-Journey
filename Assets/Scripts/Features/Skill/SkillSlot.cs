@@ -117,7 +117,7 @@ public class SkillSlot : MonoBehaviour, IDropHandler
                     SkillSlot.BroadcastSkillEquipped(slotIndex, droppedSkill.visualData, response);
 
                     // Auto-complete EquipSkill quest
-                    var qm = FindObjectOfType<QuestManager>();
+                    var qm = FindFirstObjectByType<QuestManager>();
                     if (qm != null)
                     {
                         qm.AutoCompleteEquipSkillQuest();

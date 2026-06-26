@@ -8,12 +8,13 @@ public class MenuUIManager : MonoBehaviour
     public GameObject websitePanel;
 
     [Header("Website")]
-    public string websiteUrl = "https://yourwebsite.com";
+    public string websiteUrl = "http://localhost:3000/";
+    //public string websiteUrl = "http://localhost:3000/";
 
     private void Start()
     {
-        startPanel.SetActive(false);
-        loginPanel.SetActive(true);
+        startPanel.SetActive(true);
+        loginPanel.SetActive(false);
         websitePanel.SetActive(true);   // hiện nút Website
     }
 

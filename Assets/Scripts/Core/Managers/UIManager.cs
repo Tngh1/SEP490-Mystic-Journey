@@ -37,14 +37,16 @@ public class UIManager : MonoBehaviour
         }
 
         Instance = this;
+
+        // CHỈ GỌI 1 LẦN DUY NHẤT TẠI ĐÂY KHI BẮT ĐẦU GAME
         BindPanels();
+
         EnsureRuntimeComponents();
         KeepQuestTrackerVisible();
     }
 
     private void Start()
     {
-        BindPanels();
         CloseAll();
         KeepQuestTrackerVisible();
         EnsurePlayerHUDController();
@@ -56,8 +58,6 @@ public class UIManager : MonoBehaviour
     {
         if (panel == null)
             return;
-
-        BindPanels();
 
         if (currentPanel == panel && panel.activeSelf)
         {
@@ -73,10 +73,9 @@ public class UIManager : MonoBehaviour
         if (panel == null)
             return;
 
-        BindPanels();
         CloseAll();
         panel.SetActive(true);
-        panel.transform.SetAsLastSibling();
+        panel.transform.SetAsLastSibling(); // Vẫn giữ lại để Panel nổi lên trên các Panel khác
         currentPanel = panel;
         KeepQuestTrackerVisible();
     }
@@ -108,8 +107,6 @@ public class UIManager : MonoBehaviour
 
     public void CloseAll()
     {
-        BindPanels();
-
         foreach (var panel in GetPanels())
         {
             if (panel != null)
@@ -122,14 +119,11 @@ public class UIManager : MonoBehaviour
 
     public void OpenSkillPanel()
     {
-        BindPanels();
         OpenPanel(skillPanel);
     }
 
     public void OpenQuestPanel()
     {
-        BindPanels();
-
         if (MainQuestPanelRuntime.Instance != null)
             MainQuestPanelRuntime.Instance.OpenQuestPanel();
         else
@@ -138,14 +132,12 @@ public class UIManager : MonoBehaviour
 
     public void OpenNpcPanel()
     {
-        BindPanels();
         OpenPanel(npcPanel);
     }
 
     // 2. Thêm hàm mở BestiaryPanel
     public void OpenBestiaryPanel()
     {
-        BindPanels();
         OpenPanel(bestiaryPanel);
     }
 
@@ -286,10 +278,10 @@ public class UIManager : MonoBehaviour
         dungeonPanel = BindPanel(dungeonPanel, "TeamPanel");
         friendPanel = BindPanel(friendPanel, "FriendPanel");
         mailboxPanel = BindPanel(mailboxPanel, "MailboxPanel");
-        settingPanel = BindPanel(settingPanel, "GameSettingPanel"); // Lưu ý: trên scene của bạn là GameSettingPanel
+        settingPanel = BindPanel(settingPanel, "GameSettingPanel");
         npcPanel = BindPanel(npcPanel, "NPCPanel");
         chestPanel = BindPanel(chestPanel, "ChestPanel");
-        bestiaryPanel = BindPanel(bestiaryPanel, "BestiaryPanel"); // Thêm Bind tự động
+        bestiaryPanel = BindPanel(bestiaryPanel, "BestiaryPanel");
     }
 
     private static GameObject BindPanel(GameObject current, string objectName)

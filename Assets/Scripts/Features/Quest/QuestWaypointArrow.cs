@@ -97,7 +97,7 @@ public class QuestWaypointArrow : MonoBehaviour
     private Transform FindTarget(PlayerQuestResponse quest, Vector3 playerPos)
     {
         // 1. Try to find WorldInteractable with matching QuestId
-        var interactables = FindObjectsOfType<WorldInteractable>();
+        var interactables = FindObjectsByType<WorldInteractable>(FindObjectsSortMode.None);
         WorldInteractable bestInteractable = null;
         float bestDist = float.MaxValue;
 
@@ -120,7 +120,7 @@ public class QuestWaypointArrow : MonoBehaviour
         // 2. If it's a Defeat quest, find the nearest active EnemyBehaviour
         if (string.Equals(quest.ObjectiveType, "Defeat", System.StringComparison.OrdinalIgnoreCase))
         {
-            var enemies = FindObjectsOfType<EnemyBehaviour>();
+            var enemies = FindObjectsByType<EnemyBehaviour>(FindObjectsSortMode.None);
             EnemyBehaviour bestEnemy = null;
             float bestEnemyDist = float.MaxValue;
             foreach (var enemy in enemies)

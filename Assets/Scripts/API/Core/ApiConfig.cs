@@ -35,6 +35,7 @@ namespace MysticJourney.API.Core
         // Player Profile
         public const string PlayerProfileById = "/api/playerprofiles/{0}";
         public const string PlayerProfileUpdate = "/api/playerprofiles/{0}";
+        public const string PlayerMeMails = "/api/playerprofiles/me/mails";
 
         // Inventory
         public const string InventoryMe = "/api/inventory/me";

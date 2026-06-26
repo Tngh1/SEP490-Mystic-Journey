@@ -142,12 +142,12 @@ namespace MysticJourney.API
         {
             Debug.Log("[TestAPI] 7. GetMyMails...");
 
-            MailApi.Instance.GetMyMails(
-                mails =>
+            PlayerApi.Instance.GetMyMails(
+                result =>
                 {
-                    Debug.Log($"[TestAPI] GetMyMails OK | Count={mails?.Length ?? 0}");
-                    if (mails != null)
-                        foreach (var m in mails)
+                    Debug.Log($"[TestAPI] GetMyMails OK | Count={result?.TotalCount ?? 0} | Unread={result?.UnreadCount ?? 0}");
+                    if (result?.Mails != null)
+                        foreach (var m in result.Mails)
                             Debug.Log($"  [{m.Type}] {m.Title} | Read={m.IsRead} | Claimed={m.IsClaimed} | Gold={m.AttachedGold} | Gems={m.AttachedGems}");
                     Test_GetDailyLoginRewards();
                 },
@@ -266,12 +266,12 @@ namespace MysticJourney.API
         [ContextMenu("Test: Get My Mails")]
         public void Test_GetMyMailsManual()
         {
-            MailApi.Instance.GetMyMails(
-                mails =>
+            PlayerApi.Instance.GetMyMails(
+                result =>
                 {
-                    Debug.Log($"[TestAPI] Mails count={mails?.Length ?? 0}");
-                    if (mails != null)
-                        foreach (var m in mails)
+                    Debug.Log($"[TestAPI] Mails count={result?.TotalCount ?? 0} | Unread={result?.UnreadCount ?? 0}");
+                    if (result?.Mails != null)
+                        foreach (var m in result.Mails)
                             Debug.Log($"  Mail#{m.MailId} [{m.Type}] {m.Title} | SentAt={m.SentAt} | ExpiredAt={m.ExpiredAt}");
                 },
                 e => Debug.LogError($"[TestAPI] {e}")
