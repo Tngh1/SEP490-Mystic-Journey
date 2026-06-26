@@ -134,13 +134,19 @@ public class UIItemDetailPopup : MonoBehaviour
     // =========================================================================
     public void Show(InventoryItemResponse item, Sprite icon = null)
     {
+        if (item == null)
+        {
+            Hide();
+            return;
+        }
+
         _isSkinMode = false;
         _currentSkin = null;
         _currentItem = item;
         _currentIcon = icon;
         gameObject.SetActive(true);
 
-        bool isConsumable = item.ItemType == "Consumable";
+        bool isConsumable = IsConsumable(item);
 
         if (isConsumable)
         {
@@ -163,10 +169,7 @@ public class UIItemDetailPopup : MonoBehaviour
             else itemIcon.enabled = false;
         }
 
-        bool isEquipment = item.ItemType == "Weapon" || item.ItemType == "Armor" ||
-                           item.ItemType == "Accessory" || item.ItemType == "Helmet" ||
-                           item.ItemType == "Gloves"   || item.ItemType == "Boots"  ||
-                           item.ItemType == "Ring"      || item.ItemType == "Necklace";
+        bool isEquipment = IsEquipment(item);
 
         if (statPanel) statPanel.SetActive(isEquipment);
 
@@ -201,13 +204,19 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private void RefreshButtons(InventoryItemResponse item)
     {
-        bool isEquipped = item.IsEquipped;
-        bool isConsumable = item.ItemType == "Consumable";
+        if (item == null)
+            return;
 
-        if (equipButton)   equipButton.gameObject.SetActive(!isEquipped && !isConsumable);
+        bool isEquipment = IsEquipment(item);
+        bool isEquipped = item.IsEquipped && isEquipment;
+        bool isConsumable = IsConsumable(item);
+
+        if (equipButton)   equipButton.gameObject.SetActive(!isEquipped && isEquipment);
         if (unequipButton) unequipButton.gameObject.SetActive(isEquipped);
 
-        if (consumeButton) consumeButton.gameObject.SetActive(isConsumable);
+        if (consumeButton) consumeButton.gameObject.SetActive(isConsumable && item.Quantity > 0);
+        if (equipSkinButton) equipSkinButton.gameObject.SetActive(false);
+        if (unequipSkinButton) unequipSkinButton.gameObject.SetActive(false);
     }
 
     private void SetStatText(TMP_Text label, string name, float value, bool isFloat = false)
@@ -221,17 +230,17 @@ public class UIItemDetailPopup : MonoBehaviour
     // =========================================================================
     private void HandleEquipInitiated()
     {
-        if (_currentItem != null) OnEquipInitiated?.Invoke(_currentItem);
+        if (_currentItem != null && IsEquipment(_currentItem)) OnEquipInitiated?.Invoke(_currentItem);
     }
 
     private void HandleEquipConfirmed()
     {
-        if (_currentItem != null) OnEquipConfirmed?.Invoke(_currentItem);
+        if (_currentItem != null && IsEquipment(_currentItem)) OnEquipConfirmed?.Invoke(_currentItem);
     }
 
     private void HandleUnequip()
     {
-        if (_currentItem != null) OnUnequipClicked?.Invoke(_currentItem);
+        if (_currentItem != null && IsEquipment(_currentItem)) OnUnequipClicked?.Invoke(_currentItem);
     }
 
     // =========================================================================
@@ -303,7 +312,7 @@ public class UIItemDetailPopup : MonoBehaviour
     // =========================================================================
     private void ShowConsumePanel()
     {
-        if (_currentItem == null) return;
+        if (_currentItem == null || !IsConsumable(_currentItem) || _currentItem.Quantity <= 0) return;
         SwitchPanel(consumePanel);
 
         _consumeQuantity = 1;
@@ -342,6 +351,30 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private void HandleConsumeConfirmed()
     {
-        if (_currentItem != null) OnConsumeConfirmed?.Invoke(_currentItem, _consumeQuantity);
+        if (_currentItem != null && IsConsumable(_currentItem) && _currentItem.Quantity > 0)
+            OnConsumeConfirmed?.Invoke(_currentItem, _consumeQuantity);
+    }
+
+    private static bool IsConsumable(InventoryItemResponse item)
+    {
+        return IsItemType(item, "Consumable");
+    }
+
+    private static bool IsEquipment(InventoryItemResponse item)
+    {
+        return IsItemType(item, "Weapon") ||
+               IsItemType(item, "Armor") ||
+               IsItemType(item, "Accessory") ||
+               IsItemType(item, "Helmet") ||
+               IsItemType(item, "Gloves") ||
+               IsItemType(item, "Boots") ||
+               IsItemType(item, "Ring") ||
+               IsItemType(item, "Necklace");
+    }
+
+    private static bool IsItemType(InventoryItemResponse item, string itemType)
+    {
+        return item != null &&
+               string.Equals(item.ItemType, itemType, StringComparison.OrdinalIgnoreCase);
     }
 }

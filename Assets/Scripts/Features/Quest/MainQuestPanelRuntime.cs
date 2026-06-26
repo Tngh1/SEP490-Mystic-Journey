@@ -882,7 +882,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         for (var i = 0; i < managers.Length; i++)
         {
             var manager = managers[i];
-            if (manager != null && manager.gameObject.scene.IsValid() && manager.gameObject.scene.name == "Main")
+            if (manager != null && manager.gameObject.scene.IsValid() && !string.IsNullOrEmpty(manager.gameObject.scene.name))
                 return manager;
         }
 
@@ -1042,7 +1042,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         for (var i = 0; i < objects.Length; i++)
         {
             var obj = objects[i];
-            if (obj != null && obj.name == objectName && obj.scene.IsValid() && obj.scene.name == "Main")
+            if (obj != null && obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
                 return obj;
         }
 

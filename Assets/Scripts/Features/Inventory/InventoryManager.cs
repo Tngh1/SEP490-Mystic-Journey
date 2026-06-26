@@ -92,7 +92,17 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     // UC 20.1 – Load Inventory
     // =========================================================================
-    public void LoadInventory(bool force = false)
+    public static void RefreshAny(bool refreshStats = false)
+    {
+#if UNITY_2023_1_OR_NEWER
+        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+#else
+        var manager = UnityEngine.Object.FindObjectOfType<InventoryManager>(true);
+#endif
+        manager?.LoadInventory(force: true, refreshStats: refreshStats);
+    }
+
+    public void LoadInventory(bool force = false, bool refreshStats = true)
     {
         BindUiReferences();
         BindEvents();
@@ -103,7 +113,8 @@ public class InventoryManager : MonoBehaviour
         if (!force && _summary != null && Time.unscaledTime - _lastLoadedAt < cacheSeconds)
         {
             RefreshCurrentTab();
-            LoadPlayerStats();
+            if (refreshStats)
+                LoadPlayerStats();
             return;
         }
 
@@ -112,7 +123,8 @@ public class InventoryManager : MonoBehaviour
         SetError(null);
         itemDetailPopup?.Hide();
 
-        LoadPlayerStats();
+        if (refreshStats)
+            LoadPlayerStats();
 
         InventoryApi.Instance.GetInventory(
             onSuccess: response =>
@@ -169,6 +181,12 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleEquipItem(InventoryItemResponse item)
     {
+        if (!CanEquipItem(item))
+        {
+            ShowActionError("Quest items cannot be equipped.");
+            return;
+        }
+
         Debug.Log($"[InventoryManager] EquipItem inventoryItemId={item.InventoryItemId}");
         itemDetailPopup?.Hide();
 
@@ -192,6 +210,12 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleEquipInitiated(InventoryItemResponse newItem)
     {
+        if (!CanEquipItem(newItem))
+        {
+            ShowActionError("Quest items are only used for quests.");
+            return;
+        }
+
         InventoryItemResponse oldItem = null;
         if (_summary?.EquippedItems != null)
         {
@@ -222,6 +246,12 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleUnequipItem(InventoryItemResponse item)
     {
+        if (!CanEquipItem(item))
+        {
+            ShowActionError("This item cannot be unequipped.");
+            return;
+        }
+
         Debug.Log($"[InventoryManager] UnequipItem inventoryItemId={item.InventoryItemId}");
         itemDetailPopup?.Hide();
 
@@ -245,6 +275,12 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleConsumeItem(InventoryItemResponse item, int quantity)
     {
+        if (!IsConsumable(item) || quantity <= 0)
+        {
+            ShowActionError("Only consumable items can be used.");
+            return;
+        }
+
         Debug.Log($"[InventoryManager] ConsumeItem inventoryItemId={item.InventoryItemId} qty={quantity}");
         itemDetailPopup?.Hide();
 
@@ -254,7 +290,8 @@ public class InventoryManager : MonoBehaviour
             onSuccess: _ =>
             {
                 Debug.Log($"[InventoryManager] ✅ ConsumeItem OK");
-                LoadInventory(force: true);
+                LoadPlayerStats(); // Refresh HP immediately after using a potion
+                LoadInventory(force: true, refreshStats: false);
             },
             onError: error =>
             {
@@ -394,6 +431,7 @@ public class InventoryManager : MonoBehaviour
         }
     }
 
+
     private void RefreshCurrentTab()
     {
         if (_summary == null) return;
@@ -445,11 +483,11 @@ public class InventoryManager : MonoBehaviour
 
             if (_summary.EquippedItems != null)
                 foreach (var it in _summary.EquippedItems)
-                    if (!it.IsSkin) allItems.Add(it);
+                    if (ShouldShowInventoryItem(it)) allItems.Add(it);
 
             if (_summary.BagItems != null)
                 foreach (var it in _summary.BagItems)
-                    if (!it.IsSkin) allItems.Add(it);
+                    if (ShouldShowInventoryItem(it)) allItems.Add(it);
 
             // --- FILTER ---
             if (_currentFilter != "All")
@@ -495,7 +533,7 @@ public class InventoryManager : MonoBehaviour
                     icon = icon,
                     quantity = item.Quantity,
                     rarity = item.ItemRarity,
-                    isEquipped = item.IsEquipped,
+                    isEquipped = item.IsEquipped && CanEquipItem(item),
                     rawData = item  // InventoryItemResponse để popup dùng
                 });
             }
@@ -641,13 +679,25 @@ public class InventoryManager : MonoBehaviour
 
     private GameObject FindObject(params string[] names)
     {
-        var children = GetComponentsInChildren<Transform>(true);
-        for (var i = 0; i < children.Length; i++)
+        List<Transform> roots = new List<Transform>();
+        roots.Add(transform);
+        if (itemFilterBar != null) roots.Add(itemFilterBar.transform);
+        if (skinFilterBar != null) roots.Add(skinFilterBar.transform);
+        if (uiInventory != null) roots.Add(uiInventory.transform);
+        if (uiSkinInventory != null) roots.Add(uiSkinInventory.transform);
+        if (itemDetailPopup != null) roots.Add(itemDetailPopup.transform);
+        if (skinDetailPopup != null) roots.Add(skinDetailPopup.transform);
+
+        foreach (var root in roots)
         {
-            for (var j = 0; j < names.Length; j++)
+            var children = root.GetComponentsInChildren<Transform>(true);
+            for (var i = 0; i < children.Length; i++)
             {
-                if (children[i] != null && children[i].name == names[j])
-                    return children[i].gameObject;
+                for (var j = 0; j < names.Length; j++)
+                {
+                    if (children[i] != null && children[i].name == names[j])
+                        return children[i].gameObject;
+                }
             }
         }
 
@@ -698,6 +748,8 @@ public class InventoryManager : MonoBehaviour
                 if (response.Success && response.Data != null)
                 {
                     UpdatePlayerStatsUI(response.Data);
+                    PlayerHUDController.Instance?.ApplyStats(response.Data);
+                    PlayerEntity.Instance?.ApplyHealth(response.Data.CurrentHp, response.Data.MaxHp);
                 }
             },
             onError: error =>
@@ -749,7 +801,7 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        UpdateStatRow(statsPanel, "HPRow", "HP", stats.MaxHp.ToString());
+        UpdateStatRow(statsPanel, "HPRow", "HP", $"{stats.CurrentHp}/{stats.MaxHp}");
         UpdateStatRow(statsPanel, "ATKRow", "ATK", stats.Atk.ToString());
         UpdateStatRow(statsPanel, "DEFRow", "DEF", stats.Def.ToString());
         UpdateStatRow(statsPanel, "SPDRow", "SPD", stats.MoveSpeed.ToString("F1"));
@@ -757,5 +809,44 @@ public class InventoryManager : MonoBehaviour
         UpdateStatRow(statsPanel, "CRITRow", "CRT", $"{(stats.CritRate * 100f):0.#}%");
         UpdateStatRow(statsPanel, "CRITDAMAGERow", "CRTD", $"{(stats.CritDamage * 100f):0.#}%");
         UpdateStatRow(statsPanel, "DMGBonusRow", "%DMG", $"{(stats.DamageBonus * 100f):0.#}%");
+    }
+
+    private static bool ShouldShowInventoryItem(InventoryItemResponse item)
+    {
+        if (item == null || item.IsSkin)
+            return false;
+
+        if (item.Quantity > 0)
+            return true;
+
+        return item.IsEquipped && CanEquipItem(item);
+    }
+
+    private static bool CanEquipItem(InventoryItemResponse item)
+    {
+        return IsEquipment(item);
+    }
+
+    private static bool IsConsumable(InventoryItemResponse item)
+    {
+        return IsItemType(item, "Consumable");
+    }
+
+    private static bool IsEquipment(InventoryItemResponse item)
+    {
+        return IsItemType(item, "Weapon") ||
+               IsItemType(item, "Armor") ||
+               IsItemType(item, "Accessory") ||
+               IsItemType(item, "Helmet") ||
+               IsItemType(item, "Gloves") ||
+               IsItemType(item, "Boots") ||
+               IsItemType(item, "Ring") ||
+               IsItemType(item, "Necklace");
+    }
+
+    private static bool IsItemType(InventoryItemResponse item, string itemType)
+    {
+        return item != null &&
+               string.Equals(item.ItemType, itemType, System.StringComparison.OrdinalIgnoreCase);
     }
 }

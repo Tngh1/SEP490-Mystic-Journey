@@ -43,6 +43,12 @@ public class UIManager : MonoBehaviour
 
         EnsureRuntimeComponents();
         KeepQuestTrackerVisible();
+
+        var settings = Resources.FindObjectsOfTypeAll<MysticJourney.Screen.GameSetting.GameSettingUIManager>();
+        foreach (var s in settings)
+        {
+            if (s != null) s.ForceInitialize();
+        }
     }
 
     private void Start()

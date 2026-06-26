@@ -33,9 +33,7 @@ public class PlayerEntity : MonoBehaviour
                 {
                     if (response != null && response.Data != null)
                     {
-                        maxHealth = response.Data.MaxHp;
-                        currentHealth = response.Data.CurrentHp;
-                        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                        ApplyHealth(response.Data.CurrentHp, response.Data.MaxHp);
                     }
                 },
                 error =>
@@ -44,6 +42,13 @@ public class PlayerEntity : MonoBehaviour
                 }
             );
         }
+    }
+
+    public void ApplyHealth(int currentHp, int maxHp)
+    {
+        maxHealth = Mathf.Max(0, maxHp);
+        currentHealth = maxHealth > 0 ? Mathf.Clamp(currentHp, 0, maxHealth) : Mathf.Max(0, currentHp);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
     private Coroutine syncHpCoroutine;

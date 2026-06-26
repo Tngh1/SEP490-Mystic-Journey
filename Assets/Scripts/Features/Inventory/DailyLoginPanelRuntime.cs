@@ -44,6 +44,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
     {
         BindUi();
         BindEvents();
+        CloseRetroClaimPopup();
     }
 
     private void OnEnable()
@@ -362,6 +363,53 @@ public class DailyLoginPanelRuntime : MonoBehaviour
             refreshButton = FindButton("RefreshButton");
         if (claimButton == null)
             claimButton = FindButton("ClaimButton", "ClaimDailyButton");
+
+        if (confirmRetroPanel == null)
+            confirmRetroPanel = FindSceneObject("ConfirmRetroClaimPanel");
+        if (confirmRetroText == null && confirmRetroPanel != null)
+        {
+            var tmp = confirmRetroPanel.GetComponentInChildren<TMP_Text>(true);
+            if (tmp != null) confirmRetroText = tmp;
+        }
+        if (confirmRetroYesBtn == null && confirmRetroPanel != null)
+        {
+            var btnYes = FindDescendant(confirmRetroPanel.transform, "ConfirmButton", "YesButton", "OkButton");
+            if (btnYes != null) confirmRetroYesBtn = btnYes.GetComponent<Button>();
+        }
+        if (confirmRetroNoBtn == null && confirmRetroPanel != null)
+        {
+            var btnNo = FindDescendant(confirmRetroPanel.transform, "CancelButton", "NoButton", "CloseButton");
+            if (btnNo != null) confirmRetroNoBtn = btnNo.GetComponent<Button>();
+        }
+    }
+
+    private static GameObject FindSceneObject(string objectName)
+    {
+        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            var obj = objects[i];
+            if (obj != null && obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
+                return obj;
+        }
+        return null;
+    }
+
+    private static GameObject FindDescendant(Transform root, params string[] names)
+    {
+        if (root == null || names == null)
+            return null;
+
+        var all = root.GetComponentsInChildren<Transform>(true);
+        for (var i = 0; i < all.Length; i++)
+        {
+            for (var j = 0; j < names.Length; j++)
+            {
+                if (all[i] != null && all[i].name == names[j])
+                    return all[i].gameObject;
+            }
+        }
+        return null;
     }
 
 

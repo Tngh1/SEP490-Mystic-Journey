@@ -128,7 +128,7 @@ public class PlayerHUDController : MonoBehaviour
             {
                 if (statsResponse.Success && statsResponse.Data != null)
                 {
-                    UpdateStatsUI(statsResponse.Data);
+                    ApplyStats(statsResponse.Data);
                 }
             },
             error =>
@@ -136,6 +136,15 @@ public class PlayerHUDController : MonoBehaviour
                 Debug.LogWarning($"[PlayerHUDController] Failed to refresh stats: {error.Message}");
             }
         );
+    }
+
+    public void ApplyStats(PlayerStatsResponse stats)
+    {
+        if (stats == null)
+            return;
+
+        FindHUDReferences();
+        UpdateStatsUI(stats);
     }
 
     private void UpdateProfileUI(PlayerProfileResponse profile)
