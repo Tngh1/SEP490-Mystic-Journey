@@ -26,6 +26,11 @@ public class UISkinDetailPopup : MonoBehaviour
 
     private void Awake()
     {
+        if (skinPanel != null && !skinPanel.transform.IsChildOf(this.transform))
+        {
+            skinPanel = null;
+        }
+
         if (skinPanel == null)
         {
             var t = transform.Find("Container/SkinPanel");

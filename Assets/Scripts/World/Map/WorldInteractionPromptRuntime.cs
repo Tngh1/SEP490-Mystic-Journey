@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class WorldInteractionPromptRuntime : MonoBehaviour
@@ -97,7 +97,7 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
         foreach (var obj in objects)
         {
-            if (obj.name == objectName && obj.scene.IsValid() && obj.scene.name == "Main")
+            if (obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
                 return obj;
         }
 

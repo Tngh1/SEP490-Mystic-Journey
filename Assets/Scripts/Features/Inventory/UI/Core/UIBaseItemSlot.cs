@@ -30,9 +30,8 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
         if (iconImage != null)
         {
+            iconImage.sprite = data.icon;
             iconImage.enabled = data.icon != null;
-            if (data.icon != null)
-                iconImage.sprite = data.icon;
         }
 
         if (itemNameText != null)
@@ -51,7 +50,10 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
         RawData = null;
         if (iconImage != null)
+        {
+            iconImage.sprite = null;
             iconImage.enabled = false;
+        }
         if (itemNameText != null)
             itemNameText.text = string.Empty;
         if (quantityText != null)

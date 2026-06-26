@@ -18,6 +18,12 @@ public class DungeonEntrance : MonoBehaviour
 
     public void Interact()
     {
+        if (WorldState.PlayerLevel < 5)
+        {
+            WorldRuntimeEvents.RaiseMessage("Yêu cầu Cấp 5 để vào Dungeon!");
+            return;
+        }
+
         WorldInteractionPromptRuntime.Hide();
         
         GameObject targetPanel = null;

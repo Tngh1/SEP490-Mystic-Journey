@@ -232,7 +232,7 @@ public class PlayerWorldInteractor : MonoBehaviour
     private static MainNpcPanelRuntime FindMainNpcPanelRuntime()
     {
         return Resources.FindObjectsOfTypeAll<MainNpcPanelRuntime>()
-            .FirstOrDefault(r => r != null && r.gameObject.scene.IsValid() && r.gameObject.scene.name == "Main");
+            .FirstOrDefault(r => r != null && r.gameObject.scene.IsValid() && !string.IsNullOrEmpty(r.gameObject.scene.name));
     }
 }
 

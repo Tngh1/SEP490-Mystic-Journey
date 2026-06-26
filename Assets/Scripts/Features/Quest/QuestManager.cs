@@ -106,6 +106,8 @@ public class QuestManager : MonoBehaviour
             response =>
             {
                 if (response?.Quest != null) UpsertQuestState(response.Quest);
+                if (response?.Success == true && response.ConsumedQuantity > 0)
+                    InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestProgressChanged?.Invoke(questId);
                 onSuccess?.Invoke(response);
             },
@@ -187,6 +189,7 @@ public class QuestManager : MonoBehaviour
             onSuccess: response =>
             {
                 if (response != null) UpsertQuestState(response);
+                InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestProgressChanged?.Invoke(questId);
                 onSuccess?.Invoke();
             },
@@ -241,6 +244,7 @@ public class QuestManager : MonoBehaviour
                     AcceptQuest(quest.nextQuestId);
 
                 Debug.Log($"[QuestManager] Claimed questId={questId}");
+                InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestClaimed?.Invoke(questId);
                 onSuccess?.Invoke();
             },
