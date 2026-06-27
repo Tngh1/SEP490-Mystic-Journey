@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,6 +40,7 @@ public class UIInventory : MonoBehaviour
             if (i < items.Count)
             {
                 slots[i].gameObject.SetActive(true);
+                slots[i].ClearSlot();
                 slots[i].SetupInventory(items[i]);
             }
             else

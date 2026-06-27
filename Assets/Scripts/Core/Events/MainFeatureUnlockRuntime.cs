@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
@@ -159,7 +159,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
         foreach (var obj in objects)
         {
-            if (obj.name == objectName && obj.scene.IsValid() && obj.scene.name == "Main")
+            if (obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
                 return obj;
         }
 

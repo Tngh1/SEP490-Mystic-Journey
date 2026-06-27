@@ -79,7 +79,11 @@ public class WorldInteractable : MonoBehaviour
     public string GetPromptText()
     {
         if (kind == WorldInteractableKind.Dungeon)
+        {
+            if (WorldState.PlayerLevel < 5)
+                return "Yêu cầu Cấp 5 để vào Dungeon";
             return "Press E to Enter Dungeon";
+        }
 
         if (kind == WorldInteractableKind.Npc)
             return $"{DisplayName}\nPress E to talk";

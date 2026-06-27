@@ -46,8 +46,48 @@ namespace MysticJourney.Screen.GameSetting
 
         private void Start()
         {
+            if (confirmPanel == null)
+            {
+                var popups = Resources.FindObjectsOfTypeAll<RectTransform>();
+                foreach (var p in popups)
+                {
+                    if (p.name == "ConfirmSettingPopup" && p.gameObject.scene.IsValid() && !string.IsNullOrEmpty(p.gameObject.scene.name))
+                    {
+                        confirmPanel = p.gameObject;
+                        break;
+                    }
+                }
+            }
+
             if (confirmPanel != null)
+            {
                 confirmPanel.SetActive(false);
+                
+                // Tự động dò tìm các nút Yes/No nếu chưa được gán trong Inspector
+                if (popupOkButton == null || popupCancelButton == null)
+                {
+                    var buttons = confirmPanel.GetComponentsInChildren<Button>(true);
+                    foreach (var btn in buttons)
+                    {
+                        if (popupOkButton == null && (btn.name == "BtnYes" || btn.name == "YesButton" || btn.name == "BtnOK" || btn.name == "OKButton"))
+                        {
+                            popupOkButton = btn;
+                        }
+                        else if (popupCancelButton == null && (btn.name == "BtnNo" || btn.name == "NoButton" || btn.name == "BtnCancel" || btn.name == "ExitButton"))
+                        {
+                            popupCancelButton = btn;
+                        }
+                        else if (popupOkButton == null && (btn.name.ToLower().Contains("ok") || btn.name.ToLower().Contains("yes") || btn.name.ToLower().Contains("confirm")))
+                        {
+                            popupOkButton = btn;
+                        }
+                        else if (popupCancelButton == null && (btn.name.ToLower().Contains("cancel") || btn.name.ToLower().Contains("no") || btn.name.ToLower().Contains("close")))
+                        {
+                            popupCancelButton = btn;
+                        }
+                    }
+                }
+            }
 
             // Gán sự kiện cho các nút Main Panel
             if (saveChangeButton != null) saveChangeButton.onClick.AddListener(OnSaveChangeClicked);
@@ -58,6 +98,25 @@ namespace MysticJourney.Screen.GameSetting
             if (popupCancelButton != null) popupCancelButton.onClick.AddListener(OnPopupCancelClicked);
 
             LoadCurrentSettings();
+        }
+
+        public void ForceInitialize()
+        {
+            if (confirmPanel == null)
+            {
+                var popups = Resources.FindObjectsOfTypeAll<RectTransform>();
+                foreach (var p in popups)
+                {
+                    if (p.name == "ConfirmSettingPopup" && p.gameObject.scene.IsValid() && !string.IsNullOrEmpty(p.gameObject.scene.name))
+                    {
+                        confirmPanel = p.gameObject;
+                        break;
+                    }
+                }
+            }
+
+            if (confirmPanel != null)
+                confirmPanel.SetActive(false);
         }
 
         private void OnDestroy()
