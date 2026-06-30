@@ -50960,13 +50960,65 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ItemIconDatabase
   items:
-  - itemId: 0
-    icon: {fileID: 5634921885365754534, guid: ea1fad633133f7f49919b7088cc21ed5, type: 3}
-  - itemId: 1
+  - itemKey: Currency
+    icon: {fileID: 1248784189467594132, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: Weapon
+    icon: {fileID: 463900784833305991, guid: 2fc973d36acb5584ebb27ca825da0c98, type: 3}
+  - itemKey: Armor
+    icon: {fileID: -3704083501928206625, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: Consumable
+    icon: {fileID: -2225500606093461049, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
+  - itemKey: Material
+    icon: {fileID: 5880447905274291544, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: QuestItem
+    icon: {fileID: 7323951499659395206, guid: ea1fad633133f7f49919b7088cc21ed5, type: 3}
+  - itemKey: 
+    icon: {fileID: -6426863052080114589, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Gold Coin'
+    icon: {fileID: -5748520409777060387, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: '[ITEM] Mystic Gem'
+    icon: {fileID: -4696445009311254731, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: '[ITEM] Elven Bow'
+    icon: {fileID: 6975279840435858747, guid: ea1fad633133f7f49919b7088cc21ed5, type: 3}
+  - itemKey: '[ITEM] Iron Sword'
+    icon: {fileID: 4823412750159217824, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Shadow Dagger'
+    icon: {fileID: -6703178698468761707, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Arcane Staff'
+    icon: {fileID: -1741975291315697345, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Steel Helmet'
+    icon: {fileID: -7699830079992323841, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Shadow Hood'
+    icon: {fileID: 444631774870783487, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Plate Armor'
+    icon: {fileID: 2012497714755240217, guid: ea1fad633133f7f49919b7088cc21ed5, type: 3}
+  - itemKey: '[ITEM] Iron Gauntlets'
+    icon: {fileID: -1480014620952505, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Swift Boots'
+    icon: {fileID: 7336365995630811906, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Ring of Vitality'
+    icon: {fileID: -8226563300597105057, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Amulet of Power'
+    icon: {fileID: 6887298816073889627, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: '[ITEM] Health Potion'
+    icon: {fileID: 8243028650629030075, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
+  - itemKey: '[ITEM] Stamina Elixir'
     icon: {fileID: 8120942161066549160, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
-  - itemId: 2
-    icon: {fileID: 8961903445385600083, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
-  - itemId: 3
+  - itemKey: '[ITEM] Resurrection Scroll'
+    icon: {fileID: -1681126568394240541, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: '[ITEM] Iron Ore'
+    icon: {fileID: -5284298350160446722, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: '[ITEM] Mystic Herb'
+    icon: {fileID: -7459236666813529055, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
+  - itemKey: '[ITEM] Ancient Wood'
+    icon: {fileID: 815376206779516683, guid: 6f2baaf3de394de41884b1da93471038, type: 3}
+  - itemKey: '[ELF] White Flower'
+    icon: {fileID: -8024716383845015345, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
+  - itemKey: '[ELF] Old Willow Branch'
+    icon: {fileID: -6917480510324765835, guid: b0b0af431a83b1040a9ba5fad96bc4ca, type: 3}
+  - itemKey: 
+    icon: {fileID: -6426863052080114589, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
+  - itemKey: 
     icon: {fileID: -6426863052080114589, guid: 7dd394ab6ac883748ae38acd2ea7b278, type: 3}
 --- !u!1 &1376517278
 GameObject:

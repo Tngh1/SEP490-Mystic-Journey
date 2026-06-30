@@ -163,7 +163,7 @@ public class InventoryManager : MonoBehaviour
         // Tab Items: rawData là InventoryItemResponse
         if (!_showingSkins && slot.RawData is InventoryItemResponse item)
         {
-            Sprite icon = ResolveIcon(item.ItemId, item.IconUrl);
+            Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
             itemDetailPopup?.Show(item, icon);
             return;
         }
@@ -236,7 +236,7 @@ public class InventoryManager : MonoBehaviour
         }
         else
         {
-            Sprite oldIcon = oldItem != null ? ResolveIcon(oldItem.ItemId, oldItem.IconUrl) : null;
+            Sprite oldIcon = oldItem != null ? ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType) : null;
             itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
         }
     }
@@ -525,7 +525,7 @@ public class InventoryManager : MonoBehaviour
 
             foreach (var item in allItems)
             {
-                Sprite icon = ResolveIcon(item.ItemId, item.IconUrl);
+                Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
                 displayList.Add(new UIItemDisplayData
                 {
                     itemId = item.InventoryItemId,
@@ -644,15 +644,21 @@ public class InventoryManager : MonoBehaviour
         _eventsBound = uiInventory != null || itemDetailPopup != null || skinDetailPopup != null || tabItemsButton != null || tabSkinsButton != null;
     }
 
-    private Sprite ResolveIcon(int itemId, string iconUrl)
+    private Sprite ResolveIcon(int itemId, string iconUrl, string itemName = null, string itemType = null)
     {
-        if (ItemIconDatabase.Instance != null && ItemIconDatabase.Instance.TryGetIcon(itemId, out var localIcon))
-            return localIcon;
+        // 1. Local database: lookup by name → type (no longer fragile itemId)
+        if (ItemIconDatabase.Instance != null)
+        {
+            var localIcon = ItemIconDatabase.Instance.GetIcon(itemName, itemType);
+            if (localIcon != null) return localIcon;
+        }
 
+        // 2. Remote URL cache
         var cachedRemote = RemoteSpriteCache.GetCached(iconUrl);
         if (cachedRemote != null)
             return cachedRemote;
 
+        // 3. Kick off remote load (result arrives async → refreshes tab)
         if (!string.IsNullOrWhiteSpace(iconUrl))
         {
             RemoteSpriteCache.Load(this, iconUrl, sprite =>
