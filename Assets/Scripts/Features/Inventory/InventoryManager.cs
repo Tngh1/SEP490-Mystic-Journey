@@ -131,13 +131,13 @@ public class InventoryManager : MonoBehaviour
             {
                 _requestInFlight = false;
                 SetLoading(false);
-                if (response?.Data == null)
+                if (response == null)
                 {
                     SetError("Không tải được dữ liệu inventory.");
                     return;
                 }
 
-                _summary = response.Data;
+                _summary = response;
                 _lastLoadedAt = Time.unscaledTime;
                 UpdateStatsDisplay();
                 RefreshCurrentTab();
@@ -314,7 +314,7 @@ public class InventoryManager : MonoBehaviour
             playerSkinId: skin.PlayerSkinId,
             onSuccess: response =>
             {
-                Debug.Log($"[InventoryManager] ✅ EquipSkin OK | SkinName={response.Data?.SkinName}");
+                Debug.Log($"[InventoryManager] ✅ EquipSkin OK | SkinName={response?.SkinName}");
                 LoadInventory(force: true);
             },
             onError: error =>
@@ -745,11 +745,11 @@ public class InventoryManager : MonoBehaviour
         CharacterApi.Instance.GetMyStats(
             onSuccess: response =>
             {
-                if (response.Success && response.Data != null)
+                if (response != null)
                 {
-                    UpdatePlayerStatsUI(response.Data);
-                    PlayerHUDController.Instance?.ApplyStats(response.Data);
-                    PlayerEntity.Instance?.ApplyHealth(response.Data.CurrentHp, response.Data.MaxHp);
+                    UpdatePlayerStatsUI(response);
+                    PlayerHUDController.Instance?.ApplyStats(response);
+                    PlayerEntity.Instance?.ApplyHealth(response.CurrentHp, response.MaxHp);
                 }
             },
             onError: error =>

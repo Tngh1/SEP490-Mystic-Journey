@@ -6,10 +6,16 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════════════
+    // DUNGEON API - Phó bản và Session
+    // ═══════════════════════════════════════════════════════════════════════
     public class DungeonApi : BaseApiService<DungeonApi>
     {
-        // ── Catalog (không cần auth) ──────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════════════
 
+        // ── Lấy danh sách dungeons ───────────────────────────────
         public void GetAll(
             int page,
             int pageSize,
@@ -40,6 +46,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy dungeon theo ID ───────────────────────────────
         public void GetById(int dungeonConfigId, Action<DungeonResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.DungeonById, dungeonConfigId);
@@ -59,17 +66,11 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
-        // ── Session (yêu cầu auth) ────────────────────────────────────────────
-
-        /// <summary>
-        /// POST /api/dungeons/{dungeonId}/enter
-        /// Validate nhân vật + dungeon + energy. Energy chưa bị trừ.
-        /// Tạo DungeonSession với Status="Active".
-        /// </summary>
+        // ── Vào dungeon ────────────────────────────────────
         public void Enter(
             int dungeonConfigId,
             List<string> partyMembers,
-            Action<ApiResponse<EnterDungeonResponse>> onSuccess,
+            Action<EnterDungeonResponse> onSuccess,
             Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.DungeonEnter, dungeonConfigId);
@@ -77,12 +78,12 @@ namespace MysticJourney.API.Endpoints
 
             var body = new EnterDungeonRequest { PartyMembers = partyMembers ?? new List<string>() };
 
-            ApiClient.Instance.Post<EnterDungeonRequest, ApiResponse<EnterDungeonResponse>>(
+            ApiClient.Instance.Post<EnterDungeonRequest, EnterDungeonResponse>(
                 endpoint,
                 body,
                 response =>
                 {
-                    SafeDebugLog($"Enter OK | SessionId={response.Data?.DungeonSessionId} | Energy={response.Data?.PlayerCurrentEnergy}/{response.Data?.EnergyCost}");
+                    SafeDebugLog($"Enter OK | SessionId={response.DungeonSessionId} | Energy={response.PlayerCurrentEnergy}/{response.EnergyCost}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -93,25 +94,21 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        /// <summary>
-        /// POST /api/dungeons/session/{sessionId}/progress
-        /// Cập nhật tiến trình chiến đấu: quái đã giết, boss, % hoàn thành.
-        /// Session phải đang Active (BR-07).
-        /// </summary>
+        // ── Cập nhật tiến trình chiến đấu ──────────────────
         public void UpdateProgress(
             int sessionId,
             UpdateDungeonProgressRequest body,
-            Action<ApiResponse<DungeonProgressResponse>> onSuccess,
+            Action<DungeonProgressResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.DungeonProgress, sessionId);
+            string endpoint = string.Format(ApiConfig.DungeonSessionProgress, sessionId);
             SafeDebugLog($"UpdateProgress → sessionId={sessionId} | Monsters={body?.MonstersKilled} | Boss={body?.BossKilled} | %={body?.CompletionPercentage}");
-            ApiClient.Instance.Post<UpdateDungeonProgressRequest, ApiResponse<DungeonProgressResponse>>(
+            ApiClient.Instance.Post<UpdateDungeonProgressRequest, DungeonProgressResponse>(
                 endpoint,
                 body,
                 response =>
                 {
-                    SafeDebugLog($"UpdateProgress OK | Boss={response.Data?.BossKilled} | %={response.Data?.CompletionPercentage}");
+                    SafeDebugLog($"UpdateProgress OK | Boss={response.BossKilled} | %={response.CompletionPercentage}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -122,24 +119,19 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        /// <summary>
-        /// POST /api/dungeons/session/{sessionId}/complete
-        /// Đánh dấu dungeon hoàn thành, trả về preview chest.
-        /// KHÔNG cấp reward – phải gọi ClaimReward() sau.
-        /// Boss phải đã bị giết (BossKilled=true).
-        /// </summary>
+        // ── Hoàn thành dungeon ────────────────────────────────
         public void Complete(
             int sessionId,
-            Action<ApiResponse<CompleteDungeonResponse>> onSuccess,
+            Action<CompleteDungeonResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.DungeonComplete, sessionId);
+            string endpoint = string.Format(ApiConfig.DungeonSessionComplete, sessionId);
             SafeDebugLog($"Complete → sessionId={sessionId}");
-            ApiClient.Instance.PostEmpty<ApiResponse<CompleteDungeonResponse>>(
+            ApiClient.Instance.PostEmpty<CompleteDungeonResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"Complete OK | Status={response.Data?.Status} | Chest={response.Data?.RewardChest?.Name}");
+                    SafeDebugLog($"Complete OK | Status={response.Status} | Chest={response.RewardChest?.Name}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -150,24 +142,19 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        /// <summary>
-        /// POST /api/dungeons/session/{sessionId}/claim-reward
-        /// Trừ Energy + tạo reward + lưu inventory (TRANSACTIONAL).
-        /// Session phải Status="Completed" và chưa claimed.
-        /// Nếu thất bại → rollback toàn bộ, không mất gì.
-        /// </summary>
+        // ── Nhận thưởng dungeon ──────────────────────────────
         public void ClaimReward(
             int sessionId,
-            Action<ApiResponse<ClaimDungeonRewardResponse>> onSuccess,
+            Action<ClaimDungeonRewardResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.DungeonClaimReward, sessionId);
+            string endpoint = string.Format(ApiConfig.DungeonSessionClaimReward, sessionId);
             SafeDebugLog($"ClaimReward → sessionId={sessionId}");
-            ApiClient.Instance.PostEmpty<ApiResponse<ClaimDungeonRewardResponse>>(
+            ApiClient.Instance.PostEmpty<ClaimDungeonRewardResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"ClaimReward OK | Gold={response.Data?.GoldEarned} | XP={response.Data?.ExperienceEarned} | Items={response.Data?.Items?.Length}");
+                    SafeDebugLog($"ClaimReward OK | Gold={response.GoldEarned} | XP={response.ExperienceEarned} | Items={response.Items?.Length}");
                     onSuccess?.Invoke(response);
                 },
                 error =>

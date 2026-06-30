@@ -4,8 +4,16 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════
+    // GACHA API - Quay thưởng
+    // ═══════════════════════════════════════════════════════════════
     public class GachaApi : BaseApiService<GachaApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Lấy danh sách banner gacha ────────────────
         public void GetAll(
             int page,
             int pageSize,
@@ -36,6 +44,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy banner gacha theo ID ─────────────────
         public void GetById(int gachaBannerId, Action<GachaBannerDetailResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.GachaById, gachaBannerId);

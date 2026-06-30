@@ -551,9 +551,9 @@ public class UIDungeonRoomPanel : MonoBehaviour
         PlayerApi.Instance.GetFriends(
             response =>
             {
-                if (response?.Data != null && response.Data.Length > 0)
+                if (response != null && response.Length > 0)
                 {
-                    foreach (var friend in response.Data)
+                    foreach (var friend in response)
                     {
                         if (friend == null) continue;
                         
