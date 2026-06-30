@@ -31,9 +31,9 @@ public class PlayerEntity : MonoBehaviour
             MysticJourney.API.Endpoints.CharacterApi.Instance.GetMyStats(
                 response =>
                 {
-                    if (response != null && response.Data != null)
+                    if (response != null)
                     {
-                        ApplyHealth(response.Data.CurrentHp, response.Data.MaxHp);
+                        ApplyHealth(response.CurrentHp, response.MaxHp);
                     }
                 },
                 error =>

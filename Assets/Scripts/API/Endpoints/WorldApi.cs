@@ -3,32 +3,42 @@ using MysticJourney.API.Core;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Services;
-using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════════════
+    // WORLD API - Thế giới game
+    // ═══════════════════════════════════════════════════════════════════════
     public class WorldApi : BaseApiService<WorldApi>
     {
+        private const string DefaultMap = "Map001";
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        // ── Lấy trạng thái world ──────────────────────
         public void GetState(Action<WorldStateResponse> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.Get<ApiResponse<WorldStateResponse>>(
+            ApiClient.Instance.Get<WorldStateResponse>(
                 ApiConfig.WorldState,
                 response =>
                 {
-                    if (response.Success && response.Data != null)
+                    var state = GameStateService.Instance;
+                    if (state != null)
                     {
-                        var state = GameStateService.Instance;
-                        state.PlayerProfileId = response.Data.PlayerProfileId;
-                        ApplyWorldPosition(response.Data.Position);
+                        state.PlayerProfileId = response.PlayerProfileId;
+                        ApplyWorldPosition(response.Position);
                     }
-                    onSuccess?.Invoke(response.Data);
+                    onSuccess?.Invoke(response);
                 },
                 onError,
                 requiresAuth: true
             );
         }
 
+        // ── Cập nhật vị trí world ────────────────────
         public void UpdatePosition(
             string mapName,
             Vector3 position,
@@ -37,34 +47,35 @@ namespace MysticJourney.API.Endpoints
         {
             var body = new UpdateWorldPositionRequest
             {
-                MapName = string.IsNullOrWhiteSpace(mapName) ? GameConstants.WorldDefaults.DefaultMap : mapName.Trim(),
+                MapName = string.IsNullOrWhiteSpace(mapName) ? DefaultMap : mapName.Trim(),
                 PositionX = position.x,
                 PositionY = position.y
             };
 
-            ApiClient.Instance.Put<UpdateWorldPositionRequest, ApiResponse<PlayerWorldPositionResponse>>(
+            ApiClient.Instance.Put<UpdateWorldPositionRequest, PlayerWorldPositionResponse>(
                 ApiConfig.WorldPosition,
                 body,
                 response =>
                 {
-                    if (response.Success && response.Data != null)
-                        ApplyWorldPosition(response.Data);
-                    onSuccess?.Invoke(response.Data);
+                    ApplyWorldPosition(response);
+                    onSuccess?.Invoke(response);
                 },
                 onError,
                 requiresAuth: true
             );
         }
 
+        // ── Nói chuyện với NPC ───────────────────────
         public void TalkToNpc(int npcId, Action<TalkToNpcResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new TalkToNpcRequest { NPCId = npcId };
-            ApiClient.Instance.Post<TalkToNpcRequest, ApiResponse<TalkToNpcResponse>>(
+            ApiClient.Instance.Post<TalkToNpcRequest, TalkToNpcResponse>(
                 ApiConfig.WorldNpcTalk, body,
-                response => onSuccess?.Invoke(response.Data),
+                response => onSuccess?.Invoke(response),
                 onError, requiresAuth: true);
         }
 
+        // ── Nộp quest cho NPC ─────────────────────────
         public void TurnInQuestItem(
             int npcId,
             int questId,
@@ -72,12 +83,13 @@ namespace MysticJourney.API.Endpoints
             Action<ApiException> onError)
         {
             var body = new TurnInQuestItemRequest { NPCId = npcId, QuestId = questId };
-            ApiClient.Instance.Post<TurnInQuestItemRequest, ApiResponse<TurnInQuestItemResponse>>(
+            ApiClient.Instance.Post<TurnInQuestItemRequest, TurnInQuestItemResponse>(
                 ApiConfig.WorldNpcTurnIn, body,
-                response => onSuccess?.Invoke(response.Data),
+                response => onSuccess?.Invoke(response),
                 onError, requiresAuth: true);
         }
 
+        // ── Tương tác với object ─────────────────────
         public void InteractObject(
             string objectKey,
             string interactionType,
@@ -86,56 +98,76 @@ namespace MysticJourney.API.Endpoints
             Action<InteractObjectResponse> onSuccess,
             Action<ApiException> onError)
         {
+            var state = GameStateService.Instance;
+            var currentMap = state != null ? state.CurrentMapName : DefaultMap;
+
             var body = new InteractObjectRequest
             {
-                MapName = string.IsNullOrWhiteSpace(WorldState.CurrentMapName) ? "ElfForest" : WorldState.CurrentMapName,
+                MapName = string.IsNullOrWhiteSpace(currentMap) ? DefaultMap : currentMap,
                 ObjectKey = objectKey,
                 InteractionType = string.IsNullOrWhiteSpace(interactionType) ? "Interact" : interactionType,
                 QuestId = questId,
                 ProgressDelta = Mathf.Max(1, progressDelta)
             };
-            ApiClient.Instance.Post<InteractObjectRequest, ApiResponse<InteractObjectResponse>>(
-                ApiConfig.WorldInteractObject, body,
-                response => onSuccess?.Invoke(response.Data),
+            ApiClient.Instance.Post<InteractObjectRequest, InteractObjectResponse>(
+                ApiConfig.WorldInteract, body,
+                response => onSuccess?.Invoke(response),
                 onError, requiresAuth: true);
         }
 
+        // ── Mở rương theo chestId ───────────────────
         public void OpenChestByChestId(int chestId, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
             => OpenChest(new OpenWorldChestRequest { ChestId = chestId }, onSuccess, onError);
 
+        // ── Mở rương theo playerChestId ─────────────
         public void OpenChestByPlayerChestId(int playerChestId, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
             => OpenChest(new OpenWorldChestRequest { PlayerChestId = playerChestId }, onSuccess, onError);
 
+        // ── Nhận thưởng đăng nhập hàng ngày ─────────
         public void ClaimDailyLoginReward(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.PostEmpty<ApiResponse<ClaimDailyRewardResponse>>(
+            ApiClient.Instance.PostEmpty<ClaimDailyRewardResponse>(
                 ApiConfig.WorldDailyLoginClaim,
-                response => onSuccess?.Invoke(response.Data),
+                response => onSuccess?.Invoke(response),
                 onError, requiresAuth: true);
         }
 
+        // ── Nhận thưởng đăng nhập trễ (retro) ──────
+        public void ClaimRetroDailyLoginReward(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
+        {
+            ApiClient.Instance.PostEmpty<ClaimDailyRewardResponse>(
+                ApiConfig.WorldDailyLoginRetroClaim,
+                response => onSuccess?.Invoke(response),
+                onError, requiresAuth: true);
+        }
+
+        // ── Kiểm tra trạng thái đăng nhập ───────────
         public void GetDailyLoginStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.Get<ApiResponse<PlayerDailyLoginResponse>>(
-                ApiConfig.DailyLoginStatus,
-                response => onSuccess?.Invoke(response.Data),
+            ApiClient.Instance.Get<PlayerDailyLoginResponse>(
+                ApiConfig.DailyLoginRewardCurrentMonth,
+                response => onSuccess?.Invoke(response),
                 onError, requiresAuth: true);
         }
 
+        // ── Private: Mở rương ────────────────────────
         private void OpenChest(OpenWorldChestRequest body, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
         {
-            ApiClient.Instance.Post<OpenWorldChestRequest, ApiResponse<OpenChestResponse>>(
+            ApiClient.Instance.Post<OpenWorldChestRequest, OpenChestResponse>(
                 ApiConfig.WorldChestOpen, body,
-                response => onSuccess?.Invoke(response.Data),
+                response => onSuccess?.Invoke(response),
                 onError, requiresAuth: true);
         }
 
+        // ── Private: Áp dụng vị trí world ────────────
         private static void ApplyWorldPosition(PlayerWorldPositionResponse position)
         {
             if (position == null) return;
 
             var state = GameStateService.Instance;
-            var mapName = string.IsNullOrWhiteSpace(position.MapName) ? GameConstants.WorldDefaults.DefaultMap : position.MapName.Trim();
+            if (state == null) return;
+
+            var mapName = string.IsNullOrWhiteSpace(position.MapName) ? DefaultMap : position.MapName.Trim();
             var vector = new Vector3((float)position.PositionX, (float)position.PositionY, 0f);
 
             state.CurrentMapName = mapName;

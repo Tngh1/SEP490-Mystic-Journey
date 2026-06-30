@@ -19,10 +19,10 @@ namespace MysticJourney.Screen.Mail
         [SerializeField] private Sprite normalIcon;
         [SerializeField] private Sprite readIcon;
 
-        private MailResponse _mailData;
+        private MailSummaryResponse _mailData;
         private Action<MailItemUI> _onClickCallback;
 
-        public void Setup(MailResponse mail, Action<MailItemUI> onClick)
+        public void Setup(MailSummaryResponse mail, Action<MailItemUI> onClick)
         {
             _mailData = mail;
             _onClickCallback = onClick;
@@ -49,7 +49,8 @@ namespace MysticJourney.Screen.Mail
         public void UpdateIcon()
         {
             if (mailIcon == null) return;
-            bool hasReward = _mailData.AttachedGold > 0 || _mailData.AttachedGems > 0 || (_mailData.AttachedItemId != null && _mailData.AttachedItemId > 0);
+            // MailSummaryResponse không có AttachedGold/AttachedGems, dùng HasClaimableReward
+            bool hasReward = _mailData.HasClaimableReward || _mailData.IsClaimed == false;
 
             if (_mailData.IsRead)
             {
@@ -67,6 +68,6 @@ namespace MysticJourney.Screen.Mail
             UpdateIcon();
         }
 
-        public MailResponse GetMailData() => _mailData;
+        public MailSummaryResponse GetMailData() => _mailData;
     }
 }

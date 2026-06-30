@@ -102,13 +102,13 @@ public class CharacterCreation : MonoBehaviour
             response =>
             {
                 _isCreating = false;
-                Debug.Log($"[CharacterCreation] Character created successfully: {response.Data.CharacterName}");
+                Debug.Log($"[CharacterCreation] Character created successfully: {response.CharacterName}");
 
                 // Save basic stats to WorldState
                 WorldState.HasCharacter = true;
-                WorldState.PlayerProfileId = response.Data.PlayerProfileId;
-                WorldState.PlayerName = response.Data.CharacterName;
-                WorldState.PlayerClass = response.Data.PlayerClass;
+                WorldState.PlayerProfileId = response.PlayerProfileId;
+                WorldState.PlayerName = response.CharacterName;
+                WorldState.PlayerClass = response.PlayerClass;
                 
                 // Set starting map name and coordinate
                 WorldState.CurrentMapName = GameConstants.Scenes.AbandonedCastle;

@@ -1,21 +1,42 @@
 using System;
 using MysticJourney.API.Core;
 using MysticJourney.API.Models.Response;
-using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════════════
+    // MAIL API - Thư
+    // ═══════════════════════════════════════════════════════════════════════
     public class MailApi : BaseApiService<MailApi>
     {
+        // ═══════════════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════════════
 
-        public void GetMyMails(Action<PlayerMeMailsResponse> onSuccess, Action<ApiException> onError)
+        // ── Lấy danh sách mail (overload cho tương thích) ───────────
+        public void GetMyMails(
+            Action<MailListPagedResponse> onSuccess,
+            Action<ApiException> onError)
         {
-            SafeDebugLog($"GetMyMails → Đang tải danh sách thư của người chơi hiện tại");
-            ApiClient.Instance.Get<PlayerMeMailsResponse>(
-                ApiConfig.PlayerMeMails,
+            GetMyMails(1, 20, onSuccess, onError);
+        }
+
+        // ── Lấy danh sách mail có phân trang ──────────────────────
+        public void GetMyMails(
+            int page,
+            int pageSize,
+            Action<MailListPagedResponse> onSuccess,
+            Action<ApiException> onError)
+        {
+            string endpoint = $"{ApiConfig.MailMe}?page={page}&pageSize={pageSize}";
+            SafeDebugLog($"GetMyMails → page={page} pageSize={pageSize}");
+            
+            // ApiClient đã xử lý success:false và unwrap envelope, nhận trực tiếp MailListPagedResponse
+            ApiClient.Instance.Get<MailListPagedResponse>(
+                endpoint,
                 response =>
                 {
-                    SafeDebugLog($"GetMyMails OK | Tổng thư: {response.TotalCount} | Chưa đọc: {response.UnreadCount}");
+                    SafeDebugLog($"GetMyMails OK | TotalMails={response.TotalMails} | TotalPages={response.TotalPages} | Items={response.Items?.Length ?? 0}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -23,18 +44,23 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetMyMails FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: true); 
+                requiresAuth: true);
         }
 
-        public void GetById(int mailId, Action<MailResponse> onSuccess, Action<ApiException> onError)
+        // ── Lấy chi tiết mail ─────────────────────────────────────
+        public void GetById(
+            int mailId,
+            Action<MailDetailResponse> onSuccess,
+            Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.MailById, mailId);
             SafeDebugLog($"GetById → mailId={mailId}");
-            ApiClient.Instance.Get<MailResponse>(
+            
+            ApiClient.Instance.Get<MailDetailResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"GetById OK | Title={response.Title} | IsRead={response.IsRead}");
+                    SafeDebugLog($"GetById OK | Title={response.Title} | IsRead={response.IsRead} | IsClaimed={response.IsClaimed}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -42,34 +68,19 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetById FAIL | mailId={mailId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
-        public void GetByPlayerId(int playerProfileId, Action<MailResponse[]> onSuccess, Action<ApiException> onError)
-        {
-            string endpoint = string.Format(ApiConfig.MailByPlayer, playerProfileId);
-            SafeDebugLog($"GetByPlayerId → playerProfileId={playerProfileId}");
-            ApiClient.Instance.Get<MailResponse[]>(
-                endpoint,
-                response =>
-                {
-                    SafeDebugLog($"GetByPlayerId OK | Count={response?.Length ?? 0}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetByPlayerId FAIL | playerProfileId={playerProfileId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: false);
-        }
-
-
-        public void MarkAsRead(int mailId, Action<MailResponse> onSuccess, Action<ApiException> onError)
+        // ── Đánh dấu đã đọc ──────────────────────────────────────
+        public void MarkAsRead(
+            int mailId,
+            Action<MailDetailResponse> onSuccess,
+            Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.MailRead, mailId);
             SafeDebugLog($"MarkAsRead → mailId={mailId}");
-            ApiClient.Instance.PostEmpty<MailResponse>(
+            
+            ApiClient.Instance.PostEmpty<MailDetailResponse>(
                 endpoint,
                 response =>
                 {
@@ -84,15 +95,20 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void ClaimReward(int mailId, Action<MailResponse> onSuccess, Action<ApiException> onError)
+        // ── Nhận phần thưởng mail ────────────────────────────────
+        public void ClaimReward(
+            int mailId,
+            Action<MailDetailResponse> onSuccess,
+            Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.MailClaim, mailId);
             SafeDebugLog($"ClaimReward → mailId={mailId}");
-            ApiClient.Instance.PostEmpty<MailResponse>(
+            
+            ApiClient.Instance.PostEmpty<MailDetailResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"ClaimReward OK | mailId={mailId} | IsClaimed={response.IsClaimed}");
+                    SafeDebugLog($"ClaimReward OK | mailId={mailId} | IsClaimed={response.IsClaimed} | Gold={response.AttachedGold} | Gems={response.AttachedGems}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -103,10 +119,15 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void Delete(int mailId, int playerProfileId, Action<SimpleResponse> onSuccess, Action<ApiException> onError)
+        // ── Xóa mail ──────────────────────────────────────────────
+        public void Delete(
+            int mailId,
+            Action<SimpleResponse> onSuccess,
+            Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.MailDelete, mailId) + $"?playerProfileId={playerProfileId}";
-            SafeDebugLog($"Delete → mailId={mailId} playerProfileId={playerProfileId}");
+            string endpoint = string.Format(ApiConfig.MailById, mailId);
+            SafeDebugLog($"Delete → mailId={mailId}");
+            
             ApiClient.Instance.Delete<SimpleResponse>(
                 endpoint,
                 response =>

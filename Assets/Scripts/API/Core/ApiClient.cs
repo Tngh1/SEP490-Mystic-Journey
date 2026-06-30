@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 
 namespace MysticJourney.API.Core
 {
-    // Singleton MonoBehaviour – trái tim của hệ thống API.
+    // Singleton MonoBehaviour - trái tim của hệ thống API.
     // Chạy Coroutine để gọi HTTP, quản lý JWT token trong PlayerPrefs.
     // Không cần attach vào GameObject; tự tạo khi gọi ApiClient.Instance.
     public class ApiClient : MonoBehaviour
@@ -211,31 +211,6 @@ namespace MysticJourney.API.Core
             }
         }
 
-        // BE unified ApiResponse<T> envelope { success, message, errorCode, data }
-        // Tự động unwrap .data nếu body là envelope, ngược lại trả raw.
-        private static T UnwrapEnvelope<T>(string rawBody)
-        {
-            var targetType = typeof(T);
-            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>))
-                return JsonConvert.DeserializeObject<T>(rawBody);
-
-            try
-            {
-                var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);
-                if (envelope != null && envelope.Success && envelope.Data != null)
-                {
-                    // Re-serialize Data rồi deserialize sang T để unwrap
-                    string dataJson = JsonConvert.SerializeObject(envelope.Data);
-                    return JsonConvert.DeserializeObject<T>(dataJson);
-                }
-            }
-            catch
-            {
-                // Body không phải envelope → fallback parse raw
-            }
-            return JsonConvert.DeserializeObject<T>(rawBody);
-        }
-
         // Xử lý response: kiểm tra lỗi → parse JSON → gọi callback
         private void HandleResponse<T>(UnityWebRequest request, Action<T> onSuccess, Action<ApiException> onError)
         {
@@ -290,7 +265,33 @@ namespace MysticJourney.API.Core
                 return;
             }
 
-            // Thành công → parse JSON thành kiểu T (auto unwrap ApiResponse envelope)
+            // Thành công HTTP nhưng BE có thể trả về { success: false } trong body
+            // Parse envelope để kiểm tra success
+            try
+            {
+                var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);
+                
+                // Nếu BE trả về envelope với success: false → gọi onError
+                if (envelope != null && !envelope.Success)
+                {
+                    Debug.LogWarning($"[ApiClient] ⚠️ BE returned success=false | ErrorCode={envelope.ErrorCode} | Message={envelope.Message}");
+                    
+                    onError?.Invoke(new ApiException
+                    {
+                        StatusCode = request.responseCode,
+                        ErrorCode = envelope.ErrorCode ?? "BUSINESS_ERROR",
+                        Message = envelope.Message ?? "Request failed",
+                        RawBody = rawBody
+                    });
+                    return;
+                }
+            }
+            catch
+            {
+                // Body không phải envelope hợp lệ, tiếp tục parse bình thường
+            }
+
+            // Parse thành công → deserialize JSON thành kiểu T
             try
             {
                 T result = UnwrapEnvelope<T>(rawBody);
@@ -311,6 +312,36 @@ namespace MysticJourney.API.Core
                     RawBody = rawBody
                 });
             }
+        }
+
+        // Unwrap envelope ApiResponse<T> { success, message, errorCode, data }
+        // Trả về .Data nếu là envelope, ngược lại parse trực tiếp
+        private static T UnwrapEnvelope<T>(string rawBody)
+        {
+            var targetType = typeof(T);
+            
+            // Nếu T là ApiResponse<> → parse trực tiếp
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>))
+                return JsonConvert.DeserializeObject<T>(rawBody);
+
+            // Thử parse envelope trước
+            try
+            {
+                var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);
+                if (envelope != null && envelope.Success && envelope.Data != null)
+                {
+                    // Re-serialize Data rồi deserialize sang T để unwrap
+                    string dataJson = JsonConvert.SerializeObject(envelope.Data);
+                    return JsonConvert.DeserializeObject<T>(dataJson);
+                }
+            }
+            catch
+            {
+                // Không phải envelope → fallback parse raw
+            }
+            
+            // Parse trực tiếp nếu không có envelope
+            return JsonConvert.DeserializeObject<T>(rawBody);
         }
     }
 }

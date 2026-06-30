@@ -6,8 +6,12 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════════════
+    // PLAYER API - Quản lý player profile, inventory, bạn bè, mail
+    // ═══════════════════════════════════════════════════════════════════════
     public class PlayerApi : BaseApiService<PlayerApi>
     {
+        // ── Lấy profile theo ID ────────────────────────────────────────────
         public void GetProfileById(int profileId, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"GetProfileById → profileId={profileId}");
@@ -27,6 +31,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // ── Lấy profile của mình ──────────────────────────────────────────
         public void GetMyProfile(Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             int profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
@@ -39,6 +44,7 @@ namespace MysticJourney.API.Endpoints
             GetProfileById(profileId, onSuccess, onError);
         }
 
+        // ── Cập nhật profile ──────────────────────────────────────────────
         public void UpdateProfile(int profileId, UpdatePlayerProfileRequest body, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"UpdateProfile → profileId={profileId} | DisplayName={body?.DisplayName}");
@@ -58,17 +64,15 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void GetMyInventory(Action<ApiResponse<InventorySummaryResponse>> onSuccess, Action<ApiException> onError)
+        // ── Lấy inventory ────────────────────────────────────────────────
+        public void GetMyInventory(Action<InventorySummaryResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMyInventory...");
-            ApiClient.Instance.Get<ApiResponse<InventorySummaryResponse>>(
+            ApiClient.Instance.Get<InventorySummaryResponse>(
                 ApiConfig.InventoryMe,
                 response =>
                 {
-                    if (response.Success && response.Data != null)
-                        SafeDebugLog($"GetMyInventory OK | TotalItems={response.Data.TotalItems} | TotalSkins={response.Data.TotalSkins} | BagCapacity={response.Data.BagCapacity}");
-                    else
-                        Debug.LogWarning($"[PlayerApi] GetMyInventory: success={response.Success} | message={response.Message}");
+                    SafeDebugLog($"GetMyInventory OK | TotalItems={response.TotalItems} | TotalSkins={response.TotalSkins} | BagCapacity={response.BagCapacity}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -79,15 +83,16 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void EquipItem(int inventoryItemId, Action<ApiResponse<InventoryActionResultResponse>> onSuccess, Action<ApiException> onError)
+        // ── Trang bị item ───────────────────────────────────────────────
+        public void EquipItem(int inventoryItemId, Action<InventoryActionResultResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"EquipItem → inventoryItemId={inventoryItemId}");
             var body = new EquipItemRequest { InventoryItemId = inventoryItemId };
-            ApiClient.Instance.Post<EquipItemRequest, ApiResponse<InventoryActionResultResponse>>(
+            ApiClient.Instance.Post<EquipItemRequest, InventoryActionResultResponse>(
                 ApiConfig.InventoryEquip, body,
                 response =>
                 {
-                    SafeDebugLog($"EquipItem OK | ItemName={response.Data?.Item?.ItemName} | Slot={response.Data?.Item?.EquippedSlot}");
+                    SafeDebugLog($"EquipItem OK | ItemName={response.Item?.ItemName} | Slot={response.Item?.EquippedSlot}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -98,15 +103,16 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void UnequipItem(int inventoryItemId, Action<ApiResponse<InventoryActionResultResponse>> onSuccess, Action<ApiException> onError)
+        // ── Gỡ trang bị item ───────────────────────────────────────────
+        public void UnequipItem(int inventoryItemId, Action<InventoryActionResultResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"UnequipItem → inventoryItemId={inventoryItemId}");
             var body = new UnequipItemRequest { InventoryItemId = inventoryItemId };
-            ApiClient.Instance.Post<UnequipItemRequest, ApiResponse<InventoryActionResultResponse>>(
+            ApiClient.Instance.Post<UnequipItemRequest, InventoryActionResultResponse>(
                 ApiConfig.InventoryUnequip, body,
                 response =>
                 {
-                    SafeDebugLog($"UnequipItem OK | ItemName={response.Data?.Item?.ItemName}");
+                    SafeDebugLog($"UnequipItem OK | ItemName={response.Item?.ItemName}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -117,15 +123,16 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void ConsumeItem(int inventoryItemId, int quantity, Action<ApiResponse<object>> onSuccess, Action<ApiException> onError)
+        // ── Tiêu thụ item ───────────────────────────────────────────────
+        public void ConsumeItem(int inventoryItemId, int quantity, Action<SimpleResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"ConsumeItem → inventoryItemId={inventoryItemId} | quantity={quantity}");
             var body = new ConsumeItemRequest { InventoryItemId = inventoryItemId, Quantity = quantity };
-            ApiClient.Instance.Post<ConsumeItemRequest, ApiResponse<object>>(
+            ApiClient.Instance.Post<ConsumeItemRequest, SimpleResponse>(
                 ApiConfig.InventoryConsume, body,
                 response =>
                 {
-                    SafeDebugLog($"ConsumeItem OK | message={response.Message}");
+                    SafeDebugLog($"ConsumeItem OK | message={response.message}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -136,14 +143,15 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void GetFriends(Action<ApiResponse<PlayerProfileResponse[]>> onSuccess, Action<ApiException> onError)
+        // ── Lấy danh sách bạn bè ────────────────────────────────────────
+        public void GetFriends(Action<PlayerProfileResponse[]> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetFriends...");
-            ApiClient.Instance.Get<ApiResponse<PlayerProfileResponse[]>>(
-                "api/playerprofiles/me/friends",
+            ApiClient.Instance.Get<PlayerProfileResponse[]>(
+                ApiConfig.PlayerProfileMeFriends,
                 response =>
                 {
-                    SafeDebugLog($"GetFriends OK | Count={response.Data?.Length ?? 0}");
+                    SafeDebugLog($"GetFriends OK | Count={response?.Length ?? 0}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -154,14 +162,15 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void GetMyMails(Action<PlayerMeMailsResponse> onSuccess, Action<ApiException> onError)
+        // ── Lấy danh sách mail ──────────────────────────────────────────
+        public void GetMyMails(Action<MailListPagedResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMyMails...");
-            ApiClient.Instance.Get<PlayerMeMailsResponse>(
-                ApiConfig.PlayerMeMails,
+            ApiClient.Instance.Get<MailListPagedResponse>(
+                ApiConfig.MailMe,
                 response =>
                 {
-                    SafeDebugLog($"GetMyMails OK");
+                    SafeDebugLog($"GetMyMails OK | TotalMails={response.TotalMails}");
                     onSuccess?.Invoke(response);
                 },
                 error =>

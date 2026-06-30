@@ -4,11 +4,19 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════
+    // DAILY LOGIN API - Thưởng đăng nhập hàng ngày
+    // ═══════════════════════════════════════════════════════════════
     public class DailyLoginApi : BaseApiService<DailyLoginApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Lấy danh sách rewards ────────────────────
         public void GetAll(int page, int pageSize, Action<PagedResultResponse<DailyLoginRewardResponse>> onSuccess, Action<ApiException> onError)
         {
-            var endpoint = $"{ApiConfig.DailyLoginRewards}?page={page}&pageSize={pageSize}";
+            var endpoint = $"{ApiConfig.DailyLoginRewardAll}?page={page}&pageSize={pageSize}";
             ApiClient.Instance.Get<PagedResultResponse<DailyLoginRewardResponse>>(
                 endpoint,
                 response =>
@@ -24,11 +32,11 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
-        /// <summary>Lấy reward cho đúng số ngày tháng hiện tại từ server.</summary>
+        // ── Lấy rewards tháng hiện tại ──────────────
         public void GetCurrentMonth(Action<System.Collections.Generic.List<DailyLoginRewardResponse>> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Get<System.Collections.Generic.List<DailyLoginRewardResponse>>(
-                ApiConfig.DailyLoginRewardsCurrentMonth,
+                ApiConfig.DailyLoginRewardCurrentMonth,
                 response =>
                 {
                     SafeDebugLog($"GetCurrentMonth OK | Days={response?.Count}");
@@ -42,7 +50,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
-        // BE does not expose /api/dailyloginrewards/status; the actual status is derived client-side after fetching the world state.
+        // ── Lấy trạng thái đăng nhập ──────────────
         public void GetStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetStatus skipped (BE does not expose daily-login/status endpoint).");
@@ -54,11 +62,12 @@ namespace MysticJourney.API.Endpoints
             });
         }
 
+        // ── Nhận thưởng đăng nhập ────────────────
         public void Claim(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("Claim daily login reward...");
             ApiClient.Instance.PostEmpty<ClaimDailyRewardResponse>(
-                ApiConfig.DailyLoginClaim,
+                ApiConfig.WorldDailyLoginClaim,
                 response =>
                 {
                     SafeDebugLog($"Claim OK | TotalDays={response?.TotalDaysClaimed}");
@@ -72,12 +81,13 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // ── Nhận thưởng đăng nhập trễ ──────────
         public void RetroClaim(int dayNumber, Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"Retro claim daily login reward for day {dayNumber}...");
             var requestBody = new { DayNumber = dayNumber };
             ApiClient.Instance.Post<object, ClaimDailyRewardResponse>(
-                ApiConfig.DailyLoginClaim.Replace("/claim", "/retro-claim"),
+                ApiConfig.WorldDailyLoginRetroClaim,
                 requestBody,
                 response =>
                 {
