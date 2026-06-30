@@ -5,17 +5,25 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════════════
+    // SKIN API - Áo
+    // ═══════════════════════════════════════════════════════════════════════
     public class SkinApi : BaseApiService<SkinApi>
     {
-        public void EquipSkin(int playerSkinId, bool isEquipped, Action<ApiResponse<PlayerSkinResponse>> onSuccess, Action<ApiException> onError)
+        // ═══════════════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        // ── Trang bị skin ───────────────────────
+        public void EquipSkin(int playerSkinId, bool isEquipped, Action<PlayerSkinResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new EquipSkinRequest { PlayerSkinId = playerSkinId, IsEquipped = isEquipped };
             SafeDebugLog($"EquipSkin -> playerSkinId={playerSkinId} isEquipped={isEquipped}");
-            ApiClient.Instance.Post<EquipSkinRequest, ApiResponse<PlayerSkinResponse>>(
+            ApiClient.Instance.Post<EquipSkinRequest, PlayerSkinResponse>(
                 ApiConfig.SkinEquip, body,
                 response =>
                 {
-                    SafeDebugLog($"EquipSkin OK | SkinName={response.Data?.SkinName} | IsEquipped={response.Data?.IsEquipped}");
+                    SafeDebugLog($"EquipSkin OK | SkinName={response.SkinName} | IsEquipped={response.IsEquipped}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -26,15 +34,16 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void UnequipSkin(int playerSkinId, Action<ApiResponse<object>> onSuccess, Action<ApiException> onError)
+        // ── Gỡ trang bị skin ───────────────────
+        public void UnequipSkin(int playerSkinId, Action<SimpleResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new UnequipSkinRequest { PlayerSkinId = playerSkinId };
             SafeDebugLog($"UnequipSkin -> playerSkinId={playerSkinId}");
-            ApiClient.Instance.Post<UnequipSkinRequest, ApiResponse<object>>(
+            ApiClient.Instance.Post<UnequipSkinRequest, SimpleResponse>(
                 ApiConfig.SkinUnequip, body,
                 response =>
                 {
-                    SafeDebugLog($"UnequipSkin OK | message={response.Message}");
+                    SafeDebugLog($"UnequipSkin OK | message={response.message}");
                     onSuccess?.Invoke(response);
                 },
                 error =>

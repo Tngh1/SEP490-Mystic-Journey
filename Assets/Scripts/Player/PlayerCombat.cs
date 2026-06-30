@@ -68,11 +68,11 @@ public class PlayerCombat : MonoBehaviour
             MysticJourney.API.Endpoints.CharacterApi.Instance.GetMyStats(
                 response =>
                 {
-                    if (response != null && response.Data != null)
+                    if (response != null)
                     {
-                        basicAttackDamage = response.Data.Atk;
-                        critRate = response.Data.CritRate * 100f; // API trả về 0.2 -> 20%
-                        critDamageMultiplier = response.Data.CritDamage;
+                        basicAttackDamage = response.Atk;
+                        critRate = response.CritRate * 100f; // API trả về 0.2 -> 20%
+                        critDamageMultiplier = response.CritDamage;
                     }
                 },
                 error =>

@@ -7,8 +7,16 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════
+    // SKILL API - Kỹ năng
+    // ═══════════════════════════════════════════════════════════════
     public class SkillApi : BaseApiService<SkillApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Lấy danh sách skills ───────────────────────────
         public void GetAll(int page, int pageSize, Action<PagedResultResponse<SkillResponse>> onSuccess, Action<ApiException> onError, string search = null, string type = null, bool? isActive = null)
         {
             var endpoint = $"{ApiConfig.SkillAll}?page={page}&pageSize={pageSize}";
@@ -31,6 +39,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy skill theo ID ─────────────────────────────
         public void GetById(int skillId, Action<SkillResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.SkillById, skillId);
@@ -49,11 +58,12 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy skills của player ────────────────────────
         public void GetMySkills(Action<PlayerMeSkillsResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMySkills...");
             ApiClient.Instance.Get<PlayerMeSkillsResponse>(
-                ApiConfig.PlayerMeSkills,
+                ApiConfig.PlayerSkillsMe,
                 response =>
                 {
                     SafeDebugLog($"GetMySkills OK | Count={response.Skills?.Count}");
@@ -67,12 +77,13 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // ── Nâng cấp skill ──────────────────────────────
         public void UpgradePlayerSkill(int playerSkillId, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"UpgradePlayerSkill → playerSkillId={playerSkillId}");
             var body = new UpgradePlayerSkillRequest { PlayerSkillId = playerSkillId };
             ApiClient.Instance.Post<UpgradePlayerSkillRequest, PlayerSkillResponse>(
-                ApiConfig.PlayerSkillUpgrade,
+                ApiConfig.PlayerSkillsUpgrade,
                 body,
                 response =>
                 {
@@ -87,16 +98,13 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ĐÃ SỬA: Thêm tham số int? slotIndex và đưa vào body request
+        // ── Trang bị skill ──────────────────────────────
         public void EquipPlayerSkill(int playerSkillId, bool isEquipped, int? slotIndex, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"EquipPlayerSkill → playerSkillId={playerSkillId}, isEquipped={isEquipped}, slotIndex={slotIndex}");
-
-            // Tạo gói dữ liệu DTO gửi lên Server
             var body = new EquipSkillRequest { PlayerSkillId = playerSkillId, IsEquipped = isEquipped, SlotIndex = slotIndex };
-
             ApiClient.Instance.Post<EquipSkillRequest, PlayerSkillResponse>(
-                ApiConfig.PlayerSkillEquip,
+                ApiConfig.PlayerSkillsEquip,
                 body,
                 response =>
                 {
@@ -111,12 +119,13 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // ── Phế hủy skill ──────────────────────────────
         public void DismantlePlayerSkill(int playerSkillId, int? targetPlayerSkillId, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"DismantlePlayerSkill → playerSkillId={playerSkillId}, targetPlayerSkillId={targetPlayerSkillId}");
             var body = new DismantlePlayerSkillRequest { PlayerSkillId = playerSkillId, TargetPlayerSkillId = targetPlayerSkillId };
             ApiClient.Instance.Post<DismantlePlayerSkillRequest, PlayerSkillResponse>(
-                ApiConfig.PlayerSkillDismantle,
+                ApiConfig.PlayerSkillsDismantle,
                 body,
                 response =>
                 {

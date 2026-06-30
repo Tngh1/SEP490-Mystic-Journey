@@ -67,18 +67,18 @@ public class DungeonChest : MonoBehaviour
         DungeonApi.Instance.ClaimReward(sessionId,
             onSuccess: response =>
             {
-                if (response.Success && response.Data != null)
+                if (response != null)
                 {
-                    Debug.Log($"[DungeonChest] Reward claimed: Gold={response.Data.GoldEarned}, XP={response.Data.ExperienceEarned}");
+                    Debug.Log($"[DungeonChest] Reward claimed: Gold={response.GoldEarned}, XP={response.ExperienceEarned}");
                     
                     // Show reward panel
                     if (UIChestRewardPanel.Instance != null)
                     {
                         UIChestRewardPanel.Instance.ShowRewards(
                             "Exploration Successful",
-                            response.Data.GoldEarned,
-                            response.Data.ExperienceEarned,
-                            response.Data.Items,
+                            response.GoldEarned,
+                            response.ExperienceEarned,
+                            response.Items,
                             onConfirm: () =>
                             {
                                 // After closing the panel, return to world map

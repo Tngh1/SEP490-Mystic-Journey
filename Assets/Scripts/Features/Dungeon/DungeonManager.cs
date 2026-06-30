@@ -88,9 +88,9 @@ public class DungeonManager : MonoBehaviour
         DungeonApi.Instance.Enter(configId, partyMembers ?? new List<string>(),
             onSuccess: response =>
             {
-                if (response.Success && response.Data != null)
+                if (response != null)
                 {
-                    CurrentSessionId = response.Data.DungeonSessionId;
+                    CurrentSessionId = response.DungeonSessionId;
                     IsInDungeon = true;
                     Debug.Log($"[DungeonManager] Session created: {CurrentSessionId}");
                     

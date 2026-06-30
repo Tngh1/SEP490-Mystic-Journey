@@ -1,12 +1,19 @@
 using System;
 using MysticJourney.API.Core;
 using MysticJourney.API.Models.Response;
-using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════
+    // QUEST API - Nhiệm vụ
+    // ═══════════════════════════════════════════════════════════════
     public class QuestApi : BaseApiService<QuestApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Lấy danh sách quests ─────────────────────────
         public void GetAll(
             int page,
             int pageSize,
@@ -38,6 +45,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy quest theo ID ───────────────────────────
         public void GetById(int questId, Action<QuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.QuestById, questId);
