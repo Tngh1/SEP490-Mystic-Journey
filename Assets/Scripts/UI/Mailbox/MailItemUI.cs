@@ -1,7 +1,7 @@
+﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System;
 using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.Screen.Mail
@@ -9,65 +9,79 @@ namespace MysticJourney.Screen.Mail
     public class MailItemUI : MonoBehaviour
     {
         [Header("UI References")]
-        [SerializeField] private Image mailIcon;
         [SerializeField] private TMP_Text titleText;
-        [SerializeField] private TMP_Text dateText;
-        [SerializeField] private Button clickButton;
-
-        [Header("Sprites")]
-        [SerializeField] private Sprite rewardIcon;
-        [SerializeField] private Sprite normalIcon;
-        [SerializeField] private Sprite readIcon;
+        [SerializeField] private TMP_Text expireText;
+        [SerializeField] private GameObject rewardAvailableObj; // Khớp với GameObject RewardAvailable
+        [SerializeField] private Button itemButton;
 
         private MailSummaryResponse _mailData;
-        private Action<MailItemUI> _onClickCallback;
+        private Action<MailItemUI> _onClickAction;
 
-        public void Setup(MailSummaryResponse mail, Action<MailItemUI> onClick)
+        public void Setup(MailSummaryResponse mailData, Action<MailItemUI> onClick)
         {
-            _mailData = mail;
-            _onClickCallback = onClick;
+            _mailData = mailData;
+            _onClickAction = onClick;
 
-            if (titleText != null) titleText.text = mail.Title;
+            if (titleText != null) titleText.text = mailData.Title;
 
-            if (dateText != null)
+            if (expireText != null)
             {
-                if (DateTime.TryParse(mail.SentAt, out DateTime parsedDate))
-                    dateText.text = parsedDate.ToString("dd/MM/yyyy");
+                // Ưu tiên dùng RemainingDays do BE tính sẵn
+                if (mailData.RemainingDays.HasValue)
+                {
+                    int days = mailData.RemainingDays.Value;
+                    if (days <= 0)
+                        expireText.text = "Expired";
+                    else if (days == 1)
+                        expireText.text = "1 day left";
+                    else
+                        expireText.text = $"{days} days left";
+                }
+                else if (!string.IsNullOrEmpty(mailData.ExpiredAt) && DateTime.TryParse(mailData.ExpiredAt, out DateTime expiredDate))
+                {
+                    int days = (int)Math.Ceiling((expiredDate - DateTime.UtcNow).TotalDays);
+                    if (days <= 0)
+                        expireText.text = "Expired";
+                    else if (days == 1)
+                        expireText.text = "1 day left";
+                    else
+                        expireText.text = $"{days} days left";
+                }
                 else
-                    dateText.text = mail.SentAt ?? "";
+                {
+                    expireText.text = "No expiry";
+                }
             }
 
-            UpdateIcon();
+            UpdateUIState();
 
-            if (clickButton != null)
+            if (itemButton != null)
             {
-                clickButton.onClick.RemoveAllListeners();
-                clickButton.onClick.AddListener(() => _onClickCallback?.Invoke(this));
+                itemButton.onClick.RemoveAllListeners();
+                itemButton.onClick.AddListener(() => _onClickAction?.Invoke(this));
             }
         }
 
-        public void UpdateIcon()
-        {
-            if (mailIcon == null) return;
-            // MailSummaryResponse không có AttachedGold/AttachedGems, dùng HasClaimableReward
-            bool hasReward = _mailData.HasClaimableReward || _mailData.IsClaimed == false;
+        public MailSummaryResponse GetMailData() => _mailData;
 
-            if (_mailData.IsRead)
-            {
-                mailIcon.sprite = (hasReward && !_mailData.IsClaimed) ? rewardIcon : readIcon;
-            }
-            else
-            {
-                mailIcon.sprite = hasReward ? rewardIcon : normalIcon;
-            }
+        public void UpdateUIState()
+        {
+            // Hiển thị icon RewardAvailable nếu có quà và chưa nhận
+            if (rewardAvailableObj != null)
+                rewardAvailableObj.SetActive(_mailData.HasClaimableReward && !_mailData.IsClaimed);
         }
 
         public void MarkAsReadLocally()
         {
             _mailData.IsRead = true;
-            UpdateIcon();
+            UpdateUIState();
         }
 
-        public MailSummaryResponse GetMailData() => _mailData;
+        public void MarkAsClaimedLocally()
+        {
+            _mailData.IsClaimed = true;
+            _mailData.HasClaimableReward = false;
+            UpdateUIState();
+        }
     }
 }

@@ -47,20 +47,15 @@ namespace MysticJourney.API.Models.Response
         public int MailId;
         public string Title;
         public string Content;
-        public string Type;             // "System", "Event", "Gift"
+        public string Type;
         public bool IsRead;
         public bool IsClaimed;
         public float AttachedGold;
         public float AttachedGems;
-        public MailRewardItemResponse AttachedItem; // null nếu không có item
+        public MailRewardItemResponse[] AttachedItems;
         public string SentAt;
         public string ExpiredAt;
     }
-
-    // ───────────────────────────────────────────────────────────────────
-    // Aliases cho tương thích ngược với code cũ
-    // ───────────────────────────────────────────────────────────────────
-
     // MailResponse = MailSummaryResponse (dùng trong danh sách)
     [System.Serializable]
     public class MailResponse
