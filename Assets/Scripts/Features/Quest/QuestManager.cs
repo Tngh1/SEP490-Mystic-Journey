@@ -246,6 +246,10 @@ public class QuestManager : MonoBehaviour
                 Debug.Log($"[QuestManager] Claimed questId={questId}");
                 InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestClaimed?.Invoke(questId);
+
+                // Notify rằng 1 quest vừa Claimed — ai đó có thể check xem map mới có mở không
+                WorldRuntimeEvents.RaiseMapCompleted(questId);
+
                 onSuccess?.Invoke();
             },
             onError: err => { Debug.LogError($"[QuestManager] ClaimReward FAIL: {err.Message}"); onError?.Invoke(err.Message); });
