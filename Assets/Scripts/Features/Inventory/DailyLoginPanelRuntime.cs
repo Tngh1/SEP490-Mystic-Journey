@@ -418,10 +418,12 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         if (reward == null)
             return null;
 
-        // Ưu tiên icon từ ItemIconDatabase (khi có RewardItemId)
-        if (reward.RewardItemId != null && ItemIconDatabase.Instance != null &&
-            ItemIconDatabase.Instance.TryGetIcon(reward.RewardItemId.Value, out var icon))
-            return icon;
+        // Priority: lookup by item name (stable, not affected by auto-increment IDs)
+        if (reward.RewardItemId != null && ItemIconDatabase.Instance != null)
+        {
+            var icon = ItemIconDatabase.Instance.GetIcon(reward.RewardItemName, null);
+            if (icon != null) return icon;
+        }
 
         // Fallback: dùng icon mặc định theo loại phần thưởng
         var type = reward.RewardType ?? string.Empty;
