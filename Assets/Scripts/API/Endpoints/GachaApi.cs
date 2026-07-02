@@ -53,7 +53,7 @@ namespace MysticJourney.API.Endpoints
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"GetById OK | Name={response.Name} | PullCost={response.PullCost} | Pity={response.PityLimit} | BannerItems={response.BannerItems?.Length ?? 0}");
+                    SafeDebugLog($"GetById OK | Name={response.Name} | PullCost={response.PullCost} | Pity={response.PityLimit} | BannerItems={response.BannerItems?.Count ?? 0}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
@@ -62,6 +62,56 @@ namespace MysticJourney.API.Endpoints
                     onError?.Invoke(error);
                 },
                 requiresAuth: false);
+        }
+
+        // ── Thực hiện quay gacha ─────────────────────────────
+        public void Pull(
+            int bannerId,
+            int pullCount,
+            Action<MultiPullResultResponse> onSuccess,
+            Action<ApiException> onError)
+        {
+            var endpoint = string.Format(ApiConfig.GachaPull, bannerId);
+            var body = new MysticJourney.API.Models.Request.GachaPullRequest { GachaBannerId = bannerId, PullCount = pullCount };
+
+            ApiClient.Instance.Post<MysticJourney.API.Models.Request.GachaPullRequest, MultiPullResultResponse>(
+                endpoint,
+                body,
+                response =>
+                {
+                    SafeDebugLog($"Pull OK | bannerId={bannerId} | count={pullCount}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"Pull FAIL | bannerId={bannerId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
+
+        // ── Lấy lịch sử quay ──────────────────────────────
+        public void GetHistory(
+            int page,
+            int pageSize,
+            Action<PaginatedResponse<GachaPullHistoryResponse>> onSuccess,
+            Action<ApiException> onError)
+        {
+            var endpoint = $"{ApiConfig.GachaHistory}?page={page}&pageSize={pageSize}";
+
+            ApiClient.Instance.Get<PaginatedResponse<GachaPullHistoryResponse>>(
+                endpoint,
+                response =>
+                {
+                    SafeDebugLog($"GetHistory OK | TotalCount={response.TotalCount}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"GetHistory FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
         }
     }
 }

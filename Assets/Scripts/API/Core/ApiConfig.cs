@@ -155,6 +155,8 @@ namespace MysticJourney.API.Core
         public const string GachaById = "/api/gachabanners/{0}";
         public const string GachaItemsPaged = "/api/gachabanners/items-paged";
         public const string GachaAddItem = "/api/gachabanners/{0}/items";
+        public const string GachaPull = "/api/gachabanners/{0}/pull";
+        public const string GachaHistory = "/api/gachabanners/history";
 
         // ═══════════════════════════════════════════════════════════════════════
         // MAILS CONTROLLER - Thư
