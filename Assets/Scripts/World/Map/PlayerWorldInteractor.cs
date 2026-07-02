@@ -212,11 +212,14 @@ public class PlayerWorldInteractor : MonoBehaviour
     private void RefreshInteractables()
     {
         interactables.Clear();
-        var scene = gameObject.scene;
         var found = Resources.FindObjectsOfTypeAll<WorldInteractable>();
         foreach (var item in found)
         {
-            if (item == null || item.gameObject.scene != scene)
+            if (item == null)
+                continue;
+
+            // Only add interactables that are part of an actual loaded scene, not prefabs
+            if (!item.gameObject.scene.IsValid() || item.gameObject.scene.name == null)
                 continue;
 
             interactables.Add(item);

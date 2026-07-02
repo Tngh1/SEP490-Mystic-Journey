@@ -33,8 +33,9 @@ public class DungeonChest : MonoBehaviour
     {
         if (hasOpened) return;
 
-        // Find Player
-        var player = GameObject.FindWithTag("Player") ?? GameObject.Find("Knight") ?? GameObject.Find("Mage") ?? GameObject.Find("Archer");
+        // Find Player properly (including Clones)
+        var pm = FindFirstObjectByType<PlayerMovement>();
+        GameObject player = pm != null ? pm.gameObject : (GameObject.FindWithTag("Player") ?? GameObject.Find("Knight(Clone)") ?? GameObject.Find("Knight"));
         if (player == null) return;
 
         // Check distance to player
@@ -61,6 +62,12 @@ public class DungeonChest : MonoBehaviour
         if (hasOpened) return;
         hasOpened = true;
 
+        var interactable = GetComponent<WorldInteractable>();
+        if (interactable != null) Destroy(interactable);
+        
+        // Ensure prompt is hidden immediately
+        WorldInteractionPromptRuntime.Hide();
+
         int sessionId = DungeonManager.Instance.CurrentSessionId;
         if (sessionId <= 0)
         {
@@ -71,13 +78,20 @@ public class DungeonChest : MonoBehaviour
 
         Debug.Log($"[DungeonChest] Opening chest for session: {sessionId}...");
 
-        if (MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel.Instance != null)
+        var panel = MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel.Instance;
+        if (panel == null)
         {
-            MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel.Instance.ShowPanel(sessionId);
+            // If the panel is in the scene but disabled, Awake hasn't run to set Instance. Find it manually!
+            panel = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
+        }
+
+        if (panel != null)
+        {
+            panel.ShowPanel(sessionId);
         }
         else
         {
-            Debug.LogWarning("[DungeonChest] UIDungeonCompletePanel.Instance not found. Returning to map directly.");
+            Debug.LogWarning("[DungeonChest] UIDungeonCompletePanel not found anywhere. Returning to map directly.");
             DungeonManager.Instance.ReturnToWorldMap();
         }
     }

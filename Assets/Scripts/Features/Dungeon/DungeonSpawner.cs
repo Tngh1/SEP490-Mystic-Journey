@@ -398,7 +398,8 @@ public class DungeonSpawner : MonoBehaviour
         GameObject bossInstance = Instantiate(
             _bossSpawnData.Prefab, 
             spawnGO.transform.position, 
-            Quaternion.identity
+            Quaternion.identity,
+            monsterContainer
         );
         bossInstance.name = $"{_bossSpawnData.MonsterName}(Boss)";
 
