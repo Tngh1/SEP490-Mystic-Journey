@@ -117,6 +117,11 @@ namespace MysticJourney.API.Core
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";
         public const string WorldDailyLoginRetroClaim = "/api/world/daily-login/retro-claim";
 
+        public const string ChatWorldMessages = "/api/chat/world/messages";
+        public const string ChatWorldHistory = "/api/chat/world/history";
+        public const string ChatWorldSend = "/api/chat/world/send";
+        public const string ChatWorldReport = "/api/chat/world/report";
+
         // ═══════════════════════════════════════════════════════════════════════
         // QUESTS CONTROLLER - Catalog nhiệm vụ
         // ═══════════════════════════════════════════════════════════════════════
