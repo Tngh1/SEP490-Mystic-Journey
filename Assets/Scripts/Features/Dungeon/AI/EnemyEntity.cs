@@ -20,6 +20,18 @@ public class EnemyEntity : MonoBehaviour
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
 
+    /// <summary>
+    /// Called by DungeonSpawner immediately after Instantiate to inject the
+    /// backend MonsterId and MonsterSpawnId into a dynamically spawned enemy.
+    /// Prefab-placed enemies use the serialized Inspector values instead.
+    /// </summary>
+    public void SetSpawnData(int id, int spawnId)
+    {
+        monsterId = id;
+        monsterSpawnId = spawnId;
+    }
+
+
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;
     public event Action<int, int> OnHealthChanged;

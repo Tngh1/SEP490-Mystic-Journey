@@ -90,6 +90,9 @@ namespace MysticJourney.API.Core
         public const string DungeonSessionProgress = "/api/dungeons/session/{0}/progress";
         public const string DungeonSessionComplete = "/api/dungeons/session/{0}/complete";
         public const string DungeonSessionClaimReward = "/api/dungeons/session/{0}/claim-reward";
+        public const string DungeonSessionAbandon = "/api/dungeons/session/{0}/abandon";
+        public const string DungeonSessionActive = "/api/dungeons/session/active";
+        public const string DungeonHistory = "/api/dungeons/history";
 
         // ═══════════════════════════════════════════════════════════════════════
         // MONSTERS CONTROLLER - Quái vật và Spawns
