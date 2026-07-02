@@ -16,6 +16,7 @@ namespace MysticJourney.API.Models.Response
         public string EnterTime { get; set; }
         public string Status { get; set; }          // "Active"
         public List<string> PartyMembers { get; set; }
+        public DungeonProgressResponse Progress { get; set; }
     }
 
     // ── Response: POST /api/dungeons/session/{id}/progress ───────────────────
@@ -26,7 +27,9 @@ namespace MysticJourney.API.Models.Response
         public int DungeonProgressId { get; set; }
         public int DungeonSessionId { get; set; }
         public int MonstersKilled { get; set; }
+        public bool BossSpawned { get; set; }
         public bool BossKilled { get; set; }
+        public int ElapsedTime { get; set; }
         public int CompletionPercentage { get; set; }
         public string ExtraData { get; set; }
         public string UpdatedAt { get; set; }
@@ -84,6 +87,24 @@ namespace MysticJourney.API.Models.Response
         public int GoldEarned { get; set; }
         public int ExperienceEarned { get; set; }
         public DungeonRewardItemResponse[] Items { get; set; }
+        public WalletDto Wallet { get; set; }
+        public CharacterDto Character { get; set; }
+    }
+
+    [System.Serializable]
+    public class WalletDto
+    {
+        public decimal Gold { get; set; }
+        public decimal Gems { get; set; }
+    }
+
+    [System.Serializable]
+    public class CharacterDto
+    {
+        public int Level { get; set; }
+        public int ExperiencePoints { get; set; }
+        public int Energy { get; set; }
+        public int MaxEnergy { get; set; }
     }
 
     [System.Serializable]
@@ -96,6 +117,20 @@ namespace MysticJourney.API.Models.Response
         public string Rarity { get; set; }
         public int Quantity { get; set; }
     }
+
+    // ── Response: GET /api/dungeons/history ──────────────────────────────────
+    [System.Serializable]
+    public class DungeonHistoryResponse
+    {
+        public int DungeonSessionId { get; set; }
+        public string DungeonName { get; set; }
+        public int Difficulty { get; set; }
+        public string Status { get; set; }
+        public int ElapsedTime { get; set; }
+        public int CompletionPercentage { get; set; }
+        public string EnterTime { get; set; }
+        public string CompletedTime { get; set; }
+    }
 }
 
 namespace MysticJourney.API.Models.Request
@@ -105,7 +140,9 @@ namespace MysticJourney.API.Models.Request
     public class UpdateDungeonProgressRequest
     {
         public int MonstersKilled { get; set; }
+        public bool BossSpawned { get; set; }
         public bool BossKilled { get; set; }
+        public int ElapsedTime { get; set; }
 
         /// <summary>0–100</summary>
         public int CompletionPercentage { get; set; }

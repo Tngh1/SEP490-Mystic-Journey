@@ -85,6 +85,17 @@ public class DungeonChest : MonoBehaviour
                                 DungeonManager.Instance.ReturnToWorldMap();
                             }
                         );
+
+                        // Trigger background state refresh for UI
+                        if (PlayerHUDController.Instance != null)
+                        {
+                            PlayerHUDController.Instance.RefreshHUD();
+                        }
+                        
+                        MysticJourney.API.Endpoints.InventoryApi.Instance.GetInventory(
+                            onSuccess: _ => Debug.Log("[DungeonChest] Inventory refreshed in background."),
+                            onError: err => Debug.LogWarning("[DungeonChest] Failed to refresh inventory.")
+                        );
                     }
                     else
                     {
