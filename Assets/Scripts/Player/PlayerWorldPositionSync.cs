@@ -79,6 +79,10 @@ public class PlayerWorldPositionSync : MonoBehaviour
         if (!saveToPrefs)
             return;
 
+        // Lưu per-map cache cùng lúc với PlayerPrefs (đã được throttle bởi saveInterval + saveDistance)
+        // → không gọi mỗi frame, chỉ khi đã di chuyển đủ xa và đủ thời gian
+        MapPositionCache.Save(WorldState.CurrentMapName, WorldState.LastPosition);
+
         PlayerPrefs.SetString(ApiConfig.LastMapNameKey, WorldState.CurrentMapName);
         PlayerPrefs.SetFloat(ApiConfig.PositionXKey, position.x);
         PlayerPrefs.SetFloat(ApiConfig.PositionYKey, position.y);

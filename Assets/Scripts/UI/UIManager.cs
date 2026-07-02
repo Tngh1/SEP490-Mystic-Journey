@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
@@ -139,6 +141,12 @@ public class UIManager : MonoBehaviour
     public void OpenNpcPanel()
     {
         OpenPanel(npcPanel);
+    }
+
+    // 👇 ĐÃ BỔ SUNG: Hàm mở GachaPanel
+    public void OpenGachaPanel()
+    {
+        OpenPanel(gachaPanel);
     }
 
     // 2. Thêm hàm mở BestiaryPanel
