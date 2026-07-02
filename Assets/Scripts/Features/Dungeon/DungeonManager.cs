@@ -493,14 +493,25 @@ public class DungeonManager : MonoBehaviour
             }
         }
 
-        // 3. Hard fallback: primitive cube (always visible)
+        // 3. Hard fallback: 2D Sprite (visible in 2D view)
         if (chestGO == null)
         {
-            chestGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            chestGO.name = "DungeonChest";
+            chestGO = new GameObject("DungeonChest");
             chestGO.transform.position = targetPosition + Vector3.up * 6f;
+            
+            var sr = chestGO.AddComponent<SpriteRenderer>();
+            // Try to load a built-in sprite or create a colored square if none found
+            Sprite defaultSprite = Resources.Load<Sprite>("UI/Skin/UISprite.psd") ?? Resources.Load<Sprite>("Background");
+            sr.sprite = defaultSprite;
+            sr.color = Color.yellow; // Make it yellow so it looks like a treasure chest!
+            
+            // Add a collider so the player can interact with it physically if needed
+            var col = chestGO.AddComponent<BoxCollider2D>();
+            col.isTrigger = true;
+            col.size = new Vector2(1.5f, 1.5f);
+
             chestGO.AddComponent<DungeonChest>();
-            Debug.LogWarning("[DungeonManager] Chest prefab not found — created a fallback cube chest.");
+            Debug.LogWarning("[DungeonManager] Chest prefab not found — created a fallback yellow 2D Sprite chest.");
         }
 
         StartCoroutine(ChestDropAnimation(chestGO, targetPosition));

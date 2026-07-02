@@ -105,7 +105,7 @@ public class PlayerCombat : MonoBehaviour
     }
 
     #region Basic Attack Logic (ADAPTIVE)
-    public void OnAttack(InputValue value)
+    public void OnAttack(UnityEngine.InputSystem.InputValue value)
     {
         if (!value.isPressed) return;
 

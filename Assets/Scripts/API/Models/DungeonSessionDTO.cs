@@ -86,6 +86,7 @@ namespace MysticJourney.API.Models.Response
         public int EnergyConsumed { get; set; }
         public int GoldEarned { get; set; }
         public int ExperienceEarned { get; set; }
+        public float TimeTakenSeconds { get; set; }
         public DungeonRewardItemResponse[] Items { get; set; }
         public WalletDto Wallet { get; set; }
         public CharacterDto Character { get; set; }

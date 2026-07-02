@@ -120,14 +120,14 @@ public class UIDungeonRoomPanel : MonoBehaviour
                         energyCost = mines.EnergyCost;
                         recommendedLevel = mines.LevelRequirement;
                         difficulty = mines.Difficulty;
-                        selectedSceneName = "AbandonedMines";
+                        selectedSceneName = "HollowCryptDungeon";
                         Debug.Log($"[UIDungeonRoomPanel] Found dungeon: {selectedDungeonName} (ConfigID={selectedConfigId}, Cost={energyCost})");
                     }
                     else
                     {
                         Debug.LogWarning($"[UIDungeonRoomPanel] Match name '{matchName}' not found in active dungeons. Using default config.");
                         selectedConfigId = 1;
-                        selectedSceneName = "AbandonedMines";
+                        selectedSceneName = "HollowCryptDungeon";
                         selectedDungeonName = "Abandoned Mines";
                         energyCost = 20;
                         recommendedLevel = 1;

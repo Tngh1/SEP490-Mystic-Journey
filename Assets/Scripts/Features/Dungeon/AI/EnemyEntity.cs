@@ -45,6 +45,10 @@ public class EnemyEntity : MonoBehaviour
 
         Debug.Log($"[EnemyEntity] Start: {gameObject.name} | UseApi={useApiStats} | ID={monsterId} | ManagerNull?={MonsterManager.Instance == null}");
 
+        // Fallback to inspector stats initially
+        currentHealth = maxHealth;
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
         if (useApiStats && monsterId > 0 && MonsterManager.Instance != null)
         {
             var cached = MonsterManager.Instance.GetCachedMonster(monsterId);
@@ -65,11 +69,6 @@ public class EnemyEntity : MonoBehaviour
                     }
                 });
             }
-        }
-        else
-        {
-            currentHealth = maxHealth;
-            OnHealthChanged?.Invoke(currentHealth, maxHealth);
         }
     }
 
