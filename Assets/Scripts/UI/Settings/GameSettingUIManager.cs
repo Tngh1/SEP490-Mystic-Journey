@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,10 +25,10 @@ namespace MysticJourney.Screen.GameSetting
         }
 
         [Header("Tabs System")]
-        [SerializeField] private Button mainTabButton;          // Gán MainButton vào đây
-        [SerializeField] private Button controllerTabButton;    // Gán ControlButton vào đây
-        [SerializeField] private GameObject audioAndGraphicPage;// Gán AudioAndGraphicPage vào đây
-        [SerializeField] private GameObject controllerPage;     // Gán ControllerPage vào đây
+        [SerializeField] private Button mainTabButton;
+        [SerializeField] private Button controllerTabButton;
+        [SerializeField] private GameObject audioAndGraphicPage;
+        [SerializeField] private GameObject controllerPage;
         [SerializeField] private ControlRebindManager controlRebindManager;
 
         [Header("Audio")]
@@ -42,20 +43,27 @@ namespace MysticJourney.Screen.GameSetting
         [SerializeField] private ToggleButtonUI damageNumbersToggle;
 
         [Header("Main Panel Buttons")]
-        [SerializeField] private Button saveChangeButton;     // Nút "Save Change" dưới quyển sách
-        [SerializeField] private Button settingsExitButton;   // Nút "X" góc trên phải của quyển sách
+        [SerializeField] private Button saveChangeButton;
+        [SerializeField] private Button settingsExitButton;
 
         [Header("Confirm Popup")]
         [SerializeField] private GameObject confirmPanel;
-        [SerializeField] private TextMeshProUGUI popupMainText;   // Đã thêm: Gán Object "MainText" vào đây
-        [SerializeField] private Button popupOkButton;        // Nút "OK" trên popup (Lưu và thoát)
-        [SerializeField] private Button popupCancelButton;    // Nút "X" trên popup (Hủy thoát, ở lại cài đặt)
+        [SerializeField] private TextMeshProUGUI popupMainText;
+        [SerializeField] private Button popupOkButton;
+        [SerializeField] private Button popupCancelButton;
 
         private SettingState savedState;
+
+        // --- GRAPHICS DATA ---
+        private Resolution[] availableResolutions;
+        private List<Resolution> filteredResolutions;
 
         private void Start()
         {
             ForceInitialize();
+
+            // Khởi tạo danh sách Dropdown cho Graphic TRƯỚC KHI load settings
+            InitGraphicsDropdowns();
 
             // Gán sự kiện cho các nút Main Panel
             if (saveChangeButton != null) saveChangeButton.onClick.AddListener(OnSaveChangeClicked);
@@ -81,7 +89,6 @@ namespace MysticJourney.Screen.GameSetting
 
         public void ForceInitialize()
         {
-            // Tự động tìm Popup nếu chưa gán (hỗ trợ cả tên ConfirmSettingPopup và SettingPopup như trong hình)
             if (confirmPanel == null)
             {
                 var popups = Resources.FindObjectsOfTypeAll<RectTransform>();
@@ -99,7 +106,6 @@ namespace MysticJourney.Screen.GameSetting
             {
                 confirmPanel.SetActive(false);
 
-                // Tự động tìm Nút
                 if (popupOkButton == null || popupCancelButton == null)
                 {
                     var buttons = confirmPanel.GetComponentsInChildren<Button>(true);
@@ -112,7 +118,6 @@ namespace MysticJourney.Screen.GameSetting
                     }
                 }
 
-                // Tự động tìm MainText nếu chưa gán
                 if (popupMainText == null)
                 {
                     var texts = confirmPanel.GetComponentsInChildren<TextMeshProUGUI>(true);
@@ -139,36 +144,69 @@ namespace MysticJourney.Screen.GameSetting
             if (mainTabButton != null) mainTabButton.onClick.RemoveAllListeners();
             if (controllerTabButton != null) controllerTabButton.onClick.RemoveAllListeners();
 
-            // Unsubscribe event trùng phím
             if (controlRebindManager != null)
                 controlRebindManager.OnConflictDetected -= ShowConflictPopup;
         }
 
-        /// <summary>Hiện popup lỗi trùng phím (không có nút OK) trong 2 giây rồi tự đóng.</summary>
-        private void ShowConflictPopup(string message)
+        // --- GRAPHICS INITIALIZATION ---
+
+        private void InitGraphicsDropdowns()
         {
-            if (confirmPanel == null) return;
+            // 1. Setup Display Mode
+            if (displayModeDropdown != null)
+            {
+                displayModeDropdown.ClearOptions();
+                displayModeDropdown.AddOptions(new List<string>
+                {
+                    "Fullscreen",
+                    "Borderless Window",
+                    "Windowed"
+                });
+            }
 
-            if (popupMainText != null) popupMainText.text = message;
+            // 2. Setup Resolutions
+            if (resolutionDropdown != null)
+            {
+                availableResolutions = UnityEngine.Screen.resolutions;
+                filteredResolutions = new List<Resolution>();
+                resolutionDropdown.ClearOptions();
 
-            // Ẩn nút OK — đây là popup thông báo lỗi, không cần hành động
-            if (popupOkButton != null) popupOkButton.gameObject.SetActive(false);
+                List<string> options = new List<string>();
 
-            StopCoroutine(nameof(HideConflictPopupAfterDelay));
-            StartCoroutine(nameof(HideConflictPopupAfterDelay));
-            confirmPanel.SetActive(true);
+                for (int i = 0; i < availableResolutions.Length; i++)
+                {
+                    Resolution res = availableResolutions[i];
+                    filteredResolutions.Add(res);
+
+                    int refreshRate = Mathf.RoundToInt((float)res.refreshRateRatio.value);
+                    options.Add($"{res.width} x {res.height} ({refreshRate}Hz)");
+                }
+
+                resolutionDropdown.AddOptions(options);
+                resolutionDropdown.RefreshShownValue();
+            }
         }
 
-        private System.Collections.IEnumerator HideConflictPopupAfterDelay()
+        private void ApplyGraphicsSettings(int resolutionIndex, int displayModeIndex)
         {
-            yield return new WaitForSecondsRealtime(2f);
+            if (filteredResolutions == null || filteredResolutions.Count == 0) return;
 
-            if (confirmPanel != null) confirmPanel.SetActive(false);
+            // Đảm bảo index an toàn
+            int safeResIndex = Mathf.Clamp(resolutionIndex, 0, filteredResolutions.Count - 1);
+            Resolution res = filteredResolutions[safeResIndex];
 
-            // Khôi phục nút OK cho lần dùng popup thông thường
-            if (popupOkButton != null) popupOkButton.gameObject.SetActive(true);
+            FullScreenMode mode = FullScreenMode.ExclusiveFullScreen;
+            switch (displayModeIndex)
+            {
+                case 0: mode = FullScreenMode.ExclusiveFullScreen; break;
+                case 1: mode = FullScreenMode.FullScreenWindow; break;
+                case 2: mode = FullScreenMode.Windowed; break;
+            }
+
+            // Áp dụng trực tiếp vào Unity Screen
+            UnityEngine.Screen.SetResolution(res.width, res.height, mode);
+            Debug.Log($"[Graphics] Applied: {res.width}x{res.height} - Mode: {mode}");
         }
-
 
         // --- HÀM CHUYỂN ĐỔI TAB TRANG ---
         private void SwitchToPage(bool isMainPage)
@@ -189,35 +227,23 @@ namespace MysticJourney.Screen.GameSetting
             if (musicVolumeSlider != null) musicVolumeSlider.value = settings.MusicVolume;
             if (sfxVolumeSlider != null) sfxVolumeSlider.value = settings.SfxVolume;
             if (muteAllToggle != null) muteAllToggle.SetState(settings.IsMuted);
+
             if (displayModeDropdown != null) displayModeDropdown.value = settings.DisplayModeIndex;
-            if (resolutionDropdown != null) resolutionDropdown.value = settings.ResolutionIndex;
+
+            if (resolutionDropdown != null)
+            {
+                // Kiểm tra index an toàn khi load
+                int safeIndex = Mathf.Clamp(settings.ResolutionIndex, 0, filteredResolutions.Count - 1);
+                resolutionDropdown.value = safeIndex;
+                resolutionDropdown.RefreshShownValue();
+            }
+
             if (damageNumbersToggle != null) damageNumbersToggle.SetState(settings.ShowDamageNumbers);
 
             savedState = CaptureCurrentState();
 
             if (controlRebindManager != null)
                 controlRebindManager.LoadBindings();
-        }
-
-        // --- HÀM HIỂN THỊ POPUP ĐỘNG ---
-
-        /// <summary>
-        /// Gọi hàm này để hiển thị Popup với bất kỳ thông báo nào bạn muốn
-        /// </summary>
-        public void ShowConfirmPopup(string message)
-        {
-            if (confirmPanel != null)
-            {
-                if (popupMainText != null)
-                {
-                    popupMainText.text = message;
-                }
-                confirmPanel.SetActive(true);
-            }
-            else
-            {
-                Debug.LogWarning($"[GameSettingUIManager] Không tìm thấy Confirm Panel để hiển thị lỗi: {message}");
-            }
         }
 
         // --- SỰ KIỆN MAIN PANEL ---
@@ -240,7 +266,6 @@ namespace MysticJourney.Screen.GameSetting
         {
             if (HasUnsavedChanges())
             {
-                // Truyền chuỗi thông báo vào hàm mới tạo
                 ShowConfirmPopup("You have unsaved changes. Do you want to apply them before exiting?");
                 return;
             }
@@ -265,6 +290,44 @@ namespace MysticJourney.Screen.GameSetting
             Debug.Log("[GameSettingUIManager] Cancelled exit. Staying in settings.");
         }
 
+        private void ShowConflictPopup(string message)
+        {
+            if (confirmPanel == null) return;
+
+            if (popupMainText != null) popupMainText.text = message;
+
+            if (popupOkButton != null) popupOkButton.gameObject.SetActive(false);
+
+            StopCoroutine(nameof(HideConflictPopupAfterDelay));
+            StartCoroutine(nameof(HideConflictPopupAfterDelay));
+            confirmPanel.SetActive(true);
+        }
+
+        private IEnumerator HideConflictPopupAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(2f);
+
+            if (confirmPanel != null) confirmPanel.SetActive(false);
+
+            if (popupOkButton != null) popupOkButton.gameObject.SetActive(true);
+        }
+
+        public void ShowConfirmPopup(string message)
+        {
+            if (confirmPanel != null)
+            {
+                if (popupMainText != null)
+                {
+                    popupMainText.text = message;
+                }
+                confirmPanel.SetActive(true);
+            }
+            else
+            {
+                Debug.LogWarning($"[GameSettingUIManager] Không tìm thấy Confirm Panel để hiển thị lỗi: {message}");
+            }
+        }
+
         // --- HÀM HỖ TRỢ ---
 
         private void SaveSettings()
@@ -275,11 +338,19 @@ namespace MysticJourney.Screen.GameSetting
             if (musicVolumeSlider != null) settings.SetMusicVolume(musicVolumeSlider.value);
             if (sfxVolumeSlider != null) settings.SetSfxVolume(sfxVolumeSlider.value);
             if (muteAllToggle != null) settings.SetMuted(muteAllToggle.isOn);
+
             if (displayModeDropdown != null) settings.SetDisplayMode(displayModeDropdown.value);
             if (resolutionDropdown != null) settings.SetResolution(resolutionDropdown.value);
+
             if (damageNumbersToggle != null) settings.SetShowDamageNumbers(damageNumbersToggle.isOn);
 
-            settings.Save();
+            settings.Save(); // Lưu data thông qua Service của bạn
+
+            // THỰC SỰ ÁP DỤNG GRAPHICS VÀO GAME
+            int resIndex = resolutionDropdown != null ? resolutionDropdown.value : 0;
+            int displayIndex = displayModeDropdown != null ? displayModeDropdown.value : 0;
+            ApplyGraphicsSettings(resIndex, displayIndex);
+
             if (controlRebindManager != null)
             {
                 controlRebindManager.SaveBindings();

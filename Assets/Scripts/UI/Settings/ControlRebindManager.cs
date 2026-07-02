@@ -14,10 +14,8 @@ namespace MysticJourney.Screen.GameSetting
         private InputActionRebindingExtensions.RebindingOperation currentRebindOperation;
         private const string BindingKey = "MJ_KEY_BINDINGS";
 
-        /// <summary>True nếu người dùng đã rebind nhưng chưa nhấn Save.</summary>
         public bool HasUnsavedChanges { get; private set; }
 
-        /// <summary>Phát khi phím mới bị trùng. Tham số: thông báo lỗi.</summary>
         public event Action<string> OnConflictDetected;
 
         // ─── Lifecycle ───────────────────────────────────────────────────────────
@@ -68,14 +66,13 @@ namespace MysticJourney.Screen.GameSetting
 
         // ─── Rebind ───────────────────────────────────────────────────────────────
 
-        private void StartRebind(ControlBinding binding)
+private void StartRebind(ControlBinding binding)
         {
             if (binding?.action == null) return;
 
             InputAction action = binding.action.action;
             if (action == null) return;
 
-            // Đang rebind → chặn, không mở operation mới
             if (currentRebindOperation != null) return;
 
             action.Disable();
@@ -84,7 +81,6 @@ namespace MysticJourney.Screen.GameSetting
             var rebindOp = action
                 .PerformInteractiveRebinding(binding.bindingIndex)
                 .WithCancelingThrough("<Keyboard>/escape")
-
                 .OnCancel(op =>
                 {
                     action.Enable();
@@ -92,14 +88,18 @@ namespace MysticJourney.Screen.GameSetting
                     op.Dispose();
                     currentRebindOperation = null;
                 })
-
                 .OnComplete(op =>
                 {
                     action.Enable();
+                    
+                    // LẤY RA CONTROL VỪA NHẤN TRƯỚC KHI DISPOSE
+                    InputControl newControl = op.selectedControl; 
+                    
                     op.Dispose();
                     currentRebindOperation = null;
 
-                    string conflict = FindConflict(binding);
+                    // TRUYỀN CONTROL VÀO HÀM KIỂM TRA
+                    string conflict = FindConflict(binding, newControl);
                     if (conflict != null)
                     {
                         action.RemoveBindingOverride(binding.bindingIndex);
@@ -120,12 +120,6 @@ namespace MysticJourney.Screen.GameSetting
         }
 
         // ─── Conflict Detection ───────────────────────────────────────────────────
-
-        /// <summary>
-        /// Trả về path hiện tại của một binding:
-        /// ưu tiên overridePath, nếu không có thì lấy path gốc (default).
-        /// So sánh cả hai để phát hiện trùng với binding đã lưu lẫn binding mặc định.
-        /// </summary>
         private static string GetCurrentPath(InputBinding b)
         {
             // overridePath có khi đã rebind (kể cả đã load từ save)
@@ -134,15 +128,16 @@ namespace MysticJourney.Screen.GameSetting
             return b.path;
         }
 
-        private string FindConflict(ControlBinding target)
+        // ─── Conflict Detection ───────────────────────────────────────────────────
+
+// ─── Conflict Detection ───────────────────────────────────────────────────
+
+        private string FindConflict(ControlBinding target, InputControl newControl)
         {
+            if (newControl == null) return null;
+
             InputAction targetAction = target.action?.action;
             if (targetAction == null || target.bindingIndex >= targetAction.bindings.Count) return null;
-
-            // Lấy path của phím vừa gán — normalize về lowercase để tránh mọi vấn đề format/case
-            string newPath = GetCurrentPath(targetAction.bindings[target.bindingIndex])
-                             ?.ToLowerInvariant();
-            if (string.IsNullOrEmpty(newPath)) return null;
 
             foreach (var other in bindings)
             {
@@ -151,22 +146,23 @@ namespace MysticJourney.Screen.GameSetting
                 InputAction otherAction = other.action.action;
                 if (otherAction == null) continue;
 
-                // Scan TẤT CẢ binding trong action của other (bỏ qua composite meta).
-                // Lý do: nếu bindingIndex trỏ vào composite meta (isComposite=true, path rỗng)
-                // thì chỉ kiểm tra đúng 1 index sẽ miss. Scan toàn bộ đảm bảo không bỏ sót
-                // binding mặc định (chỉ có .path) lẫn binding đã save/load (có .overridePath).
-                foreach (var b in otherAction.bindings)
+                if (otherAction == targetAction && other.bindingIndex == target.bindingIndex) continue;
+
+                if (other.bindingIndex >= otherAction.bindings.Count) continue;
+
+                var otherBindingEntry = otherAction.bindings[other.bindingIndex];
+                
+                if (otherBindingEntry.isComposite) continue;
+
+                string otherPath = otherBindingEntry.effectivePath;
+                if (string.IsNullOrEmpty(otherPath)) continue;
+
+                if (InputControlPath.Matches(otherPath, newControl))
                 {
-                    if (b.isComposite) continue; // composite meta không có path thực
-
-                    string otherPath = GetCurrentPath(b)?.ToLowerInvariant();
-                    if (string.IsNullOrEmpty(otherPath)) continue;
-                    if (otherPath != newPath) continue;
-
-                    // Trùng → trả về thông báo
                     string label = string.IsNullOrEmpty(other.displayName)
                         ? otherAction.name
                         : other.displayName;
+
                     string key = targetAction.GetBindingDisplayString(target.bindingIndex);
                     return $"\"{key}\" is already assigned to {label}";
                 }
@@ -175,14 +171,8 @@ namespace MysticJourney.Screen.GameSetting
             return null;
         }
 
-
-
         // ─── Save / Load / Reset ──────────────────────────────────────────────────
 
-        /// <summary>
-        /// Hủy operation đang chờ nhấn phím (nếu có).
-        /// Gọi trước Reset/Load để tránh lỗi khi interrupt rebind đang chạy.
-        /// </summary>
         private void CancelCurrentRebind()
         {
             if (currentRebindOperation == null) return;

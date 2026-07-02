@@ -3,13 +3,20 @@ using MysticJourney.API.Core;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Services;
-using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════════════
+    // AUTH API - Xác thực
+    // ═══════════════════════════════════════════════════════════════════════
     public class AuthApi : BaseApiService<AuthApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Đăng nhập ──────────────────────────────
         public void LoginGame(
             string emailOrUsername,
             string password,
@@ -25,7 +32,7 @@ namespace MysticJourney.API.Endpoints
             };
 
             ApiClient.Instance.Post<LoginGameRequest, LoginGameResponse>(
-                ApiConfig.LoginGame,
+                ApiConfig.AuthLogin,
                 body,
                 response =>
                 {
@@ -55,12 +62,13 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
+        // ── Lấy thông tin người dùng ─────────────
         public void GetMe(Action<MeResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMe...");
 
             ApiClient.Instance.Get<MeResponse>(
-                ApiConfig.Me,
+                ApiConfig.AuthMe,
                 response =>
                 {
                     SaveProfileSession(response.PlayerProfileId, response.Level, response.PlayerClass);
@@ -77,16 +85,18 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
+        // ── Đăng xuất ─────────────────────────────
         public void Logout(Action<SimpleResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("Logout...");
 
             ApiClient.Instance.PostEmpty<SimpleResponse>(
-                ApiConfig.Logout,
+                ApiConfig.AuthLogout,
                 response =>
                 {
                     ApiClient.Instance.ClearToken();
-                    GameStateService.Instance.Reset();
+                    if (GameStateService.Instance != null)
+                        GameStateService.Instance.Reset();
                     SafeDebugLog("Logout OK.");
                     onSuccess?.Invoke(response);
                 },
@@ -100,8 +110,15 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
+        // ── Private: Lưu session profile ─────────
         private static void SaveProfileSession(int? playerProfileId, int level, string playerClass)
         {
+            if (GameStateService.Instance == null)
+            {
+                Debug.LogWarning("[AuthApi] GameStateService.Instance is null, skipping session save.");
+                return;
+            }
+
             var state = GameStateService.Instance;
 
             if (playerProfileId.HasValue)
@@ -114,15 +131,24 @@ namespace MysticJourney.API.Endpoints
             PlayerPrefs.SetInt(ApiConfig.PlayerLevelKey, safeLevel);
             state.PlayerLevel = safeLevel;
 
-            var safeClass = string.IsNullOrWhiteSpace(playerClass) ? GameConstants.PlayerClasses.Knight : playerClass.Trim();
+            var defaultClass = "Knight";
+            var safeClass = string.IsNullOrWhiteSpace(playerClass) ? defaultClass : playerClass.Trim();
             PlayerPrefs.SetString(ApiConfig.PlayerClassKey, safeClass);
             state.PlayerClass = safeClass;
         }
 
+        // ── Private: Lưu session world ───────────
         private static void SaveWorldSession(string mapName, double positionX, double positionY)
         {
+            if (GameStateService.Instance == null)
+            {
+                Debug.LogWarning("[AuthApi] GameStateService.Instance is null, skipping world session save.");
+                return;
+            }
+
             var state = GameStateService.Instance;
-            var safeMapName = string.IsNullOrWhiteSpace(mapName) ? GameConstants.WorldDefaults.DefaultMap : mapName.Trim();
+            var defaultMap = "Map001";
+            var safeMapName = string.IsNullOrWhiteSpace(mapName) ? defaultMap : mapName.Trim();
             var position = new Vector3((float)positionX, (float)positionY, 0f);
 
             PlayerPrefs.SetString(ApiConfig.LastMapNameKey, safeMapName);

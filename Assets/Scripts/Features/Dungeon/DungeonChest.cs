@@ -42,7 +42,14 @@ public class DungeonChest : MonoBehaviour
         if (dist <= interactionRadius)
         {
             // Listen to standard interaction key
-            if (Input.GetKeyDown(KeyCode.E))
+            bool interactPressed = false;
+            
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.eKey.wasPressedThisFrame)
+            {
+                interactPressed = true;
+            }
+
+            if (interactPressed)
             {
                 OpenChest();
             }
@@ -57,74 +64,20 @@ public class DungeonChest : MonoBehaviour
         int sessionId = DungeonManager.Instance.CurrentSessionId;
         if (sessionId <= 0)
         {
-            Debug.LogWarning($"[DungeonChest] Session ID is {sessionId} (testing/fallback). Opening fallback chest panel.");
-            ShowFallbackReward();
+            Debug.LogWarning($"[DungeonChest] Session ID is {sessionId} (testing/fallback). Cannot claim reward on backend.");
+            DungeonManager.Instance.ReturnToWorldMap();
             return;
         }
 
-        Debug.Log($"[DungeonChest] Claiming reward for session: {sessionId}...");
+        Debug.Log($"[DungeonChest] Opening chest for session: {sessionId}...");
 
-        DungeonApi.Instance.ClaimReward(sessionId,
-            onSuccess: response =>
-            {
-                if (response.Success && response.Data != null)
-                {
-                    Debug.Log($"[DungeonChest] Reward claimed: Gold={response.Data.GoldEarned}, XP={response.Data.ExperienceEarned}");
-                    
-                    // Show reward panel
-                    if (UIChestRewardPanel.Instance != null)
-                    {
-                        UIChestRewardPanel.Instance.ShowRewards(
-                            "Exploration Successful",
-                            response.Data.GoldEarned,
-                            response.Data.ExperienceEarned,
-                            response.Data.Items,
-                            onConfirm: () =>
-                            {
-                                // After closing the panel, return to world map
-                                DungeonManager.Instance.ReturnToWorldMap();
-                            }
-                        );
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[DungeonChest] UIChestRewardPanel.Instance not found. Returning to map directly.");
-                        DungeonManager.Instance.ReturnToWorldMap();
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("[DungeonChest] ClaimReward API succeeded but returned failure. Showing fallback reward panel.");
-                    ShowFallbackReward();
-                }
-            },
-            onError: error =>
-            {
-                Debug.LogWarning($"[DungeonChest] ClaimReward API failed: {error.Message}. Showing fallback reward panel.");
-                ShowFallbackReward();
-            }
-        );
-    }
-
-    private void ShowFallbackReward()
-    {
-        if (UIChestRewardPanel.Instance != null)
+        if (MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel.Instance != null)
         {
-            UIChestRewardPanel.Instance.ShowRewards(
-                "Exploration Successful",
-                100, // mock gold
-                50,  // mock xp
-                null, // no items
-                onConfirm: () =>
-                {
-                    // After closing the panel, return to world map
-                    DungeonManager.Instance.ReturnToWorldMap();
-                }
-            );
+            MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel.Instance.ShowPanel(sessionId);
         }
         else
         {
-            Debug.LogWarning("[DungeonChest] UIChestRewardPanel.Instance not found. Returning to map directly.");
+            Debug.LogWarning("[DungeonChest] UIDungeonCompletePanel.Instance not found. Returning to map directly.");
             DungeonManager.Instance.ReturnToWorldMap();
         }
     }

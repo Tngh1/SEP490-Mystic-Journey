@@ -1,35 +1,77 @@
 namespace MysticJourney.API.Models.Response
 {
-    // Maps MailResponseDto
+    // ═══════════════════════════════════════════════════════════════════════
+    // MAIL DTOs - Response models cho Mail API
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Maps MailSummaryDto – dùng trong danh sách mail (GET /api/mails/me)
+    [System.Serializable]
+    public class MailSummaryResponse
+    {
+        public int MailId;
+        public string Title;
+        public string Type;             // "System", "Event", "Gift"
+        public bool IsRead;
+        public bool HasClaimableReward; // có phần thưởng chưa claim
+        public bool IsClaimed;
+        public int? RemainingDays;      // null = không có hạn
+        public string SentAt;
+        public string ExpiredAt;
+    }
+
+    // Maps MailListPagedDto – trả về bởi GET /api/mails/me
+    [System.Serializable]
+    public class MailListPagedResponse
+    {
+        public int TotalMails;
+        public int Page;
+        public int PageSize;
+        public int TotalPages;
+        public MailSummaryResponse[] Items;
+    }
+
+    // Maps MailRewardItemDto – item đính kèm trong mail
+    [System.Serializable]
+    public class MailRewardItemResponse
+    {
+        public int ItemId;
+        public string ItemName;
+        public string IconUrl;
+        public int Quantity;
+    }
+
+    // Maps MailDetailDto – trả về bởi GET /api/mails/{id}, POST /read, /claim
+    [System.Serializable]
+    public class MailDetailResponse
+    {
+        public int MailId;
+        public string Title;
+        public string Content;
+        public string Type;
+        public bool IsRead;
+        public bool IsClaimed;
+        public float AttachedGold;
+        public float AttachedGems;
+        public MailRewardItemResponse[] AttachedItems;
+        public string SentAt;
+        public string ExpiredAt;
+    }
+    // MailResponse = MailSummaryResponse (dùng trong danh sách)
     [System.Serializable]
     public class MailResponse
     {
-        public int MailId { get; set; }
-        public int PlayerProfileId { get; set; }
-        public string PlayerName { get; set; }
-        public string Title { get; set; }
-        public string Content { get; set; }
-        public string Type { get; set; }            // "System", "Event", "Gift"
-        public decimal AttachedGold { get; set; }
-        public decimal AttachedGems { get; set; }
-        public int? AttachedItemId { get; set; }
-        public string AttachedItemName { get; set; }
-        public int AttachedItemQuantity { get; set; }
-        public bool IsRead { get; set; }
-        public bool IsClaimed { get; set; }
-        public bool IsDeleted { get; set; }
-        public string DeletedAt { get; set; }
-        public string SentAt { get; set; }
-        public string ExpiredAt { get; set; }
+        public int MailId;
+        public string Title;
+        public string Type;
+        public bool IsRead;
+        public bool HasClaimableReward;
+        public bool IsClaimed;
+        public int? RemainingDays;
+        public string SentAt;
+        public string ExpiredAt;
+
+        public int? AttachedItemId => HasClaimableReward ? 0 : (int?)null;
+        public int AttachedItemQuantity => 0;
     }
 
-    // Maps PlayerMeMailsResponseDto – returned by GET /api/playerprofiles/me/mails
-    [System.Serializable]
-    public class PlayerMeMailsResponse
-    {
-        public int PlayerProfileId { get; set; }
-        public MailResponse[] Mails { get; set; }
-        public int TotalCount { get; set; }
-        public int UnreadCount { get; set; }
-    }
 }

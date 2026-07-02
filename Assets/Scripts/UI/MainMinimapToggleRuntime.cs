@@ -9,7 +9,13 @@ public class MainMinimapToggleRuntime : MonoBehaviour
     {
         miniMap = FindSceneObject("MiniMap");
         if (miniMap != null)
+        {
             miniMap.SetActive(false);
+            var mapBtn = miniMap.GetComponent<Button>();
+            if (mapBtn == null) mapBtn = miniMap.AddComponent<Button>();
+            mapBtn.onClick.RemoveListener(OpenMapPanel);
+            mapBtn.onClick.AddListener(OpenMapPanel);
+        }
 
         var buttonObject = FindSceneObject("MiniMapButton");
         if (buttonObject != null)
@@ -41,6 +47,14 @@ public class MainMinimapToggleRuntime : MonoBehaviour
         }
 
         miniMap.SetActive(!miniMap.activeSelf);
+    }
+
+    private void OpenMapPanel()
+    {
+        if (UIManager.Instance != null && UIManager.Instance.mapPanel != null)
+        {
+            UIManager.Instance.mapPanel.SetActive(true);
+        }
     }
 
     private static GameObject FindSceneObject(string objectName)

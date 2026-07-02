@@ -142,10 +142,10 @@ public class UIChestRewardPanel : MonoBehaviour
                 var slot = GetOrCreateSlot(slotIndex++);
                 Sprite itemSprite = null;
 
-                // Resolve item icon if icon database is present
-                if (ItemIconDatabase.Instance != null && ItemIconDatabase.Instance.TryGetIcon(item.ItemId, out var sprite))
+                // Resolve item icon: name first, type as fallback
+                if (ItemIconDatabase.Instance != null)
                 {
-                    itemSprite = sprite;
+                    itemSprite = ItemIconDatabase.Instance.GetIcon(item.ItemName, item.ItemType);
                 }
 
                 slot.Setup(item.ItemName, $"x{item.Quantity}", itemSprite);

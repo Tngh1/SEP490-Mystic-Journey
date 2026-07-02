@@ -4,8 +4,16 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════
+    // ACHIEVEMENT API - Thành tựu
+    // ═══════════════════════════════════════════════════════════════
     public class AchievementApi : BaseApiService<AchievementApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Lấy danh sách thành tựu ──────────────
         public void GetAll(
             int page,
             int pageSize,
@@ -36,6 +44,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy thành tựu theo ID ───────────────
         public void GetById(int achievementId, Action<AchievementResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.AchievementById, achievementId);

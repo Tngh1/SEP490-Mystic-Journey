@@ -4,8 +4,16 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
+    // ═══════════════════════════════════════════════════════════════
+    // SHOP API - Cửa hàng
+    // ═══════════════════════════════════════════════════════════════
     public class ShopApi : BaseApiService<ShopApi>
     {
+        // ═══════════════════════════════════════════════════════════════
+        // GAME APIs (Người chơi)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Lấy danh sách shop items ─────────────────────
         public void GetAll(
             int page,
             int pageSize,
@@ -15,7 +23,7 @@ namespace MysticJourney.API.Endpoints
             string currency = null,
             bool? isActive = null)
         {
-            string endpoint = $"{ApiConfig.ShopItems}?page={page}&pageSize={pageSize}";
+            string endpoint = $"{ApiConfig.ShopItemAll}?page={page}&pageSize={pageSize}";
             if (!string.IsNullOrEmpty(search)) endpoint += $"&search={search}";
             if (!string.IsNullOrEmpty(currency)) endpoint += $"&currency={currency}";
             if (isActive.HasValue) endpoint += $"&isActive={isActive.Value}";
@@ -36,9 +44,10 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: false);
         }
 
+        // ── Lấy shop item theo ID ───────────────────────
         public void GetById(int shopItemId, Action<ShopItemResponse> onSuccess, Action<ApiException> onError)
         {
-            string endpoint = $"{ApiConfig.ShopItems}/{shopItemId}";
+            string endpoint = string.Format(ApiConfig.ShopItemById, shopItemId);
             SafeDebugLog($"GetById → shopItemId={shopItemId}");
             ApiClient.Instance.Get<ShopItemResponse>(
                 endpoint,

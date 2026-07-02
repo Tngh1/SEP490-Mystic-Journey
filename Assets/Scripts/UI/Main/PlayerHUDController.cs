@@ -126,9 +126,9 @@ public class PlayerHUDController : MonoBehaviour
         CharacterApi.Instance.GetMyStats(
             statsResponse =>
             {
-                if (statsResponse.Success && statsResponse.Data != null)
+                if (statsResponse != null)
                 {
-                    ApplyStats(statsResponse.Data);
+                    ApplyStats(statsResponse);
                 }
             },
             error =>
