@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4565308694757844874}
   - component: {fileID: 6513949525879553481}
   - component: {fileID: 3495612135752183386}
+  - component: {fileID: 7196264469393873203}
   m_Layer: 5
   m_Name: ItemSlot
   m_TagString: Untagged
@@ -97,6 +98,24 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!114 &7196264469393873203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4601389938453873378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28d1b0f4bc00dfc4d8600fbb9663f948, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIRewardSlot
+  iconImage: {fileID: 6513949525879553481}
+  itemNameText: {fileID: 0}
+  quantityText: {fileID: 7956509876631950983}
+  rarityBorder: {fileID: 0}
+  selectHighlight: {fileID: 0}
+  claimedOverlay: {fileID: 0}
 --- !u!1 &7175605700231186259
 GameObject:
   m_ObjectHideFlags: 0
