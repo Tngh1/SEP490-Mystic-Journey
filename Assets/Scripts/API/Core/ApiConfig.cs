@@ -54,6 +54,10 @@ namespace MysticJourney.API.Core
         public const string InventoryUnequip = "/api/inventory/unequip-item";
         public const string InventoryConsume = "/api/inventory/consume-item";
 
+        // CURRENCY CONTROLLER - Player gold/gems balance and spending
+        public const string CurrencyBalance = "/api/currencies/me/balance";
+        public const string CurrencySpend = "/api/currencies/spend";
+
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER PROFILES CONTROLLER - Hồ sơ người chơi
         // ═══════════════════════════════════════════════════════════════════════
@@ -155,6 +159,8 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         public const string ShopItemAll = "/api/shopitems";
         public const string ShopItemById = "/api/shopitems/{0}";
+        public const string PlayerShopItems = "/api/shop/items";
+        public const string PlayerShopPurchase = "/api/shop/purchase";
 
         // ═══════════════════════════════════════════════════════════════════════
         // GACHA BANNERS CONTROLLER - Banner gacha/quay thưởng
