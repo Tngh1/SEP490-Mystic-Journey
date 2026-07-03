@@ -1,9 +1,10 @@
+using System.Collections;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
-using System.Collections;
 
 public class PlayerHUDController : MonoBehaviour
 {
@@ -16,6 +17,8 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private Image hpBarImage;
     [SerializeField] private TMP_Text hpText;
     [SerializeField] private TMP_Text energyText;
+    [SerializeField] private TMP_Text goldText;
+    [SerializeField] private TMP_Text gemText;
 
     [Header("HP Bar Color Customization")]
     [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
@@ -24,6 +27,7 @@ public class PlayerHUDController : MonoBehaviour
 
     private Coroutine _updateLoopCoroutine;
     private bool _isRefreshing;
+    private bool _isCurrencyRefreshing;
 
     private void Awake()
     {
@@ -60,11 +64,13 @@ public class PlayerHUDController : MonoBehaviour
         if (energyText == null)
         {
             energyText = transform.Find("TopBar/Center_Resources/EnergyBox/EnergyText")?.GetComponent<TMP_Text>();
-            if (energyText != null)
-            {
-                energyText.textWrappingMode = TextWrappingModes.NoWrap;
-            }
         }
+        if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
+        if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
+
+        ConfigureResourceText(energyText);
+        ConfigureResourceText(goldText);
+        ConfigureResourceText(gemText);
 
         // Log if anything is missing to help with debugging
         if (playerNameText == null) Debug.LogWarning("[PlayerHUDController] PlayerNameText reference is missing!");
@@ -73,6 +79,8 @@ public class PlayerHUDController : MonoBehaviour
         if (hpBarImage == null) Debug.LogWarning("[PlayerHUDController] HPBar reference is missing!");
         if (hpText == null) Debug.LogWarning("[PlayerHUDController] HPText reference is missing!");
         if (energyText == null) Debug.LogWarning("[PlayerHUDController] EnergyText reference is missing!");
+        if (goldText == null) Debug.LogWarning("[PlayerHUDController] GoldText reference is missing!");
+        if (gemText == null) Debug.LogWarning("[PlayerHUDController] GemText reference is missing!");
     }
 
     public void StartHUDLoop()
@@ -136,6 +144,8 @@ public class PlayerHUDController : MonoBehaviour
                 Debug.LogWarning($"[PlayerHUDController] Failed to refresh stats: {error.Message}");
             }
         );
+
+        RefreshCurrencyBalance();
     }
 
     public void ApplyStats(PlayerStatsResponse stats)
@@ -145,6 +155,34 @@ public class PlayerHUDController : MonoBehaviour
 
         FindHUDReferences();
         UpdateStatsUI(stats);
+    }
+
+    public void RefreshCurrencyBalance()
+    {
+        if (_isCurrencyRefreshing) return;
+        _isCurrencyRefreshing = true;
+
+        CurrencyApi.Instance.GetMyBalance(
+            balance =>
+            {
+                ApplyCurrencyBalance(balance);
+                _isCurrencyRefreshing = false;
+            },
+            error =>
+            {
+                Debug.LogWarning($"[PlayerHUDController] Failed to refresh currency balance: {error.Message}");
+                _isCurrencyRefreshing = false;
+            }
+        );
+    }
+
+    public void ApplyCurrencyBalance(CurrencyBalanceResponse balance)
+    {
+        if (balance == null)
+            return;
+
+        FindHUDReferences();
+        UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
     private void UpdateProfileUI(PlayerProfileResponse profile)
@@ -163,6 +201,8 @@ public class PlayerHUDController : MonoBehaviour
         {
             energyText.text = profile.Energy + "/" + profile.MaxEnergy;
         }
+
+        UpdateCurrencyUI(profile.Gold, profile.Gems);
 
         if (expBarImage != null)
         {
@@ -213,5 +253,31 @@ public class PlayerHUDController : MonoBehaviour
         {
             hpText.text = stats.CurrentHp + " / " + stats.MaxHp;
         }
+    }
+
+    private void UpdateCurrencyUI(decimal gold, decimal gems)
+    {
+        if (goldText != null)
+        {
+            goldText.text = FormatCurrencyAmount(gold);
+        }
+
+        if (gemText != null)
+        {
+            gemText.text = FormatCurrencyAmount(gems);
+        }
+    }
+
+    private static void ConfigureResourceText(TMP_Text text)
+    {
+        if (text == null)
+            return;
+
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+    }
+
+    private static string FormatCurrencyAmount(decimal amount)
+    {
+        return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
     }
 }

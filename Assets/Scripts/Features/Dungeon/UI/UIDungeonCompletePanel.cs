@@ -101,17 +101,22 @@ namespace MysticJourney.Features.Dungeon.UI
 
         private void OnExitClicked()
         {
-            // Tạm thời tắt panel, hoặc gọi load scene Sảnh chính
             gameObject.SetActive(false);
             
-            // Ví dụ: UnityEngine.SceneManagement.SceneManager.LoadScene("Main");
+            if (DungeonManager.Instance != null)
+            {
+                DungeonManager.Instance.ReturnToWorldMap();
+            }
         }
 
         private void OnAgainClicked()
         {
-            // Logic đánh lại (nếu có)
-            gameObject.SetActive(false);
-            Debug.Log("Chơi lại Dungeon - Gọi API Enter");
+            if (DungeonManager.Instance != null)
+            {
+                // Let DungeonManager handle it. The panel will be closed if restart succeeds (scene reload),
+                // but if it fails (e.g. not enough energy), the panel stays open so they can buy energy or exit.
+                DungeonManager.Instance.RestartDungeon();
+            }
         }
     }
 }
