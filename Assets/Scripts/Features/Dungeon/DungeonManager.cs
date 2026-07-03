@@ -231,6 +231,7 @@ public class DungeonManager : MonoBehaviour
             SceneManager.SetActiveScene(mainSceneObj);
         }
 
+        PlayerHUDController.Instance?.ToggleDungeonMode(true);
         Debug.Log($"[DungeonManager] Entered dungeon scene: {dungeonSceneName}");
     }
 
@@ -650,6 +651,7 @@ public class DungeonManager : MonoBehaviour
             SceneManager.SetActiveScene(mainScene);
         }
 
+        PlayerHUDController.Instance?.ToggleDungeonMode(false);
         IsInDungeon = false;
         Debug.Log($"[DungeonManager] Returned to map: {PreviousMapSceneName} at {WorldState.LastPosition}");
     }
