@@ -20,6 +20,10 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text goldText;
     [SerializeField] private TMP_Text gemText;
 
+    [Header("HUD Buttons")]
+    [SerializeField] private GameObject settingsButtonObj;
+    [SerializeField] private GameObject pauseButtonObj;
+
     [Header("HP Bar Color Customization")]
     [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
     [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);       // #FFEB3B
@@ -68,19 +72,35 @@ public class PlayerHUDController : MonoBehaviour
         if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
         if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
 
+        if (settingsButtonObj == null) 
+        {
+            var btn = transform.Find("TopRight/SettingsButton"); // Tùy chỉnh đường dẫn này theo UI thực tế
+            if (btn != null) settingsButtonObj = btn.gameObject;
+        }
+
+        if (pauseButtonObj == null)
+        {
+            var btn = transform.Find("TopRight/PauseButton"); // Tùy chỉnh đường dẫn này theo UI thực tế
+            if (btn != null) pauseButtonObj = btn.gameObject;
+        }
+
         ConfigureResourceText(energyText);
         ConfigureResourceText(goldText);
         ConfigureResourceText(gemText);
 
-        // Log if anything is missing to help with debugging
-        if (playerNameText == null) Debug.LogWarning("[PlayerHUDController] PlayerNameText reference is missing!");
-        if (levelText == null) Debug.LogWarning("[PlayerHUDController] LevelText reference is missing!");
-        if (expBarImage == null) Debug.LogWarning("[PlayerHUDController] ExpBar reference is missing!");
-        if (hpBarImage == null) Debug.LogWarning("[PlayerHUDController] HPBar reference is missing!");
-        if (hpText == null) Debug.LogWarning("[PlayerHUDController] HPText reference is missing!");
-        if (energyText == null) Debug.LogWarning("[PlayerHUDController] EnergyText reference is missing!");
-        if (goldText == null) Debug.LogWarning("[PlayerHUDController] GoldText reference is missing!");
-        if (gemText == null) Debug.LogWarning("[PlayerHUDController] GemText reference is missing!");
+        // Đảm bảo trạng thái nút bấm đúng với map hiện tại khi vừa vào game
+        bool inDungeon = false;
+        if (DungeonManager.Instance != null)
+        {
+            inDungeon = DungeonManager.Instance.IsInDungeon;
+        }
+        ToggleDungeonMode(inDungeon);
+    }
+
+    public void ToggleDungeonMode(bool isInDungeon)
+    {
+        if (settingsButtonObj != null) settingsButtonObj.SetActive(!isInDungeon);
+        if (pauseButtonObj != null) pauseButtonObj.SetActive(isInDungeon);
     }
 
     public void StartHUDLoop()
