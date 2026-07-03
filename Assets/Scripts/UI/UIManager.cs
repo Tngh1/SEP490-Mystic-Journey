@@ -155,6 +155,11 @@ public class UIManager : MonoBehaviour
         OpenPanel(bestiaryPanel);
     }
 
+    public void OpenFriendPanel()
+    {
+        OpenPanel(friendPanel);
+    }
+
     private void KeepQuestTrackerVisible()
     {
         var questTracker = FindSceneObject("QuestTracker");
