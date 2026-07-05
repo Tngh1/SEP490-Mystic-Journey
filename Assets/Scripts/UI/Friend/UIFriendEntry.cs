@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using API.Models;
-using API.Endpoints;
+using MysticJourney.API.Models;
+using MysticJourney.API.Endpoints;
 
 namespace UI.Friend
 {
@@ -46,14 +46,14 @@ namespace UI.Friend
             
             if (statusText != null)
             {
-                statusText.text = friend.IsOnline ? $"<color=green>Online</color> - {friend.LastMapName}" : $"<color=gray>Offline ({friend.LastOnline})</color>";
+                statusText.text = friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>";
             }
 
             if (unfriendButton != null)
             {
                 unfriendButton.gameObject.SetActive(true);
                 unfriendButton.onClick.RemoveAllListeners();
-                unfriendButton.onClick.AddListener(() => OnUnfriendClicked(friend.FriendProfileId));
+                unfriendButton.onClick.AddListener(() => OnRemoveFriendClicked(friend.FriendProfileId));
             }
 
             if (profileButton != null)
@@ -222,17 +222,17 @@ namespace UI.Friend
 
         private void OnAcceptClicked(int requesterId)
         {
-            FriendApi.AcceptFriendRequest(token, requesterId, () => parentPanel.RefreshData(), err => Debug.LogError(err));
+            FriendApi.AcceptFriendRequest(requesterId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
         private void OnDeclineClicked(int requesterId)
         {
-            FriendApi.DeclineFriendRequest(token, requesterId, () => parentPanel.RefreshData(), err => Debug.LogError(err));
+            FriendApi.DeclineFriendRequest(requesterId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
-        private void OnUnfriendClicked(int friendId)
+        private void OnRemoveFriendClicked(int friendId)
         {
-            FriendApi.RemoveFriend(token, friendId, () => parentPanel.RefreshData(), err => Debug.LogError(err));
+            FriendApi.RemoveFriend(friendId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
         private void OnProfileClicked(int friendId)
@@ -247,17 +247,17 @@ namespace UI.Friend
 
         private void OnAddFriendClicked(int profileId)
         {
-            FriendApi.SendFriendRequest(token, profileId, () => Debug.Log("Request sent"), err => Debug.LogError(err));
+            FriendApi.SendFriendRequest(profileId, (res) => Debug.Log("Request sent"), err => Debug.LogError(err.Message));
         }
 
         private void OnBlockClicked(int profileId)
         {
-            FriendApi.BlockPlayer(token, profileId, () => parentPanel.RefreshData(), err => Debug.LogError(err));
+            FriendApi.BlockPlayer(profileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
         private void OnUnblockClicked(int profileId)
         {
-            FriendApi.UnblockPlayer(token, profileId, () => parentPanel.RefreshData(), err => Debug.LogError(err));
+            FriendApi.UnblockPlayer(profileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
     }
 }

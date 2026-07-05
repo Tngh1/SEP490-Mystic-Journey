@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
-using API.Endpoints;
-using API.Models;
+using MysticJourney.API.Endpoints;
+using MysticJourney.API.Models;
 using System.Linq;
 
 namespace UI.Friend
@@ -119,29 +119,29 @@ namespace UI.Friend
 
         private void LoadFriends()
         {
-            FriendApi.GetFriendList(token, friends =>
+            FriendApi.GetFriendList(friends =>
             {
                 currentFriends = friends.Where(f => f.Status == "Accepted").ToList();
                 UpdateFriendUI();
-            }, err => Debug.LogError($"Failed to load friends: {err}"));
+            }, err => Debug.LogError($"Failed to load friends: {err.Message}"));
         }
 
         private void LoadRequests()
         {
-            FriendApi.GetFriendRequests(token, requests =>
+            FriendApi.GetFriendRequests(requests =>
             {
                 currentRequests = requests.ToList();
                 UpdateRequestUI();
-            }, err => Debug.LogError($"Failed to load requests: {err}"));
+            }, err => Debug.LogError($"Failed to load requests: {err.Message}"));
         }
 
         private void LoadBlocks()
         {
-            FriendApi.GetFriendBlocks(token, blocks =>
+            FriendApi.GetFriendBlocks(blocks =>
             {
                 currentBlocks = blocks.ToList();
                 UpdateBlockedUI();
-            }, err => Debug.LogError($"Failed to load blocks: {err}"));
+            }, err => Debug.LogError($"Failed to load blocks: {err.Message}"));
         }
 
         private void UpdateFriendUI()
@@ -197,11 +197,11 @@ namespace UI.Friend
         {
             if (string.IsNullOrWhiteSpace(searchInput.text)) return;
             
-            FriendApi.SearchPlayers(token, searchInput.text, results =>
+            FriendApi.SearchPlayers(searchInput.text, results =>
             {
                 searchResults = results;
                 UpdateSearchUI();
-            }, err => Debug.LogError($"Search failed: {err}"));
+            }, err => Debug.LogError($"Search failed: {err.Message}"));
         }
 
         private void UpdateSearchUI()
