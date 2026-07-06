@@ -12,34 +12,40 @@ namespace UI.Friend
     {
         [Header("Tabs")]
         [SerializeField] private Button friendTabButton;
-        [SerializeField] private Button requestTabButton;
-        [SerializeField] private Button searchTabButton;
-        [SerializeField] private Button blockedTabButton;
+        [SerializeField] private Button addTabButton;
 
-        [SerializeField] private GameObject friendPanel;
-        [SerializeField] private GameObject requestPanel;
-        [SerializeField] private GameObject searchPanel;
-        [SerializeField] private GameObject blockedPanel;
+        [Header("Panels")]
+        [SerializeField] private GameObject friendPanel; // Contains friendListContainer and detailPanelObj
+        [SerializeField] private GameObject addPanel; // Contains requestListContainer, searchInput, searchListContainer
 
-        [Header("Friend List")]
+        [Header("Friend List (Left Column)")]
         [SerializeField] private Transform friendListContainer;
         [SerializeField] private UIFriendEntry friendEntryPrefab;
         [SerializeField] private TMP_Text friendCountText;
 
-        [Header("Request List")]
+        [Header("Request List (Left Column in Add Tab)")]
         [SerializeField] private Transform requestListContainer;
         [SerializeField] private UIFriendEntry requestEntryPrefab;
         [SerializeField] private TMP_Text requestCountText;
 
-        [Header("Search Players")]
+        [Header("Search Players (Right Column in Add Tab)")]
         [SerializeField] private TMP_InputField searchInput;
         [SerializeField] private Button searchButton;
         [SerializeField] private Transform searchListContainer;
         [SerializeField] private UIFriendEntry searchEntryPrefab;
 
-        [Header("Blocked List")]
-        [SerializeField] private Transform blockedListContainer;
-        [SerializeField] private UIFriendEntry blockedEntryPrefab;
+        [Header("Master-Detail Panel (Right Column in Friend Tab)")]
+        [SerializeField] private GameObject detailPanelObj;
+        [SerializeField] private TMP_Text detailNameText;
+        [SerializeField] private TMP_Text detailLevelText;
+        [SerializeField] private TMP_Text detailClassText;
+        [SerializeField] private TMP_Text detailStatusText;
+        [SerializeField] private Image detailAvatarImage;
+
+        [Header("Detail Action Buttons")]
+        [SerializeField] private Button detailUnfriendButton;
+        [SerializeField] private Button detailBlockButton;
+        [SerializeField] private Button detailProfileButton;
 
         [Header("UI Control")]
         [SerializeField] private Button closeButton;
@@ -47,22 +53,20 @@ namespace UI.Friend
         private List<FriendDto> currentFriends = new List<FriendDto>();
         private List<PendingFriendRequestDto> currentRequests = new List<PendingFriendRequestDto>();
         private List<FriendSearchDto> searchResults = new List<FriendSearchDto>();
-        private List<FriendProfileDto> currentBlocks = new List<FriendProfileDto>();
-        private string token;
+        
+        private int selectedProfileId;
 
         private void Start()
         {
             if (closeButton != null) closeButton.onClick.AddListener(() => gameObject.SetActive(false));
 
             if (friendTabButton != null) friendTabButton.onClick.AddListener(ShowFriendTab);
-            if (requestTabButton != null) requestTabButton.onClick.AddListener(ShowRequestTab);
-            if (searchTabButton != null) searchTabButton.onClick.AddListener(ShowSearchTab);
-            if (blockedTabButton != null) blockedTabButton.onClick.AddListener(ShowBlockedTab);
+            if (addTabButton != null) addTabButton.onClick.AddListener(ShowAddTab);
 
             if (searchButton != null) searchButton.onClick.AddListener(OnSearchClicked);
             
-            // Assume AuthSystem provides token or we get it from elsewhere.
-            token = PlayerPrefs.GetString("AuthToken", ""); 
+            SetupDetailButtons();
+
             ShowFriendTab();
         }
 
@@ -75,48 +79,134 @@ namespace UI.Friend
         {
             LoadFriends();
             LoadRequests();
-            LoadBlocks();
-            if (searchPanel != null && searchPanel.activeSelf)
+            
+            if (addPanel != null && addPanel.activeSelf)
             {
                 OnSearchClicked();
             }
+        }
+
+        private void SetupDetailButtons()
+        {
+            if (detailUnfriendButton != null) detailUnfriendButton.onClick.AddListener(OnDetailUnfriendClicked);
+            if (detailBlockButton != null) detailBlockButton.onClick.AddListener(OnDetailBlockClicked);
+            if (detailProfileButton != null) detailProfileButton.onClick.AddListener(OnDetailProfileClicked);
         }
 
         private void ShowFriendTab()
         {
             SetAllPanelsActive(false);
             friendPanel?.SetActive(true);
+            HideDetailPanel(); // Hide until a friend is clicked
             LoadFriends();
         }
 
-        private void ShowRequestTab()
+        private void ShowAddTab()
         {
             SetAllPanelsActive(false);
-            requestPanel?.SetActive(true);
-            LoadRequests();
-        }
-
-        private void ShowSearchTab()
-        {
-            SetAllPanelsActive(false);
-            searchPanel?.SetActive(true);
-        }
-
-        private void ShowBlockedTab()
-        {
-            SetAllPanelsActive(false);
-            blockedPanel?.SetActive(true);
-            LoadBlocks();
+            addPanel?.SetActive(true);
+            LoadRequests(); // Left column of Add tab
+            
+            // Note: We don't automatically trigger search to save API calls unless there's text
+            if (!string.IsNullOrWhiteSpace(searchInput.text))
+            {
+                OnSearchClicked(); // Right column of Add tab
+            }
         }
 
         private void SetAllPanelsActive(bool active)
         {
             friendPanel?.SetActive(active);
-            requestPanel?.SetActive(active);
-            searchPanel?.SetActive(active);
-            blockedPanel?.SetActive(active);
+            addPanel?.SetActive(active);
         }
 
+        private void HideDetailPanel()
+        {
+            if (detailPanelObj != null) detailPanelObj.SetActive(false);
+        }
+
+        // -----------------------------
+        // Master-Detail Selection Logic
+        // -----------------------------
+        
+        // Overload for FriendList
+        public void SelectFriend(FriendDto friend)
+        {
+            selectedProfileId = friend.FriendProfileId;
+            ShowDetailPanel(friend.FriendName, friend.FriendLevel, friend.Class, 
+                friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>");
+            
+            EnableDetailButtons(showUnfriend: true, showBlock: true, showProfile: true);
+        }
+
+        private void ShowDetailPanel(string name, int level, string charClass, string statusText)
+        {
+            if (detailPanelObj != null) detailPanelObj.SetActive(true);
+            if (detailNameText != null) detailNameText.text = name;
+            if (detailLevelText != null) detailLevelText.text = $"Lv.{level}";
+            if (detailClassText != null) detailClassText.text = charClass;
+            if (detailStatusText != null) 
+            {
+                detailStatusText.gameObject.SetActive(!string.IsNullOrEmpty(statusText));
+                detailStatusText.text = statusText;
+            }
+        }
+
+        private void EnableDetailButtons(bool showUnfriend = false, bool showBlock = false, bool showProfile = false)
+        {
+            if (detailUnfriendButton != null)
+            {
+                detailUnfriendButton.gameObject.SetActive(showUnfriend);
+                detailUnfriendButton.interactable = true;
+            }
+            if (detailBlockButton != null)
+            {
+                detailBlockButton.gameObject.SetActive(showBlock);
+                detailBlockButton.interactable = true;
+            }
+            if (detailProfileButton != null)
+            {
+                detailProfileButton.gameObject.SetActive(showProfile);
+                detailProfileButton.interactable = true;
+            }
+        }
+
+        // -----------------------------
+        // Button Actions
+        // -----------------------------
+        private void OnDetailUnfriendClicked()
+        {
+            SetButtonLoading(detailUnfriendButton);
+            FriendApi.RemoveFriend(selectedProfileId, (res) => RefreshData(), err => Debug.LogError(err.Message));
+        }
+
+        private void OnDetailBlockClicked()
+        {
+            SetButtonLoading(detailBlockButton);
+            FriendApi.BlockPlayer(selectedProfileId, (res) => RefreshData(), err => Debug.LogError(err.Message));
+        }
+
+        private void OnDetailProfileClicked()
+        {
+            var profilePanelObj = GameObject.Find("FriendProfilePanel");
+            if (profilePanelObj != null)
+            {
+                var panel = profilePanelObj.GetComponent<UIFriendProfilePanel>();
+                panel?.ShowProfile(selectedProfileId, "");
+            }
+        }
+
+        private void SetButtonLoading(Button btn)
+        {
+            if (btn == null) return;
+            btn.interactable = false;
+            var txt = btn.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = "Loading...";
+        }
+
+        // -----------------------------
+        // Data Loading
+        // -----------------------------
         private void LoadFriends()
         {
             FriendApi.GetFriendList(friends =>
@@ -135,21 +225,11 @@ namespace UI.Friend
             }, err => Debug.LogError($"Failed to load requests: {err.Message}"));
         }
 
-        private void LoadBlocks()
-        {
-            FriendApi.GetFriendBlocks(blocks =>
-            {
-                currentBlocks = blocks.ToList();
-                UpdateBlockedUI();
-            }, err => Debug.LogError($"Failed to load blocks: {err.Message}"));
-        }
-
         private void UpdateFriendUI()
         {
             if (friendListContainer == null) return;
             foreach (Transform child in friendListContainer) Destroy(child.gameObject);
 
-            // Sorting logic: Online first, then Level desc, then Alphabetical
             var sortedFriends = currentFriends
                 .OrderByDescending(f => f.IsOnline)
                 .ThenByDescending(f => f.FriendLevel)
@@ -163,7 +243,7 @@ namespace UI.Friend
             }
 
             if (friendCountText != null)
-                friendCountText.text = $"Friends: {currentFriends.Count}/100";
+                friendCountText.text = $"Friends: {currentFriends.Count}/100"; // Can be adjusted with limits later
         }
 
         private void UpdateRequestUI()
@@ -178,19 +258,7 @@ namespace UI.Friend
             }
 
             if (requestCountText != null)
-                requestCountText.text = $"Requests: {currentRequests.Count}";
-        }
-
-        private void UpdateBlockedUI()
-        {
-            if (blockedListContainer == null) return;
-            foreach (Transform child in blockedListContainer) Destroy(child.gameObject);
-
-            foreach (var block in currentBlocks)
-            {
-                var entry = Instantiate(blockedEntryPrefab, blockedListContainer);
-                entry.SetupAsBlock(block, this);
-            }
+                requestCountText.text = $"{currentRequests.Count}/100"; // As seen in image 2
         }
 
         private void OnSearchClicked()
@@ -216,6 +284,6 @@ namespace UI.Friend
             }
         }
 
-        public string GetToken() => token;
+        public string GetToken() => ""; // Kept for legacy signature
     }
 }

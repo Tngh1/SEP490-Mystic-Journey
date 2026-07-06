@@ -8,36 +8,28 @@ namespace UI.Friend
 {
     public class UIFriendEntry : MonoBehaviour
     {
-        [Header("Common")]
+        [Header("Common Data")]
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text levelText;
         [SerializeField] private TMP_Text classText;
-        [SerializeField] private Image avatarImage;
-
-        [Header("Friend Specific")]
         [SerializeField] private TMP_Text statusText;
-        [SerializeField] private Button profileButton;
-        [SerializeField] private Button unfriendButton;
+        [SerializeField] private Image avatarImage;
+        
+        [Header("Master Button (For Detail View)")]
+        [SerializeField] private Button mainButton;
 
-        [Header("Request Specific")]
+        [Header("Inline Action Buttons")]
+        [SerializeField] private Button addFriendButton;
         [SerializeField] private Button acceptButton;
         [SerializeField] private Button declineButton;
-
-        [Header("Search/Add Specific")]
-        [SerializeField] private Button addFriendButton;
-        [SerializeField] private Button blockButton;
-
-        [Header("Block Specific")]
         [SerializeField] private Button unblockButton;
 
         private UIFriendPanel parentPanel;
         private int currentProfileId;
-        private string token;
 
         public void SetupAsFriend(FriendDto friend, UIFriendPanel panel)
         {
             parentPanel = panel;
-            token = panel.GetToken();
             currentProfileId = friend.FriendProfileId;
 
             if (nameText != null) nameText.text = friend.FriendName;
@@ -49,29 +41,19 @@ namespace UI.Friend
                 statusText.text = friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>";
             }
 
-            if (unfriendButton != null)
+            if (mainButton != null)
             {
-                unfriendButton.gameObject.SetActive(true);
-                unfriendButton.onClick.RemoveAllListeners();
-                unfriendButton.onClick.AddListener(() => OnRemoveFriendClicked(friend.FriendProfileId));
+                mainButton.gameObject.SetActive(true);
+                mainButton.onClick.RemoveAllListeners();
+                mainButton.onClick.AddListener(() => parentPanel.SelectFriend(friend));
             }
 
-            if (profileButton != null)
-            {
-                profileButton.gameObject.SetActive(true);
-                profileButton.onClick.RemoveAllListeners();
-                profileButton.onClick.AddListener(() => OnProfileClicked(friend.FriendProfileId));
-            }
-
-            HideRequestButtons();
-            HideSearchButtons();
-            HideBlockButtons();
+            HideInlineButtons();
         }
 
         public void SetupAsRequest(PendingFriendRequestDto req, UIFriendPanel panel)
         {
             parentPanel = panel;
-            token = panel.GetToken();
             currentProfileId = req.RequesterId;
 
             if (nameText != null) nameText.text = req.RequesterName;
@@ -79,35 +61,36 @@ namespace UI.Friend
             if (classText != null) classText.text = req.Class;
             if (statusText != null) statusText.text = $"Sent: {req.CreatedAt}";
 
+            if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for requests
+            HideInlineButtons();
+
             if (acceptButton != null)
             {
                 acceptButton.gameObject.SetActive(true);
                 acceptButton.onClick.RemoveAllListeners();
-                acceptButton.onClick.AddListener(() => OnAcceptClicked(req.RequesterId));
+                acceptButton.onClick.AddListener(() => OnAcceptClicked());
             }
 
             if (declineButton != null)
             {
                 declineButton.gameObject.SetActive(true);
                 declineButton.onClick.RemoveAllListeners();
-                declineButton.onClick.AddListener(() => OnDeclineClicked(req.RequesterId));
+                declineButton.onClick.AddListener(() => OnDeclineClicked());
             }
-
-            HideFriendButtons();
-            HideSearchButtons();
-            HideBlockButtons();
         }
 
         public void SetupAsSearch(FriendSearchDto searchResult, UIFriendPanel panel)
         {
             parentPanel = panel;
-            token = panel.GetToken();
             currentProfileId = searchResult.ProfileId;
 
             if (nameText != null) nameText.text = searchResult.CharacterName;
             if (levelText != null) levelText.text = $"Lv.{searchResult.Level}";
             if (classText != null) classText.text = searchResult.Class;
             if (statusText != null) statusText.text = searchResult.IsOnline ? "<color=green>Online</color>" : "<color=gray>Offline</color>";
+
+            if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for search
+            HideInlineButtons();
 
             if (addFriendButton != null)
             {
@@ -122,17 +105,17 @@ namespace UI.Friend
                         addFriendButton.interactable = false;
                         break;
                     case FriendRelationshipStatus.None:
-                        if (btnText != null) btnText.text = "Add Friend";
+                        if (btnText != null) btnText.text = "Add";
                         addFriendButton.interactable = true;
                         addFriendButton.onClick.AddListener(() => 
                         {
                             if (btnText != null) btnText.text = "Loading...";
                             addFriendButton.interactable = false;
-                            OnAddFriendClicked(searchResult.ProfileId);
+                            OnAddFriendClicked();
                         });
                         break;
                     case FriendRelationshipStatus.RequestSent:
-                        if (btnText != null) btnText.text = "Request Sent";
+                        if (btnText != null) btnText.text = "Sent";
                         addFriendButton.interactable = false;
                         break;
                     case FriendRelationshipStatus.RequestReceived:
@@ -142,7 +125,7 @@ namespace UI.Friend
                         {
                             if (btnText != null) btnText.text = "Loading...";
                             addFriendButton.interactable = false;
-                            OnAcceptClicked(searchResult.ProfileId);
+                            OnAcceptClicked();
                         });
                         break;
                     case FriendRelationshipStatus.Friend:
@@ -155,29 +138,11 @@ namespace UI.Friend
                         break;
                 }
             }
-
-            if (blockButton != null)
-            {
-                blockButton.gameObject.SetActive(true);
-                blockButton.onClick.RemoveAllListeners();
-                blockButton.onClick.AddListener(() => 
-                {
-                    var btnText = blockButton.GetComponentInChildren<TMP_Text>();
-                    if (btnText != null) btnText.text = "Loading...";
-                    blockButton.interactable = false;
-                    OnBlockClicked(searchResult.ProfileId);
-                });
-            }
-
-            HideFriendButtons();
-            HideRequestButtons();
-            HideBlockButtons();
         }
 
         public void SetupAsBlock(FriendProfileDto blockResult, UIFriendPanel panel)
         {
             parentPanel = panel;
-            token = panel.GetToken();
             currentProfileId = blockResult.ProfileId;
 
             if (nameText != null) nameText.text = blockResult.CharacterName;
@@ -185,79 +150,43 @@ namespace UI.Friend
             if (classText != null) classText.text = blockResult.Class;
             if (statusText != null) statusText.gameObject.SetActive(false);
 
+            if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for blocks
+            HideInlineButtons();
+
             if (unblockButton != null)
             {
                 unblockButton.gameObject.SetActive(true);
                 unblockButton.onClick.RemoveAllListeners();
-                unblockButton.onClick.AddListener(() => OnUnblockClicked(blockResult.ProfileId));
+                unblockButton.onClick.AddListener(() => OnUnblockClicked());
             }
-
-            HideFriendButtons();
-            HideRequestButtons();
-            HideSearchButtons();
         }
 
-        private void HideFriendButtons()
-        {
-            if (unfriendButton != null) unfriendButton.gameObject.SetActive(false);
-            if (profileButton != null) profileButton.gameObject.SetActive(false);
-        }
-
-        private void HideRequestButtons()
-        {
-            if (acceptButton != null) acceptButton.gameObject.SetActive(false);
-            if (declineButton != null) declineButton.gameObject.SetActive(false);
-        }
-
-        private void HideSearchButtons()
+        private void HideInlineButtons()
         {
             if (addFriendButton != null) addFriendButton.gameObject.SetActive(false);
-            if (blockButton != null) blockButton.gameObject.SetActive(false);
-        }
-
-        private void HideBlockButtons()
-        {
+            if (acceptButton != null) acceptButton.gameObject.SetActive(false);
+            if (declineButton != null) declineButton.gameObject.SetActive(false);
             if (unblockButton != null) unblockButton.gameObject.SetActive(false);
         }
 
-        private void OnAcceptClicked(int requesterId)
+        private void OnAcceptClicked()
         {
-            FriendApi.AcceptFriendRequest(requesterId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.AcceptFriendRequest(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
-        private void OnDeclineClicked(int requesterId)
+        private void OnDeclineClicked()
         {
-            FriendApi.DeclineFriendRequest(requesterId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.DeclineFriendRequest(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
-        private void OnRemoveFriendClicked(int friendId)
+        private void OnAddFriendClicked()
         {
-            FriendApi.RemoveFriend(friendId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.SendFriendRequest(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
-        private void OnProfileClicked(int friendId)
+        private void OnUnblockClicked()
         {
-            var profilePanelObj = GameObject.Find("FriendProfilePanel"); // Simple way, better with UIManager
-            if (profilePanelObj != null)
-            {
-                var panel = profilePanelObj.GetComponent<UIFriendProfilePanel>();
-                panel?.ShowProfile(friendId, token);
-            }
-        }
-
-        private void OnAddFriendClicked(int profileId)
-        {
-            FriendApi.SendFriendRequest(profileId, (res) => Debug.Log("Request sent"), err => Debug.LogError(err.Message));
-        }
-
-        private void OnBlockClicked(int profileId)
-        {
-            FriendApi.BlockPlayer(profileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
-        }
-
-        private void OnUnblockClicked(int profileId)
-        {
-            FriendApi.UnblockPlayer(profileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.UnblockPlayer(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
     }
 }
