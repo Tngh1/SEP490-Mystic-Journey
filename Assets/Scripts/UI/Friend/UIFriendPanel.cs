@@ -43,9 +43,13 @@ namespace UI.Friend
         [SerializeField] private Image detailAvatarImage;
 
         [Header("Detail Action Buttons")]
+        [SerializeField] private Button detailChatButton;
         [SerializeField] private Button detailUnfriendButton;
         [SerializeField] private Button detailBlockButton;
         [SerializeField] private Button detailProfileButton;
+
+        [Header("Friend Chat")]
+        [SerializeField] private UIFriendChatPanel friendChatPanel;
 
         [Header("UI Control")]
         [SerializeField] private Button closeButton;
@@ -55,6 +59,7 @@ namespace UI.Friend
         private List<FriendSearchDto> searchResults = new List<FriendSearchDto>();
         
         private int selectedProfileId;
+        private string selectedFriendName;
 
         private void Start()
         {
@@ -88,9 +93,68 @@ namespace UI.Friend
 
         private void SetupDetailButtons()
         {
+            if (detailChatButton == null && detailPanelObj != null)
+            {
+                var chatButtonTransform = detailPanelObj.transform.Find("ChatButton");
+                if (chatButtonTransform != null) detailChatButton = chatButtonTransform.GetComponent<Button>();
+            }
+
+            if (detailChatButton == null)
+            {
+                detailChatButton = CreateChatButtonFromTemplate();
+            }
+
+            if (friendChatPanel == null)
+            {
+                friendChatPanel = FindFirstObjectByType<UIFriendChatPanel>(FindObjectsInactive.Include);
+            }
+
+            if (friendChatPanel == null)
+            {
+                friendChatPanel = CreateRuntimeFriendChatPanel();
+            }
+
+            if (detailChatButton != null) detailChatButton.onClick.AddListener(OnDetailChatClicked);
             if (detailUnfriendButton != null) detailUnfriendButton.onClick.AddListener(OnDetailUnfriendClicked);
             if (detailBlockButton != null) detailBlockButton.onClick.AddListener(OnDetailBlockClicked);
             if (detailProfileButton != null) detailProfileButton.onClick.AddListener(OnDetailProfileClicked);
+        }
+
+        private Button CreateChatButtonFromTemplate()
+        {
+            if (detailProfileButton == null)
+            {
+                return null;
+            }
+
+            var chatButtonObject = Instantiate(detailProfileButton.gameObject, detailProfileButton.transform.parent);
+            chatButtonObject.name = "ChatButton";
+
+            var chatButton = chatButtonObject.GetComponent<Button>();
+            if (chatButton != null)
+            {
+                chatButton.onClick.RemoveAllListeners();
+            }
+
+            var label = chatButtonObject.GetComponentInChildren<TMP_Text>();
+            if (label != null)
+            {
+                label.text = "Chat";
+            }
+
+            return chatButton;
+        }
+
+        private UIFriendChatPanel CreateRuntimeFriendChatPanel()
+        {
+            UIChatMessage fallbackMessagePrefab = null;
+            var worldChatPanel = FindFirstObjectByType<UIChatPanel>(FindObjectsInactive.Include);
+            if (worldChatPanel != null)
+            {
+                fallbackMessagePrefab = worldChatPanel.chatMessagePrefab;
+            }
+
+            return UIFriendChatPanel.CreateRuntime(transform, fallbackMessagePrefab);
         }
 
         private void ShowFriendTab()
@@ -133,10 +197,11 @@ namespace UI.Friend
         public void SelectFriend(FriendDto friend)
         {
             selectedProfileId = friend.FriendProfileId;
+            selectedFriendName = friend.FriendName;
             ShowDetailPanel(friend.FriendName, friend.FriendLevel, friend.Class, 
                 friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>");
             
-            EnableDetailButtons(showUnfriend: true, showBlock: true, showProfile: true);
+            EnableDetailButtons(showChat: true, showUnfriend: true, showBlock: true, showProfile: true);
         }
 
         private void ShowDetailPanel(string name, int level, string charClass, string statusText)
@@ -152,8 +217,14 @@ namespace UI.Friend
             }
         }
 
-        private void EnableDetailButtons(bool showUnfriend = false, bool showBlock = false, bool showProfile = false)
+        private void EnableDetailButtons(bool showChat = false, bool showUnfriend = false, bool showBlock = false, bool showProfile = false)
         {
+            if (detailChatButton != null)
+            {
+                detailChatButton.gameObject.SetActive(showChat);
+                detailChatButton.interactable = true;
+            }
+
             if (detailUnfriendButton != null)
             {
                 detailUnfriendButton.gameObject.SetActive(showUnfriend);
@@ -174,6 +245,32 @@ namespace UI.Friend
         // -----------------------------
         // Button Actions
         // -----------------------------
+        private void OnDetailChatClicked()
+        {
+            if (selectedProfileId <= 0)
+            {
+                return;
+            }
+
+            if (friendChatPanel == null)
+            {
+                friendChatPanel = FindFirstObjectByType<UIFriendChatPanel>(FindObjectsInactive.Include);
+            }
+
+            if (friendChatPanel == null)
+            {
+                friendChatPanel = CreateRuntimeFriendChatPanel();
+            }
+
+            if (friendChatPanel == null)
+            {
+                Debug.LogWarning("[UIFriendPanel] Friend chat panel is not available.");
+                return;
+            }
+
+            friendChatPanel.Open(selectedProfileId, selectedFriendName);
+        }
+
         private void OnDetailUnfriendClicked()
         {
             SetButtonLoading(detailUnfriendButton);
