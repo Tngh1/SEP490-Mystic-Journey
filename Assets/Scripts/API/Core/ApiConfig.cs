@@ -54,6 +54,10 @@ namespace MysticJourney.API.Core
         public const string InventoryUnequip = "/api/inventory/unequip-item";
         public const string InventoryConsume = "/api/inventory/consume-item";
 
+        // CURRENCY CONTROLLER - Player gold/gems balance and spending
+        public const string CurrencyBalance = "/api/currencies/me/balance";
+        public const string CurrencySpend = "/api/currencies/spend";
+
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER PROFILES CONTROLLER - Hồ sơ người chơi
         // ═══════════════════════════════════════════════════════════════════════
@@ -61,6 +65,19 @@ namespace MysticJourney.API.Core
         public const string PlayerProfileUpdate = "/api/playerprofiles/{0}";
         public const string PlayerProfileMe = "/api/playerprofiles/me";
         public const string PlayerProfileMeFriends = "/api/playerprofiles/me/friends";
+
+        // Friend API
+        public static string GetFriendListEndpoint => $"{BaseUrl}/api/friend";
+        public static string GetFriendRequestsEndpoint => $"{BaseUrl}/api/friend/requests";
+        public static string GetFriendBlocksEndpoint => $"{BaseUrl}/api/friend/blocks";
+        public static string SearchPlayersEndpoint => $"{BaseUrl}/api/friend/search";
+        public static string GetFriendProfileEndpoint => $"{BaseUrl}/api/friend/profile/{{id}}";
+        public static string SendFriendRequestEndpoint => $"{BaseUrl}/api/friend/request";
+        public static string AcceptFriendRequestEndpoint => $"{BaseUrl}/api/friend/accept/{{requesterId}}";
+        public static string DeclineFriendRequestEndpoint => $"{BaseUrl}/api/friend/decline/{{requesterId}}";
+        public static string RemoveFriendEndpoint => $"{BaseUrl}/api/friend/{{targetId}}";
+        public static string BlockPlayerEndpoint => $"{BaseUrl}/api/friend/block";
+        public static string UnblockPlayerEndpoint => $"{BaseUrl}/api/friend/block/{{targetId}}";
 
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER SKILLS CONTROLLER - Skills của người chơi
@@ -90,6 +107,9 @@ namespace MysticJourney.API.Core
         public const string DungeonSessionProgress = "/api/dungeons/session/{0}/progress";
         public const string DungeonSessionComplete = "/api/dungeons/session/{0}/complete";
         public const string DungeonSessionClaimReward = "/api/dungeons/session/{0}/claim-reward";
+        public const string DungeonSessionAbandon = "/api/dungeons/session/{0}/abandon";
+        public const string DungeonSessionActive = "/api/dungeons/session/active";
+        public const string DungeonHistory = "/api/dungeons/history";
 
         // ═══════════════════════════════════════════════════════════════════════
         // MONSTERS CONTROLLER - Quái vật và Spawns
@@ -116,6 +136,11 @@ namespace MysticJourney.API.Core
         public const string WorldInteract = "/api/world/interactions";
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";
         public const string WorldDailyLoginRetroClaim = "/api/world/daily-login/retro-claim";
+
+        public const string ChatWorldMessages = "/api/chat/world/messages";
+        public const string ChatWorldHistory = "/api/chat/world/history";
+        public const string ChatWorldSend = "/api/chat/world/send";
+        public const string ChatWorldReport = "/api/chat/world/report";
 
         // ═══════════════════════════════════════════════════════════════════════
         // QUESTS CONTROLLER - Catalog nhiệm vụ
@@ -147,6 +172,8 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         public const string ShopItemAll = "/api/shopitems";
         public const string ShopItemById = "/api/shopitems/{0}";
+        public const string PlayerShopItems = "/api/shop/items";
+        public const string PlayerShopPurchase = "/api/shop/purchase";
 
         // ═══════════════════════════════════════════════════════════════════════
         // GACHA BANNERS CONTROLLER - Banner gacha/quay thưởng

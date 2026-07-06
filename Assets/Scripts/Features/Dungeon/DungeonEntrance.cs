@@ -3,7 +3,6 @@ using UnityEngine;
 public class DungeonEntrance : MonoBehaviour
 {
     [SerializeField] private int dungeonConfigId = 1;
-    [SerializeField] private string dungeonSceneName = "AbandonedMines";
     [SerializeField] private int energyCost = 20;
     [SerializeField] private string dungeonName = "Abandoned Mines";
     [SerializeField] private float interactionRadius = 2.5f;
@@ -62,8 +61,8 @@ public class DungeonEntrance : MonoBehaviour
             {
                 lobbyScript = targetPanel.AddComponent<UIDungeonRoomPanel>();
             }
-
-            lobbyScript.OpenForDungeon(dungeonConfigId, dungeonSceneName, energyCost, dungeonName);
+            // The dungeon scene name is now hardcoded since the game uses one common scene
+            lobbyScript.OpenForDungeon(dungeonConfigId, "HollowCryptDungeon", energyCost, dungeonName);
         }
         else
         {

@@ -33,8 +33,9 @@ public class DungeonChest : MonoBehaviour
     {
         if (hasOpened) return;
 
-        // Find Player
-        var player = GameObject.FindWithTag("Player") ?? GameObject.Find("Knight") ?? GameObject.Find("Mage") ?? GameObject.Find("Archer");
+        // Find Player properly (including Clones)
+        var pm = FindFirstObjectByType<PlayerMovement>();
+        GameObject player = pm != null ? pm.gameObject : (GameObject.FindWithTag("Player") ?? GameObject.Find("Knight(Clone)") ?? GameObject.Find("Knight"));
         if (player == null) return;
 
         // Check distance to player
@@ -42,7 +43,14 @@ public class DungeonChest : MonoBehaviour
         if (dist <= interactionRadius)
         {
             // Listen to standard interaction key
-            if (Input.GetKeyDown(KeyCode.E))
+            bool interactPressed = false;
+            
+            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.eKey.wasPressedThisFrame)
+            {
+                interactPressed = true;
+            }
+
+            if (interactPressed)
             {
                 OpenChest();
             }
@@ -54,77 +62,36 @@ public class DungeonChest : MonoBehaviour
         if (hasOpened) return;
         hasOpened = true;
 
+        var interactable = GetComponent<WorldInteractable>();
+        if (interactable != null) Destroy(interactable);
+        
+        // Ensure prompt is hidden immediately
+        WorldInteractionPromptRuntime.Hide();
+
         int sessionId = DungeonManager.Instance.CurrentSessionId;
         if (sessionId <= 0)
         {
-            Debug.LogWarning($"[DungeonChest] Session ID is {sessionId} (testing/fallback). Opening fallback chest panel.");
-            ShowFallbackReward();
+            Debug.LogWarning($"[DungeonChest] Session ID is {sessionId} (testing/fallback). Cannot claim reward on backend.");
+            DungeonManager.Instance.ReturnToWorldMap();
             return;
         }
 
-        Debug.Log($"[DungeonChest] Claiming reward for session: {sessionId}...");
+        Debug.Log($"[DungeonChest] Opening chest for session: {sessionId}...");
 
-        DungeonApi.Instance.ClaimReward(sessionId,
-            onSuccess: response =>
-            {
-                if (response != null)
-                {
-                    Debug.Log($"[DungeonChest] Reward claimed: Gold={response.GoldEarned}, XP={response.ExperienceEarned}");
-                    
-                    // Show reward panel
-                    if (UIChestRewardPanel.Instance != null)
-                    {
-                        UIChestRewardPanel.Instance.ShowRewards(
-                            "Exploration Successful",
-                            response.GoldEarned,
-                            response.ExperienceEarned,
-                            response.Items,
-                            onConfirm: () =>
-                            {
-                                // After closing the panel, return to world map
-                                DungeonManager.Instance.ReturnToWorldMap();
-                            }
-                        );
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[DungeonChest] UIChestRewardPanel.Instance not found. Returning to map directly.");
-                        DungeonManager.Instance.ReturnToWorldMap();
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("[DungeonChest] ClaimReward API succeeded but returned failure. Showing fallback reward panel.");
-                    ShowFallbackReward();
-                }
-            },
-            onError: error =>
-            {
-                Debug.LogWarning($"[DungeonChest] ClaimReward API failed: {error.Message}. Showing fallback reward panel.");
-                ShowFallbackReward();
-            }
-        );
-    }
-
-    private void ShowFallbackReward()
-    {
-        if (UIChestRewardPanel.Instance != null)
+        var panel = MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel.Instance;
+        if (panel == null)
         {
-            UIChestRewardPanel.Instance.ShowRewards(
-                "Exploration Successful",
-                100, // mock gold
-                50,  // mock xp
-                null, // no items
-                onConfirm: () =>
-                {
-                    // After closing the panel, return to world map
-                    DungeonManager.Instance.ReturnToWorldMap();
-                }
-            );
+            // If the panel is in the scene but disabled, Awake hasn't run to set Instance. Find it manually!
+            panel = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
+        }
+
+        if (panel != null)
+        {
+            panel.ShowPanel(sessionId);
         }
         else
         {
-            Debug.LogWarning("[DungeonChest] UIChestRewardPanel.Instance not found. Returning to map directly.");
+            Debug.LogWarning("[DungeonChest] UIDungeonCompletePanel not found anywhere. Returning to map directly.");
             DungeonManager.Instance.ReturnToWorldMap();
         }
     }

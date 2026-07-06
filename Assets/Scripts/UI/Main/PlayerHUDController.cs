@@ -1,9 +1,10 @@
+using System.Collections;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
-using System.Collections;
 
 public class PlayerHUDController : MonoBehaviour
 {
@@ -16,6 +17,12 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private Image hpBarImage;
     [SerializeField] private TMP_Text hpText;
     [SerializeField] private TMP_Text energyText;
+    [SerializeField] private TMP_Text goldText;
+    [SerializeField] private TMP_Text gemText;
+
+    [Header("HUD Buttons")]
+    [SerializeField] private GameObject settingsButtonObj;
+    [SerializeField] private GameObject pauseButtonObj;
 
     [Header("HP Bar Color Customization")]
     [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
@@ -24,6 +31,7 @@ public class PlayerHUDController : MonoBehaviour
 
     private Coroutine _updateLoopCoroutine;
     private bool _isRefreshing;
+    private bool _isCurrencyRefreshing;
 
     private void Awake()
     {
@@ -60,19 +68,39 @@ public class PlayerHUDController : MonoBehaviour
         if (energyText == null)
         {
             energyText = transform.Find("TopBar/Center_Resources/EnergyBox/EnergyText")?.GetComponent<TMP_Text>();
-            if (energyText != null)
-            {
-                energyText.textWrappingMode = TextWrappingModes.NoWrap;
-            }
+        }
+        if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
+        if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
+
+        if (settingsButtonObj == null) 
+        {
+            var btn = transform.Find("TopRight/SettingsButton"); // Tùy chỉnh đường dẫn này theo UI thực tế
+            if (btn != null) settingsButtonObj = btn.gameObject;
         }
 
-        // Log if anything is missing to help with debugging
-        if (playerNameText == null) Debug.LogWarning("[PlayerHUDController] PlayerNameText reference is missing!");
-        if (levelText == null) Debug.LogWarning("[PlayerHUDController] LevelText reference is missing!");
-        if (expBarImage == null) Debug.LogWarning("[PlayerHUDController] ExpBar reference is missing!");
-        if (hpBarImage == null) Debug.LogWarning("[PlayerHUDController] HPBar reference is missing!");
-        if (hpText == null) Debug.LogWarning("[PlayerHUDController] HPText reference is missing!");
-        if (energyText == null) Debug.LogWarning("[PlayerHUDController] EnergyText reference is missing!");
+        if (pauseButtonObj == null)
+        {
+            var btn = transform.Find("TopRight/PauseButton"); // Tùy chỉnh đường dẫn này theo UI thực tế
+            if (btn != null) pauseButtonObj = btn.gameObject;
+        }
+
+        ConfigureResourceText(energyText);
+        ConfigureResourceText(goldText);
+        ConfigureResourceText(gemText);
+
+        // Đảm bảo trạng thái nút bấm đúng với map hiện tại khi vừa vào game
+        bool inDungeon = false;
+        if (DungeonManager.Instance != null)
+        {
+            inDungeon = DungeonManager.Instance.IsInDungeon;
+        }
+        ToggleDungeonMode(inDungeon);
+    }
+
+    public void ToggleDungeonMode(bool isInDungeon)
+    {
+        if (settingsButtonObj != null) settingsButtonObj.SetActive(!isInDungeon);
+        if (pauseButtonObj != null) pauseButtonObj.SetActive(isInDungeon);
     }
 
     public void StartHUDLoop()
@@ -136,6 +164,8 @@ public class PlayerHUDController : MonoBehaviour
                 Debug.LogWarning($"[PlayerHUDController] Failed to refresh stats: {error.Message}");
             }
         );
+
+        RefreshCurrencyBalance();
     }
 
     public void ApplyStats(PlayerStatsResponse stats)
@@ -145,6 +175,34 @@ public class PlayerHUDController : MonoBehaviour
 
         FindHUDReferences();
         UpdateStatsUI(stats);
+    }
+
+    public void RefreshCurrencyBalance()
+    {
+        if (_isCurrencyRefreshing) return;
+        _isCurrencyRefreshing = true;
+
+        CurrencyApi.Instance.GetMyBalance(
+            balance =>
+            {
+                ApplyCurrencyBalance(balance);
+                _isCurrencyRefreshing = false;
+            },
+            error =>
+            {
+                Debug.LogWarning($"[PlayerHUDController] Failed to refresh currency balance: {error.Message}");
+                _isCurrencyRefreshing = false;
+            }
+        );
+    }
+
+    public void ApplyCurrencyBalance(CurrencyBalanceResponse balance)
+    {
+        if (balance == null)
+            return;
+
+        FindHUDReferences();
+        UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
     private void UpdateProfileUI(PlayerProfileResponse profile)
@@ -163,6 +221,8 @@ public class PlayerHUDController : MonoBehaviour
         {
             energyText.text = profile.Energy + "/" + profile.MaxEnergy;
         }
+
+        UpdateCurrencyUI(profile.Gold, profile.Gems);
 
         if (expBarImage != null)
         {
@@ -213,5 +273,31 @@ public class PlayerHUDController : MonoBehaviour
         {
             hpText.text = stats.CurrentHp + " / " + stats.MaxHp;
         }
+    }
+
+    private void UpdateCurrencyUI(decimal gold, decimal gems)
+    {
+        if (goldText != null)
+        {
+            goldText.text = FormatCurrencyAmount(gold);
+        }
+
+        if (gemText != null)
+        {
+            gemText.text = FormatCurrencyAmount(gems);
+        }
+    }
+
+    private static void ConfigureResourceText(TMP_Text text)
+    {
+        if (text == null)
+            return;
+
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+    }
+
+    private static string FormatCurrencyAmount(decimal amount)
+    {
+        return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
     }
 }

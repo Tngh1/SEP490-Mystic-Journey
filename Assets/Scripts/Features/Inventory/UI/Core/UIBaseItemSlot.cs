@@ -106,7 +106,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         if (itemNameText == null)
             itemNameText = FindChild("Name", "ItemName", "Title", "TitleText")?.GetComponent<TMP_Text>();
         if (quantityText == null)
-            quantityText = FindChild("Quantity", "QuantityText", "Amount", "AmountText")?.GetComponent<TMP_Text>();
+            quantityText = FindChild("Quantity", "QuantityText", "Amount", "AmountText", "ItemAmountText")?.GetComponent<TMP_Text>();
         if (rarityBorder == null)
             rarityBorder = FindChild("RarityBorder", "Border", "Frame")?.GetComponent<Image>();
         if (selectHighlight == null)

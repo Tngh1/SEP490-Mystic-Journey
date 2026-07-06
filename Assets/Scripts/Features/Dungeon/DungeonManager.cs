@@ -23,9 +23,20 @@ public class DungeonManager : MonoBehaviour
     // Saved position in world map to return to
     public string PreviousMapSceneName { get; private set; } = "AbandonedCastle";
     public Vector3 PreviousPlayerPosition { get; private set; } = Vector3.zero;
+    public bool HasPreviousPlayerPosition { get; private set; } = false;
 
-    private List<EnemyEntity> activeEnemies = new List<EnemyEntity>();
+    // ── Per-run enemy tracking (normal monsters and boss are tracked separately) ──
+    private readonly List<EnemyEntity> _normalEnemies = new();
+    private readonly List<EnemyEntity> _bossEnemies   = new();
     private bool bossKilled = false;
+    private Vector3 _bossDeathPosition = Vector3.zero;
+
+    // ── Saved state for RestartDungeon ──
+    private List<string> _currentPartyMembers = new();
+    private string _currentDungeonSceneName = string.Empty;
+
+    private enum DungeonPhase { Normal, BossSpawning, Boss, Complete }
+    private DungeonPhase _currentPhase = DungeonPhase.Normal;
 
     private void Awake()
     {
@@ -48,10 +59,10 @@ public class DungeonManager : MonoBehaviour
     private GameObject FindPlayerInstance()
     {
         var pm = FindFirstObjectByType<PlayerMovement>();
-        if (pm != null)
-        {
-            return pm.gameObject;
-        }
+        if (pm != null) return pm.gameObject;
+        
+        var pwi = FindFirstObjectByType<PlayerWorldInteractor>();
+        if (pwi != null) return pwi.gameObject;
 
         return GameObject.FindWithTag("Player") ?? 
                GameObject.Find("Knight") ?? 
@@ -66,22 +77,31 @@ public class DungeonManager : MonoBehaviour
         CurrentDungeonConfigId = configId;
         CurrentDungeonCost = cost;
         CurrentDungeonName = dungeonName;
+        _currentPartyMembers = partyMembers ?? new List<string>();
+        _currentDungeonSceneName = dungeonSceneName;
+
         EnemiesKilledCount = 0;
         bossKilled = false;
-        activeEnemies.Clear();
+        _currentPhase = DungeonPhase.Normal;
+        _normalEnemies.Clear();
+        _bossEnemies.Clear();
+        _bossDeathPosition = Vector3.zero;
 
         // Save current map state to return later
         PreviousMapSceneName = WorldState.CurrentMapName;
         
         // Find player position in the scene
         var player = FindPlayerInstance();
-        if (player != null)
+        if (player != null && player.transform.position != Vector3.zero)
         {
             PreviousPlayerPosition = player.transform.position;
+            HasPreviousPlayerPosition = true;
         }
         else
         {
-            PreviousPlayerPosition = Vector3.zero;
+            // Fallback to the globally synced position if player is disabled or not found
+            PreviousPlayerPosition = WorldState.LastPosition;
+            HasPreviousPlayerPosition = true; // Even if it's 0,0,0 it's explicitly saved
         }
 
         // Call Enter API
@@ -162,14 +182,14 @@ public class DungeonManager : MonoBehaviour
             player = FindPlayerInstance();
         }
 
-        // Teleport player to the SceneTransitionGoblinMine position
-        GameObject targetSpawnPoint = GameObject.Find("SceneTransitionGoblinMine");
+        // Teleport player to the PlayerSpawn position
+        GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
         if (targetSpawnPoint == null)
         {
             var allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
             foreach (var t in allTransforms)
             {
-                if (t != null && t.gameObject.name == "SceneTransitionGoblinMine" && t.gameObject.scene.name == dungeonSceneName)
+                if (t != null && (t.gameObject.name == "PlayerSpawn" || t.gameObject.name == "SceneTransitionGoblinMine") && t.gameObject.scene.name == dungeonSceneName)
                 {
                     targetSpawnPoint = t.gameObject;
                     break;
@@ -180,7 +200,7 @@ public class DungeonManager : MonoBehaviour
         if (targetSpawnPoint != null)
         {
             Vector3 spawnPos = targetSpawnPoint.transform.position;
-            Debug.Log($"[DungeonManager] Found SceneTransitionGoblinMine at {spawnPos}. Teleporting player.");
+            Debug.Log($"[DungeonManager] Found {targetSpawnPoint.name} at {spawnPos}. Teleporting player.");
             if (player != null)
             {
                 var rb = player.GetComponent<Rigidbody2D>();
@@ -195,7 +215,7 @@ public class DungeonManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[DungeonManager] SceneTransitionGoblinMine spawn point not found in scene!");
+            Debug.LogWarning("[DungeonManager] PlayerSpawn point not found in scene!");
         }
 
         // Bind camera to player in target scene
@@ -211,6 +231,7 @@ public class DungeonManager : MonoBehaviour
             SceneManager.SetActiveScene(mainSceneObj);
         }
 
+        PlayerHUDController.Instance?.ToggleDungeonMode(true);
         Debug.Log($"[DungeonManager] Entered dungeon scene: {dungeonSceneName}");
     }
 
@@ -219,175 +240,343 @@ public class DungeonManager : MonoBehaviour
         if (!IsInDungeon || scene.name != WorldState.CurrentMapName)
             return;
 
-        Debug.Log($"[DungeonManager] Dungeon scene loaded: {scene.name}. Registering enemies...");
-        
-        // Find all enemies in the loaded scene
-        StartCoroutine(RegisterEnemiesDelayed());
+        Debug.Log($"[DungeonManager] Dungeon scene loaded: {scene.name}. Starting spawn + registration...");
+
+        // Try to use DungeonSpawner for data-driven spawning.
+        // Falls back to scanning existing scene enemies if no spawner is present.
+        StartCoroutine(SpawnAndRegisterEnemies(scene.name));
     }
 
-    private IEnumerator RegisterEnemiesDelayed()
+    /// <summary>
+    /// Primary enemy registration coroutine.
+    /// Looks for a DungeonSpawner in the dungeon scene and drives the full
+    /// two-phase spawn pipeline (API fetch → allocate → instantiate).
+    /// If no DungeonSpawner is found, falls back to registering pre-placed enemies.
+    /// </summary>
+    private IEnumerator SpawnAndRegisterEnemies(string mapName)
     {
-        // Wait briefly for all spawners/objects to initialize
-        yield return new WaitForSeconds(0.5f);
+        // Wait one frame so Awake/Start have all completed in the loaded scene
+        yield return null;
 
-        var enemies = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        Debug.Log($"[DungeonManager] Found {enemies.Length} enemies in scene.");
+        var spawner = FindFirstObjectByType<DungeonSpawner>();
 
-        activeEnemies.Clear();
-        foreach (var enemy in enemies)
+        if (spawner != null)
         {
-            if (enemy != null)
-            {
-                activeEnemies.Add(enemy);
-                enemy.OnDeath -= HandleEnemyDeath;
-                enemy.OnDeath += HandleEnemyDeath;
-            }
-        }
-    }
+            // ── DungeonSpawner path: data-driven, backend-driven spawning ───────
+            Debug.Log("[DungeonManager] DungeonSpawner found — running data-driven spawn pipeline.");
 
-    private void HandleEnemyDeath(object sender, EventArgs e)
-    {
-        if (sender is EnemyEntity enemy)
-        {
-            enemy.OnDeath -= HandleEnemyDeath;
-            if (activeEnemies.Contains(enemy))
-            {
-                activeEnemies.Remove(enemy);
-            }
-            
-            // Check if this enemy is the Boss (Ogre)
-            bool isBoss = enemy.gameObject.name.ToLower().Contains("ogre") || 
-                          enemy.gameObject.name.ToLower().Contains("boss") ||
-                          enemy.name.ToLower().Contains("ogre");
+            bool spawnDone = false;
+            List<EnemyEntity> spawnedEnemies = null;
 
-            if (isBoss)
-            {
-                bossKilled = true;
-            }
-
-            UpdateMonsterKill(isBoss);
-        }
-    }
-
-    public void UpdateMonsterKill(bool isBoss)
-    {
-        EnemiesKilledCount++;
-        bool allDead = activeEnemies.Count == 0;
-        int totalEnemies = EnemiesKilledCount + activeEnemies.Count;
-        int percentage = allDead ? 100 : Mathf.Min(99, (EnemiesKilledCount * 100) / Mathf.Max(1, totalEnemies));
-
-        var request = new UpdateDungeonProgressRequest
-        {
-            MonstersKilled = EnemiesKilledCount,
-            BossKilled = bossKilled || isBoss,
-            CompletionPercentage = percentage
-        };
-
-        DungeonApi.Instance.UpdateProgress(CurrentSessionId, request,
-            onSuccess: response =>
-            {
-                Debug.Log($"[DungeonManager] Progress updated: Killed={EnemiesKilledCount}, Boss={request.BossKilled}, AllDead={allDead}");
-                if (allDead)
+            spawner.SpawnMonstersForDungeon(
+                CurrentDungeonConfigId,
+                mapName,
+                enemies =>
                 {
-                    CompleteDungeon();
+                    spawnedEnemies = enemies;
+                    spawnDone = true;
                 }
-            },
-            onError: error =>
+            );
+
+            yield return new WaitUntil(() => spawnDone);
+
+            _normalEnemies.Clear();
+
+            if (spawnedEnemies != null)
             {
-                Debug.LogWarning($"[DungeonManager] UpdateProgress failed: {error.Message}");
-                if (allDead)
+                foreach (var enemy in spawnedEnemies)
                 {
-                    CompleteDungeon();
+                    if (enemy == null) continue;
+                    _normalEnemies.Add(enemy);
+                    enemy.OnDeath -= HandleNormalEnemyDeath;
+                    enemy.OnDeath += HandleNormalEnemyDeath;
                 }
+                Debug.Log($"[DungeonManager] Registered {_normalEnemies.Count} normal enemies.");
             }
-        );
-    }
-
-    private void CompleteDungeon()
-    {
-        DungeonApi.Instance.Complete(CurrentSessionId,
-            onSuccess: response =>
-            {
-                Debug.Log("[DungeonManager] Dungeon completed on backend. Spawning chest...");
-                SpawnFinalChest();
-            },
-            onError: error =>
-            {
-                Debug.LogWarning($"[DungeonManager] Complete API failed: {error.Message}. Spawning chest anyway.");
-                SpawnFinalChest();
-            }
-        );
-    }
-
-    private void SpawnFinalChest()
-    {
-        // Try to find the boss death position
-        Vector3 spawnPos = Vector3.zero;
-        var boss = GameObject.Find("Ogre") ?? GameObject.Find("Boss");
-        if (boss != null)
-        {
-            spawnPos = boss.transform.position;
         }
         else
         {
-            var player = FindPlayerInstance();
-            if (player != null)
+            // ── Fallback path: scan scene for manually-placed EnemyEntity objects ─
+            Debug.LogWarning("[DungeonManager] No DungeonSpawner found in scene. " +
+                             "Falling back to scanning for pre-placed EnemyEntity objects. " +
+                             "Add a DungeonSpawner component to the dungeon scene for data-driven spawning.");
+            yield return new WaitForSeconds(0.5f);
+
+            var enemies = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            Debug.Log($"[DungeonManager] Fallback: found {enemies.Length} pre-placed enemies.");
+
+            _normalEnemies.Clear();
+            foreach (var enemy in enemies)
             {
-                spawnPos = player.transform.position + Vector3.right * 2f;
+                if (enemy == null) continue;
+                _normalEnemies.Add(enemy);
+                enemy.OnDeath -= HandleNormalEnemyDeath;
+                enemy.OnDeath += HandleNormalEnemyDeath;
             }
         }
+    }
 
-        // Look for any existing chests in the scene and activate them, or move them
-        var chests = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        bool activatedChest = false;
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENEMY DEATH HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════════
 
-        foreach (var t in chests)
+    /// <summary>
+    /// Handles death of a normal (non-boss) enemy.
+    /// Reports partial progress to the backend.
+    /// When the LAST normal enemy dies → initiates the boss spawn sequence.
+    /// </summary>
+    private void HandleNormalEnemyDeath(object sender, EventArgs e)
+    {
+        if (sender is not EnemyEntity enemy) return;
+
+        enemy.OnDeath -= HandleNormalEnemyDeath;
+        _normalEnemies.Remove(enemy);
+        EnemiesKilledCount++;
+
+        int remaining  = _normalEnemies.Count;
+        int total      = EnemiesKilledCount + remaining;
+        // Progress stays ≤ 49 % while normals are alive; hits 50 % when all are dead
+        int percentage = remaining == 0 ? 50
+                       : Mathf.Min(49, (EnemiesKilledCount * 50) / Mathf.Max(1, total));
+
+        Debug.Log($"[DungeonManager] Normal enemy killed. Remaining: {remaining}. Progress: {percentage}%");
+
+        // Fire-and-forget progress update
+        DungeonApi.Instance.UpdateProgress(
+            CurrentSessionId,
+            new UpdateDungeonProgressRequest
+            {
+                MonstersKilled       = EnemiesKilledCount,
+                BossKilled           = false,
+                CompletionPercentage = percentage
+            },
+            _ => { },
+            err => Debug.LogWarning($"[DungeonManager] UpdateProgress (normal) failed: {err.Message}")
+        );
+
+        if (remaining == 0 && _currentPhase == DungeonPhase.Normal)
+            StartCoroutine(TriggerBossSequence());
+    }
+
+    /// <summary>
+    /// Screen shake warning → 1-second pause → spawns boss at BossSpawn point.
+    /// </summary>
+    private IEnumerator TriggerBossSequence()
+    {
+        _currentPhase = DungeonPhase.BossSpawning;
+        Debug.Log("[DungeonManager] All normals defeated. Starting boss sequence (shake → spawn).");
+
+        // Screen shake to signal the incoming boss
+        DungeonScreenShake.Shake(duration: 0.9f, magnitude: 0.28f);
+        yield return new WaitForSeconds(1.2f);
+
+        // Find DungeonSpawner and let it spawn the Boss (which was saved from the API call)
+        if (DungeonSpawner.Instance == null)
         {
-            if (t != null && (t.name == "Chest" || t.name == "Chest (1)" || t.name == "Chest (2)" || t.name == "DarkChest" || t.name.Contains("DarkChest")))
-            {
-                t.gameObject.SetActive(true);
-                t.position = spawnPos;
-                
-                // Add DungeonChest component if not present
-                if (t.GetComponent<DungeonChest>() == null)
-                {
-                    t.gameObject.AddComponent<DungeonChest>();
-                }
-                
-                activatedChest = true;
-                Debug.Log($"[DungeonManager] Activated existing chest: {t.name} at {spawnPos}");
-            }
+            Debug.LogWarning("[DungeonManager] DungeonSpawner not found. Skipping boss and completing dungeon.");
+            yield return StartCoroutine(BossDeathSequence(GetFallbackChestPosition()));
+            yield break;
         }
 
-        // If no chest was found/activated in scene, instantiate a default one from Resources
-        if (!activatedChest)
+        EnemyEntity boss = DungeonSpawner.Instance.SpawnBoss();
+        if (boss == null)
         {
-            var chestPrefab = Resources.Load<GameObject>("Prefabs/Chest") ?? 
-                              Resources.Load<GameObject>("Chest") ??
-                              Resources.Load<GameObject>("PixelWorld/Prefabs/Objects/BoxesChests/Chest_1");
+            Debug.LogWarning("[DungeonManager] DungeonSpawner.SpawnBoss returned null. Completing dungeon without boss.");
+            yield return StartCoroutine(BossDeathSequence(GetFallbackChestPosition()));
+            yield break;
+        }
 
-            if (chestPrefab != null)
+        _bossEnemies.Clear();
+        _bossEnemies.Add(boss);
+        boss.OnDeath -= HandleBossEnemyDeath;
+        boss.OnDeath += HandleBossEnemyDeath;
+
+        _currentPhase = DungeonPhase.Boss;
+        Debug.Log($"[DungeonManager] Boss '{boss.name}' spawned. Phase → Boss.");
+    }
+
+    /// <summary>
+    /// Handles boss death. Captures death position, then starts the completion sequence.
+    /// </summary>
+    private void HandleBossEnemyDeath(object sender, EventArgs e)
+    {
+        if (sender is not EnemyEntity boss) return;
+
+        boss.OnDeath -= HandleBossEnemyDeath;
+        _bossEnemies.Remove(boss);
+        bossKilled           = true;
+        EnemiesKilledCount++;
+        _bossDeathPosition   = boss.transform.position;
+        _currentPhase        = DungeonPhase.Complete;
+
+        Debug.Log($"[DungeonManager] Boss defeated at {_bossDeathPosition}. Starting completion sequence.");
+        StartCoroutine(BossDeathSequence(_bossDeathPosition));
+    }
+
+    /// <summary>
+    /// Reports 100% completion to the backend, waits 1.5 seconds for the boss death
+    /// animation to finish, then spawns the reward chest with a drop-in animation.
+    /// </summary>
+    private IEnumerator BossDeathSequence(Vector3 chestPosition)
+    {
+        bool updateDone = false;
+
+        // Report final progress FIRST and wait for it
+        DungeonApi.Instance.UpdateProgress(
+            CurrentSessionId,
+            new UpdateDungeonProgressRequest
             {
-                var chestObj = Instantiate(chestPrefab, spawnPos, Quaternion.identity);
-                chestObj.name = "DungeonChest";
-                chestObj.AddComponent<DungeonChest>();
-                Debug.Log($"[DungeonManager] Spawned chest prefab at {spawnPos}");
+                MonstersKilled       = EnemiesKilledCount,
+                BossKilled           = bossKilled,
+                CompletionPercentage = 100
+            },
+            _ => { updateDone = true; },
+            err => 
+            { 
+                Debug.LogWarning($"[DungeonManager] Final UpdateProgress failed: {err.Message}");
+                updateDone = true; 
             }
-            else
+        );
+
+        // Wait for the backend to acknowledge the boss kill
+        yield return new WaitUntil(() => updateDone);
+
+        // NOW mark session complete on backend
+        bool completeDone = false;
+        DungeonApi.Instance.Complete(
+            CurrentSessionId,
+            response =>
             {
-                // Fallback: Create a primitive GameObject chest
-                var chestObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                chestObj.name = "DungeonChest";
-                chestObj.transform.position = spawnPos;
-                chestObj.AddComponent<DungeonChest>();
-                Debug.LogWarning("[DungeonManager] Prefab not found. Created a fallback cube chest.");
+                Debug.Log("[DungeonManager] Session marked complete on backend.");
+                completeDone = true;
+            },
+            error =>
+            {
+                Debug.LogWarning($"[DungeonManager] Complete API failed: {error.Message}. Spawning chest anyway.");
+                completeDone = true;
+            }
+        );
+
+        yield return new WaitUntil(() => completeDone);
+
+        // Wait for boss death animation
+        yield return new WaitForSeconds(1.5f);
+
+        // Spawn the reward chest with drop-in animation
+        SpawnFinalChestAtPosition(chestPosition);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHEST SPAWNING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Header("Dungeon Rewards")]
+    [Tooltip("Kéo Prefab Rương của bạn vào đây (vd: DarkChest)")]
+    public GameObject rewardChestPrefab;
+
+    private void SpawnFinalChestAtPosition(Vector3 targetPosition)
+    {
+        GameObject chestGO = null;
+
+        // 1. Instantiate from assigned prefab
+        if (rewardChestPrefab != null)
+        {
+            chestGO = Instantiate(rewardChestPrefab, targetPosition + Vector3.up * 6f, Quaternion.identity);
+            chestGO.name = "DungeonChest";
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(chestGO, UnityEngine.SceneManagement.SceneManager.GetSceneByName(WorldState.CurrentMapName));
+            
+            // Ensure components are present and active
+            var chestScript = chestGO.GetComponent<DungeonChest>();
+            if (chestScript == null) chestScript = chestGO.AddComponent<DungeonChest>();
+            chestScript.enabled = true; // Force enable in case it was disabled in prefab
+
+            Debug.Log("[DungeonManager] Spawned chest from assigned prefab with drop animation.");
+        }
+        else
+        {
+            // 2. Instantiate from Resources (legacy paths)
+            var prefab = Resources.Load<GameObject>("Prefabs/Chest")
+                      ?? Resources.Load<GameObject>("Chest")
+                      ?? Resources.Load<GameObject>("DarkChest")
+                      ?? Resources.Load<GameObject>("PixelWorld/Prefabs/Objects/BoxesChests/Chest_1");
+
+            if (prefab != null)
+            {
+                chestGO = Instantiate(prefab, targetPosition + Vector3.up * 6f, Quaternion.identity);
+                chestGO.name = "DungeonChest";
+                var chestScript = chestGO.GetComponent<DungeonChest>();
+                if (chestScript == null) chestScript = chestGO.AddComponent<DungeonChest>();
+                chestScript.enabled = true;
+                Debug.Log("[DungeonManager] Spawned chest from Resources prefab.");
             }
         }
+
+        // 3. Hard fallback: 2D Sprite (visible in 2D view)
+        if (chestGO == null)
+        {
+            chestGO = new GameObject("DungeonChest");
+            chestGO.transform.position = targetPosition + Vector3.up * 6f;
+            
+            var sr = chestGO.AddComponent<SpriteRenderer>();
+            Sprite defaultSprite = Resources.Load<Sprite>("UI/Skin/UISprite.psd") ?? Resources.Load<Sprite>("Background");
+            sr.sprite = defaultSprite;
+            sr.color = Color.yellow; 
+            
+            var col = chestGO.AddComponent<BoxCollider2D>();
+            col.isTrigger = true;
+            col.size = new Vector2(1.5f, 1.5f);
+
+            chestGO.AddComponent<DungeonChest>();
+            Debug.LogWarning("[DungeonManager] Chest prefab not found — created a fallback yellow 2D Sprite chest.");
+        }
+
+        StartCoroutine(ChestDropAnimation(chestGO, targetPosition));
+    }
+
+    /// <summary>
+    /// Animates the chest falling from 6 units above the target to the target position.
+    /// Uses ease-out cubic for a natural bouncy landing feel.
+    /// </summary>
+    private IEnumerator ChestDropAnimation(GameObject chest, Vector3 targetPosition)
+    {
+        if (chest == null) yield break;
+
+        Vector3 startPos = chest.transform.position; // already offset upward by caller
+        float elapsed    = 0f;
+        const float duration = 0.55f;
+
+        while (elapsed < duration)
+        {
+            if (chest == null) yield break;
+            float t     = elapsed / duration;
+            float eased = 1f - Mathf.Pow(1f - t, 3f); // ease-out cubic
+            chest.transform.position = Vector3.Lerp(startPos, targetPosition, eased);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (chest != null)
+            chest.transform.position = targetPosition;
+
+        Debug.Log($"[DungeonManager] Reward chest landed at {targetPosition}.");
+    }
+
+    private Vector3 GetFallbackChestPosition()
+    {
+        var player = FindPlayerInstance();
+        return player != null ? player.transform.position + Vector3.right * 2f : Vector3.zero;
+    }
+
+    /// <summary>Kept for external callers — logic now handled by the new two-phase death system.</summary>
+    [System.Obsolete("Death events are now handled automatically by HandleNormalEnemyDeath and HandleBossEnemyDeath.")]
+    public void UpdateMonsterKill(bool isBoss)
+    {
+        Debug.LogWarning("[DungeonManager] UpdateMonsterKill is deprecated and does nothing. " +
+                         "Death events are handled automatically.");
     }
 
     public void ReturnToWorldMap()
     {
-        IsInDungeon = false;
         StartCoroutine(TransitionToWorld());
     }
 
@@ -416,20 +605,26 @@ public class DungeonManager : MonoBehaviour
         }
 
         // Restore position and current map
-        WorldState.LastPosition = PreviousPlayerPosition != Vector3.zero ? PreviousPlayerPosition : new Vector3(11.9f, 17.8f, 0f);
+        Vector3 returnPos = HasPreviousPlayerPosition ? PreviousPlayerPosition : WorldState.LastPosition;
+        if (!HasPreviousPlayerPosition && returnPos == Vector3.zero) returnPos = new Vector3(11.9f, 17.8f, 0f); // Final hard fallback
+        WorldState.LastPosition = returnPos;
         WorldState.CurrentMapName = PreviousMapSceneName;
 
         // Load previous map
         yield return SceneManager.LoadSceneAsync(PreviousMapSceneName, LoadSceneMode.Additive);
 
-        // Move player into the world scene
+        // Move player into the world scene and set physical position
         if (player != null)
         {
             var worldScene = SceneManager.GetSceneByName(PreviousMapSceneName);
             if (worldScene.IsValid() && worldScene.isLoaded)
             {
                 SceneManager.MoveGameObjectToScene(player, worldScene);
-                Debug.Log($"[DungeonManager] Moved player into world scene: {PreviousMapSceneName}");
+                player.transform.position = returnPos;
+                Debug.Log($"[DungeonManager] Moved player into world scene: {PreviousMapSceneName} at {returnPos}");
+                
+                // Save position to backend so logout doesn't get stuck in dungeon
+                MysticJourney.API.Endpoints.WorldApi.Instance?.UpdatePosition(PreviousMapSceneName, returnPos, null, null);
             }
         }
         else
@@ -456,7 +651,127 @@ public class DungeonManager : MonoBehaviour
             SceneManager.SetActiveScene(mainScene);
         }
 
+        PlayerHUDController.Instance?.ToggleDungeonMode(false);
+        IsInDungeon = false;
         Debug.Log($"[DungeonManager] Returned to map: {PreviousMapSceneName} at {WorldState.LastPosition}");
+    }
+
+    public void RestartDungeon()
+    {
+        Debug.Log("[DungeonManager] Restarting Dungeon...");
+        EnemiesKilledCount = 0;
+        bossKilled = false;
+        _currentPhase = DungeonPhase.Normal;
+        _normalEnemies.Clear();
+        _bossEnemies.Clear();
+        _bossDeathPosition = Vector3.zero;
+
+        // Note: PreviousMapSceneName and PreviousPlayerPosition are preserved from the FIRST time they entered!
+
+        DungeonApi.Instance.Enter(CurrentDungeonConfigId, _currentPartyMembers,
+            onSuccess: response =>
+            {
+                if (response != null)
+                {
+                    CurrentSessionId = response.DungeonSessionId;
+                    IsInDungeon = true;
+                    Debug.Log($"[DungeonManager] Session created for Restart: {CurrentSessionId}");
+                    
+                    // Close the Dungeon Complete panel since it lives in Main scene
+                    var p = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
+                    if (p != null) p.gameObject.SetActive(false);
+
+                    string sceneToLoad = _currentDungeonSceneName;
+                    StartCoroutine(TransitionToRestart(sceneToLoad));
+                }
+            },
+            onError: error =>
+            {
+                Debug.LogWarning($"[DungeonManager] Restart API failed: {error.Message}.");
+                WorldRuntimeEvents.RaiseMessage($"Cannot Restart: {error.Message}");
+            }
+        );
+    }
+
+    private IEnumerator TransitionToRestart(string dungeonSceneName)
+    {
+        // 1. Find player and move them to Main defensively so they survive the reload
+        var player = FindPlayerInstance();
+        if (player != null)
+        {
+            var mainScene = SceneManager.GetSceneByName("Main");
+            if (mainScene.IsValid() && mainScene.isLoaded)
+            {
+                SceneManager.MoveGameObjectToScene(player, mainScene);
+            }
+        }
+
+        // 2. Unload the CURRENT dungeon scene
+        var currentDungeonScene = SceneManager.GetSceneByName(dungeonSceneName);
+        if (currentDungeonScene.IsValid() && currentDungeonScene.isLoaded)
+        {
+            yield return SceneManager.UnloadSceneAsync(currentDungeonScene);
+        }
+
+        // 3. Load the dungeon scene fresh
+        yield return SceneManager.LoadSceneAsync(dungeonSceneName, LoadSceneMode.Additive);
+
+        // 4. Move player back in
+        if (player != null)
+        {
+            var newDungeonScene = SceneManager.GetSceneByName(dungeonSceneName);
+            if (newDungeonScene.IsValid() && newDungeonScene.isLoaded)
+            {
+                SceneManager.MoveGameObjectToScene(player, newDungeonScene);
+                
+                GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
+                if (targetSpawnPoint == null)
+                {
+                    var allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                    foreach (var t in allTransforms)
+                    {
+                        if (t != null && (t.gameObject.name == "PlayerSpawn" || t.gameObject.name == "SceneTransitionGoblinMine") && t.gameObject.scene.name == dungeonSceneName)
+                        {
+                            targetSpawnPoint = t.gameObject;
+                            break;
+                        }
+                    }
+                }
+
+                if (targetSpawnPoint != null)
+                {
+                    Vector3 spawnPos = targetSpawnPoint.transform.position;
+                    player.transform.position = spawnPos;
+                    var rb = player.GetComponent<Rigidbody2D>();
+                    if (rb != null)
+                    {
+                        rb.linearVelocity = Vector2.zero;
+                        rb.position = spawnPos;
+                    }
+                    WorldState.LastPosition = spawnPos;
+                }
+                else
+                {
+                    player.transform.position = Vector3.zero;
+                    WorldState.LastPosition = Vector3.zero;
+                }
+                
+                BindCameraToPlayer(player, dungeonSceneName);
+            }
+        }
+        else
+        {
+            Debug.LogError("[DungeonManager] Restart failed to locate Player! Camera not bound.");
+        }
+
+        // Keep Main active
+        var mainActiveScene = SceneManager.GetSceneByName("Main");
+        if (mainActiveScene.IsValid())
+        {
+            SceneManager.SetActiveScene(mainActiveScene);
+        }
+
+        Debug.Log($"[DungeonManager] Successfully restarted dungeon: {dungeonSceneName}");
     }
 
     private string GetSceneName(GameObject go)

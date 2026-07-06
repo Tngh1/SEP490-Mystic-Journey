@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using System.Collections.Generic;
-using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
@@ -153,6 +151,11 @@ public class UIManager : MonoBehaviour
     public void OpenBestiaryPanel()
     {
         OpenPanel(bestiaryPanel);
+    }
+
+    public void OpenFriendPanel()
+    {
+        OpenPanel(friendPanel);
     }
 
     private void KeepQuestTrackerVisible()

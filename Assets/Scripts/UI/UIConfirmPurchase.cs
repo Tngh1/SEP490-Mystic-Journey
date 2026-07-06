@@ -1,0 +1,120 @@
+using System;
+using System.Globalization;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class UIConfirmPurchase : MonoBehaviour
+{
+    [Header("UI Elements")]
+    public TMP_Text itemNameText;
+    public Image itemIcon;
+    public TMP_Text itemPriceText;
+
+    [Header("Quantity Controls")]
+    public TMP_Text quantityText;
+    public Button plusButton;
+    public Button minusButton;
+    public Button maxButton;
+
+    [Header("Totals")]
+    public TMP_Text totalPriceText;
+    public TMP_Text currencyNameText;
+
+    [Header("Action Buttons")]
+    public Button confirmButton;
+    public Button cancelButton;
+
+    private UIItemDisplayData currentItem;
+    private int currentQuantity = 1;
+    private int maxQuantity = 99;
+
+    public event Action<UIItemDisplayData, int> OnConfirmPurchase;
+
+    private void Awake()
+    {
+        if (plusButton != null) plusButton.onClick.AddListener(IncreaseQuantity);
+        if (minusButton != null) minusButton.onClick.AddListener(DecreaseQuantity);
+        if (maxButton != null) maxButton.onClick.AddListener(SetMaxQuantity);
+        if (confirmButton != null) confirmButton.onClick.AddListener(Confirm);
+        if (cancelButton != null) cancelButton.onClick.AddListener(Cancel);
+    }
+
+    public void Setup(UIItemDisplayData itemData)
+    {
+        currentItem = itemData;
+        maxQuantity = currentItem?.GetMaxPurchaseQuantity() ?? 0;
+        currentQuantity = maxQuantity > 0 ? 1 : 0;
+
+        if (itemNameText != null) itemNameText.text = currentItem?.itemName ?? string.Empty;
+        if (itemIcon != null)
+        {
+            itemIcon.sprite = currentItem?.icon;
+            itemIcon.enabled = currentItem?.icon != null;
+        }
+        if (itemPriceText != null) itemPriceText.text = FormatAmount(currentItem?.EffectiveUnitPrice ?? 0);
+        if (currencyNameText != null) currencyNameText.text = string.IsNullOrWhiteSpace(currentItem?.currency) ? "Gold" : currentItem.currency;
+
+        UpdateUI();
+    }
+
+    private void IncreaseQuantity()
+    {
+        if (currentQuantity < maxQuantity)
+        {
+            currentQuantity++;
+            UpdateUI();
+        }
+    }
+
+    private void DecreaseQuantity()
+    {
+        if (currentQuantity > 1)
+        {
+            currentQuantity--;
+            UpdateUI();
+        }
+    }
+
+    private void SetMaxQuantity()
+    {
+        currentQuantity = maxQuantity;
+        UpdateUI();
+    }
+
+    private void UpdateUI()
+    {
+        if (quantityText != null) quantityText.text = currentQuantity.ToString();
+
+        if (totalPriceText != null)
+        {
+            decimal total = (currentItem?.EffectiveUnitPrice ?? 0) * currentQuantity;
+            totalPriceText.text = FormatAmount(total);
+        }
+
+        bool canConfirm = currentItem != null && currentItem.canPurchase && currentQuantity > 0;
+        if (confirmButton != null) confirmButton.interactable = canConfirm;
+        if (plusButton != null) plusButton.interactable = currentQuantity > 0 && currentQuantity < maxQuantity;
+        if (minusButton != null) minusButton.interactable = currentQuantity > 1;
+        if (maxButton != null) maxButton.interactable = maxQuantity > 1 && currentQuantity < maxQuantity;
+    }
+
+    private void Confirm()
+    {
+        if (currentItem == null || currentQuantity <= 0 || !currentItem.canPurchase)
+            return;
+
+        OnConfirmPurchase?.Invoke(currentItem, currentQuantity);
+        gameObject.SetActive(false);
+    }
+
+    private void Cancel()
+    {
+        gameObject.SetActive(false);
+    }
+
+    private static string FormatAmount(decimal amount)
+    {
+        return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
+    }
+}

@@ -3,26 +3,49 @@ using UnityEngine;
 [System.Serializable]
 public class UIItemDisplayData
 {
-    // D? li?u b?t bu?c (L�i)
     public int itemId;
-    public string itemName; // ---> M?I TH�M: ?? hi?n th? t�n trong Shop
+    public string itemName;
     public Sprite icon;
     public int quantity;
     public string rarity;
+    public string category;
 
-    // D? li?u cho T�i ??
     public bool isEquipped;
 
-    // D? li?u cho Shop
+    // Legacy integer price kept for old local/test callers. API shop uses unitPrice.
     public int price;
+    public decimal unitPrice;
+    public string currency = "Gold";
     public Sprite currencyIcon;
 
-    // D? li?u cho Quest / Chest / Daily Login
+    public int shopItemId;
+    public bool canPurchase = true;
+    public string unavailableReason;
+    public int stock = -1;
+    public bool isUnlimitedStock = true;
+    public int dailyPurchaseLimit;
+    public int purchasedToday;
+    public int remainingDailyPurchases = -1;
+
     public bool isClaimed;
     public bool isAvailable;
     public bool isMissed;
     public int dayNumber;
-    
-    // Store raw data to allow custom logic on click
+
     public object rawData;
+
+    public decimal EffectiveUnitPrice => unitPrice > 0 ? unitPrice : price;
+
+    public int GetMaxPurchaseQuantity(int hardCap = 99)
+    {
+        int max = Mathf.Max(1, hardCap);
+
+        if (!isUnlimitedStock && stock >= 0)
+            max = Mathf.Min(max, stock);
+
+        if (remainingDailyPurchases >= 0)
+            max = Mathf.Min(max, remainingDailyPurchases);
+
+        return canPurchase ? Mathf.Max(0, max) : 0;
+    }
 }
