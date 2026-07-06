@@ -19,6 +19,10 @@ public class UIChatPanel : MonoBehaviour
     [Header("Message Prefab")]
     public UIChatMessage chatMessagePrefab;
 
+    [Header("Context Menu (Optional)")]
+    public UIPlayerContextMenu contextMenu;
+    public UIReportConfirmPopup reportConfirmPopup;
+
     [Header("World Chat")]
     public bool loadHistoryOnEnable = true;
     public int historyPageSize = 50;
@@ -31,6 +35,7 @@ public class UIChatPanel : MonoBehaviour
     public Color systemNameColor = Color.gray;
 
     private readonly HashSet<int> displayedMessageIds = new HashSet<int>();
+    private readonly HashSet<int> pendingReportIds = new HashSet<int>();
     private bool isSending;
     private bool isLoadingHistory;
     private Coroutine fallbackHistoryCoroutine;
@@ -184,13 +189,16 @@ public class UIChatPanel : MonoBehaviour
 
         bool isMe = IsCurrentPlayer(message.SenderId);
         string sender = ResolveSenderName(message, isMe);
-        AddMessage(sender, message.Content, isMe);
+        Color senderColor = isMe ? myNameColor : otherNameColor;
+        AddMessage(sender, message.Content, senderColor, message.ChatMessageId, isMe, message.IsReported);
     }
+
 
     public void AddMessage(string sender, string message, bool isMe)
     {
         Color senderColor = isMe ? myNameColor : otherNameColor;
-        AddMessage(sender, message, senderColor);
+        // Fix hardcoded isMine logic
+        AddMessage(sender, message, senderColor, 0, isMe, false);
     }
 
     private void AddSystemMessage(string message)
@@ -198,7 +206,7 @@ public class UIChatPanel : MonoBehaviour
         AddMessage("System", message, systemNameColor);
     }
 
-    private void AddMessage(string sender, string message, Color senderColor)
+    private void AddMessage(string sender, string message, Color senderColor, int chatMessageId = 0, bool isMine = true, bool isReported = false)
     {
         if (chatMessagePrefab == null || contentParent == null)
         {
@@ -209,9 +217,72 @@ public class UIChatPanel : MonoBehaviour
         UIChatMessage newMsg = Instantiate(chatMessagePrefab, contentParent);
         // Force active in case the prefab asset root is disabled
         newMsg.gameObject.SetActive(true);
-        newMsg.Setup(sender, message, senderColor, new Color(0, 0, 0, 0));
+        newMsg.Setup(sender, message, senderColor, new Color(0, 0, 0, 0), chatMessageId, isMine, isReported);
+
+        newMsg.OnSenderClicked += HandleSenderNameClicked;
+        newMsg.OnReportClicked += HandleWorldReportClicked;
 
         StartCoroutine(ScrollToBottom());
+    }
+
+    private void HandleSenderNameClicked(string senderName, Vector3 clickPosition)
+    {
+        Debug.Log($"[UIChatPanel] Đã click vào tên: {senderName}");
+        if (senderName.Equals("You", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (contextMenu != null)
+        {
+            contextMenu.ShowMenu(senderName, clickPosition);
+        }
+        else
+        {
+            Debug.LogError("[UIChatPanel] CHƯA KÉO PLAYER CONTEXT MENU VÀO TRONG INSPECTOR!");
+        }
+    }
+
+    private void HandleWorldReportClicked(UIChatMessage item)
+    {
+        if (item == null || item.ChatMessageId <= 0 || pendingReportIds.Contains(item.ChatMessageId))
+        {
+            return;
+        }
+
+        if (!ApiClient.Instance.HasToken())
+        {
+            AddSystemMessage("Please login before reporting chat.");
+            return;
+        }
+
+        if (reportConfirmPopup != null)
+        {
+            reportConfirmPopup.ShowPopup("this message", () => ExecuteReport(item));
+        }
+        else
+        {
+            ExecuteReport(item);
+        }
+    }
+
+    private void ExecuteReport(UIChatMessage item)
+    {
+        pendingReportIds.Add(item.ChatMessageId);
+        ChatApi.Instance.ReportWorldMessage(
+            item.ChatMessageId,
+            "Reported from world chat UI",
+            response =>
+            {
+                pendingReportIds.Remove(item.ChatMessageId);
+                item.MarkReported();
+                Debug.Log($"[UIChatPanel] ReportWorldMessage submitted. ChatMessageId={item.ChatMessageId}");
+            },
+            error =>
+            {
+                pendingReportIds.Remove(item.ChatMessageId);
+                Debug.LogWarning($"[UIChatPanel] ReportWorldMessage failed: {BuildErrorMessage(error)}");
+            });
     }
 
     private void PopulateWorldHistory(PagedResultResponse<WorldChatMessageResponse> response)
