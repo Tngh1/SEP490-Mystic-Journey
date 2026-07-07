@@ -67,17 +67,17 @@ namespace MysticJourney.API.Core
         public const string PlayerProfileMeFriends = "/api/playerprofiles/me/friends";
 
         // Friend API
-        public static string GetFriendListEndpoint => $"{BaseUrl}/api/friend";
-        public static string GetFriendRequestsEndpoint => $"{BaseUrl}/api/friend/requests";
-        public static string GetFriendBlocksEndpoint => $"{BaseUrl}/api/friend/blocks";
-        public static string SearchPlayersEndpoint => $"{BaseUrl}/api/friend/search";
-        public static string GetFriendProfileEndpoint => $"{BaseUrl}/api/friend/profile/{{id}}";
-        public static string SendFriendRequestEndpoint => $"{BaseUrl}/api/friend/request";
-        public static string AcceptFriendRequestEndpoint => $"{BaseUrl}/api/friend/accept/{{requesterId}}";
-        public static string DeclineFriendRequestEndpoint => $"{BaseUrl}/api/friend/decline/{{requesterId}}";
-        public static string RemoveFriendEndpoint => $"{BaseUrl}/api/friend/{{targetId}}";
-        public static string BlockPlayerEndpoint => $"{BaseUrl}/api/friend/block";
-        public static string UnblockPlayerEndpoint => $"{BaseUrl}/api/friend/block/{{targetId}}";
+        public static string GetFriendListEndpoint => "/api/friend";
+        public static string GetFriendRequestsEndpoint => "/api/friend/requests";
+        public static string GetFriendBlocksEndpoint => "/api/friend/blocks";
+        public static string SearchPlayersEndpoint => "/api/friend/search";
+        public static string GetFriendProfileEndpoint => "/api/friend/profile/{id}";
+        public static string SendFriendRequestEndpoint => "/api/friend/request";
+        public static string AcceptFriendRequestEndpoint => "/api/friend/accept/{requesterId}";
+        public static string DeclineFriendRequestEndpoint => "/api/friend/decline/{requesterId}";
+        public static string RemoveFriendEndpoint => "/api/friend/{targetId}";
+        public static string BlockPlayerEndpoint => "/api/friend/block";
+        public static string UnblockPlayerEndpoint => "/api/friend/block/{targetId}";
 
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER SKILLS CONTROLLER - Skills của người chơi

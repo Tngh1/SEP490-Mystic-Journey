@@ -139,7 +139,7 @@ namespace UI.Friend
             var label = chatButtonObject.GetComponentInChildren<TMP_Text>();
             if (label != null)
             {
-                label.text = "Chat";
+                label.text = "";
             }
 
             return chatButton;
@@ -274,13 +274,33 @@ namespace UI.Friend
         private void OnDetailUnfriendClicked()
         {
             SetButtonLoading(detailUnfriendButton);
-            FriendApi.RemoveFriend(selectedProfileId, (res) => RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.RemoveFriend(selectedProfileId, (res) => 
+            {
+                ResetButtonText(detailUnfriendButton, "");
+                HideDetailPanel();
+                RefreshData();
+            }, 
+            err => 
+            {
+                ResetButtonText(detailUnfriendButton, "");
+                Debug.LogError(err.Message);
+            });
         }
 
         private void OnDetailBlockClicked()
         {
             SetButtonLoading(detailBlockButton);
-            FriendApi.BlockPlayer(selectedProfileId, (res) => RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.BlockPlayer(selectedProfileId, (res) => 
+            {
+                ResetButtonText(detailBlockButton, "");
+                HideDetailPanel();
+                RefreshData();
+            }, 
+            err => 
+            {
+                ResetButtonText(detailBlockButton, "");
+                Debug.LogError(err.Message);
+            });
         }
 
         private void OnDetailProfileClicked()
@@ -301,6 +321,14 @@ namespace UI.Friend
             if (txt != null) txt.text = "Loading...";
         }
 
+        private void ResetButtonText(Button btn, string text)
+        {
+            if (btn == null) return;
+            btn.interactable = true;
+            var txt = btn.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = text;
+        }
+
         // -----------------------------
         // Data Loading
         // -----------------------------
@@ -308,7 +336,13 @@ namespace UI.Friend
         {
             FriendApi.GetFriendList(friends =>
             {
-                currentFriends = friends.Where(f => f.Status == "Accepted").ToList();
+                Debug.Log($"[LoadFriends] API trả về tổng cộng {friends.Count} friends. Đang filter trạng thái 'Accepted'...");
+                foreach(var f in friends) {
+                    Debug.Log($"[LoadFriends] Friend: {f.FriendName} | Status: {f.Status}");
+                }
+
+                currentFriends = friends.Where(f => f.Status == "Accepted" || f.Status == "accepted").ToList();
+                Debug.Log($"[LoadFriends] Sau khi filter còn lại {currentFriends.Count} friends. Bắt đầu Instantiate...");
                 UpdateFriendUI();
             }, err => Debug.LogError($"Failed to load friends: {err.Message}"));
         }
