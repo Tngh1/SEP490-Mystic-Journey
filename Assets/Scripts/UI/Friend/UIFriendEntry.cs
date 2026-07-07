@@ -97,43 +97,56 @@ namespace UI.Friend
                 addFriendButton.gameObject.SetActive(true);
                 addFriendButton.onClick.RemoveAllListeners();
                 var btnText = addFriendButton.GetComponentInChildren<TMP_Text>();
+                var btnImage = addFriendButton.GetComponent<UnityEngine.UI.Image>();
+
+                if (btnText != null)
+                {
+                    btnText.enableWordWrapping = false;
+                    btnText.overflowMode = TextOverflowModes.Overflow;
+                }
 
                 switch (searchResult.RelationshipStatus)
                 {
                     case FriendRelationshipStatus.Self:
                         if (btnText != null) btnText.text = "You";
+                        if (btnImage != null) btnImage.enabled = false;
                         addFriendButton.interactable = false;
                         break;
                     case FriendRelationshipStatus.None:
-                        if (btnText != null) btnText.text = "Add";
+                        if (btnText != null) btnText.text = "";
+                        if (btnImage != null) btnImage.enabled = true;
                         addFriendButton.interactable = true;
                         addFriendButton.onClick.AddListener(() => 
                         {
-                            if (btnText != null) btnText.text = "Loading...";
+                            if (btnText != null) btnText.text = "...";
                             addFriendButton.interactable = false;
                             OnAddFriendClicked();
                         });
                         break;
                     case FriendRelationshipStatus.RequestSent:
                         if (btnText != null) btnText.text = "Sent";
+                        if (btnImage != null) btnImage.enabled = false;
                         addFriendButton.interactable = false;
                         break;
                     case FriendRelationshipStatus.RequestReceived:
                         if (btnText != null) btnText.text = "Accept";
+                        if (btnImage != null) btnImage.enabled = false;
                         addFriendButton.interactable = true;
                         addFriendButton.onClick.AddListener(() => 
                         {
-                            if (btnText != null) btnText.text = "Loading...";
+                            if (btnText != null) btnText.text = "...";
                             addFriendButton.interactable = false;
                             OnAcceptClicked();
                         });
                         break;
                     case FriendRelationshipStatus.Friend:
                         if (btnText != null) btnText.text = "Friend";
+                        if (btnImage != null) btnImage.enabled = false;
                         addFriendButton.interactable = false;
                         break;
                     case FriendRelationshipStatus.Blocked:
                         if (btnText != null) btnText.text = "Blocked";
+                        if (btnImage != null) btnImage.enabled = false;
                         addFriendButton.interactable = false;
                         break;
                 }
