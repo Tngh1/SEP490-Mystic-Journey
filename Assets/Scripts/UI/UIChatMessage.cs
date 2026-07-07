@@ -13,15 +13,17 @@ public class UIChatMessage : MonoBehaviour
 
     public Image background;
 
-    public Action<string, Vector3> OnSenderClicked;
+    public Action<string, int, Vector3> OnSenderClicked;
     public Action<UIChatMessage> OnReportClicked;
 
     private string currentSender;
+    private int currentSenderProfileId;
     private bool senderListenerBound;
     private bool reportListenerBound;
 
     public int ChatMessageId { get; private set; }
     public bool CanReport { get; private set; }
+    public int SenderProfileId => currentSenderProfileId;
 
     private void Awake()
     {
@@ -31,7 +33,7 @@ public class UIChatMessage : MonoBehaviour
 
     public void Setup(string sender, string message, Color senderColor, Color bgColor)
     {
-        Setup(sender, message, senderColor, bgColor, 0, true, false);
+        Setup(sender, message, senderColor, bgColor, 0, 0, true, false);
     }
 
     public void Setup(
@@ -43,7 +45,21 @@ public class UIChatMessage : MonoBehaviour
         bool isMine,
         bool isReported)
     {
+        Setup(sender, message, senderColor, bgColor, chatMessageId, 0, isMine, isReported);
+    }
+
+    public void Setup(
+        string sender,
+        string message,
+        Color senderColor,
+        Color bgColor,
+        int chatMessageId,
+        int senderProfileId,
+        bool isMine,
+        bool isReported)
+    {
         currentSender = sender;
+        currentSenderProfileId = senderProfileId;
         ChatMessageId = chatMessageId;
         
         // Chỉ hiện nút Report cho tin nhắn của ng khác.
@@ -102,7 +118,7 @@ public class UIChatMessage : MonoBehaviour
     {
         if (senderButton != null)
         {
-            OnSenderClicked?.Invoke(currentSender, senderButton.transform.position);
+            OnSenderClicked?.Invoke(currentSender, currentSenderProfileId, senderButton.transform.position);
         }
     }
 
