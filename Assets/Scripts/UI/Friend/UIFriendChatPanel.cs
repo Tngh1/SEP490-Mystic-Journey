@@ -23,6 +23,10 @@ namespace UI.Friend
         [SerializeField] private Transform messageContainer;
         [SerializeField] private UIChatMessage messagePrefab;
 
+        [Header("Report")]
+        [SerializeField] private GameObject reportButtonPrefab;
+        [SerializeField] private Vector2 reportButtonSize = new Vector2(24f, 24f);
+
         [Header("Input")]
         [SerializeField] private TMP_InputField inputField;
         [SerializeField] private Button sendButton;
@@ -63,6 +67,10 @@ namespace UI.Friend
 
             var panel = root.gameObject.AddComponent<UIFriendChatPanel>();
             panel.messagePrefab = fallbackMessagePrefab;
+            if (fallbackMessagePrefab != null && fallbackMessagePrefab.reportButton != null)
+            {
+                panel.reportButtonPrefab = fallbackMessagePrefab.reportButton.gameObject;
+            }
 
             panel.titleText = CreateText("Title", root, "Friend Chat", 20, FontStyles.Bold, TextAlignmentOptions.Left);
             SetRect(panel.titleText.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(16f, -18f), new Vector2(-96f, 32f));
@@ -121,11 +129,23 @@ namespace UI.Friend
 
         private void Awake()
         {
+            AutoFindReferences();
+            EnsureInputFieldConfigured();
+            BindEvents();
+        }
+
+        private void OnEnable()
+        {
+            AutoFindReferences();
+            EnsureInputFieldConfigured();
             BindEvents();
         }
 
         private void BindEvents()
         {
+            AutoFindReferences();
+            EnsureInputFieldConfigured();
+
             if (eventsBound)
             {
                 return;
@@ -154,6 +174,167 @@ namespace UI.Friend
             }
         }
 
+
+        private void AutoFindReferences()
+        {
+            if (inputField == null)
+            {
+                inputField = GetComponentInChildren<TMP_InputField>(true);
+            }
+
+            if (scrollRect == null)
+            {
+                scrollRect = GetComponentInChildren<ScrollRect>(true);
+            }
+
+            if (messageContainer == null && scrollRect != null && scrollRect.content != null)
+            {
+                messageContainer = scrollRect.content;
+            }
+
+            if (sendButton == null)
+            {
+                sendButton = FindButtonByLabel("send");
+            }
+
+            if (closeButton == null)
+            {
+                closeButton = FindButtonByLabel("x", "close");
+            }
+        }
+
+        private void EnsureInputFieldConfigured()
+        {
+            if (inputField == null)
+            {
+                return;
+            }
+
+            var inputRect = inputField.GetComponent<RectTransform>();
+            if (inputField.textViewport == null)
+            {
+                var textArea = FindChildRect(inputField.transform, "Text Area") ?? inputRect;
+                inputField.textViewport = textArea;
+
+                if (textArea != null && textArea.GetComponent<RectMask2D>() == null)
+                {
+                    textArea.gameObject.AddComponent<RectMask2D>();
+                }
+            }
+
+            var viewport = inputField.textViewport != null ? inputField.textViewport : inputRect;
+            if (inputField.textComponent == null)
+            {
+                var textComponent = FindInputText(viewport != null ? viewport.transform : inputField.transform);
+                if (textComponent == null && viewport != null)
+                {
+                    textComponent = CreateText("Text", viewport, string.Empty, 14, FontStyles.Normal, TextAlignmentOptions.Left);
+                    textComponent.raycastTarget = true;
+                    textComponent.enableWordWrapping = false;
+                    textComponent.overflowMode = TextOverflowModes.Overflow;
+                    SetRect(textComponent.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+                }
+
+                inputField.textComponent = textComponent;
+            }
+
+            if (inputField.placeholder == null)
+            {
+                inputField.placeholder = FindPlaceholder(viewport != null ? viewport.transform : inputField.transform);
+            }
+
+            if (inputField.textComponent != null)
+            {
+                inputField.textComponent.raycastTarget = true;
+            }
+
+            inputField.lineType = TMP_InputField.LineType.SingleLine;
+            inputField.richText = false;
+            inputField.isRichTextEditingAllowed = false;
+            if (inputField.characterLimit <= 0)
+            {
+                inputField.characterLimit = 500;
+            }
+        }
+
+        private Button FindButtonByLabel(params string[] labels)
+        {
+            foreach (var button in GetComponentsInChildren<Button>(true))
+            {
+                var label = button.GetComponentInChildren<TMP_Text>(true);
+                if (label == null || string.IsNullOrWhiteSpace(label.text))
+                {
+                    continue;
+                }
+
+                var text = label.text.Trim();
+                foreach (var expected in labels)
+                {
+                    if (text.Equals(expected, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return button;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static RectTransform FindChildRect(Transform root, string childName)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            foreach (var rect in root.GetComponentsInChildren<RectTransform>(true))
+            {
+                if (rect.name.Equals(childName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return rect;
+                }
+            }
+
+            return null;
+        }
+
+        private static TMP_Text FindInputText(Transform root)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            foreach (var text in root.GetComponentsInChildren<TMP_Text>(true))
+            {
+                var name = text.name.ToLowerInvariant();
+                if (!name.Contains("placeholder"))
+                {
+                    return text;
+                }
+            }
+
+            return null;
+        }
+
+        private static TMP_Text FindPlaceholder(Transform root)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            foreach (var text in root.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (text.name.ToLowerInvariant().Contains("placeholder"))
+                {
+                    return text;
+                }
+            }
+
+            return null;
+        }
+
         private void OnDisable()
         {
             StopRefresh();
@@ -161,6 +342,10 @@ namespace UI.Friend
 
         public void Open(int targetFriendProfileId, string targetFriendName)
         {
+            AutoFindReferences();
+            EnsureInputFieldConfigured();
+            BindEvents();
+
             friendProfileId = targetFriendProfileId;
             friendDisplayName = string.IsNullOrWhiteSpace(targetFriendName)
                 ? $"Player {targetFriendProfileId}"
@@ -186,11 +371,22 @@ namespace UI.Friend
         public void Close()
         {
             StopRefresh();
+            friendProfileId = 0;
+            friendDisplayName = null;
+            displayedMessageIds.Clear();
+            pendingReportIds.Clear();
+            ClearMessages();
+            SetSending(false);
+            SetStatus(string.Empty);
             gameObject.SetActive(false);
         }
 
         private void OnSendClicked()
         {
+            AutoFindReferences();
+            EnsureInputFieldConfigured();
+            Debug.Log($"[UIFriendChatPanel] Send clicked. friendProfileId={friendProfileId} inputField={inputField != null}");
+
             if (isSending || friendProfileId <= 0 || inputField == null)
             {
                 return;
@@ -213,17 +409,21 @@ namespace UI.Friend
             inputField.text = string.Empty;
             SetSending(true);
 
+            Debug.Log($"[UIFriendChatPanel] SendFriendMessage -> friendProfileId={friendProfileId} contentLength={content.Length}");
+
             ChatApi.Instance.SendFriendMessage(
                 friendProfileId,
                 content,
                 message =>
                 {
+                    Debug.Log($"[UIFriendChatPanel] SendFriendMessage OK. ChatMessageId={message?.ChatMessageId ?? 0}");
                     SetSending(false);
                     AddFriendMessage(message);
                     FocusInput();
                 },
                 error =>
                 {
+                    Debug.LogWarning($"[UIFriendChatPanel] SendFriendMessage failed: {BuildErrorMessage(error)}");
                     SetSending(false);
                     inputField.text = content;
                     AddSystemMessage(BuildErrorMessage(error));
@@ -289,13 +489,12 @@ namespace UI.Friend
             }
 
             bool isMe = IsCurrentPlayer(message.SenderId);
-            string sender = ResolveSenderName(message, isMe);
-            AddMessage(sender, message.Content, isMe ? myNameColor : friendNameColor, message.ChatMessageId, isMe, message.IsReported);
+            AddMessage(string.Empty, message.Content, isMe ? myNameColor : friendNameColor, message.ChatMessageId, message.SenderId, isMe, message.IsReported);
         }
 
         private void AddSystemMessage(string message)
         {
-            AddMessage("System", message, systemNameColor, 0, true, false);
+            AddMessage("System", message, systemNameColor, 0, 0, true, false);
         }
 
         private void AddMessage(
@@ -303,6 +502,7 @@ namespace UI.Friend
             string message,
             Color senderColor,
             int chatMessageId,
+            int senderProfileId,
             bool isMine,
             bool isReported)
         {
@@ -312,17 +512,7 @@ namespace UI.Friend
                 return;
             }
 
-            if (messagePrefab != null)
-            {
-                UIChatMessage item = Instantiate(messagePrefab, messageContainer);
-                item.Setup(sender, message, senderColor, new Color(0, 0, 0, 0), chatMessageId, isMine, isReported);
-                item.OnReportClicked += HandleFriendReportClicked;
-            }
-            else
-            {
-                CreateRuntimeMessage(sender, message, senderColor, chatMessageId, isMine, isReported);
-            }
-
+            CreateRuntimeMessage(sender, message, senderColor, chatMessageId, isMine, isReported);
             StartCoroutine(ScrollToBottom());
         }
 
@@ -335,36 +525,177 @@ namespace UI.Friend
             bool isReported)
         {
             var row = CreateRect("FriendChatMessage", messageContainer);
-            row.sizeDelta = new Vector2(0f, 42f);
+            row.sizeDelta = Vector2.zero;
 
-            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 6f;
-            layout.childAlignment = TextAnchor.UpperLeft;
-            layout.childControlHeight = true;
-            layout.childControlWidth = true;
-            layout.childForceExpandHeight = false;
-            layout.childForceExpandWidth = false;
+            var rowLayout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            rowLayout.spacing = 6f;
+            rowLayout.childAlignment = isMine ? TextAnchor.UpperRight : TextAnchor.UpperLeft;
+            rowLayout.childControlHeight = true;
+            rowLayout.childControlWidth = true;
+            rowLayout.childForceExpandHeight = false;
+            rowLayout.childForceExpandWidth = false;
+            rowLayout.padding = isMine
+                ? new RectOffset(90, 8, 2, 2)
+                : new RectOffset(8, 90, 2, 2);
 
-            var senderText = CreateText("Sender", row, sender + ":", 14, FontStyles.Bold, TextAlignmentOptions.Left);
-            senderText.color = senderColor;
-            senderText.gameObject.AddComponent<LayoutElement>().preferredWidth = 96f;
+            var rowFitter = row.gameObject.AddComponent<ContentSizeFitter>();
+            rowFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var messageText = CreateText("Message", row, message, 14, FontStyles.Normal, TextAlignmentOptions.Left);
-            var messageLayout = messageText.gameObject.AddComponent<LayoutElement>();
-            messageLayout.flexibleWidth = 1f;
-
-            if (chatMessageId > 0 && !isMine)
+            if (chatMessageId <= 0)
             {
-                var reportButton = CreateButton("ReportButton", row, isReported ? "Reported" : "Report");
-                reportButton.interactable = !isReported;
-                reportButton.gameObject.AddComponent<LayoutElement>().preferredWidth = 74f;
+                rowLayout.childAlignment = TextAnchor.MiddleCenter;
+                rowLayout.padding = new RectOffset(24, 24, 2, 2);
+
+                var systemText = CreateText("SystemMessage", row, message, 13, FontStyles.Italic, TextAlignmentOptions.Center);
+                systemText.color = systemNameColor;
+                systemText.enableWordWrapping = true;
+                systemText.gameObject.AddComponent<LayoutElement>().preferredWidth = 360f;
+                return;
+            }
+
+            var bubble = CreateRect(isMine ? "MyBubble" : "FriendBubble", row);
+            var bubbleImage = bubble.gameObject.AddComponent<Image>();
+            bubbleImage.color = isMine
+                ? new Color(0.38f, 0.25f, 0.11f, 0.88f)
+                : new Color(0.88f, 0.72f, 0.46f, 0.9f);
+
+            var bubbleLayout = bubble.gameObject.AddComponent<HorizontalLayoutGroup>();
+            bubbleLayout.padding = new RectOffset(10, 10, 6, 6);
+            bubbleLayout.spacing = 8f;
+            bubbleLayout.childAlignment = TextAnchor.MiddleLeft;
+            bubbleLayout.childControlHeight = true;
+            bubbleLayout.childControlWidth = true;
+            bubbleLayout.childForceExpandHeight = false;
+            bubbleLayout.childForceExpandWidth = false;
+
+            var bubbleFitter = bubble.gameObject.AddComponent<ContentSizeFitter>();
+            bubbleFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            bubbleFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var bubbleElement = bubble.gameObject.AddComponent<LayoutElement>();
+            bubbleElement.flexibleWidth = 0f;
+            bubbleElement.minHeight = 30f;
+
+            var messageText = CreateText("Message", bubble, message, 14, FontStyles.Normal, TextAlignmentOptions.Left);
+            messageText.color = isMine ? Color.white : new Color(0.16f, 0.08f, 0.02f, 1f);
+            messageText.enableWordWrapping = true;
+            messageText.overflowMode = TextOverflowModes.Overflow;
+
+            var messageLayout = messageText.gameObject.AddComponent<LayoutElement>();
+            messageLayout.minWidth = 24f;
+            messageLayout.preferredWidth = Mathf.Clamp(messageText.GetPreferredValues(message, 250f, 0f).x, 24f, 250f);
+            messageLayout.flexibleWidth = 0f;
+
+            bool canReport = !isMine && chatMessageId > 0;
+            float reportWidth = Mathf.Max(20f, reportButtonSize.x);
+            bubbleElement.preferredWidth = messageLayout.preferredWidth + (canReport ? reportWidth + 28f : 20f);
+
+            if (canReport)
+            {
+                var reportButton = CreateReportButton(bubble, isReported);
+
+                var reportLayout = reportButton.gameObject.GetComponent<LayoutElement>();
+                if (reportLayout == null)
+                {
+                    reportLayout = reportButton.gameObject.AddComponent<LayoutElement>();
+                }
+
+                reportLayout.preferredWidth = reportWidth;
+                reportLayout.preferredHeight = Mathf.Max(20f, reportButtonSize.y);
+                reportLayout.minWidth = reportLayout.preferredWidth;
+                reportLayout.minHeight = reportLayout.preferredHeight;
+
                 reportButton.onClick.AddListener(() => ReportFriendMessage(chatMessageId, () =>
                 {
-                    reportButton.interactable = false;
-                    var label = reportButton.GetComponentInChildren<TMP_Text>();
-                    if (label != null) label.text = "Reported";
+                    ApplyReportButtonState(reportButton, true);
                 }));
             }
+        }
+
+        private Button CreateReportButton(Transform parent, bool isReported)
+        {
+            GameObject buttonObject;
+            if (reportButtonPrefab != null)
+            {
+                buttonObject = Instantiate(reportButtonPrefab, parent);
+            }
+            else
+            {
+                buttonObject = CreateRuntimeReportButton(parent).gameObject;
+            }
+
+            buttonObject.name = "ReportButton";
+            buttonObject.SetActive(true);
+
+            var rect = buttonObject.GetComponent<RectTransform>();
+            if (rect == null)
+            {
+                rect = buttonObject.AddComponent<RectTransform>();
+            }
+
+            rect.localScale = Vector3.one;
+            rect.sizeDelta = reportButtonSize;
+
+            var button = buttonObject.GetComponent<Button>();
+            if (button == null)
+            {
+                button = buttonObject.AddComponent<Button>();
+            }
+
+            var image = buttonObject.GetComponent<Image>() ?? buttonObject.GetComponentInChildren<Image>(true);
+            if (image != null)
+            {
+                image.enabled = true;
+                image.raycastTarget = true;
+                if (button.targetGraphic == null)
+                {
+                    button.targetGraphic = image;
+                }
+            }
+
+            foreach (var label in buttonObject.GetComponentsInChildren<TMP_Text>(true))
+            {
+                label.gameObject.SetActive(false);
+            }
+
+            foreach (var label in buttonObject.GetComponentsInChildren<Text>(true))
+            {
+                label.gameObject.SetActive(false);
+            }
+
+            ApplyReportButtonState(button, isReported);
+            return button;
+        }
+
+        private Button CreateRuntimeReportButton(Transform parent)
+        {
+            var rect = CreateRect("ReportButton", parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.color = new Color(0.55f, 0.16f, 0.16f, 0.88f);
+            image.raycastTarget = true;
+
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            return button;
+        }
+
+        private static void ApplyReportButtonState(Button button, bool isReported)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.interactable = !isReported;
+
+            var canvasGroup = button.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+            {
+                canvasGroup = button.gameObject.AddComponent<CanvasGroup>();
+            }
+
+            canvasGroup.alpha = isReported ? 0.45f : 1f;
+            canvasGroup.blocksRaycasts = !isReported;
         }
 
         private void HandleFriendReportClicked(UIChatMessage item)
@@ -477,6 +808,11 @@ namespace UI.Friend
         private IEnumerator ScrollToBottom()
         {
             yield return new WaitForEndOfFrame();
+
+            if (messageContainer is RectTransform contentRt)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(contentRt);
+            }
 
             if (scrollRect != null)
             {
@@ -596,17 +932,28 @@ namespace UI.Friend
 
             var textArea = CreateRect("Text Area", rect);
             SetRect(textArea, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(10f, 0f), new Vector2(-20f, -8f));
+            // TMP_InputField needs a RectMask2D viewport to clip text correctly.
+            textArea.gameObject.AddComponent<RectMask2D>();
 
-            var placeholder = CreateText("Placeholder", textArea, "Message", 14, FontStyles.Italic, TextAlignmentOptions.Left);
+            var placeholder = CreateText("Placeholder", textArea, "Type a message...", 14, FontStyles.Italic, TextAlignmentOptions.Left);
             placeholder.color = new Color(1f, 1f, 1f, 0.35f);
+            placeholder.enableWordWrapping = false;
+            placeholder.overflowMode = TextOverflowModes.Ellipsis;
             SetRect(placeholder.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
             var inputText = CreateText("Text", textArea, string.Empty, 14, FontStyles.Normal, TextAlignmentOptions.Left);
+            // The TMP text must receive raycasts so the input caret can be placed by click.
+            inputText.raycastTarget = true;
+            inputText.enableWordWrapping = false;
+            inputText.overflowMode = TextOverflowModes.Overflow;
             SetRect(inputText.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
             input.textViewport = textArea;
             input.textComponent = inputText;
             input.placeholder = placeholder;
+            input.richText = false;
+            input.isRichTextEditingAllowed = false;
+            input.characterLimit = 500;
 
             return input;
         }
