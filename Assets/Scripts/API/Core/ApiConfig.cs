@@ -141,6 +141,10 @@ namespace MysticJourney.API.Core
         public const string ChatWorldHistory = "/api/chat/world/history";
         public const string ChatWorldSend = "/api/chat/world/send";
         public const string ChatWorldReport = "/api/chat/world/report";
+        public const string ChatFriendMessages = "/api/chat/friend/messages";
+        public const string ChatFriendHistory = "/api/chat/friend/history";
+        public const string ChatFriendSend = "/api/chat/friend/send";
+        public const string ChatFriendReport = "/api/chat/friend/report";
 
         // ═══════════════════════════════════════════════════════════════════════
         // QUESTS CONTROLLER - Catalog nhiệm vụ
