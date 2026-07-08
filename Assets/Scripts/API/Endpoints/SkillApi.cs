@@ -139,5 +139,16 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        public void RecordSkillCast(int playerSkillId, Action<PlayerSkillResponse> onSuccess = null, Action<ApiException> onError = null)
+        {
+            ApiClient.Instance.Post<object, PlayerSkillResponse>(
+                $"/api/player-skills/record-cast/{playerSkillId}",
+                new { },
+                requiresAuth: true,
+                onSuccess: response => onSuccess?.Invoke(response),
+                onError: error => onError?.Invoke(error)
+            );
+        }
     }
 }

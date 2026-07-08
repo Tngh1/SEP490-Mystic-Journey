@@ -53,9 +53,13 @@ public class SkillPanelManager : MonoBehaviour
         string playerClass = GameStateService.Instance?.PlayerClass ?? "";
 
         var sortedSkillList = new List<(SkillData visual, PlayerSkillResponse server)>();
+        HashSet<int> processedSkillIds = new HashSet<int>();
 
         foreach (var data in allSkillsInGame)
         {
+            if (data == null || processedSkillIds.Contains(data.skillId)) continue;
+            processedSkillIds.Add(data.skillId);
+
             // 3. TÍNH NĂNG LỌC: Bỏ qua các kỹ năng không thuộc Class của mình (hoặc không phải All)
             bool isAllClass = string.IsNullOrWhiteSpace(data.classRequirement) || data.classRequirement.Equals("All", System.StringComparison.OrdinalIgnoreCase);
             bool isMyClass = !string.IsNullOrWhiteSpace(playerClass) && data.classRequirement.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);

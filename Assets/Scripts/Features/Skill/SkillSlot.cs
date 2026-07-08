@@ -72,16 +72,33 @@ public class SkillSlot : MonoBehaviour, IDropHandler
     {
         if (this.slotIndex == castedSlotIndex && cooldownOverlay != null)
         {
-            _isCooldown = true;
-            _cooldownDuration = cooldownTime;
-            _cooldownTimer = cooldownTime;
-            cooldownOverlay.fillAmount = 1f;
-
-            if (cooldownText != null) cooldownText.text = Mathf.CeilToInt(cooldownTime).ToString();
+            StartCooldown(cooldownTime);
         }
     }
+
+    public void StartCooldown(float cooldownTime)
+    {
+        _isCooldown = true;
+        _cooldownDuration = cooldownTime;
+        _cooldownTimer = cooldownTime;
+        
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount = 1f;
+        }
+
+        if (cooldownText != null) cooldownText.text = Mathf.CeilToInt(cooldownTime).ToString();
+    }
+
     public void OnDrop(PointerEventData eventData)
     {
+        if (_isCooldown)
+        {
+            Debug.LogWarning("Cannot equip: skill slot is currently on cooldown.");
+            // OPTIONAL: Could show an ingame UI alert here
+            return;
+        }
+
         if (eventData == null || eventData.pointerDrag == null) return;
 
         int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;

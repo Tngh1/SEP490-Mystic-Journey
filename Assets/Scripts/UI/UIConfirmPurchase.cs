@@ -46,7 +46,20 @@ public class UIConfirmPurchase : MonoBehaviour
         maxQuantity = currentItem?.GetMaxPurchaseQuantity() ?? 0;
         currentQuantity = maxQuantity > 0 ? 1 : 0;
 
-        if (itemNameText != null) itemNameText.text = currentItem?.itemName ?? string.Empty;
+        if (itemNameText != null) 
+        {
+            itemNameText.text = currentItem?.itemName ?? string.Empty;
+            if (currentItem != null && currentItem.weeklyPurchaseLimit > 0)
+            {
+                int remaining = Mathf.Max(0, currentItem.remainingWeeklyPurchases);
+                itemNameText.text += $" (Tuần: {remaining}/{currentItem.weeklyPurchaseLimit})";
+            }
+            else if (currentItem != null && currentItem.dailyPurchaseLimit > 0)
+            {
+                int remaining = Mathf.Max(0, currentItem.remainingDailyPurchases);
+                itemNameText.text += $" (Ngày: {remaining}/{currentItem.dailyPurchaseLimit})";
+            }
+        }
         if (itemIcon != null)
         {
             itemIcon.sprite = currentItem?.icon;

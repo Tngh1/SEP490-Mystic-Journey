@@ -97,7 +97,7 @@ public class PlayerEntity : MonoBehaviour
         }
     }
 
-    private void Die()
+    public void Die()
     {
         Debug.Log("Người chơi đã chết!");
         OnDeath?.Invoke(this, EventArgs.Empty);

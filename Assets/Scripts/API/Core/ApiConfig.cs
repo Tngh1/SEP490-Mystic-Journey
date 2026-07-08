@@ -170,6 +170,7 @@ namespace MysticJourney.API.Core
         public const string AchievementAll = "/api/achievements";
         public const string AchievementById = "/api/achievements/{0}";
         public const string AchievementMe = "/api/achievements/me";
+        public const string AchievementUnlockMe = "/api/achievements/me/{0}/unlock";
 
         // ═══════════════════════════════════════════════════════════════════════
         // SHOP ITEMS CONTROLLER - Vật phẩm cửa hàng

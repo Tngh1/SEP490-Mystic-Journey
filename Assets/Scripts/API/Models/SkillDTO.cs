@@ -43,6 +43,7 @@ namespace MysticJourney.API.Models.Response
         public double DamagePerLevel { get; set; }
         public double DamageGrowthPercent { get; set; }
         public int UnlockLevel { get; set; }
+        public float CorruptionCost { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -60,13 +61,16 @@ namespace MysticJourney.API.Models.Response
         public int Level { get; set; }
         public int Experience { get; set; }
         public bool IsEquipped { get; set; }
-        public int? EquippedSlot { get; set; }        public int CooldownSeconds { get; set; }
+        public int? EquippedSlot { get; set; }
+        public int CooldownSeconds { get; set; }
         public double BaseDamage { get; set; }
         public double DamagePerLevel { get; set; }
         public double DamageGrowthPercent { get; set; }
         public double EffectiveDamage { get; set; }
         public int UnlockLevel { get; set; }
+        public float CorruptionCost { get; set; }
         public string UnlockedAt { get; set; }
+        public string NextAvailableTime { get; set; }
     }
 
     [Serializable]

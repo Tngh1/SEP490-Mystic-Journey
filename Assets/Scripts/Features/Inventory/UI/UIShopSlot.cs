@@ -38,7 +38,14 @@ public class UIShopSlot : UIBaseItemSlot
         RawData = data;
 
         if (shopNameText != null)
+        {
             shopNameText.text = data.itemName ?? string.Empty;
+            if (data.weeklyPurchaseLimit > 0)
+            {
+                int remaining = Mathf.Max(0, data.remainingWeeklyPurchases);
+                shopNameText.text += $" ({remaining}/{data.weeklyPurchaseLimit})";
+            }
+        }
 
         string curr = data.currency;
         if (string.IsNullOrWhiteSpace(curr)) curr = "Gold"; // Mặc định là Gold

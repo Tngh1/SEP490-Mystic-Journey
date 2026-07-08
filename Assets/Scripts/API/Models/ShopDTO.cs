@@ -23,6 +23,7 @@ namespace MysticJourney.API.Models.Response
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public int DailyPurchaseLimit { get; set; }
+        public int WeeklyPurchaseLimit { get; set; }
         public bool IsActive { get; set; }
         public string AvailableFrom { get; set; }
         public string AvailableTo { get; set; }
@@ -46,8 +47,11 @@ namespace MysticJourney.API.Models.Response
         public int Stock { get; set; }
         public bool IsUnlimitedStock { get; set; }
         public int DailyPurchaseLimit { get; set; }
+        public int WeeklyPurchaseLimit { get; set; }
         public int PurchasedToday { get; set; }
+        public int PurchasedThisWeek { get; set; }
         public int? RemainingDailyPurchases { get; set; }
+        public int? RemainingWeeklyPurchases { get; set; }
         public string AvailableFrom { get; set; }
         public string AvailableTo { get; set; }
         public bool CanPurchase { get; set; }
