@@ -11,6 +11,11 @@ public class PlayerEntity : MonoBehaviour
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;
 
+    public float MoveSpeed { get; private set; } = 100f; // Default
+    public float AttackSpeed { get; private set; } = 100f; // Default
+
+    public static event Action OnStatsLoaded;
+
     // 👇 SỰ KIỆN TĨNH: Phát sóng mỗi khi máu thay đổi (Truyền đi Máu hiện tại và Máu tối đa)
     public static event Action<int, int> OnHealthChanged;
 
@@ -33,7 +38,12 @@ public class PlayerEntity : MonoBehaviour
                 {
                     if (response != null)
                     {
+                        MoveSpeed = response.MoveSpeed;
+                        AttackSpeed = response.AttackSpeed;
+
                         ApplyHealth(response.CurrentHp, response.MaxHp);
+
+                        OnStatsLoaded?.Invoke();
                     }
                 },
                 error =>

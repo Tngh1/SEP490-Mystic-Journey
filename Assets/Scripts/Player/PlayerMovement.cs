@@ -1,11 +1,12 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 4f;
+    [SerializeField] private float baseMoveSpeed = 4f;
+    private float currentMoveSpeed;
 
     private Rigidbody2D rb;
 
@@ -24,13 +25,28 @@ public class PlayerMovement : MonoBehaviour
         rb.freezeRotation = true;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         Instance = this;
+        currentMoveSpeed = baseMoveSpeed;
+        PlayerEntity.OnStatsLoaded += HandleStatsLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        PlayerEntity.OnStatsLoaded -= HandleStatsLoaded;
+    }
+
+    private void HandleStatsLoaded()
+    {
+        if (PlayerEntity.Instance != null && PlayerEntity.Instance.MoveSpeed > 0)
+        {
+            currentMoveSpeed = (PlayerEntity.Instance.MoveSpeed / 100f) * baseMoveSpeed;
+        }
     }
 
     private void FixedUpdate()
     {
         rb.MovePosition(
             rb.position +
-            moveInput * moveSpeed * Time.fixedDeltaTime
+            moveInput * currentMoveSpeed * Time.fixedDeltaTime
         );
     }
 
