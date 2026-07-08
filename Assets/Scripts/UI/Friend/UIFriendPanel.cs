@@ -139,7 +139,7 @@ namespace UI.Friend
             var label = chatButtonObject.GetComponentInChildren<TMP_Text>();
             if (label != null)
             {
-                label.text = "Chat";
+                label.text = "";
             }
 
             return chatButton;
@@ -189,6 +189,31 @@ namespace UI.Friend
             if (detailPanelObj != null) detailPanelObj.SetActive(false);
         }
 
+        private void ClearSelectedFriendState(bool closeChat)
+        {
+            selectedProfileId = 0;
+            selectedFriendName = null;
+            HideDetailPanel();
+
+            if (closeChat)
+            {
+                CloseFriendChatPanel();
+            }
+        }
+
+        private void CloseFriendChatPanel()
+        {
+            if (friendChatPanel == null)
+            {
+                friendChatPanel = FindFirstObjectByType<UIFriendChatPanel>(FindObjectsInactive.Include);
+            }
+
+            if (friendChatPanel != null)
+            {
+                friendChatPanel.Close();
+            }
+        }
+
         // -----------------------------
         // Master-Detail Selection Logic
         // -----------------------------
@@ -202,6 +227,7 @@ namespace UI.Friend
                 friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>");
             
             EnableDetailButtons(showChat: true, showUnfriend: true, showBlock: true, showProfile: true);
+            OpenSelectedFriendChat();
         }
 
         private void ShowDetailPanel(string name, int level, string charClass, string statusText)
@@ -247,8 +273,14 @@ namespace UI.Friend
         // -----------------------------
         private void OnDetailChatClicked()
         {
+            OpenSelectedFriendChat();
+        }
+
+        private void OpenSelectedFriendChat()
+        {
             if (selectedProfileId <= 0)
             {
+                Debug.LogWarning("[UIFriendPanel] Cannot open friend chat because selectedProfileId is 0.");
                 return;
             }
 
@@ -268,19 +300,54 @@ namespace UI.Friend
                 return;
             }
 
+            Debug.Log($"[UIFriendPanel] OpenSelectedFriendChat -> profileId={selectedProfileId} name={selectedFriendName}");
             friendChatPanel.Open(selectedProfileId, selectedFriendName);
         }
 
         private void OnDetailUnfriendClicked()
         {
+            if (selectedProfileId <= 0)
+            {
+                ClearSelectedFriendState(true);
+                return;
+            }
+
+            int removedProfileId = selectedProfileId;
             SetButtonLoading(detailUnfriendButton);
-            FriendApi.RemoveFriend(selectedProfileId, (res) => RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.RemoveFriend(removedProfileId, (res) =>
+            {
+                ResetButtonText(detailUnfriendButton, "");
+                ClearSelectedFriendState(true);
+                RefreshData();
+            },
+            err =>
+            {
+                ResetButtonText(detailUnfriendButton, "");
+                Debug.LogError(err.Message);
+            });
         }
 
         private void OnDetailBlockClicked()
         {
+            if (selectedProfileId <= 0)
+            {
+                ClearSelectedFriendState(true);
+                return;
+            }
+
+            int blockedProfileId = selectedProfileId;
             SetButtonLoading(detailBlockButton);
-            FriendApi.BlockPlayer(selectedProfileId, (res) => RefreshData(), err => Debug.LogError(err.Message));
+            FriendApi.BlockPlayer(blockedProfileId, (res) =>
+            {
+                ResetButtonText(detailBlockButton, "");
+                ClearSelectedFriendState(true);
+                RefreshData();
+            },
+            err =>
+            {
+                ResetButtonText(detailBlockButton, "");
+                Debug.LogError(err.Message);
+            });
         }
 
         private void OnDetailProfileClicked()
@@ -301,6 +368,14 @@ namespace UI.Friend
             if (txt != null) txt.text = "Loading...";
         }
 
+        private void ResetButtonText(Button btn, string text)
+        {
+            if (btn == null) return;
+            btn.interactable = true;
+            var txt = btn.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = text;
+        }
+
         // -----------------------------
         // Data Loading
         // -----------------------------
@@ -308,7 +383,13 @@ namespace UI.Friend
         {
             FriendApi.GetFriendList(friends =>
             {
-                currentFriends = friends.Where(f => f.Status == "Accepted").ToList();
+                Debug.Log($"[LoadFriends] API returned {friends.Count} friends. Filtering Accepted status...");
+                foreach(var f in friends) {
+                    Debug.Log($"[LoadFriends] Friend: {f.FriendName} | Status: {f.Status}");
+                }
+
+                currentFriends = friends.Where(f => f.Status == "Accepted" || f.Status == "accepted").ToList();
+                Debug.Log($"[LoadFriends] After filter: {currentFriends.Count} accepted friends. Instantiating list...");
                 UpdateFriendUI();
             }, err => Debug.LogError($"Failed to load friends: {err.Message}"));
         }
@@ -341,6 +422,27 @@ namespace UI.Friend
 
             if (friendCountText != null)
                 friendCountText.text = $"Friends: {currentFriends.Count}/100"; // Can be adjusted with limits later
+
+            CloseChatIfSelectedFriendIsGone();
+        }
+
+        private void CloseChatIfSelectedFriendIsGone()
+        {
+            if (selectedProfileId <= 0)
+            {
+                if (currentFriends.Count == 0)
+                {
+                    CloseFriendChatPanel();
+                }
+
+                return;
+            }
+
+            bool selectedStillExists = currentFriends.Any(f => f.FriendProfileId == selectedProfileId);
+            if (!selectedStillExists)
+            {
+                ClearSelectedFriendState(true);
+            }
         }
 
         private void UpdateRequestUI()

@@ -190,15 +190,14 @@ public class UIChatPanel : MonoBehaviour
         bool isMe = IsCurrentPlayer(message.SenderId);
         string sender = ResolveSenderName(message, isMe);
         Color senderColor = isMe ? myNameColor : otherNameColor;
-        AddMessage(sender, message.Content, senderColor, message.ChatMessageId, isMe, message.IsReported);
+        AddMessage(sender, message.Content, senderColor, message.ChatMessageId, message.SenderId, isMe, message.IsReported);
     }
 
 
     public void AddMessage(string sender, string message, bool isMe)
     {
         Color senderColor = isMe ? myNameColor : otherNameColor;
-        // Fix hardcoded isMine logic
-        AddMessage(sender, message, senderColor, 0, isMe, false);
+        AddMessage(sender, message, senderColor, 0, 0, isMe, false);
     }
 
     private void AddSystemMessage(string message)
@@ -206,7 +205,7 @@ public class UIChatPanel : MonoBehaviour
         AddMessage("System", message, systemNameColor);
     }
 
-    private void AddMessage(string sender, string message, Color senderColor, int chatMessageId = 0, bool isMine = true, bool isReported = false)
+    private void AddMessage(string sender, string message, Color senderColor, int chatMessageId = 0, int senderProfileId = 0, bool isMine = true, bool isReported = false)
     {
         if (chatMessagePrefab == null || contentParent == null)
         {
@@ -217,7 +216,7 @@ public class UIChatPanel : MonoBehaviour
         UIChatMessage newMsg = Instantiate(chatMessagePrefab, contentParent);
         // Force active in case the prefab asset root is disabled
         newMsg.gameObject.SetActive(true);
-        newMsg.Setup(sender, message, senderColor, new Color(0, 0, 0, 0), chatMessageId, isMine, isReported);
+        newMsg.Setup(sender, message, senderColor, new Color(0, 0, 0, 0), chatMessageId, senderProfileId, isMine, isReported);
 
         newMsg.OnSenderClicked += HandleSenderNameClicked;
         newMsg.OnReportClicked += HandleWorldReportClicked;
@@ -225,17 +224,19 @@ public class UIChatPanel : MonoBehaviour
         StartCoroutine(ScrollToBottom());
     }
 
-    private void HandleSenderNameClicked(string senderName, Vector3 clickPosition)
+    private void HandleSenderNameClicked(string senderName, int senderProfileId, Vector3 clickPosition)
     {
-        Debug.Log($"[UIChatPanel] Đã click vào tên: {senderName}");
-        if (senderName.Equals("You", System.StringComparison.OrdinalIgnoreCase))
-        {
+        // Không mở menu cho tin nhắn của chính mình
+        if (IsCurrentPlayer(senderProfileId))
             return;
-        }
+
+        // Bỏ qua nếu không có profileId (tin nhắn hệ thống, v.v.)
+        if (senderProfileId <= 0)
+            return;
 
         if (contextMenu != null)
         {
-            contextMenu.ShowMenu(senderName, clickPosition);
+            contextMenu.ShowMenu(senderName, senderProfileId, clickPosition);
         }
         else
         {

@@ -272,7 +272,8 @@ namespace MysticJourney.API.Core
                 var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);
                 
                 // Nếu BE trả về envelope với success: false → gọi onError
-                if (envelope != null && !envelope.Success)
+                // Chỉ check khi thực sự có trường success trong JSON (để tránh lỗi với các response dạng {"message":"ok"})
+                if (envelope != null && !envelope.Success && (rawBody.Contains("\"success\"") || rawBody.Contains("\"Success\"")))
                 {
                     Debug.LogWarning($"[ApiClient] ⚠️ BE returned success=false | ErrorCode={envelope.ErrorCode} | Message={envelope.Message}");
                     
