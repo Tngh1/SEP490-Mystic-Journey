@@ -151,10 +151,17 @@ public class SkillPopup : MonoBehaviour
                 {
                     panelManager.RefreshSkillList();
                 }
+
+                var invManager = FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+                if (invManager != null)
+                {
+                    invManager.LoadInventory(true);
+                }
             },
             onError: (error) =>
             {
                 Debug.LogError("Lỗi nâng cấp: " + error.Message);
+                popupDesc.text = $"<color=red>Lỗi: {error.Message}</color>";
                 upgradeButton.interactable = true;
             }
         );

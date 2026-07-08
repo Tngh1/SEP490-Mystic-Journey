@@ -158,6 +158,9 @@ public class UIShop : MonoBehaviour
             remainingDailyPurchases = item?.RemainingDailyPurchases ?? -1,
             canPurchase = item?.CanPurchase ?? false,
             unavailableReason = item?.UnavailableReason,
+            weeklyPurchaseLimit = item?.WeeklyPurchaseLimit ?? 0,
+            purchasedThisWeek = item?.PurchasedThisWeek ?? 0,
+            remainingWeeklyPurchases = item?.RemainingWeeklyPurchases ?? -1,
             rawData = item
         };
     }

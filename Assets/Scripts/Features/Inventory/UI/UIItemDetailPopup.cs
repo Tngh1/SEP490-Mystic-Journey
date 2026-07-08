@@ -160,7 +160,14 @@ public class UIItemDetailPopup : MonoBehaviour
         if (itemNameText)        itemNameText.text        = item.ItemName ?? "Unknown";
         if (itemTypeText)        itemTypeText.text        = item.ItemType ?? "";
         if (itemRarityText)      itemRarityText.text      = item.ItemRarity ?? "";
-        if (itemDescriptionText) itemDescriptionText.text = item.ItemDescription ?? "";
+        if (itemDescriptionText) 
+        {
+            itemDescriptionText.text = item.ItemDescription ?? "";
+            if (item.CorruptionReduction > 0)
+            {
+                itemDescriptionText.text += $"\n<color=yellow>Giảm Hắc hóa: -{item.CorruptionReduction}</color>";
+            }
+        }
         if (quantityText)        quantityText.text        = $"x{item.Quantity}";
 
         if (itemIcon != null)
