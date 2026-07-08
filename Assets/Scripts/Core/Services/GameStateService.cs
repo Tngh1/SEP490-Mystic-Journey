@@ -13,6 +13,7 @@ namespace MysticJourney.Core.Services
         public string PlayerClass { get; set; }
         public string CurrentMapName { get; set; }
         public Vector3 LastPosition { get; set; }
+        public float CorruptionLevel { get; set; }
 
         public void Reset()
         {
@@ -23,6 +24,7 @@ namespace MysticJourney.Core.Services
             PlayerClass = "Knight";
             CurrentMapName = "ElfForest";
             LastPosition = new Vector3(11.9f, 17.8f, 0f);
+            CorruptionLevel = 0f;
         }
 
         public void LoadFromPlayerPrefs()

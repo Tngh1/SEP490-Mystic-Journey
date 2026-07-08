@@ -26,6 +26,10 @@ public class UIItemDisplayData
     public int dailyPurchaseLimit;
     public int purchasedToday;
     public int remainingDailyPurchases = -1;
+    public int weeklyPurchaseLimit;
+    public int purchasedThisWeek;
+    public int remainingWeeklyPurchases = -1;
+    public float corruptionReduction;
 
     public bool isClaimed;
     public bool isAvailable;
@@ -45,6 +49,9 @@ public class UIItemDisplayData
 
         if (remainingDailyPurchases >= 0)
             max = Mathf.Min(max, remainingDailyPurchases);
+
+        if (remainingWeeklyPurchases >= 0)
+            max = Mathf.Min(max, remainingWeeklyPurchases);
 
         return canPurchase ? Mathf.Max(0, max) : 0;
     }

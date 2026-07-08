@@ -61,6 +61,7 @@ namespace MysticJourney.API.Models.Response
         public string ItemType { get; set; }       // "Weapon", "Armor", "Consumable"...
         public string ItemRarity { get; set; }     // "Common", "Rare", "Epic", "Legendary"
         public string IconUrl { get; set; }
+        public float CorruptionReduction { get; set; }
         public int Quantity { get; set; }
         public bool IsEquipped { get; set; }
         public bool IsSkin { get; set; }

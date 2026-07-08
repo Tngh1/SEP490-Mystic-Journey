@@ -13,6 +13,7 @@ namespace MysticJourney.API.Models.Request
         public decimal Gems { get; set; }
         public int Energy { get; set; }
         public int MaxEnergy { get; set; }
+        public float? CorruptionLevel { get; set; }
         public bool? IsBanned { get; set; }
     }
 }
@@ -39,6 +40,7 @@ namespace MysticJourney.API.Models.Response
         public string LastMapName { get; set; }
         public double PositionX { get; set; }
         public double PositionY { get; set; }
+        public float CorruptionLevel { get; set; }
         public string CreatedAt { get; set; }
         public string UpdatedAt { get; set; }
         public bool IsBanned { get; set; }

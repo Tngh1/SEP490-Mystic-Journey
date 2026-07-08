@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Services;
 
 public class PlayerHUDController : MonoBehaviour
 {
@@ -19,6 +20,8 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text energyText;
     [SerializeField] private TMP_Text goldText;
     [SerializeField] private TMP_Text gemText;
+    [SerializeField] private TMP_Text corruptionText;
+    [SerializeField] private Image corruptionBarImage;
 
     [Header("HUD Buttons")]
     [SerializeField] private GameObject settingsButtonObj;
@@ -71,6 +74,7 @@ public class PlayerHUDController : MonoBehaviour
         }
         if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
         if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
+        if (corruptionText == null) corruptionText = transform.Find("TopBar/Center_Resources/CorruptionBox/CorruptionText")?.GetComponent<TMP_Text>();
 
         if (settingsButtonObj == null) 
         {
@@ -139,6 +143,7 @@ public class PlayerHUDController : MonoBehaviour
                 // Update WorldState Level so other parts of the game are aware
                 WorldState.PlayerLevel = profile.Level;
                 WorldState.PlayerName = profile.DisplayName ?? profile.AccountEmail;
+                GameStateService.Instance.CorruptionLevel = profile.CorruptionLevel;
 
                 UpdateProfileUI(profile);
                 _isRefreshing = false;
@@ -220,6 +225,16 @@ public class PlayerHUDController : MonoBehaviour
         if (energyText != null)
         {
             energyText.text = profile.Energy + "/" + profile.MaxEnergy;
+        }
+
+        if (corruptionText != null)
+        {
+            corruptionText.text = $"L.O.D: {Mathf.RoundToInt(profile.CorruptionLevel)}/100";
+        }
+
+        if (corruptionBarImage != null)
+        {
+            corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
         }
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);
