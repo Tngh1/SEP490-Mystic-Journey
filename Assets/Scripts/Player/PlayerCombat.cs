@@ -14,7 +14,8 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private GameObject aoeIndicatorPrefab;
 
     [Header("Basic Attack Settings")]
-    [SerializeField] private float attackCooldown = 0.5f;
+    [SerializeField] private float baseAttackCooldown = 0.5f;
+    private float currentAttackCooldown;
 
     // 👇 THÊM BIẾN NÀY: Thời gian chờ trước khi mũi tên bay ra (giây)
     [SerializeField] private float basicAttackDelay = 0.2f;
@@ -68,6 +69,7 @@ public class PlayerCombat : MonoBehaviour
     private void Awake()
     {
         if (animator == null) animator = GetComponent<Animator>();
+        currentAttackCooldown = baseAttackCooldown;
 
         if (firePoint == null)
         {
@@ -87,8 +89,12 @@ public class PlayerCombat : MonoBehaviour
                     if (response != null)
                     {
                         basicAttackDamage = response.Atk;
-                        critRate = response.CritRate * 100f; // API trả về 0.2 -> 20%
-                        critDamageMultiplier = response.CritDamage;
+                        critRate = response.CritRate;
+                        critDamageMultiplier = response.CritDamage / 100f; // e.g., 150 -> 1.5
+                        if (response.AttackSpeed > 0)
+                        {
+                            currentAttackCooldown = (100f / response.AttackSpeed) * baseAttackCooldown;
+                        }
                     }
                 },
                 error =>
@@ -167,7 +173,7 @@ public class PlayerCombat : MonoBehaviour
     {
         if (IsBusy() || Time.time < nextAttackTime) return;
 
-        nextAttackTime = Time.time + attackCooldown;
+        nextAttackTime = Time.time + currentAttackCooldown;
         animator.SetTrigger("Attack");
 
         // Bắt đầu đếm ngược thời gian delay trước khi bắn/chém
