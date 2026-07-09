@@ -88,6 +88,9 @@ public class UISkinDetailPopup : MonoBehaviour
             skinTitleText.text = skin.IsEquipped ? "Remove Cosmetic" : "Use Cosmetic";
         }
         
+        // Đảm bảo cancel button luôn hiển thị khi popup được mở
+        if (cancelSkinButton) cancelSkinButton.gameObject.SetActive(true);
+
         if (confirmSkinButton)
         {
             bool isDefaultSkin = skin.SkinName != null && skin.SkinName.IndexOf("Default", StringComparison.OrdinalIgnoreCase) >= 0;
