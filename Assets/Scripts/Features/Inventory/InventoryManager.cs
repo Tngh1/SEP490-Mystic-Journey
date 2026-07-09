@@ -55,6 +55,12 @@ public class InventoryManager : MonoBehaviour
     [SerializeField] private TMP_Text totalSkinsText;
     [SerializeField] private TMP_Text bagCapacityText;
 
+    [Header("Player Avatar")]
+    [SerializeField] private Image playerAvatarImage;
+    [SerializeField] private Sprite knightIdleSprite;
+    [SerializeField] private Sprite archerIdleSprite;
+    [SerializeField] private Sprite mageIdleSprite;
+
     [Header("State")]
     [SerializeField] private GameObject loadingIndicator;
     [SerializeField] private TMP_Text errorText;
@@ -106,6 +112,7 @@ public class InventoryManager : MonoBehaviour
     {
         BindUiReferences();
         BindEvents();
+        UpdatePlayerAvatar();
 
         if (_requestInFlight)
             return;
@@ -767,19 +774,13 @@ public class InventoryManager : MonoBehaviour
 
     private Transform FindStatsPanel()
     {
-        var trans = transform.Find("LeftSection/StatsPanel");
-        if (trans == null)
-            trans = transform.Find("LeftSection/'StatsPanel '");
-        if (trans == null)
+        var allChildren = Resources.FindObjectsOfTypeAll<Transform>();
+        foreach (var t in allChildren)
         {
-            var allChildren = GetComponentsInChildren<Transform>(true);
-            foreach (var t in allChildren)
-            {
-                if (t.name.Contains("StatsPanel"))
-                    return t;
-            }
+            if (t.name.Contains("StatsPanel"))
+                return t;
         }
-        return trans;
+        return null;
     }
 
     private void UpdateStatRow(Transform statsPanel, string rowName, string label, string value)
@@ -789,8 +790,19 @@ public class InventoryManager : MonoBehaviour
         {
             var labelText = row.Find("Text (TMP)")?.GetComponent<TMP_Text>();
             var valueText = row.Find("ValueText")?.GetComponent<TMP_Text>();
-            if (labelText != null) labelText.text = label;
-            if (valueText != null) valueText.text = value;
+
+            if (labelText != null) 
+                labelText.text = label;
+            else 
+                Debug.LogWarning($"[InventoryManager] Text (TMP) not found in {rowName}");
+
+            if (valueText != null) 
+            {
+                valueText.enableWordWrapping = false;
+                valueText.text = value;
+            }
+            else 
+                Debug.LogWarning($"[InventoryManager] ValueText not found or missing TMP_Text component in {rowName}");
         }
         else
         {
@@ -807,14 +819,28 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        UpdateStatRow(statsPanel, "HPRow", "HP", $"{stats.CurrentHp}/{stats.MaxHp}");
+        UpdateStatRow(statsPanel, "HPRow", "HP", stats.MaxHp.ToString());
         UpdateStatRow(statsPanel, "ATKRow", "ATK", stats.Atk.ToString());
         UpdateStatRow(statsPanel, "DEFRow", "DEF", stats.Def.ToString());
-        UpdateStatRow(statsPanel, "SPDRow", "SPD", stats.MoveSpeed.ToString("F1"));
-        UpdateStatRow(statsPanel, "ASPRow", "ASP", stats.AttackSpeed.ToString("F2"));
-        UpdateStatRow(statsPanel, "CRITRow", "CRT", $"{(stats.CritRate * 100f):0.#}%");
-        UpdateStatRow(statsPanel, "CRITDAMAGERow", "CRTD", $"{(stats.CritDamage * 100f):0.#}%");
-        UpdateStatRow(statsPanel, "DMGBonusRow", "%DMG", $"{(stats.DamageBonus * 100f):0.#}%");
+        UpdateStatRow(statsPanel, "SPDRow", "SPD", stats.MoveSpeed.ToString());
+        UpdateStatRow(statsPanel, "ASPRow", "ASP", stats.AttackSpeed.ToString());
+        UpdateStatRow(statsPanel, "CRITRow", "CRT", $"{stats.CritRate}%");
+        UpdateStatRow(statsPanel, "CRITDAMAGERow", "CRTD", $"{stats.CritDamage}%");
+        UpdateStatRow(statsPanel, "DMGBonusRow", "%DMG", $"{stats.DamageBonus}%");
+    }
+
+    private void UpdatePlayerAvatar()
+    {
+        if (playerAvatarImage == null) return;
+        playerAvatarImage.preserveAspect = true;
+
+        string pClass = MysticJourney.Core.Services.GameStateService.Instance.PlayerClass;
+        if (pClass == "Knight" && knightIdleSprite != null)
+            playerAvatarImage.sprite = knightIdleSprite;
+        else if (pClass == "Archer" && archerIdleSprite != null)
+            playerAvatarImage.sprite = archerIdleSprite;
+        else if (pClass == "Mage" && mageIdleSprite != null)
+            playerAvatarImage.sprite = mageIdleSprite;
     }
 
     private static bool ShouldShowInventoryItem(InventoryItemResponse item)
