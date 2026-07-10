@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
