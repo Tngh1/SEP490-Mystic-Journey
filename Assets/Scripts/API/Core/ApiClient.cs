@@ -54,9 +54,12 @@ namespace MysticJourney.API.Core
 
         // ── Token Management ──────────────────────────────────────
 
+        private string _cachedToken = null;
+
         // Lưu JWT access token vào PlayerPrefs sau khi login thành công
         public void SaveToken(string token)
         {
+            _cachedToken = token;
             PlayerPrefs.SetString(ApiConfig.AccessTokenKey, token);
             PlayerPrefs.Save();
             Debug.Log("[ApiClient] Token saved.");
@@ -65,12 +68,15 @@ namespace MysticJourney.API.Core
         // Lấy token hiện tại từ PlayerPrefs (trống nếu chưa login)
         public string GetToken()
         {
-            return PlayerPrefs.GetString(ApiConfig.AccessTokenKey, string.Empty);
+            if (!string.IsNullOrEmpty(_cachedToken)) return _cachedToken;
+            _cachedToken = PlayerPrefs.GetString(ApiConfig.AccessTokenKey, string.Empty);
+            return _cachedToken;
         }
 
         // Xóa token và toàn bộ dữ liệu phiên khi logout
         public void ClearToken()
         {
+            _cachedToken = null;
             PlayerPrefs.DeleteKey(ApiConfig.AccessTokenKey);
             PlayerPrefs.DeleteKey(ApiConfig.PlayerProfileIdKey);
             PlayerPrefs.DeleteKey(ApiConfig.AccountIdKey);

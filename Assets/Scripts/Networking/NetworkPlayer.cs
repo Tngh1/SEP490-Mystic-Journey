@@ -32,7 +32,52 @@ public class NetworkPlayer : NetworkBehaviour
     [Networked] public int PlayerProfileId { get; set; }
     [Networked] public NetworkString<_32> PlayerName { get; set; }
     [Networked] public int Level { get; set; }
-    [Networked] public int PlayerClass { get; set; }
+    [Networked, OnChangedRender(nameof(OnPlayerClassChanged))] public int PlayerClass { get; set; }
+
+    public void OnPlayerClassChanged()
+    {
+        Debug.Log($"[NetworkPlayer] OnPlayerClassChanged to {(CharacterClass)PlayerClass}");
+        if (visualRoot == null) return;
+
+        if (_spawnedVisual != null)
+        {
+            Destroy(_spawnedVisual);
+            _spawnedVisual = null;
+        }
+
+        if (characterFactory != null)
+        {
+            _spawnedVisual = characterFactory.Create((CharacterClass)PlayerClass, visualRoot);
+        }
+        else
+        {
+            _spawnedVisual = CreateFallbackVisual((CharacterClass)PlayerClass, visualRoot);
+        }
+
+        // Rebind local combat/animation components if they exist
+        if (_spawnedVisual != null)
+        {
+            var newAnimator = _spawnedVisual.GetComponentInChildren<Animator>(true);
+            var newAnimation = _spawnedVisual.GetComponentInChildren<PlayerAnimation>(true);
+            
+            if (_combat == null) _combat = GetComponent<PlayerCombat>();
+            if (_combat != null)
+            {
+                // The spawned visual initially contains the class-specific PlayerCombat 
+                // before CharacterFactory strips it. We copy its skills to our networked root.
+                var visualCombat = _spawnedVisual.GetComponent<PlayerCombat>();
+                if (visualCombat != null)
+                {
+                    _combat.CopyCombatSettingsFrom(visualCombat);
+                }
+                
+                _combat.SetVisualComponents(newAnimator, newAnimation);
+            }
+
+            // Update the NetworkPlayer's own animation reference so Render() drives the correct animator
+            _animation = newAnimation;
+        }
+    }
 
     [Networked] public int CurrentHp { get; set; }
     [Networked] public int MaxHp { get; set; }
@@ -145,22 +190,18 @@ public class NetworkPlayer : NetworkBehaviour
             transform.position = spawnBase + offset;
 
             IsAlive = true;
-            if (MaxHp <= 0) MaxHp = 100;
-            CurrentHp = MaxHp;
+            
+            // Read initial stats from PlayerEntity if available (loaded from DB), else fallback
+            var pEntity = GetComponent<PlayerEntity>();
+            if (MaxHp <= 0)
+            {
+                MaxHp = (pEntity != null && pEntity.MaxHealth > 0) ? pEntity.MaxHealth : 100;
+                CurrentHp = (pEntity != null) ? pEntity.CurrentHealth : MaxHp;
+            }
         }
 
-        if (characterFactory != null)
-        {
-            _spawnedVisual = characterFactory.Create((CharacterClass)PlayerClass, visualRoot);
-        }
-        else
-        {
-            // Fallback so the player is at least visible during Phase 1 wiring.
-            _spawnedVisual = CreateFallbackVisual((CharacterClass)PlayerClass, visualRoot);
-        }
-
-        Debug.Log($"[NetworkPlayer] Visual ready. PlayerClass={(CharacterClass)PlayerClass} " +
-                  $"visual={(_spawnedVisual != null ? _spawnedVisual.name : "NULL")}");
+        // Force an initial visual creation since OnChangedRender might not fire for default/initial values
+        OnPlayerClassChanged();
 
         if (Object.HasInputAuthority)
         {
@@ -199,10 +240,15 @@ public class NetworkPlayer : NetworkBehaviour
         var movers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         foreach (var mover in movers)
         {
-            if (mover == null || mover == _movement) continue;
-            if (mover.Object != null) continue; // a real network avatar — leave it alone
-            Debug.Log("[NetworkPlayer] Removing leftover local (non-networked) player after connect.");
-            Destroy(mover.gameObject);
+            // Do not destroy the NetworkPlayer root, and do not destroy its child visuals
+            // (which temporarily still have PlayerMovement until the end of the frame when Destroy is processed).
+            if (mover.gameObject != this.gameObject && 
+                !mover.transform.IsChildOf(this.transform) && 
+                mover.GetComponent<NetworkObject>() == null)
+            {
+                Debug.Log("[NetworkPlayer] Removing leftover local (non-networked) player after connect.");
+                Destroy(mover.gameObject);
+            }
         }
     }
 

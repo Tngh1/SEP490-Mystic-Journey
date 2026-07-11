@@ -34,7 +34,12 @@ namespace MysticJourney.API.Endpoints
         // ── Lấy profile của mình ──────────────────────────────────────────
         public void GetMyProfile(Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
-            int profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
+            int profileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
+            if (profileId <= 0)
+            {
+                profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
+            }
+
             if (profileId <= 0)
             {
                 SafeDebugError("GetMyProfile FAIL: Chua co PlayerProfileId – hay LoginGame() truoc.");

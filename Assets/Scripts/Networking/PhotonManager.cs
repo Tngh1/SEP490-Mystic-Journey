@@ -363,7 +363,21 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             playerPrefab,
             spawnPosition,
             Quaternion.identity,
-            player);
+            player,
+            (r, obj) =>
+            {
+                var netPlayer = obj.GetComponent<NetworkPlayer>();
+                if (netPlayer != null)
+                {
+                    string className = WorldState.PlayerClass ?? "Knight";
+                    if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
+                        parsed = CharacterClass.Knight;
+                    netPlayer.PlayerClass = (int)parsed;
+                    netPlayer.PlayerName = WorldState.PlayerName ?? "Player";
+                    netPlayer.PlayerProfileId = WorldState.PlayerProfileId;
+                    netPlayer.Level = Mathf.Max(1, WorldState.PlayerLevel);
+                }
+            });
 
         if (playerObject != null)
         {
