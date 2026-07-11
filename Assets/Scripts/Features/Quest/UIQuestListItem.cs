@@ -44,10 +44,10 @@ public class UIQuestListItem : MonoBehaviour
         if (background != null)
             background.color = selected ? new Color(1f, 1f, 1f, 1f) : defaultBackgroundColor;
 
-        if (icon != null && iconSprite != null)
+        if (icon != null)
         {
             icon.sprite = iconSprite;
-            icon.enabled = true;
+            icon.enabled = iconSprite != null;
         }
 
         if (lockedGroup != null)

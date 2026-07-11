@@ -13,7 +13,12 @@ public class PlayerSpawner : MonoBehaviour
     [SerializeField] private GameObject magePrefab;
     [SerializeField] private GameObject archerPrefab;
 
+    [Header("Skin")]
+    [SerializeField] private SkinDatabaseSO skinDatabase;
+
     [SerializeField] private Transform spawnPoint;
+
+    private bool _loggedMissingSkinDatabase;
 
     private IEnumerator Start()
     {
@@ -37,20 +42,9 @@ public class PlayerSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Fusion despawns the networked avatar as part of runner shutdown, which leaves the
-    /// player with no controllable character. Spawn a non-networked fallback avatar back
-    /// in, the same way the initial (pre-connect) flow does.
-    ///
-    /// PhotonManager now awaits Fusion's own Shutdown Task before raising OnDisconnected,
-    /// but Unity's Destroy() is itself deferred to the end of the current frame — so the
-    /// old NetworkPlayer's GameObject can still exist for one more frame after Shutdown's
-    /// Task completes. Wait a frame here so SpawnPlayer()'s "is there already a player?"
-    /// guard doesn't see the stale, about-to-be-destroyed object and skip the respawn.
-    /// </summary>
     private void HandleDisconnected()
     {
-        Debug.Log("[PlayerSpawner] Photon disconnected — respawning local fallback player.");
+        Debug.Log("[PlayerSpawner] Photon disconnected - respawning local fallback player.");
         StartCoroutine(RespawnNextFrame());
     }
 
@@ -66,9 +60,14 @@ public class PlayerSpawner : MonoBehaviour
             yield break;
 
         var needsWorldState = string.IsNullOrWhiteSpace(WorldState.CurrentMapName) || !ShouldUseSavedPosition(WorldState.LastPosition);
-        if (!needsWorldState)
-            yield break;
+        if (needsWorldState)
+            yield return HydrateWorldPositionBeforeSpawn();
 
+        yield return HydrateEquippedSkinBeforeSpawn();
+    }
+
+    private IEnumerator HydrateWorldPositionBeforeSpawn()
+    {
         var done = false;
         WorldApi.Instance.GetState(
             state =>
@@ -87,15 +86,44 @@ public class PlayerSpawner : MonoBehaviour
         yield return new WaitUntil(() => done);
     }
 
+    private IEnumerator HydrateEquippedSkinBeforeSpawn()
+    {
+        var done = false;
+        InventoryApi.Instance.GetInventory(
+            response =>
+            {
+                var equippedSkinId = 0;
+                if (response != null && response.PlayerSkins != null)
+                {
+                    foreach (var skin in response.PlayerSkins)
+                    {
+                        if (skin.IsEquipped)
+                        {
+                            equippedSkinId = skin.SkinId;
+                            break;
+                        }
+                    }
+                }
+
+                WorldState.EquippedSkinId = equippedSkinId;
+                WorldState.SaveToPlayerPrefs();
+                done = true;
+            },
+            error =>
+            {
+                Debug.LogWarning($"[PlayerSpawner] GetInventory failed: {error.Message}");
+                done = true;
+            }
+        );
+
+        yield return new WaitUntil(() => done);
+    }
+
     private void SpawnPlayer()
     {
-        // In multiplayer, the player avatar is a Fusion NetworkObject spawned by
-        // PhotonManager (each client spawns its own). Spawning a second, non-networked
-        // local player here would be invisible to other clients and would fight the
-        // network avatar for the camera. Skip the local spawn entirely when connected.
         if (PhotonManager.Instance != null && PhotonManager.Instance.IsConnected)
         {
-            Debug.Log("[PlayerSpawner] Photon connected — skipping local spawn; NetworkPlayer will own the avatar.");
+            Debug.Log("[PlayerSpawner] Photon connected - skipping local spawn; NetworkPlayer will own the avatar.");
             return;
         }
 
@@ -106,12 +134,8 @@ public class PlayerSpawner : MonoBehaviour
             ? "Knight"
             : WorldState.PlayerClass.Trim();
 
-        GameObject prefab = playerClass switch
-        {
-            "Mage" => magePrefab,
-            "Archer" => archerPrefab,
-            _ => knightPrefab
-        };
+        GameObject basePrefab = ResolveBasePrefab(playerClass);
+        GameObject prefab = ResolveSkinPrefab(basePrefab);
 
         if (prefab == null)
         {
@@ -133,7 +157,68 @@ public class PlayerSpawner : MonoBehaviour
         FollowPlayerWithSceneCamera(player.transform);
         InitializeMinimap(player.transform);
 
-        Debug.Log($"[PlayerSpawner] Spawned {playerClass} at {spawnPosition} | WorldStatePos={WorldState.LastPosition} | Scene={gameObject.scene.name}.");
+        Debug.Log($"[PlayerSpawner] Spawned {playerClass} at {spawnPosition} | SkinId={WorldState.EquippedSkinId} | Scene={gameObject.scene.name}.");
+    }
+
+    public void RespawnWithSkin()
+    {
+        var existingPlayer = FindFirstObjectByType<PlayerMovement>();
+        if (existingPlayer != null && existingPlayer.GetComponent<Fusion.NetworkObject>() == null)
+        {
+            WorldState.LastPosition = existingPlayer.transform.position;
+            Destroy(existingPlayer.gameObject);
+            Debug.Log("[PlayerSpawner] Destroyed old local player for Skin Respawn.");
+        }
+
+        StartCoroutine(RespawnNextFrame());
+    }
+
+    private GameObject ResolveBasePrefab(string playerClass)
+    {
+        if (string.Equals(playerClass, "Mage", StringComparison.OrdinalIgnoreCase))
+            return magePrefab;
+        if (string.Equals(playerClass, "Archer", StringComparison.OrdinalIgnoreCase))
+            return archerPrefab;
+        return knightPrefab;
+    }
+
+    private GameObject ResolveSkinPrefab(GameObject fallbackPrefab)
+    {
+        int skinId = WorldState.EquippedSkinId;
+        if (skinId <= 0)
+            return fallbackPrefab;
+
+        var database = EnsureSkinDatabase();
+        if (database == null)
+            return fallbackPrefab;
+
+        if (!database.TryGetSkinData(skinId, out var skinData))
+        {
+            Debug.LogWarning($"[PlayerSpawner] SkinId={skinId} is not mapped in '{database.name}'. Falling back to class prefab.", database);
+            return fallbackPrefab;
+        }
+
+        if (skinData.prefab == null)
+        {
+            Debug.LogWarning($"[PlayerSpawner] SkinId={skinId} is mapped in '{database.name}' but has no prefab. Falling back to class prefab.", database);
+            return fallbackPrefab;
+        }
+
+        return skinData.prefab;
+    }
+
+    private SkinDatabaseSO EnsureSkinDatabase()
+    {
+        if (skinDatabase == null)
+            skinDatabase = SkinDatabaseSO.LoadDefault();
+
+        if (skinDatabase == null && !_loggedMissingSkinDatabase)
+        {
+            _loggedMissingSkinDatabase = true;
+            Debug.LogWarning("[PlayerSpawner] SkinDatabaseSO is not assigned and no default SkinDatabase could be loaded. Skin ids will fall back to class prefabs.", this);
+        }
+
+        return skinDatabase;
     }
 
     private void FollowPlayerWithSceneCamera(Transform player)

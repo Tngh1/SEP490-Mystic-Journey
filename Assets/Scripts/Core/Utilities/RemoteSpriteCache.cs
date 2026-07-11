@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using MysticJourney.API.Core;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -11,34 +12,49 @@ public static class RemoteSpriteCache
 
     public static Sprite GetCached(string url)
     {
-        if (string.IsNullOrWhiteSpace(url))
+        var normalizedUrl = NormalizeUrl(url);
+        if (string.IsNullOrWhiteSpace(normalizedUrl))
             return null;
 
-        return Sprites.TryGetValue(url, out var sprite) ? sprite : null;
+        return Sprites.TryGetValue(normalizedUrl, out var sprite) ? sprite : null;
     }
 
     public static void Load(MonoBehaviour runner, string url, Action<Sprite> callback)
     {
-        if (string.IsNullOrWhiteSpace(url) || runner == null)
+        var normalizedUrl = NormalizeUrl(url);
+        if (string.IsNullOrWhiteSpace(normalizedUrl) || runner == null)
         {
             callback?.Invoke(null);
             return;
         }
 
-        if (Sprites.TryGetValue(url, out var cached))
+        if (Sprites.TryGetValue(normalizedUrl, out var cached))
         {
             callback?.Invoke(cached);
             return;
         }
 
-        if (Pending.TryGetValue(url, out var callbacks))
+        if (Pending.TryGetValue(normalizedUrl, out var callbacks))
         {
             callbacks.Add(callback);
             return;
         }
 
-        Pending[url] = new List<Action<Sprite>> { callback };
-        runner.StartCoroutine(LoadRoutine(url));
+        Pending[normalizedUrl] = new List<Action<Sprite>> { callback };
+        runner.StartCoroutine(LoadRoutine(normalizedUrl));
+    }
+
+    private static string NormalizeUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return null;
+
+        var trimmed = url.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out _))
+            return trimmed;
+
+        var baseUrl = ApiConfig.BaseUrl.TrimEnd('/');
+        return trimmed.StartsWith("/") ? baseUrl + trimmed : baseUrl + "/" + trimmed;
     }
 
     private static IEnumerator LoadRoutine(string url)

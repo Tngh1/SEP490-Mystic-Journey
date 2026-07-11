@@ -16,7 +16,6 @@ public class MainNpcPanelRuntime : MonoBehaviour
     [Header("Scene UI")]
     [SerializeField] private GameObject npcPanel;
     [SerializeField] private Image portraitImage;
-    [SerializeField] private QuestImageLibrary imageLibrary;
 
     private static readonly Dictionary<string, Sprite> RemoteSprites = new Dictionary<string, Sprite>();
 
@@ -886,14 +885,16 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private Sprite GetLibrarySprite(params string[] ids)
     {
-        if (imageLibrary == null || ids == null)
+        if (ids == null)
             return null;
 
-        for (var i = 0; i < ids.Length; i++)
+        if (ItemIconDatabase.Instance != null)
         {
-            var sprite = imageLibrary.GetSprite(ids[i]);
-            if (sprite != null)
-                return sprite;
+            for (var i = 0; i < ids.Length; i++)
+            {
+                if (ItemIconDatabase.Instance.TryGetIcon(ids[i], out var dbSprite))
+                    return dbSprite;
+            }
         }
 
         return null;

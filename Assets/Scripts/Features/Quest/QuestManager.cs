@@ -423,6 +423,13 @@ public class QuestManager : MonoBehaviour
 
     private void HandleLoadedQuestResponses(List<PlayerQuestResponse> responses)
     {
+        // Preserve quests that are already Completed or Claimed locally,
+        // in case the API only returns active quests and drops them.
+        var oldFinishedQuests = _responses.Values
+            .Where(q => string.Equals(q.Status, "Completed", StringComparison.OrdinalIgnoreCase) || 
+                        string.Equals(q.Status, "Claimed", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
         _cache.Clear();
         _responses.Clear();
         foreach (var response in responses ?? new List<PlayerQuestResponse>())
@@ -448,6 +455,15 @@ public class QuestManager : MonoBehaviour
                         WorldRuntimeEvents.RaiseQuestsChanged();
                     },
                     onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={qid}: {err}"));
+            }
+        }
+
+        // Restore missing finished quests to the local cache
+        foreach (var oldQuest in oldFinishedQuests)
+        {
+            if (!_responses.ContainsKey(oldQuest.QuestId))
+            {
+                UpsertQuestState(oldQuest);
             }
         }
 

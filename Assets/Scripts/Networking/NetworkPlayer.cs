@@ -8,6 +8,8 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerEntity))]
 public class NetworkPlayer : NetworkBehaviour
 {
+    public static NetworkPlayer Local { get; private set; }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Inspector — character config
     // ─────────────────────────────────────────────────────────────────────────
@@ -33,6 +35,13 @@ public class NetworkPlayer : NetworkBehaviour
     [Networked] public NetworkString<_32> PlayerName { get; set; }
     [Networked] public int Level { get; set; }
     [Networked, OnChangedRender(nameof(OnPlayerClassChanged))] public int PlayerClass { get; set; }
+    [Networked, OnChangedRender(nameof(OnSkinChanged))] public int EquippedSkinId { get; set; }
+
+    public void OnSkinChanged()
+    {
+        Debug.Log($"[NetworkPlayer] OnSkinChanged to {EquippedSkinId}");
+        OnPlayerClassChanged();
+    }
 
     public void OnPlayerClassChanged()
     {
@@ -47,7 +56,7 @@ public class NetworkPlayer : NetworkBehaviour
 
         if (characterFactory != null)
         {
-            _spawnedVisual = characterFactory.Create((CharacterClass)PlayerClass, visualRoot);
+            _spawnedVisual = characterFactory.Create(EquippedSkinId, (CharacterClass)PlayerClass, visualRoot);
         }
         else
         {
@@ -149,6 +158,8 @@ public class NetworkPlayer : NetworkBehaviour
 
     private void OnDestroy()
     {
+        if (Local == this) Local = null;
+
         if (_spawnedVisual != null)
         {
             Destroy(_spawnedVisual);
@@ -159,6 +170,27 @@ public class NetworkPlayer : NetworkBehaviour
     // ─────────────────────────────────────────────────────────────────────────
     // Fusion lifecycle
     // ─────────────────────────────────────────────────────────────────────────
+
+    public void ApplyEquippedSkin(int skinId)
+    {
+        int normalizedSkinId = Mathf.Max(0, skinId);
+
+        WorldState.EquippedSkinId = normalizedSkinId;
+        WorldState.SaveToPlayerPrefs();
+
+        if (Object != null)
+        {
+            if (!Object.HasStateAuthority)
+            {
+                Debug.LogWarning("[NetworkPlayer] Ignoring local skin apply without StateAuthority; waiting for network sync.");
+                return;
+            }
+
+            EquippedSkinId = normalizedSkinId;
+        }
+
+        OnPlayerClassChanged();
+    }
 
     public override void Spawned()
     {
@@ -180,6 +212,27 @@ public class NetworkPlayer : NetworkBehaviour
             PlayerName = WorldState.PlayerName ?? "Player";
             PlayerProfileId = WorldState.PlayerProfileId;
             Level = Mathf.Max(1, WorldState.PlayerLevel);
+
+            if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
+            {
+                MysticJourney.API.Endpoints.InventoryApi.Instance.GetInventory(
+                    response =>
+                    {
+                        if (response != null && response.PlayerSkins != null)
+                        {
+                            foreach (var skin in response.PlayerSkins)
+                            {
+                                if (skin.IsEquipped)
+                                {
+                                    EquippedSkinId = skin.SkinId;
+                                    break;
+                                }
+                            }
+                        }
+                    },
+                    error => Debug.LogWarning($"[NetworkPlayer] GetInventory failed: {error.Message}")
+                );
+            }
 
             // Anchor spawns at the current world position (e.g. ElfForest ~(11.9,17.8))
             // rather than world origin, then fan out so players don't stack.
@@ -205,6 +258,15 @@ public class NetworkPlayer : NetworkBehaviour
 
         if (Object.HasInputAuthority)
         {
+            Local = this;
+            var pEntityLocal = GetComponent<PlayerEntity>();
+            if (pEntityLocal != null)
+            {
+                // In multiplayer, multiple PlayerEntity objects spawn. Ensure the singleton
+                // points to the LOCAL player's entity, not the last spawned remote player.
+                PlayerEntity.Instance = pEntityLocal;
+            }
+
             // This is the local player's network avatar. Remove any leftover
             // non-networked local player (spawned by PlayerSpawner if we connected
             // AFTER entering the map) and hand the scene camera + minimap to us.

@@ -23,11 +23,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
     [SerializeField] private UIQuestListItem questSlotPrefab;
     [SerializeField] private Transform rewardListContent;
     [SerializeField] private UIQuestRewardSlot rewardSlotPrefab;
-    [SerializeField] private QuestImageLibrary imageLibrary;
 
     private readonly List<PlayerQuestResponse> quests = new List<PlayerQuestResponse>();
     private readonly List<UIQuestListItem> questSlots = new List<UIQuestListItem>();
     private readonly List<UIQuestRewardSlot> rewardSlots = new List<UIQuestRewardSlot>();
+
+    private readonly Dictionary<int, QuestResponse> questDefinitionCache = new Dictionary<int, QuestResponse>();
+    private readonly HashSet<int> pendingQuestDefinitionRequests = new HashSet<int>();
 
     private GameObject popupLayer;
     private UIQuestPanelView questPanelView;
@@ -93,12 +95,18 @@ public class MainQuestPanelRuntime : MonoBehaviour
         yield return null;
         BindUi();
         RefreshWorldAndQuests();
+
+        WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
         WorldRuntimeEvents.QuestsChanged += RefreshWorldAndQuests;
+        WorldRuntimeEvents.MapChanged -= OnMapChanged;
+        WorldRuntimeEvents.MapChanged += OnMapChanged;
     }
 
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
+        WorldRuntimeEvents.MapChanged -= OnMapChanged;
+
         if (Instance == this)
             Instance = null;
     }
@@ -122,6 +130,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
     {
         pendingSelectedQuestId = questId;
         OpenQuestPanel();
+    }
+
+    private void OnMapChanged(string mapName)
+    {
+        RefreshWorldAndQuests();
     }
 
     public void OpenQuestPanelForReward(int questId)
@@ -491,17 +504,53 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (quest == null)
             return rewards;
 
+        var definition = GetCachedQuestDefinition(quest.QuestId);
+
         if (quest.RewardExperience > 0)
-            rewards.Add(new RewardViewData("EXP", $"+{quest.RewardExperience}", GetLibrarySprite("reward:exp", "EXP")));
+        {
+            rewards.Add(new RewardViewData(
+                "EXP",
+                $"+{quest.RewardExperience}",
+                ResolveIconSprite(
+                    FirstNonEmpty(quest.RewardExperienceIconUrl, quest.RewardExpIconUrl, definition?.RewardExperienceIconUrl, definition?.RewardExpIconUrl),
+                    remoteFirst: false,
+                    "reward:exp", "reward:experience", "EXP", "XP", "Experience")));
+        }
+
         if (quest.RewardGold > 0)
-            rewards.Add(new RewardViewData("Gold", $"+{quest.RewardGold:0}", GetLibrarySprite("reward:gold", "Gold")));
+        {
+            rewards.Add(new RewardViewData(
+                "Gold",
+                $"+{quest.RewardGold:0}",
+                ResolveIconSprite(
+                    FirstNonEmpty(quest.RewardGoldIconUrl, definition?.RewardGoldIconUrl),
+                    remoteFirst: false,
+                    "reward:gold", "Gold", "Currency", "currency:gold")));
+        }
+
         if (quest.RewardGems > 0)
-            rewards.Add(new RewardViewData("Gems", $"+{quest.RewardGems:0}", GetLibrarySprite("reward:gems", "Gems")));
+        {
+            rewards.Add(new RewardViewData(
+                "Gems",
+                $"+{quest.RewardGems:0}",
+                ResolveIconSprite(
+                    FirstNonEmpty(quest.RewardGemsIconUrl, quest.RewardGemIconUrl, definition?.RewardGemsIconUrl, definition?.RewardGemIconUrl),
+                    remoteFirst: false,
+                    "reward:gems", "reward:gem", "Gems", "Gem", "Diamond", "currency:gems")));
+        }
+
         if (!string.IsNullOrWhiteSpace(quest.RewardItemName) || quest.RewardItemId.HasValue)
         {
             var itemName = !string.IsNullOrWhiteSpace(quest.RewardItemName) ? quest.RewardItemName : $"Item #{quest.RewardItemId.Value}";
-            rewards.Add(new RewardViewData(itemName, "x1", GetLibrarySprite($"item:{quest.RewardItemId}", itemName)));
+            rewards.Add(new RewardViewData(
+                itemName,
+                "x1",
+                ResolveIconSprite(
+                    FirstNonEmpty(quest.RewardItemIconUrl, definition?.RewardItemIconUrl),
+                    remoteFirst: true,
+                    $"item:{quest.RewardItemId}", quest.RewardItemId?.ToString(), itemName, "QuestItem", "RewardItem")));
         }
+
         if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
         {
             var skillName = RewardSkillLabel(quest);
@@ -845,7 +894,23 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (quest == null)
             return null;
 
-        return GetLibrarySprite($"quest:{quest.QuestId}", quest.QuestId.ToString(), quest.QuestTitle);
+        var definition = GetCachedQuestDefinition(quest.QuestId);
+        return ResolveIconSprite(
+            FirstNonEmpty(quest.IconUrl, quest.QuestIconUrl, definition?.IconUrl, definition?.QuestIconUrl),
+            remoteFirst: true,
+            quest.IconKey,
+            quest.QuestIconKey,
+            definition?.IconKey,
+            definition?.QuestIconKey,
+            $"quest:{quest.QuestId}",
+            quest.QuestId.ToString(),
+            quest.QuestTitle,
+            definition?.Title,
+            quest.QuestType,
+            definition?.Type,
+            quest.ObjectiveType,
+            definition?.ObjectiveType,
+            "Quest");
     }
 
     private Sprite GetRewardSkillSprite(PlayerQuestResponse quest, string skillName)
@@ -853,21 +918,126 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (quest == null)
             return null;
 
-        return quest.RewardSkillId.HasValue
-            ? GetLibrarySprite($"skill:{quest.RewardSkillId.Value}", quest.RewardSkillId.Value.ToString(), skillName)
-            : GetLibrarySprite(skillName);
+        var definition = GetCachedQuestDefinition(quest.QuestId);
+        return ResolveIconSprite(
+            FirstNonEmpty(quest.RewardSkillIconUrl, definition?.RewardSkillIconUrl),
+            remoteFirst: true,
+            quest.RewardSkillId.HasValue ? $"skill:{quest.RewardSkillId.Value}" : null,
+            quest.RewardSkillId?.ToString(),
+            skillName,
+            "Skill",
+            "RewardSkill");
     }
 
     private Sprite GetLibrarySprite(params string[] ids)
     {
-        if (imageLibrary == null || ids == null)
+        return GetLocalSprite(ids);
+    }
+
+    private QuestResponse GetCachedQuestDefinition(int questId)
+    {
+        if (questId <= 0)
+            return null;
+
+        if (questDefinitionCache.TryGetValue(questId, out var definition))
+            return definition;
+
+        EnsureQuestDefinitionLoaded(questId);
+        return null;
+    }
+
+    private void EnsureQuestDefinitionLoaded(int questId)
+    {
+        if (questId <= 0 || questDefinitionCache.ContainsKey(questId) || pendingQuestDefinitionRequests.Contains(questId))
+            return;
+
+        pendingQuestDefinitionRequests.Add(questId);
+        QuestApi.Instance.GetById(
+            questId,
+            definition =>
+            {
+                pendingQuestDefinitionRequests.Remove(questId);
+                if (definition != null)
+                    questDefinitionCache[questId] = definition;
+
+                if (isActiveAndEnabled)
+                    RenderAll();
+            },
+            error =>
+            {
+                pendingQuestDefinitionRequests.Remove(questId);
+                Debug.LogWarning($"[MainQuestPanelRuntime] Load quest definition failed questId={questId}: {error.Message}");
+            });
+    }
+
+    private Sprite ResolveIconSprite(string remoteUrl, bool remoteFirst, params string[] localKeys)
+    {
+        if (remoteFirst)
+        {
+            var remote = GetRemoteSprite(remoteUrl);
+            if (remote != null)
+                return remote;
+        }
+
+        var local = GetLocalSprite(localKeys);
+        if (local != null)
+            return local;
+
+        if (!remoteFirst)
+        {
+            var remote = GetRemoteSprite(remoteUrl);
+            if (remote != null)
+                return remote;
+        }
+
+        return null;
+    }
+
+    private Sprite GetLocalSprite(params string[] ids)
+    {
+        if (ids == null || ItemIconDatabase.Instance == null)
             return null;
 
         for (var i = 0; i < ids.Length; i++)
         {
-            var sprite = imageLibrary.GetSprite(ids[i]);
-            if (sprite != null)
-                return sprite;
+            var key = ids[i];
+            if (string.IsNullOrWhiteSpace(key))
+                continue;
+
+            if (ItemIconDatabase.Instance.TryGetIcon(key.Trim(), out var dbSprite))
+                return dbSprite;
+        }
+
+        return null;
+    }
+
+    private Sprite GetRemoteSprite(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return null;
+
+        var cached = RemoteSpriteCache.GetCached(url);
+        if (cached != null)
+            return cached;
+
+        RemoteSpriteCache.Load(this, url, sprite =>
+        {
+            if (sprite != null && isActiveAndEnabled)
+                RenderAll();
+        });
+
+        return null;
+    }
+
+    private static string FirstNonEmpty(params string[] values)
+    {
+        if (values == null)
+            return null;
+
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(values[i]))
+                return values[i];
         }
 
         return null;
