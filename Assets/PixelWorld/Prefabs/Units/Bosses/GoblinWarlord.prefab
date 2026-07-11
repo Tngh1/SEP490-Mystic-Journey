@@ -52,6 +52,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -73,8 +75,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 2
   m_Sprite: {fileID: -1869374846, guid: bfdd77a8044e6d24b9c45b0c7c5a6311, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.39215687}
@@ -142,6 +145,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -163,8 +168,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: -1784995918, guid: 78348d2415311d046b04ce406e676bcb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -229,6 +235,9 @@ GameObject:
   - component: {fileID: 2653042647268663513}
   - component: {fileID: 5090579509880913255}
   - component: {fileID: 8335580643941381930}
+  - component: {fileID: 1899973819220672094}
+  - component: {fileID: 1790706110219325972}
+  - component: {fileID: 6235976352970585525}
   m_Layer: 0
   m_Name: GoblinWarlord
   m_TagString: Untagged
@@ -375,6 +384,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 52
+  monsterId: 0
+  monsterSpawnId: 0
+  useApiStats: 1
 --- !u!114 &2653042647268663513
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -393,6 +405,7 @@ MonoBehaviour:
   roamingTimeMax: 7
   isChasingEnemy: 1
   isAttackingEnemy: 1
+  attackDamage: 10
   chasingDistance: 3
   chasingSpeedMultiplier: 2
   attackDistance: 2
@@ -473,3 +486,56 @@ PolygonCollider2D:
       - {x: 1.2933068, y: 0.5052872}
       - {x: 1.4382381, y: 1.131813}
   m_UseDelaunayMesh: 0
+--- !u!114 &1899973819220672094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7385239335675919734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3260499841
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 1790706110219325972}
+  - {fileID: 6235976352970585525}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &1790706110219325972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7385239335675919734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &6235976352970585525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7385239335675919734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5641aa6cf4996f42ba7048508333e37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkEnemy
+  _CurrentHp: 0
+  _MaxHp: 0
+  _IsAlive:
+    _value: 0

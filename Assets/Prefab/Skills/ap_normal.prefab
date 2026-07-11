@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 4671265296354237833}
   - component: {fileID: 1414099990996126793}
   - component: {fileID: 5035982769030486789}
+  - component: {fileID: 9131293779834479379}
+  - component: {fileID: 5872996338164749725}
+  - component: {fileID: 3386947153088686261}
   m_Layer: 0
   m_Name: ap_normal
   m_TagString: Untagged
@@ -193,3 +196,54 @@ CapsuleCollider2D:
   m_Offset: {x: 0.011686325, y: -0.00701192}
   m_Size: {x: 0.6024208, y: 0.6304689}
   m_Direction: 0
+--- !u!114 &9131293779834479379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8045538818045477298}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3102424135
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5872996338164749725}
+  - {fileID: 3386947153088686261}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &5872996338164749725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8045538818045477298}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &3386947153088686261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8045538818045477298}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecfaff85ce049784ebc44f33639e76d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkSkillProjectile
+  speed: 10
+  lifeSeconds: 2

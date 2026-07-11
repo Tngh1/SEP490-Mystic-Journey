@@ -84,17 +84,92 @@ public class EnemyEntity : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Networking bridge
+    //
+    // When a Photon session is running, this enemy is spawned as a NetworkObject
+    // and NetworkEnemy binds itself here. Damage is then applied authoritatively
+    // on the state-authority client and the resulting HP / death replicates to
+    // every other client. Offline, _network stays null and everything runs
+    // locally exactly as before.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private NetworkEnemy _network;
+
+    /// <summary>True once the enemy has died (drives the networked death mirror).</summary>
+    public bool IsDead => isDead;
+
+    /// <summary>Called by NetworkEnemy.Spawned to enable the networked damage route.</summary>
+    public void BindNetwork(NetworkEnemy network) => _network = network;
+
+    /// <summary>
+    /// Public damage entry point. Projectiles / AoE / melee call this without
+    /// knowing whether we are online. When networked, the request is routed to
+    /// the enemy's state authority (applied once, replicated to all). Offline it
+    /// applies immediately.
+    /// </summary>
     public void TakeDamage(int damage)
     {
         if (isDead) return;
-        
+
+        if (_network != null && _network.IsNetworkActive)
+        {
+            _network.RequestDamage(damage);
+            return;
+        }
+
+        ApplyDamageAuthoritative(damage);
+    }
+
+    /// <summary>
+    /// The real HP maths + death detection. Runs on the state authority (online)
+    /// or directly (offline). NEVER call this from a proxy — use TakeDamage.
+    /// </summary>
+    public void ApplyDamageAuthoritative(int damage)
+    {
+        if (isDead) return;
+
         currentHealth -= damage;
         if (currentHealth < 0) currentHealth = 0;
 
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
         OnTakeHit?.Invoke(this, EventArgs.Empty);
-        Debug.Log("Damage");
         DetectDeath();
+    }
+
+    /// <summary>
+    /// Proxy-side mirror: push the authority's replicated HP into this local copy
+    /// so the health bar and hit flash match. Does NOT report to the backend
+    /// (only the authority does that in DetectDeath).
+    /// </summary>
+    public void SyncNetworkedHealth(int networkedCurrent, int networkedMax)
+    {
+        if (networkedMax > 0) maxHealth = networkedMax;
+
+        bool tookHit = networkedCurrent < currentHealth;
+        currentHealth = Mathf.Clamp(networkedCurrent, 0, maxHealth);
+
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        if (tookHit) OnTakeHit?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Proxy-side mirror: replicated IsAlive went false. Play the local death
+    /// visuals (colliders off, death animation) WITHOUT the server report /
+    /// quest progress, which the authority already handled in DetectDeath.
+    /// </summary>
+    public void SyncNetworkedDeath()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        if (boxColl != null) boxColl.enabled = false;
+        if (polyColl != null) polyColl.enabled = false;
+        if (capsuleColl != null) capsuleColl.enabled = false;
+
+        if (enemyBehaviour != null) enemyBehaviour.SetDeathState();
+
+        OnDeath?.Invoke(this, EventArgs.Empty);
     }
 
     public void PolyCollTurnOff()

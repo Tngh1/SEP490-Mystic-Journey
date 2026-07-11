@@ -3,7 +3,6 @@ using System.Linq;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerWorldInteractor : MonoBehaviour
 {
@@ -14,11 +13,26 @@ public class PlayerWorldInteractor : MonoBehaviour
     private float nextScanTime;
     private float nextInteractTime;
 
+    // Single source of truth for input. The Interact key comes from here so it
+    // always honours the player's rebinding (e.g. E → X in settings). Lazily
+    // resolved because this component is often added to the player at runtime.
+    private GameplayInputProvider _input;
+
     private void OnEnable()
     {
         WorldRuntimeEvents.QuestsChanged += RefreshSceneLinks;
         RefreshSceneLinks();
         RefreshInteractables();
+    }
+
+    private GameplayInputProvider ResolveInput()
+    {
+        if (_input == null)
+        {
+            _input = GetComponent<GameplayInputProvider>();
+            if (_input == null) _input = GetComponentInParent<GameplayInputProvider>();
+        }
+        return _input;
     }
 
     private void Update()
@@ -36,48 +50,54 @@ public class PlayerWorldInteractor : MonoBehaviour
             RefreshInteractables();
         }
 
-        current = FindNearestInteractable(WorldInteractableKind.Npc) ?? 
-                  FindNearestInteractable(WorldInteractableKind.Dungeon) ?? 
+        current = FindNearestInteractable(WorldInteractableKind.Npc) ??
+                  FindNearestInteractable(WorldInteractableKind.Dungeon) ??
                   FindNearestWorldObject();
         if (current != null)
             WorldInteractionPromptRuntime.Show(current.GetPromptText());
         else
             WorldInteractionPromptRuntime.Hide();
 
-        if (Input.GetKeyDown(KeyCode.E))
+        // Single rebindable Interact key drives ALL world interaction (NPC,
+        // dungeon entrance, world object). Previously E and P were hardcoded via
+        // the legacy Input Manager, which ignored rebinding — that was the
+        // "Interact still uses E after rebinding to X" bug.
+        var input = ResolveInput();
+        if (input != null && input.InteractPressed)
+            HandleInteract();
+    }
+
+    /// <summary>
+    /// Dispatch an interact press to the nearest interactable. Called by the
+    /// input poll in <see cref="Update"/> once the rebindable Interact action
+    /// fires. Interact is client-local (it opens panels / calls the API, it does
+    /// not affect the networked simulation), so both offline and networked
+    /// players reach it through this same local poll — there is no network RPC.
+    /// </summary>
+    private void HandleInteract()
+    {
+        if (current != null && current.Kind == WorldInteractableKind.Dungeon)
         {
-            if (current != null && current.Kind == WorldInteractableKind.Dungeon)
-            {
-                var entrance = current.GetComponent<DungeonEntrance>();
-                if (entrance != null)
-                {
-                    entrance.Interact();
-                }
-            }
-            else
-            {
-                TryInteract(WorldInteractableKind.Npc);
-            }
+            var entrance = current.GetComponent<DungeonEntrance>();
+            if (entrance != null)
+                entrance.Interact();
+            return;
         }
 
-        if (Input.GetKeyDown(KeyCode.P))
+        if (current != null &&
+            (current.Kind == WorldInteractableKind.Object || current.Kind == WorldInteractableKind.QuestItem))
+        {
             TryInteractWorldObject();
+            return;
+        }
+
+        TryInteract(WorldInteractableKind.Npc);
     }
 
     private void OnDisable()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshSceneLinks;
         WorldInteractionPromptRuntime.Hide();
-    }
-
-    public void OnInteract(InputValue value)
-    {
-        if (value != null && !value.isPressed)
-            return;
-        if (IsNpcPanelOpen())
-            return;
-
-        TryInteract(WorldInteractableKind.Npc);
     }
 
     private void TryInteract(WorldInteractableKind kind)

@@ -1,13 +1,48 @@
+using Fusion;
 using MysticJourney.API.Models.Response;
-using System.Collections; // BẮT BUỘC THÊM DÒNG NÀY ĐỂ DÙNG COROUTINE
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerCombat : MonoBehaviour
+/// <summary>
+/// Combat executor for the local player. Owns attack timing, skill cooldowns,
+/// projectile spawning, and AoE aim mode.
+///
+/// Entry points:
+///   - <see cref="OnAttack(InputValue)"/>, <see cref="OnSkill1"/>, <see cref="OnSkill2"/>,
+///     <see cref="OnSkill3"/>: legacy single-player path driven by Unity Input System.
+///   - <see cref="RequestAttack"/>, <see cref="RequestSkill"/>: multiplayer path called
+///     by NetworkPlayer.FixedUpdateNetwork. These use the same internal methods
+///     but additionally replicate the animation trigger via RPC so every client
+///     sees the attack animation.
+///
+/// Authoritative damage flow (Shared Mode):
+///   - Input authority client calls RequestAttack(aim).
+///   - RPC fires from input authority to state authority.
+///   - State authority validates cooldown, rolls damage (deterministic Random),
+///     and calls enemy.TakeDamage via the enemy NetworkBehaviour (Phase 12).
+///   - State authority broadcasts RPC_PlayAttackAnimation to all clients so
+///     every client plays the attack animation locally.
+///
+/// Single-player fallback:
+///   - If the NetworkRunner is not running (no Photon connection), the legacy
+///     OnAttack/OnSkill callbacks still work and call Attack()/TryCastSkill()
+///     directly without RPCs.
+///
+/// Projectiles / AoE spawn (Phase 12 TODO):
+///   - Today, SpawnBasicAttackProjectile and SpawnSkill call Instantiate.
+///     These will be replaced with Runner.Spawn on a NetworkPrefab in Phase 12
+///     so projectiles sync to all clients. The aimWorldPosition parameter is
+///     already plumbed through for that future work.
+/// </summary>
+public class PlayerCombat : NetworkBehaviour
 {
+    [Header("Animator / Aim")]
+    [Tooltip("Animator that plays Attack / Skill1/2/3 triggers. If null, fetched via GetComponent.")]
     [SerializeField] private Animator animator;
+    [SerializeField] private PlayerAnimation animation; // Phase 6 wrapper; optional
 
     [Header("AoE Settings")]
     [SerializeField] private float maxCastRange = 6f;
@@ -16,26 +51,20 @@ public class PlayerCombat : MonoBehaviour
     [Header("Basic Attack Settings")]
     [SerializeField] private float baseAttackCooldown = 0.5f;
     private float currentAttackCooldown;
-
-    // 👇 THÊM BIẾN NÀY: Thời gian chờ trước khi mũi tên bay ra (giây)
     [SerializeField] private float basicAttackDelay = 0.2f;
-
     [SerializeField] private float basicAttackDamage = 25f;
-    [SerializeField][Range(0f, 100f)] private float critRate = 20f; // 20% chí mạng
-    [SerializeField] private float critDamageMultiplier = 1.5f; // x1.5 sát thương
+    [SerializeField, Range(0f, 100f)] private float critRate = 20f;
+    [SerializeField] private float critDamageMultiplier = 1.5f;
     [Tooltip("KÉO PREFAB MŨI TÊN / CẦU PHÉP VÀO ĐÂY. NẾU LÀ ĐẤU SĨ CHÉM GẦN -> HÃY ĐỂ TRỐNG (NONE)")]
     [SerializeField] private GameObject basicAttackPrefab;
 
-    [Header("Melee Fallback (Chỉ dùng khi basicAttackPrefab bị bỏ trống)")]
+    [Header("Melee Fallback")]
     [SerializeField] private float meleeRange = 1.2f;
     [SerializeField] private LayerMask enemyLayer;
 
     [Header("Skill Settings")]
     [SerializeField] private Transform firePoint;
-
-    // 👇 THÊM BIẾN NÀY: Thời gian chờ trước khi tung Kỹ năng (giây)
     [SerializeField] private float skillCastDelay = 0.2f;
-
     [SerializeField] private GameObject skill1Prefab;
     [SerializeField] private GameObject skill2Prefab;
     [SerializeField] private GameObject skill3Prefab;
@@ -44,6 +73,10 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private float skill1Cooldown = 3f;
     [SerializeField] private float skill2Cooldown = 5f;
     [SerializeField] private float skill3Cooldown = 8f;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Runtime state
+    // ─────────────────────────────────────────────────────────────────────────
 
     private float nextAttackTime;
     private float nextSkill1Time;
@@ -57,19 +90,32 @@ public class PlayerCombat : MonoBehaviour
 
     public static event System.Action<int, float> OnSkillCast;
 
-    // --- AOE Aiming State ---
+    // AoE aiming state (local-only — each client aims independently)
     private bool _isAimingAoE = false;
     private GameObject _aimingPrefab;
     private int _aimingSlotIndex;
     private float _aimingCooldown;
     private string _aimingAnimTrigger;
     private GameObject _aimingIndicatorInstance;
-    private System.Action<float> _updateNextSkillTimeCallback;
+
+    // Single source of truth for input. AoE aim position + confirm/cancel are
+    // read from here instead of Mouse.current directly, keeping all input reads
+    // centralised (SRP) and free of hardcoded devices.
+    private GameplayInputProvider _input;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Unity lifecycle
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
         if (animator == null) animator = GetComponent<Animator>();
+        if (animation == null) animation = GetComponent<PlayerAnimation>();
         currentAttackCooldown = baseAttackCooldown;
+
+        // Resolve (or add) the shared input provider on this GameObject.
+        _input = GetComponent<GameplayInputProvider>();
+        if (_input == null) _input = gameObject.AddComponent<GameplayInputProvider>();
 
         if (firePoint == null)
         {
@@ -90,25 +136,18 @@ public class PlayerCombat : MonoBehaviour
                     {
                         basicAttackDamage = response.Atk;
                         critRate = response.CritRate;
-                        critDamageMultiplier = response.CritDamage / 100f; // e.g., 150 -> 1.5
+                        critDamageMultiplier = response.CritDamage / 100f;
                         if (response.AttackSpeed > 0)
                         {
                             currentAttackCooldown = (100f / response.AttackSpeed) * baseAttackCooldown;
                         }
                     }
                 },
-                error =>
-                {
-                    Debug.LogWarning($"[PlayerCombat] GetMyStats failed: {error.Message}");
-                }
+                error => Debug.LogWarning($"[PlayerCombat] GetMyStats failed: {error.Message}")
             );
 
-            // Nạp kỹ năng cho Player và HUD lúc mới vào game (giống với cách tải Stats)
             var skillPanelMgr = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
-            if (skillPanelMgr != null)
-            {
-                skillPanelMgr.RefreshSkillList();
-            }
+            if (skillPanelMgr != null) skillPanelMgr.RefreshSkillList();
         }
     }
 
@@ -128,12 +167,11 @@ public class PlayerCombat : MonoBehaviour
         _skillIds[slotIndex] = sData.PlayerSkillId;
         _skillCooldowns[slotIndex] = (float)sData.CooldownSeconds;
 
-        // Restore cooldown from server
         if (!string.IsNullOrEmpty(sData.NextAvailableTime))
         {
-            if (System.DateTime.TryParse(sData.NextAvailableTime, 
-                                         System.Globalization.CultureInfo.InvariantCulture, 
-                                         System.Globalization.DateTimeStyles.AdjustToUniversal, 
+            if (System.DateTime.TryParse(sData.NextAvailableTime,
+                                         System.Globalization.CultureInfo.InvariantCulture,
+                                         System.Globalization.DateTimeStyles.AdjustToUniversal,
                                          out System.DateTime nextTime))
             {
                 var now = System.DateTime.UtcNow;
@@ -144,7 +182,6 @@ public class PlayerCombat : MonoBehaviour
                     else if (slotIndex == 1) nextSkill2Time = Time.time + remainingSeconds;
                     else if (slotIndex == 2) nextSkill3Time = Time.time + remainingSeconds;
 
-                    // Tell UI to start cooldown visually
                     FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                         .Where(s => s.slotIndex == slotIndex)
                         .ToList()
@@ -154,46 +191,188 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    #region Basic Attack Logic (ADAPTIVE)
-    public void OnAttack(UnityEngine.InputSystem.InputValue value)
-    {
-        if (!value.isPressed) return;
+    // ─────────────────────────────────────────────────────────────────────────
+    // Multiplayer entry points — called by NetworkPlayer.FixedUpdateNetwork
+    // ─────────────────────────────────────────────────────────────────────────
 
-        // Block attack if mouse is over UI (e.g. inventory, shop, HUD buttons)
-        if (UnityEngine.EventSystems.EventSystem.current != null && 
+    /// <summary>
+    /// Network-driven attack request. Validates the request on the state authority
+    /// and broadcasts the animation trigger to all clients.
+    /// </summary>
+    public void RequestAttack(Vector2 aimWorldPosition)
+    {
+        if (Runner == null || !Runner.IsRunning)
+        {
+            // Single-player fallback: execute locally.
+            Attack();
+            return;
+        }
+
+        // Local client plays attack animation immediately for responsiveness,
+        // server will validate cooldown and broadcast the authoritative trigger.
+        if (animation != null) animation.TriggerAttack();
+
+        RPC_Attack(aimWorldPosition);
+    }
+
+    /// <summary>
+    /// Network-driven skill request. slotIndex = 0/1/2 for Skill1/2/3.
+    /// </summary>
+    public void RequestSkill(int slotIndex, Vector2 aimWorldPosition)
+    {
+        GameObject prefab;
+        float cooldown;
+        string animTrigger;
+        switch (slotIndex)
+        {
+            case 0: prefab = skill1Prefab; cooldown = GetCooldown(0, skill1Cooldown); animTrigger = "Skill1"; break;
+            case 1: prefab = skill2Prefab; cooldown = GetCooldown(1, skill2Cooldown); animTrigger = "Skill2"; break;
+            case 2: prefab = skill3Prefab; cooldown = GetCooldown(2, skill3Cooldown); animTrigger = "Skill3"; break;
+            default: return;
+        }
+
+        if (prefab == null) return;
+
+        if (Runner == null || !Runner.IsRunning)
+        {
+            TryCastSkill(prefab, slotIndex, cooldown, animTrigger);
+            return;
+        }
+
+        if (animation != null) animation.TriggerSkill(slotIndex);
+
+        RPC_Skill(slotIndex, aimWorldPosition);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RPCs — Input Authority → State Authority
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_Attack(Vector2 aimWorldPosition)
+    {
+        // Server-side validation: cooldown.
+        if (Time.time < nextAttackTime) return;
+        nextAttackTime = Time.time + currentAttackCooldown;
+
+        // Trigger animation on every client (defensive; local client already did it).
+        RPC_PlayAttackAnim();
+
+        // Execute the actual attack. In Phase 12 this will route through
+        // a server-side damage pipeline with deterministic Random.
+        StartCoroutine(ExecuteBasicAttackWithDelay(basicAttackDelay));
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_Skill(int slotIndex, Vector2 aimWorldPosition)
+    {
+        GameObject prefab;
+        float cooldown;
+        string animTrigger;
+        switch (slotIndex)
+        {
+            case 0: prefab = skill1Prefab; cooldown = GetCooldown(0, skill1Cooldown); animTrigger = "Skill1"; break;
+            case 1: prefab = skill2Prefab; cooldown = GetCooldown(1, skill2Cooldown); animTrigger = "Skill2"; break;
+            case 2: prefab = skill3Prefab; cooldown = GetCooldown(2, skill3Cooldown); animTrigger = "Skill3"; break;
+            default: return;
+        }
+        if (prefab == null) return;
+
+        if (IsBusy()) return;
+
+        // Validate cooldown + corruption on server.
+        float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
+        if (Time.time < nextTime) return;
+
+        float corruptionCost = _skillCorruptionCosts.ContainsKey(slotIndex) ? _skillCorruptionCosts[slotIndex] : 0f;
+        if (MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel + corruptionCost >= 100f)
+        {
+            if (MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel >= 100f)
+            {
+                if (TryGetComponent<PlayerEntity>(out var pe)) pe.Die();
+            }
+            return;
+        }
+
+        if (corruptionCost > 0)
+        {
+            MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel += corruptionCost;
+            SyncCorruptionLevelToServer();
+        }
+
+        if (slotIndex == 0) nextSkill1Time = Time.time + cooldown;
+        else if (slotIndex == 1) nextSkill2Time = Time.time + cooldown;
+        else if (slotIndex == 2) nextSkill3Time = Time.time + cooldown;
+
+        // Authoritative spawn of the skill prefab. Phase 12 will replace
+        // Instantiate with Runner.Spawn on a NetworkPrefab.
+        RPC_PlaySkillAnim(slotIndex);
+        StartCoroutine(ExecuteSkillWithDelay(prefab, slotIndex, skillCastDelay, aimWorldPosition));
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayAttackAnim()
+    {
+        if (animation != null) animation.TriggerAttack();
+        else if (animator != null) animator.SetTrigger("Attack");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlaySkillAnim(int slotIndex)
+    {
+        if (animation != null) animation.TriggerSkill(slotIndex);
+        else
+        {
+            string trigger = slotIndex == 0 ? "Skill1" : slotIndex == 1 ? "Skill2" : "Skill3";
+            if (animator != null) animator.SetTrigger(trigger);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Legacy single-player path — Unity Input System SendMessage callbacks.
+    // These fire from PlayerInput (which reads the rebindable InputActions) and
+    // are the SOLE combat-input path when Photon is NOT running. Under Fusion the
+    // networked path (LocalInputCollector → NetworkInputData → RequestAttack) owns
+    // combat input, so these are gated to offline-only to avoid a double-fire
+    // (once locally here, once via RPC) — keeping "attack reading in one place".
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private bool IsNetworked => Runner != null && Runner.IsRunning;
+
+    public void OnAttack(InputValue value)
+    {
+        if (IsNetworked) return;
+        if (!value.isPressed) return;
+        if (UnityEngine.EventSystems.EventSystem.current != null &&
             UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
         {
             return;
         }
-
         Attack();
     }
+
+    public void OnSkill1(InputValue value) { if (!IsNetworked && value.isPressed) TryCastSkill(skill1Prefab, 0, GetCooldown(0, skill1Cooldown), "Skill1"); }
+    public void OnSkill2(InputValue value) { if (!IsNetworked && value.isPressed) TryCastSkill(skill2Prefab, 1, GetCooldown(1, skill2Cooldown), "Skill2"); }
+    public void OnSkill3(InputValue value) { if (!IsNetworked && value.isPressed) TryCastSkill(skill3Prefab, 2, GetCooldown(2, skill3Cooldown), "Skill3"); }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Basic attack
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Attack()
     {
         if (IsBusy() || Time.time < nextAttackTime) return;
-
         nextAttackTime = Time.time + currentAttackCooldown;
-        animator.SetTrigger("Attack");
-
-        // Bắt đầu đếm ngược thời gian delay trước khi bắn/chém
+        if (animation != null) animation.TriggerAttack();
+        else if (animator != null) animator.SetTrigger("Attack");
         StartCoroutine(ExecuteBasicAttackWithDelay(basicAttackDelay));
     }
 
-    // 👇 HÀM CHỜ THỜI GIAN ĐÁNH THƯỜNG
     private IEnumerator ExecuteBasicAttackWithDelay(float delay)
     {
-        // Chờ đúng số giây bạn đã thiết lập
         yield return new WaitForSeconds(delay);
-
-        if (basicAttackPrefab != null)
-        {
-            SpawnBasicAttackProjectile();
-        }
-        else
-        {
-            PerformMeleeSweep();
-        }
+        if (basicAttackPrefab != null) SpawnBasicAttackProjectile();
+        else PerformMeleeSweep();
     }
 
     private void SpawnBasicAttackProjectile()
@@ -203,6 +382,23 @@ public class PlayerCombat : MonoBehaviour
         Vector2 direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         Quaternion rotation = Quaternion.Euler(0, 0, angle);
+
+        // Online: spawn a networked projectile so every client sees it fly and
+        // damage is resolved on the enemy's authority. Only the caster (who owns
+        // input authority and thus becomes the projectile's state authority in
+        // Shared Mode) spawns it — Fusion replicates it to everyone else.
+        if (IsNetworked && basicAttackPrefab != null &&
+            basicAttackPrefab.GetComponent<NetworkObject>() != null)
+        {
+            float dmg = basicAttackDamage;
+            Runner.Spawn(basicAttackPrefab, firePoint.position, rotation, Object.InputAuthority,
+                (r, o) =>
+                {
+                    var np = o.GetComponent<NetworkSkillProjectile>();
+                    if (np != null) np.Configure(dmg, 0f);
+                });
+            return;
+        }
 
         GameObject projectileObj = Instantiate(basicAttackPrefab, firePoint.position, rotation);
 
@@ -222,30 +418,18 @@ public class PlayerCombat : MonoBehaviour
     private void PerformMeleeSweep()
     {
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(firePoint.position, meleeRange, enemyLayer);
-
-        // 👇 TẠO DANH SÁCH LỌC TRÙNG (Chỉ đánh mỗi con quái 1 lần trong 1 nhát chém)
         HashSet<EnemyEntity> damagedEnemies = new HashSet<EnemyEntity>();
-
         foreach (Collider2D enemyCollider in hitEnemies)
         {
             EnemyEntity enemy = enemyCollider.GetComponent<EnemyEntity>();
-
-            // Nếu tìm thấy quái VÀ con quái này chưa bị chém trong nhát này
             if (enemy != null && !damagedEnemies.Contains(enemy))
             {
-                damagedEnemies.Add(enemy); // Đánh dấu là đã chém trúng nó rồi
-
-                // Tính toán chí mạng
+                damagedEnemies.Add(enemy);
                 bool isCrit = Random.Range(0f, 100f) <= critRate;
                 float finalDamage = basicAttackDamage;
                 if (isCrit) finalDamage *= critDamageMultiplier;
-
                 int damageInt = Mathf.RoundToInt(finalDamage);
-
-                // Gây sát thương
                 enemy.TakeDamage(damageInt);
-
-                // Hiện số máu bay lên
                 if (DamagePopupManager.Instance != null)
                 {
                     DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
@@ -253,12 +437,10 @@ public class PlayerCombat : MonoBehaviour
             }
         }
     }
-    #endregion
 
-    #region Skills Logic
-    public void OnSkill1(InputValue value) { if (value.isPressed) TryCastSkill(skill1Prefab, 0, GetCooldown(0, skill1Cooldown), "Skill1"); }
-    public void OnSkill2(InputValue value) { if (value.isPressed) TryCastSkill(skill2Prefab, 1, GetCooldown(1, skill2Cooldown), "Skill2"); }
-    public void OnSkill3(InputValue value) { if (value.isPressed) TryCastSkill(skill3Prefab, 2, GetCooldown(2, skill3Cooldown), "Skill3"); }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Skills
+    // ─────────────────────────────────────────────────────────────────────────
 
     private float GetCooldown(int slotIndex, float fallback)
     {
@@ -267,44 +449,26 @@ public class PlayerCombat : MonoBehaviour
 
     private void TryCastSkill(GameObject prefab, int slotIndex, float cooldown, string animTrigger)
     {
-        Debug.Log($"[PlayerCombat] TryCastSkill slot={slotIndex}, prefab={(prefab != null ? prefab.name : "null")}, cooldown={cooldown}");
         if (prefab == null) return;
 
         float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
-        Debug.Log($"[PlayerCombat] IsBusy={IsBusy()}, Time.time={Time.time}, nextTime={nextTime}");
         if (IsBusy() || Time.time < nextTime) return;
 
         bool isAoE = prefab.GetComponent<SkillAoE>() != null;
-
-        if (isAoE)
-        {
-            Debug.Log($"[PlayerCombat] Entering Aiming Mode for slot {slotIndex}");
-            EnterAimingMode(prefab, slotIndex, cooldown, animTrigger);
-        }
-        else
-        {
-            Debug.Log($"[PlayerCombat] Executing Skill Confirmed for slot {slotIndex}");
-            ExecuteSkillConfirmed(prefab, slotIndex, cooldown, animTrigger);
-        }
+        if (isAoE) EnterAimingMode(prefab, slotIndex, cooldown, animTrigger);
+        else ExecuteSkillConfirmed(prefab, slotIndex, cooldown, animTrigger);
     }
 
     private void ExecuteSkillConfirmed(GameObject prefab, int slotIndex, float cooldown, string animTrigger, Vector3? targetPosition = null)
     {
-        // CHECK CORRUPTION LIMIT
-        float corruptionCost = 0f;
-        if (_skillCorruptionCosts.ContainsKey(slotIndex))
-            corruptionCost = _skillCorruptionCosts[slotIndex];
-
+        float corruptionCost = _skillCorruptionCosts.ContainsKey(slotIndex) ? _skillCorruptionCosts[slotIndex] : 0f;
         if (MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel + corruptionCost >= 100f)
         {
             Debug.LogWarning("Cannot cast skill! Corruption level would exceed 100.");
-            // Trigger Game Over or Notify UI
-            if (PlayerEntity.Instance != null)
-                PlayerEntity.Instance.Die(); // Force die if corruption reaches 100
+            if (PlayerEntity.Instance != null) PlayerEntity.Instance.Die();
             return;
         }
 
-        // Apply Corruption
         if (corruptionCost > 0)
         {
             MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel += corruptionCost;
@@ -315,7 +479,8 @@ public class PlayerCombat : MonoBehaviour
         else if (slotIndex == 1) nextSkill2Time = Time.time + cooldown;
         else if (slotIndex == 2) nextSkill3Time = Time.time + cooldown;
 
-        animator.SetTrigger(animTrigger);
+        if (animation != null) animation.TriggerSkill(slotIndex);
+        else if (animator != null) animator.SetTrigger(animTrigger);
         OnSkillCast?.Invoke(slotIndex, cooldown);
 
         if (_skillIds.ContainsKey(slotIndex))
@@ -338,30 +503,26 @@ public class PlayerCombat : MonoBehaviour
         {
             _aimingIndicatorInstance = Instantiate(aoeIndicatorPrefab);
         }
-        
-        if (_aimingIndicatorInstance != null)
-        {
-            _aimingIndicatorInstance.SetActive(true);
-        }
+        if (_aimingIndicatorInstance != null) _aimingIndicatorInstance.SetActive(true);
     }
 
     private void CancelAimingMode()
     {
         _isAimingAoE = false;
-        if (_aimingIndicatorInstance != null)
-        {
-            _aimingIndicatorInstance.SetActive(false);
-        }
+        if (_aimingIndicatorInstance != null) _aimingIndicatorInstance.SetActive(false);
     }
 
     private void Update()
     {
         if (_isAimingAoE)
         {
-            if (_aimingIndicatorInstance != null)
+            Vector3? aimWorld = _input != null && _input.PointerWorldPosition.HasValue
+                ? (Vector3)_input.PointerWorldPosition.Value
+                : (Vector3?)null;
+
+            if (_aimingIndicatorInstance != null && aimWorld.HasValue)
             {
-                Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-                Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(mouseScreenPosition);
+                Vector3 mouseWorldPosition = aimWorld.Value;
                 mouseWorldPosition.z = 0f;
 
                 Vector3 directionToMouse = mouseWorldPosition - transform.position;
@@ -375,9 +536,9 @@ public class PlayerCombat : MonoBehaviour
                 }
             }
 
-            if (Mouse.current.leftButton.wasPressedThisFrame)
+            if (_input != null && _input.PointerConfirmPressed)
             {
-                if (UnityEngine.EventSystems.EventSystem.current != null && 
+                if (UnityEngine.EventSystems.EventSystem.current != null &&
                     UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
                 {
                     return;
@@ -387,7 +548,7 @@ public class PlayerCombat : MonoBehaviour
                 ExecuteSkillConfirmed(_aimingPrefab, _aimingSlotIndex, _aimingCooldown, _aimingAnimTrigger, targetPos);
                 CancelAimingMode();
             }
-            else if (Mouse.current.rightButton.wasPressedThisFrame)
+            else if (_input != null && _input.PointerCancelPressed)
             {
                 CancelAimingMode();
             }
@@ -408,7 +569,6 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    // 👇 HÀM CHỜ THỜI GIAN KỸ NĂNG
     private IEnumerator ExecuteSkillWithDelay(GameObject prefab, int slotIndex, float delay, Vector3? targetPosition = null)
     {
         yield return new WaitForSeconds(delay);
@@ -425,14 +585,12 @@ public class PlayerCombat : MonoBehaviour
 
         if (isAoE)
         {
-            if (targetPosition.HasValue)
-            {
-                spawnPosition = targetPosition.Value;
-            }
+            if (targetPosition.HasValue) spawnPosition = targetPosition.Value;
             else
             {
-                Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-                Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(mouseScreenPosition);
+                Vector3 mouseWorldPosition = _input != null && _input.PointerWorldPosition.HasValue
+                    ? (Vector3)_input.PointerWorldPosition.Value
+                    : transform.position;
                 mouseWorldPosition.z = 0f;
 
                 Vector3 directionToMouse = mouseWorldPosition - transform.position;
@@ -440,10 +598,7 @@ public class PlayerCombat : MonoBehaviour
                 {
                     spawnPosition = transform.position + directionToMouse.normalized * maxCastRange;
                 }
-                else
-                {
-                    spawnPosition = mouseWorldPosition;
-                }
+                else spawnPosition = mouseWorldPosition;
             }
             spawnRotation = Quaternion.identity;
         }
@@ -455,12 +610,43 @@ public class PlayerCombat : MonoBehaviour
             spawnRotation = Quaternion.Euler(0, 0, angle);
         }
 
+        // Online: spawn the skill as a networked object so every client sees the
+        // projectile / AoE and damage resolves on the enemy's authority. Only the
+        // caster spawns (Shared Mode makes it the state authority); Fusion
+        // replicates to everyone else. Falls through to Instantiate when offline
+        // or when the prefab has no NetworkObject registered.
+        if (IsNetworked && skillPrefab.GetComponent<NetworkObject>() != null)
+        {
+            float netDamage = _skillDamages.ContainsKey(slotIndex) ? _skillDamages[slotIndex] : 0f;
+            bool flip = !isAoE && transform.localScale.x < 0;
+            Runner.Spawn(skillPrefab, spawnPosition, spawnRotation, Object.InputAuthority,
+                (r, o) =>
+                {
+                    if (flip)
+                    {
+                        Vector3 s = o.transform.localScale;
+                        s.x *= -1;
+                        o.transform.localScale = s;
+                    }
+                    if (isAoE)
+                    {
+                        var aoe = o.GetComponent<NetworkSkillAoE>();
+                        if (aoe != null) aoe.Configure(netDamage);
+                    }
+                    else
+                    {
+                        var proj = o.GetComponent<NetworkSkillProjectile>();
+                        if (proj != null) proj.Configure(netDamage, 0f);
+                    }
+                });
+            return;
+        }
+
         GameObject skillObj = Instantiate(skillPrefab, spawnPosition, spawnRotation);
 
         if (_skillDamages.ContainsKey(slotIndex))
         {
             float damage = _skillDamages[slotIndex];
-
             if (isAoE)
             {
                 skillObj.GetComponent<SkillAoE>().Setup(damage);
@@ -481,7 +667,6 @@ public class PlayerCombat : MonoBehaviour
             }
         }
     }
-    #endregion
 
     private bool IsBusy() => animator.GetCurrentAnimatorStateInfo(0).IsName("BasicAttack") ||
                              animator.GetCurrentAnimatorStateInfo(0).IsName("SkillCast");

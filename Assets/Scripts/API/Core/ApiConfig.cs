@@ -59,6 +59,29 @@ namespace MysticJourney.API.Core
         public const string CurrencySpend = "/api/currencies/spend";
 
         // ═══════════════════════════════════════════════════════════════════════
+        // GUILDS CONTROLLER - Hệ thống Bang hội v3
+        // ═══════════════════════════════════════════════════════════════════════
+        public const string GuildList = "/api/guilds"; // GET, POST
+        public const string GuildDetail = "/api/guilds/{id}"; // GET, DELETE
+        public const string GuildMembers = "/api/guilds/{id}/members"; // GET
+        public const string GuildApply = "/api/guilds/{id}/apply"; // POST
+        public const string GuildLeave = "/api/guilds/{id}/leave"; // POST
+        public const string GuildLevelUp = "/api/guilds/{id}/level-up"; // POST
+        public const string GuildApplications = "/api/guilds/{id}/applications"; // GET
+        public const string GuildApproveApp = "/api/guilds/{id}/applications/{appId}/approve"; // POST
+        public const string GuildRejectApp = "/api/guilds/{id}/applications/{appId}/reject"; // POST
+        public const string GuildInvite = "/api/guilds/{id}/invite"; // POST
+        public const string GuildKick = "/api/guilds/{id}/members/{memberId}/kick"; // POST
+        public const string GuildPromote = "/api/guilds/{id}/members/{memberId}/promote"; // POST
+        public const string GuildDemote = "/api/guilds/{id}/members/{memberId}/demote"; // POST
+        public const string GuildTransferLeader = "/api/guilds/{id}/transfer-leader"; // POST
+        public const string GuildNotice = "/api/guilds/{id}/notice"; // PUT
+        public const string GuildIcon = "/api/guilds/{id}/icon"; // PUT
+        public const string GuildDonate = "/api/guilds/{id}/donate"; // POST
+        public const string GuildLogs = "/api/guilds/{id}/logs"; // GET
+        public const string GuildChat = "/api/guilds/{id}/chat"; // GET, POST
+
+        // ═══════════════════════════════════════════════════════════════════════
         // PLAYER PROFILES CONTROLLER - Hồ sơ người chơi
         // ═══════════════════════════════════════════════════════════════════════
         public const string PlayerProfileById = "/api/playerprofiles/{0}";

@@ -106,6 +106,9 @@ GameObject:
   - component: {fileID: 8298041822909876634}
   - component: {fileID: 5839661260235457606}
   - component: {fileID: 5180963987432261172}
+  - component: {fileID: 2289584936462460267}
+  - component: {fileID: 4331565446325118808}
+  - component: {fileID: 5409485579485375245}
   m_Layer: 3
   m_Name: GoblinSpear
   m_TagString: Monster
@@ -355,6 +358,59 @@ MonoBehaviour:
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+--- !u!114 &2289584936462460267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6741002556605628983}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1503934174
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4331565446325118808}
+  - {fileID: 5409485579485375245}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &4331565446325118808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6741002556605628983}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &5409485579485375245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6741002556605628983}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5641aa6cf4996f42ba7048508333e37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkEnemy
+  _CurrentHp: 0
+  _MaxHp: 0
+  _IsAlive:
+    _value: 0
 --- !u!1 &8382493847950307462
 GameObject:
   m_ObjectHideFlags: 0
