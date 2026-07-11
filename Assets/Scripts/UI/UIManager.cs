@@ -194,6 +194,7 @@ public class UIManager : MonoBehaviour
         EnsureQuestManager();
         EnsureRuntime<MainQuestPanelRuntime>();
         EnsureRuntime<MainNpcPanelRuntime>();
+        EnsureRuntime<PlayerUIHotkeys>();
         EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");
         EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
         EnsurePanelRuntime<UIChestRewardPanel>(chestPanel, "ChestPanel");

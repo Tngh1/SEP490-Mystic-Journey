@@ -42,15 +42,10 @@ public class DungeonChest : MonoBehaviour
         float dist = Vector3.Distance(transform.position, player.transform.position);
         if (dist <= interactionRadius)
         {
-            // Listen to standard interaction key
-            bool interactPressed = false;
-            
-            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.eKey.wasPressedThisFrame)
-            {
-                interactPressed = true;
-            }
-
-            if (interactPressed)
+            // Use the rebindable Interact action (single source of truth) instead
+            // of a hardcoded E key, so the chest respects the player's keybinding.
+            var input = GameplayInputProvider.Local;
+            if (input != null && input.InteractPressed)
             {
                 OpenChest();
             }

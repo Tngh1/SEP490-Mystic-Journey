@@ -38,6 +38,12 @@ public class NetworkPlayer : NetworkBehaviour
     [Networked] public int MaxHp { get; set; }
     [Networked] public NetworkBool IsAlive { get; set; }
 
+    // Replicated movement vector. The input-authority client writes it each tick
+    // from its input; every OTHER client reads it in Render() to drive the walk
+    // animation of the remote avatar. Without this, remote players slide to their
+    // NetworkTransform position with no walk animation (idle pose while moving).
+    [Networked] public Vector2 NetworkedMove { get; set; }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Local references
     // ─────────────────────────────────────────────────────────────────────────
@@ -50,10 +56,6 @@ public class NetworkPlayer : NetworkBehaviour
 
     private GameObject _spawnedVisual;
     private NetworkButtons _previousButtons;
-
-    // Last input move sent — cached so Render() can drive animation smoothly
-    // between FixedUpdateNetwork ticks.
-    private Vector2 _lastSentMove;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Events
@@ -116,7 +118,7 @@ public class NetworkPlayer : NetworkBehaviour
     public override void Spawned()
     {
         Debug.Log($"[NetworkPlayer] Spawned. InputAuthority={Object.InputAuthority}, " +
-                  $"StateAuthority={Object.StateAuthority} class={PlayerClass}");
+                  $"StateAuthority={Object.StateAuthority}");
 
         if (_playerInput != null)
         {
@@ -134,11 +136,13 @@ public class NetworkPlayer : NetworkBehaviour
             PlayerProfileId = WorldState.PlayerProfileId;
             Level = Mathf.Max(1, WorldState.PlayerLevel);
 
-            // Spread spawn positions so multiple players don't stack at origin.
+            // Anchor spawns at the current world position (e.g. ElfForest ~(11.9,17.8))
+            // rather than world origin, then fan out so players don't stack.
+            Vector3 spawnBase = ResolveSpawnBase();
             int playerIndex = Mathf.Max(0, Object.InputAuthority.PlayerId - 1);
             float angle = playerIndex * 60f * Mathf.Deg2Rad;
             Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * 2.5f;
-            transform.position = defaultSpawnPosition + offset;
+            transform.position = spawnBase + offset;
 
             IsAlive = true;
             if (MaxHp <= 0) MaxHp = 100;
@@ -155,7 +159,88 @@ public class NetworkPlayer : NetworkBehaviour
             _spawnedVisual = CreateFallbackVisual((CharacterClass)PlayerClass, visualRoot);
         }
 
+        Debug.Log($"[NetworkPlayer] Visual ready. PlayerClass={(CharacterClass)PlayerClass} " +
+                  $"visual={(_spawnedVisual != null ? _spawnedVisual.name : "NULL")}");
+
+        if (Object.HasInputAuthority)
+        {
+            // This is the local player's network avatar. Remove any leftover
+            // non-networked local player (spawned by PlayerSpawner if we connected
+            // AFTER entering the map) and hand the scene camera + minimap to us.
+            RemoveLegacyLocalPlayers();
+            AttachLocalCamera();
+            EnsureLocalInputComponents();
+        }
+
         OnPlayerReady?.Invoke(this);
+    }
+
+    /// <summary>
+    /// World position the state authority uses as the spawn anchor. Prefers the
+    /// last known world position (so players spawn in the active gameplay area,
+    /// e.g. ElfForest ~(11.9,17.8)) and falls back to the inspector default.
+    /// </summary>
+    private Vector3 ResolveSpawnBase()
+    {
+        Vector3 last = WorldState.LastPosition;
+        bool valid = last != Vector3.zero
+                     && !float.IsNaN(last.x) && !float.IsNaN(last.y) && !float.IsNaN(last.z)
+                     && !float.IsInfinity(last.x) && !float.IsInfinity(last.y) && !float.IsInfinity(last.z);
+        return valid ? last : defaultSpawnPosition;
+    }
+
+    /// <summary>
+    /// Destroy any non-networked PlayerMovement instances left over from the
+    /// single-player spawn path. A local player is "non-networked" when its
+    /// PlayerMovement has no Fusion Object; we must not touch network avatars.
+    /// </summary>
+    private void RemoveLegacyLocalPlayers()
+    {
+        var movers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        foreach (var mover in movers)
+        {
+            if (mover == null || mover == _movement) continue;
+            if (mover.Object != null) continue; // a real network avatar — leave it alone
+            Debug.Log("[NetworkPlayer] Removing leftover local (non-networked) player after connect.");
+            Destroy(mover.gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Point the scene's Cinemachine camera and minimap at this local avatar.
+    /// </summary>
+    private void AttachLocalCamera()
+    {
+        var cam = FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
+        if (cam != null)
+            cam.Follow = transform;
+        else
+            Debug.LogWarning("[NetworkPlayer] CinemachineCamera not found for local player follow.");
+
+        var minimapCam = FindFirstObjectByType<MinimapCameraController>();
+        if (minimapCam != null)
+            minimapCam.InitializeMinimap(transform);
+    }
+
+    /// <summary>
+    /// Ensure the local networked avatar carries the input-driven gameplay
+    /// components that the offline spawn path (PlayerSpawner) would otherwise add.
+    /// Only the local (input-authority) avatar needs these; remote avatars are
+    /// driven purely by replicated NetworkTransform + the networked animation
+    /// state written in <see cref="FixedUpdateNetwork"/>.
+    ///   • GameplayInputProvider — single source of truth for input reads.
+    ///   • PlayerWorldInteractor — polls the local GameplayInputProvider for the
+    ///     rebindable Interact action to talk to NPCs / open dungeons / world
+    ///     objects. Interact is client-local (opens panels / calls the API, not
+    ///     the simulation), so it is never routed over the network.
+    /// </summary>
+    private void EnsureLocalInputComponents()
+    {
+        if (GetComponent<GameplayInputProvider>() == null)
+            gameObject.AddComponent<GameplayInputProvider>();
+
+        if (GetComponent<PlayerWorldInteractor>() == null)
+            gameObject.AddComponent<PlayerWorldInteractor>();
     }
 
     private static GameObject CreateFallbackVisual(CharacterClass characterClass, Transform parent)
@@ -220,7 +305,10 @@ public class NetworkPlayer : NetworkBehaviour
     {
         if (_animation != null)
         {
-            _animation.SetMovement(_lastSentMove, IsAlive);
+            // Drive animation from the REPLICATED move vector so every client
+            // (including those watching a remote avatar) animates walking. The
+            // local player also uses this — it's written every tick below.
+            _animation.SetMovement(NetworkedMove, IsAlive);
         }
     }
 
@@ -229,53 +317,68 @@ public class NetworkPlayer : NetworkBehaviour
         // [DEBUG-MOVE] tick heartbeat
         if (Time.frameCount % 30 == 0)
             Debug.Log($"[NetPlayer/FixedUpdateNet] tick frame={Time.frameCount} " +
-                      $"HasInputAuth={HasInputAuthority} IsAlive={IsAlive} Runner={Runner?.Stage}");
+                      $"HasInputAuth={HasInputAuthority} IsAlive={IsAlive} Runner={Runner?.Stage} " +
+                      $"Object={(Object != null ? "valid" : "NULL")}");
 
         if (!HasInputAuthority) return;
+
+        if (Object == null)
+        {
+            Debug.LogError("[NetPlayer/FixedUpdateNet] NetworkObject is NULL on PlayerNetwork prefab!");
+            return;
+        }
 
         if (!IsAlive)
         {
             _movement.Move(Vector2.zero, Runner.DeltaTime);
+            NetworkedMove = Vector2.zero;
             return;
         }
 
         var input = GetInput<NetworkInputData>();
         if (!input.HasValue)
         {
-            // [DEBUG-MOVE] input missing — common on first ticks before OnInput fires
-            if (Time.frameCount % 60 == 0) Debug.LogWarning("[NetPlayer] GetInput returned null");
+            if (Time.frameCount % 60 == 0)
+                Debug.LogWarning($"[NetPlayer/FixedUpdateNet] GetInput<NetworkInputData> returned null " +
+                                 $"Runner.Stage={Runner?.Stage} Runner.IsRunning={Runner?.IsRunning}");
             return;
         }
         var inputData = input.Value;
 
-        Debug.Log($"[NetPlayer/Move] move={inputData.Move} dt={Runner.DeltaTime} " +
-                  $"moveScript={(_movement != null ? "OK" : "NULL")}");
+        if (inputData.Move.sqrMagnitude > 0.01f || Time.frameCount % 30 == 0)
+        {
+            Debug.Log($"[NetPlayer/FixedUpdateNet] move={inputData.Move} dt={Runner.DeltaTime} " +
+                      $"movement={(ReferenceEquals(_movement, null) ? "NULL" : "OK")} " +
+                      $"rb={(ReferenceEquals(_movement, null) ? "n/a" : (_movement.GetComponent<Rigidbody2D>() == null ? "NULL" : "OK"))}");
+        }
 
-        _lastSentMove = inputData.Move;
+        NetworkedMove = inputData.Move;
         _movement.Move(inputData.Move, Runner.DeltaTime);
 
         var buttons = inputData.Buttons;
 
-        if (buttons.IsSet(InputButtons.Attack))
+        // Attack / skills are edge-triggered off the previous tick's buttons so a
+        // held key fires ONE request, not one every network tick (which would
+        // spam RequestAttack/RPC and re-trigger the cast repeatedly).
+        if (buttons.WasPressed(_previousButtons, InputButtons.Attack))
         {
             _combat.RequestAttack(inputData.AimWorldPosition);
         }
-        if (buttons.IsSet(InputButtons.Skill1))
+        if (buttons.WasPressed(_previousButtons, InputButtons.Skill1))
         {
             _combat.RequestSkill(0, inputData.AimWorldPosition);
         }
-        if (buttons.IsSet(InputButtons.Skill2))
+        if (buttons.WasPressed(_previousButtons, InputButtons.Skill2))
         {
             _combat.RequestSkill(1, inputData.AimWorldPosition);
         }
-        if (buttons.IsSet(InputButtons.Skill3))
+        if (buttons.WasPressed(_previousButtons, InputButtons.Skill3))
         {
             _combat.RequestSkill(2, inputData.AimWorldPosition);
         }
-        if (buttons.IsSet(InputButtons.Interact))
-        {
-            SendMessage("OnInteractRequested", SendMessageOptions.DontRequireReceiver);
-        }
+        // Interact / Inventory / Map are client-local (they open panels / talk to
+        // the API, not the simulation) so they are polled directly on the local
+        // player by PlayerWorldInteractor / the UI runtimes — not routed here.
 
         _previousButtons = buttons;
     }
@@ -294,6 +397,28 @@ public class NetworkPlayer : NetworkBehaviour
         {
             Die();
         }
+    }
+
+    /// <summary>
+    /// Damage this player from any client (e.g. an enemy AI running on the master
+    /// client hitting a remote player). In Shared Mode each player owns
+    /// StateAuthority over its own avatar, so the request is routed there via RPC
+    /// and applied authoritatively. Safe to call from the enemy authority.
+    /// </summary>
+    public void RequestDamage(int amount)
+    {
+        if (amount <= 0) return;
+
+        if (Object.HasStateAuthority)
+            ApplyDamage(amount);
+        else
+            RPC_RequestDamage(amount);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestDamage(int amount)
+    {
+        ApplyDamage(amount);
     }
 
     private void Die()

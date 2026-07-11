@@ -98,6 +98,11 @@ public class PlayerCombat : NetworkBehaviour
     private string _aimingAnimTrigger;
     private GameObject _aimingIndicatorInstance;
 
+    // Single source of truth for input. AoE aim position + confirm/cancel are
+    // read from here instead of Mouse.current directly, keeping all input reads
+    // centralised (SRP) and free of hardcoded devices.
+    private GameplayInputProvider _input;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Unity lifecycle
     // ─────────────────────────────────────────────────────────────────────────
@@ -107,6 +112,10 @@ public class PlayerCombat : NetworkBehaviour
         if (animator == null) animator = GetComponent<Animator>();
         if (animation == null) animation = GetComponent<PlayerAnimation>();
         currentAttackCooldown = baseAttackCooldown;
+
+        // Resolve (or add) the shared input provider on this GameObject.
+        _input = GetComponent<GameplayInputProvider>();
+        if (_input == null) _input = gameObject.AddComponent<GameplayInputProvider>();
 
         if (firePoint == null)
         {
@@ -320,12 +329,19 @@ public class PlayerCombat : NetworkBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Legacy single-player path — Unity Input System callbacks.
-    // These continue to work when Photon is not running (Runner == null).
+    // Legacy single-player path — Unity Input System SendMessage callbacks.
+    // These fire from PlayerInput (which reads the rebindable InputActions) and
+    // are the SOLE combat-input path when Photon is NOT running. Under Fusion the
+    // networked path (LocalInputCollector → NetworkInputData → RequestAttack) owns
+    // combat input, so these are gated to offline-only to avoid a double-fire
+    // (once locally here, once via RPC) — keeping "attack reading in one place".
     // ─────────────────────────────────────────────────────────────────────────
+
+    private bool IsNetworked => Runner != null && Runner.IsRunning;
 
     public void OnAttack(InputValue value)
     {
+        if (IsNetworked) return;
         if (!value.isPressed) return;
         if (UnityEngine.EventSystems.EventSystem.current != null &&
             UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
@@ -335,9 +351,9 @@ public class PlayerCombat : NetworkBehaviour
         Attack();
     }
 
-    public void OnSkill1(InputValue value) { if (value.isPressed) TryCastSkill(skill1Prefab, 0, GetCooldown(0, skill1Cooldown), "Skill1"); }
-    public void OnSkill2(InputValue value) { if (value.isPressed) TryCastSkill(skill2Prefab, 1, GetCooldown(1, skill2Cooldown), "Skill2"); }
-    public void OnSkill3(InputValue value) { if (value.isPressed) TryCastSkill(skill3Prefab, 2, GetCooldown(2, skill3Cooldown), "Skill3"); }
+    public void OnSkill1(InputValue value) { if (!IsNetworked && value.isPressed) TryCastSkill(skill1Prefab, 0, GetCooldown(0, skill1Cooldown), "Skill1"); }
+    public void OnSkill2(InputValue value) { if (!IsNetworked && value.isPressed) TryCastSkill(skill2Prefab, 1, GetCooldown(1, skill2Cooldown), "Skill2"); }
+    public void OnSkill3(InputValue value) { if (!IsNetworked && value.isPressed) TryCastSkill(skill3Prefab, 2, GetCooldown(2, skill3Cooldown), "Skill3"); }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Basic attack
@@ -366,6 +382,23 @@ public class PlayerCombat : NetworkBehaviour
         Vector2 direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         Quaternion rotation = Quaternion.Euler(0, 0, angle);
+
+        // Online: spawn a networked projectile so every client sees it fly and
+        // damage is resolved on the enemy's authority. Only the caster (who owns
+        // input authority and thus becomes the projectile's state authority in
+        // Shared Mode) spawns it — Fusion replicates it to everyone else.
+        if (IsNetworked && basicAttackPrefab != null &&
+            basicAttackPrefab.GetComponent<NetworkObject>() != null)
+        {
+            float dmg = basicAttackDamage;
+            Runner.Spawn(basicAttackPrefab, firePoint.position, rotation, Object.InputAuthority,
+                (r, o) =>
+                {
+                    var np = o.GetComponent<NetworkSkillProjectile>();
+                    if (np != null) np.Configure(dmg, 0f);
+                });
+            return;
+        }
 
         GameObject projectileObj = Instantiate(basicAttackPrefab, firePoint.position, rotation);
 
@@ -483,10 +516,13 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (_isAimingAoE)
         {
-            if (_aimingIndicatorInstance != null)
+            Vector3? aimWorld = _input != null && _input.PointerWorldPosition.HasValue
+                ? (Vector3)_input.PointerWorldPosition.Value
+                : (Vector3?)null;
+
+            if (_aimingIndicatorInstance != null && aimWorld.HasValue)
             {
-                Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-                Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(mouseScreenPosition);
+                Vector3 mouseWorldPosition = aimWorld.Value;
                 mouseWorldPosition.z = 0f;
 
                 Vector3 directionToMouse = mouseWorldPosition - transform.position;
@@ -500,7 +536,7 @@ public class PlayerCombat : NetworkBehaviour
                 }
             }
 
-            if (Mouse.current.leftButton.wasPressedThisFrame)
+            if (_input != null && _input.PointerConfirmPressed)
             {
                 if (UnityEngine.EventSystems.EventSystem.current != null &&
                     UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
@@ -512,7 +548,7 @@ public class PlayerCombat : NetworkBehaviour
                 ExecuteSkillConfirmed(_aimingPrefab, _aimingSlotIndex, _aimingCooldown, _aimingAnimTrigger, targetPos);
                 CancelAimingMode();
             }
-            else if (Mouse.current.rightButton.wasPressedThisFrame)
+            else if (_input != null && _input.PointerCancelPressed)
             {
                 CancelAimingMode();
             }
@@ -552,8 +588,9 @@ public class PlayerCombat : NetworkBehaviour
             if (targetPosition.HasValue) spawnPosition = targetPosition.Value;
             else
             {
-                Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-                Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(mouseScreenPosition);
+                Vector3 mouseWorldPosition = _input != null && _input.PointerWorldPosition.HasValue
+                    ? (Vector3)_input.PointerWorldPosition.Value
+                    : transform.position;
                 mouseWorldPosition.z = 0f;
 
                 Vector3 directionToMouse = mouseWorldPosition - transform.position;
@@ -571,6 +608,38 @@ public class PlayerCombat : NetworkBehaviour
             Vector2 direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             spawnRotation = Quaternion.Euler(0, 0, angle);
+        }
+
+        // Online: spawn the skill as a networked object so every client sees the
+        // projectile / AoE and damage resolves on the enemy's authority. Only the
+        // caster spawns (Shared Mode makes it the state authority); Fusion
+        // replicates to everyone else. Falls through to Instantiate when offline
+        // or when the prefab has no NetworkObject registered.
+        if (IsNetworked && skillPrefab.GetComponent<NetworkObject>() != null)
+        {
+            float netDamage = _skillDamages.ContainsKey(slotIndex) ? _skillDamages[slotIndex] : 0f;
+            bool flip = !isAoE && transform.localScale.x < 0;
+            Runner.Spawn(skillPrefab, spawnPosition, spawnRotation, Object.InputAuthority,
+                (r, o) =>
+                {
+                    if (flip)
+                    {
+                        Vector3 s = o.transform.localScale;
+                        s.x *= -1;
+                        o.transform.localScale = s;
+                    }
+                    if (isAoE)
+                    {
+                        var aoe = o.GetComponent<NetworkSkillAoE>();
+                        if (aoe != null) aoe.Configure(netDamage);
+                    }
+                    else
+                    {
+                        var proj = o.GetComponent<NetworkSkillProjectile>();
+                        if (proj != null) proj.Configure(netDamage, 0f);
+                    }
+                });
+            return;
         }
 
         GameObject skillObj = Instantiate(skillPrefab, spawnPosition, spawnRotation);

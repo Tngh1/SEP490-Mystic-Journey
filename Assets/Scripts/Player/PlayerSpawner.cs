@@ -21,6 +21,45 @@ public class PlayerSpawner : MonoBehaviour
         SpawnPlayer();
     }
 
+    private void OnEnable()
+    {
+        if (PhotonManager.Instance != null)
+        {
+            PhotonManager.Instance.OnDisconnected += HandleDisconnected;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (PhotonManager.Instance != null)
+        {
+            PhotonManager.Instance.OnDisconnected -= HandleDisconnected;
+        }
+    }
+
+    /// <summary>
+    /// Fusion despawns the networked avatar as part of runner shutdown, which leaves the
+    /// player with no controllable character. Spawn a non-networked fallback avatar back
+    /// in, the same way the initial (pre-connect) flow does.
+    ///
+    /// PhotonManager now awaits Fusion's own Shutdown Task before raising OnDisconnected,
+    /// but Unity's Destroy() is itself deferred to the end of the current frame — so the
+    /// old NetworkPlayer's GameObject can still exist for one more frame after Shutdown's
+    /// Task completes. Wait a frame here so SpawnPlayer()'s "is there already a player?"
+    /// guard doesn't see the stale, about-to-be-destroyed object and skip the respawn.
+    /// </summary>
+    private void HandleDisconnected()
+    {
+        Debug.Log("[PlayerSpawner] Photon disconnected — respawning local fallback player.");
+        StartCoroutine(RespawnNextFrame());
+    }
+
+    private IEnumerator RespawnNextFrame()
+    {
+        yield return null;
+        SpawnPlayer();
+    }
+
     private IEnumerator HydrateWorldStateBeforeSpawn()
     {
         if (!ApiClient.Instance.HasToken())
@@ -50,6 +89,16 @@ public class PlayerSpawner : MonoBehaviour
 
     private void SpawnPlayer()
     {
+        // In multiplayer, the player avatar is a Fusion NetworkObject spawned by
+        // PhotonManager (each client spawns its own). Spawning a second, non-networked
+        // local player here would be invisible to other clients and would fight the
+        // network avatar for the camera. Skip the local spawn entirely when connected.
+        if (PhotonManager.Instance != null && PhotonManager.Instance.IsConnected)
+        {
+            Debug.Log("[PlayerSpawner] Photon connected — skipping local spawn; NetworkPlayer will own the avatar.");
+            return;
+        }
+
         if (FindFirstObjectByType<PlayerMovement>() != null)
             return;
 

@@ -44,10 +44,50 @@ public class CharacterFactory : MonoBehaviour
         instance.transform.localRotation = Quaternion.identity;
         instance.transform.localScale = Vector3.one;
 
+        StripGameplayComponents(instance);
         ConfigureSorting(instance);
         ConfigureAnimator(instance, characterClass);
 
         return instance;
+    }
+
+    /// <summary>
+    /// The Archer / Knight / Mage prefabs double as standalone offline players,
+    /// so they ship with gameplay + input + physics + networking components. When
+    /// instantiated here they are ONLY a cosmetic child of the networked player,
+    /// and those extra components are actively harmful:
+    ///   • A second PlayerInput sharing the same InputActionAsset makes Unity
+    ///     clone the asset (Instantiate-on-conflict) and its OnDisable can leave
+    ///     the shared "Player" map disabled — the "can't move after connecting"
+    ///     bug.
+    ///   • A second PlayerMovement (with Object == null) is treated as a
+    ///     "leftover local player" and destroyed by
+    ///     NetworkPlayer.RemoveLegacyLocalPlayers — which would delete this visual.
+    ///   • Duplicate Rigidbody2D / colliders fight the networked root's physics.
+    /// We strip them so the visual is purely presentation (Animator + sprites).
+    /// </summary>
+    private static void StripGameplayComponents(GameObject visual)
+    {
+        // Order matters: remove scripts that RequireComponent physics BEFORE the
+        // physics components they depend on, or Unity blocks the removal.
+        DestroyAll<PlayerWorldInteractor>(visual);
+        DestroyAll<GameplayInputProvider>(visual);
+        DestroyAll<PlayerCombat>(visual);
+        DestroyAll<PlayerMovement>(visual);
+        DestroyAll<PlayerEntity>(visual);
+        DestroyAll<UnityEngine.InputSystem.PlayerInput>(visual);
+        DestroyAll<Fusion.NetworkObject>(visual);
+        DestroyAll<Rigidbody2D>(visual);
+        DestroyAll<Collider2D>(visual);
+    }
+
+    private static void DestroyAll<T>(GameObject root) where T : Component
+    {
+        var found = root.GetComponentsInChildren<T>(includeInactive: true);
+        for (int i = 0; i < found.Length; i++)
+        {
+            if (found[i] != null) Destroy(found[i]);
+        }
     }
 
     private GameObject ResolvePrefab(CharacterClass characterClass)

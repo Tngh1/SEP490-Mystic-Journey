@@ -26,11 +26,8 @@ public class MainMinimapToggleRuntime : MonoBehaviour
         }
     }
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.M))
-            Toggle();
-    }
+    // Map hotkey handling lives in PlayerUIHotkeys (single reader of the Map
+    // action). This component only owns the on-screen minimap button toggle.
 
     private void Toggle()
     {

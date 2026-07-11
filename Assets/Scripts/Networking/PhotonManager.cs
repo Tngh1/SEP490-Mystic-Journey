@@ -63,6 +63,14 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// <summary>Raised after a player has left and their NetworkObject has been despawned.</summary>
     public event Action<PlayerRef> OnPlayerLeftNetwork;
 
+    /// <summary>
+    /// Raised after an explicit local disconnect (e.g. the user clicked "Disconnect").
+    /// Fusion despawns the local NetworkPlayer avatar as part of runner shutdown, so
+    /// listeners (PlayerSpawner) use this to spawn a non-networked fallback avatar back in.
+    /// Not raised on app-quit/scene-teardown shutdown — see <see cref="OnDestroy"/>.
+    /// </summary>
+    public event Action OnDisconnected;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Unity lifecycle
     // ─────────────────────────────────────────────────────────────────────────
@@ -103,7 +111,7 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (Instance == this)
         {
-            Shutdown();
+            Shutdown(notify: false);
             Instance = null;
         }
     }
@@ -171,17 +179,66 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// <summary>
     /// Disconnect from the current session and tear down the runner. Safe to call when not connected.
     /// </summary>
-    public void Shutdown()
+    /// <param name="notify">
+    /// When true (default), raises <see cref="OnDisconnected"/> so a non-networked fallback
+    /// player is spawned back in. Pass false during app-quit/scene-teardown (see <see cref="OnDestroy"/>)
+    /// where spawning a new GameObject would be pointless or unsafe.
+    /// </param>
+    public void Shutdown(bool notify = true)
     {
         if (_runner == null)
             return;
 
         Debug.Log("[PhotonManager] Shutting down runner...");
-        _runner.RemoveCallbacks(this);
-        _runner.Shutdown();
-        Destroy(_runner);
+
+        var runnerToShutdown = _runner;
+        runnerToShutdown.RemoveCallbacks(this);
         _runner = null;
         _spawnedPlayers.Clear();
+
+        ShutdownRunnerAsync(runnerToShutdown, notify);
+    }
+
+    /// <summary>
+    /// Awaits Fusion's own <see cref="NetworkRunner.Shutdown"/> (which returns a Task, not void)
+    /// before destroying the runner and raising <see cref="OnDisconnected"/>.
+    ///
+    /// Root cause this fixes: the old code called <c>_runner.Shutdown()</c> without awaiting it,
+    /// then immediately invoked <c>OnDisconnected</c> synchronously. Fusion despawns the local
+    /// NetworkPlayer avatar (and destroys its GameObject) as part of that Shutdown Task, which
+    /// does NOT complete within the same call — it finishes on a later frame. PlayerSpawner's
+    /// respawn guard (<c>FindFirstObjectByType&lt;PlayerMovement&gt;()</c>) ran too early, still
+    /// found the not-yet-destroyed NetworkPlayer's PlayerMovement, and bailed out — leaving the
+    /// player with no controllable character and no camera target after disconnect.
+    /// By awaiting here, OnDisconnected only fires once Fusion's own shutdown/despawn has
+    /// actually finished.
+    ///
+    /// Root cause of the "PhotonManager lost after disconnect" bug: <c>NetworkRunner.Shutdown</c>
+    /// takes a <c>destroyGameObject</c> parameter that defaults to <c>true</c>. Since <see cref="StartAsync"/>
+    /// adds the NetworkRunner component onto THIS SAME GameObject (<c>gameObject.AddComponent&lt;NetworkRunner&gt;()</c>),
+    /// calling <c>runner.Shutdown()</c> with no arguments told Fusion to destroy that entire
+    /// GameObject — not just the NetworkRunner component. That took PhotonManager itself (and
+    /// LocalInputCollector, PassThroughSceneManager) down with it, which ran <see cref="OnDestroy"/>
+    /// and nulled out <see cref="Instance"/>, exactly matching the "PhotonManager not found in
+    /// scene" message from MultiplayerBootstrap's debug panel. We pass <c>destroyGameObject: false</c>
+    /// so Fusion only tears down its own internal state, and we destroy just the NetworkRunner
+    /// component ourselves right after — leaving the PhotonManager GameObject (and singleton) alive.
+    /// </summary>
+    private async void ShutdownRunnerAsync(NetworkRunner runner, bool notify)
+    {
+        await runner.Shutdown(destroyGameObject: false);
+
+        if (runner != null)
+        {
+            Destroy(runner);
+        }
+
+        Debug.Log("[PhotonManager] Runner shutdown complete. Instance still alive: " + (Instance != null));
+
+        if (notify)
+        {
+            OnDisconnected?.Invoke();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -281,16 +338,17 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Called on the HOST when a new client connects. We are responsible for spawning
-    /// that client's player NetworkObject.
-    ///
-    /// Per architecture rule: spawn ONLY here, never inside StartAsync / Connect.
+    /// Called on every client when a player connects. In Fusion Shared Mode each
+    /// client is responsible for spawning ONLY its own avatar (so it holds both
+    /// State + Input authority over it and NetworkTransform replicates its movement
+    /// to everyone else). We therefore ignore joins for other players — their
+    /// avatars arrive as replicated NetworkObjects.
     /// </summary>
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        Debug.Log($"[PhotonManager] OnPlayerJoined: {player}");
+        Debug.Log($"[PhotonManager] OnPlayerJoined: {player} (local={runner.LocalPlayer})");
 
-        if (!runner.IsSharedModeMasterClient)
+        if (player != runner.LocalPlayer)
         {
             return;
         }
@@ -300,9 +358,10 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             return;
         }
 
+        var spawnPosition = ResolveSpawnPosition();
         var playerObject = runner.Spawn(
             playerPrefab,
-            Vector3.zero,
+            spawnPosition,
             Quaternion.identity,
             player);
 
@@ -313,21 +372,29 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
+    private static Vector3 ResolveSpawnPosition()
+    {
+        try
+        {
+            Vector3 last = WorldState.LastPosition;
+            if (last != Vector3.zero
+                && !float.IsNaN(last.x) && !float.IsNaN(last.y) && !float.IsNaN(last.z)
+                && !float.IsInfinity(last.x) && !float.IsInfinity(last.y) && !float.IsInfinity(last.z))
+            {
+                return last;
+            }
+        }
+        catch { /* WorldState may not be initialized */ }
+        return Vector3.zero;
+    }
+
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
         Debug.Log($"[PhotonManager] OnPlayerLeft: {player}");
 
-        if (runner.IsSharedModeMasterClient)
-        {
-            foreach (var no in runner.GetAllNetworkObjects())
-            {
-                if (no != null && no.InputAuthority == player)
-                {
-                    runner.Despawn(no);
-                }
-            }
-        }
-
+        // In Shared Mode the leaving player owns StateAuthority over its own avatar,
+        // so Fusion despawns that NetworkObject automatically. We only clear local
+        // bookkeeping here.
         _spawnedPlayers.Remove(player);
         OnPlayerLeftNetwork?.Invoke(player);
     }
