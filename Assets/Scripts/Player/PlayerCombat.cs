@@ -125,6 +125,31 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
+    public void SetVisualComponents(Animator newAnimator, PlayerAnimation newAnimation)
+    {
+        animator = newAnimator;
+        animation = newAnimation;
+    }
+
+    public void CopyCombatSettingsFrom(PlayerCombat source)
+    {
+        if (source == null) return;
+        baseAttackCooldown = source.baseAttackCooldown;
+        basicAttackDelay = source.basicAttackDelay;
+        basicAttackDamage = source.basicAttackDamage;
+        critRate = source.critRate;
+        critDamageMultiplier = source.critDamageMultiplier;
+        basicAttackPrefab = source.basicAttackPrefab;
+        meleeRange = source.meleeRange;
+        skillCastDelay = source.skillCastDelay;
+        skill1Prefab = source.skill1Prefab;
+        skill2Prefab = source.skill2Prefab;
+        skill3Prefab = source.skill3Prefab;
+        skill1Cooldown = source.skill1Cooldown;
+        skill2Cooldown = source.skill2Cooldown;
+        skill3Cooldown = source.skill3Cooldown;
+    }
+
     private void Start()
     {
         if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
@@ -201,6 +226,8 @@ public class PlayerCombat : NetworkBehaviour
     /// </summary>
     public void RequestAttack(Vector2 aimWorldPosition)
     {
+        if (IsBusy() || Time.time < nextAttackTime) return;
+
         if (Runner == null || !Runner.IsRunning)
         {
             // Single-player fallback: execute locally.
@@ -231,17 +258,7 @@ public class PlayerCombat : NetworkBehaviour
             default: return;
         }
 
-        if (prefab == null) return;
-
-        if (Runner == null || !Runner.IsRunning)
-        {
-            TryCastSkill(prefab, slotIndex, cooldown, animTrigger);
-            return;
-        }
-
-        if (animation != null) animation.TriggerSkill(slotIndex);
-
-        RPC_Skill(slotIndex, aimWorldPosition);
+        TryCastSkill(prefab, slotIndex, cooldown, animTrigger);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -263,52 +280,7 @@ public class PlayerCombat : NetworkBehaviour
         StartCoroutine(ExecuteBasicAttackWithDelay(basicAttackDelay));
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_Skill(int slotIndex, Vector2 aimWorldPosition)
-    {
-        GameObject prefab;
-        float cooldown;
-        string animTrigger;
-        switch (slotIndex)
-        {
-            case 0: prefab = skill1Prefab; cooldown = GetCooldown(0, skill1Cooldown); animTrigger = "Skill1"; break;
-            case 1: prefab = skill2Prefab; cooldown = GetCooldown(1, skill2Cooldown); animTrigger = "Skill2"; break;
-            case 2: prefab = skill3Prefab; cooldown = GetCooldown(2, skill3Cooldown); animTrigger = "Skill3"; break;
-            default: return;
-        }
-        if (prefab == null) return;
 
-        if (IsBusy()) return;
-
-        // Validate cooldown + corruption on server.
-        float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
-        if (Time.time < nextTime) return;
-
-        float corruptionCost = _skillCorruptionCosts.ContainsKey(slotIndex) ? _skillCorruptionCosts[slotIndex] : 0f;
-        if (MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel + corruptionCost >= 100f)
-        {
-            if (MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel >= 100f)
-            {
-                if (TryGetComponent<PlayerEntity>(out var pe)) pe.Die();
-            }
-            return;
-        }
-
-        if (corruptionCost > 0)
-        {
-            MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel += corruptionCost;
-            SyncCorruptionLevelToServer();
-        }
-
-        if (slotIndex == 0) nextSkill1Time = Time.time + cooldown;
-        else if (slotIndex == 1) nextSkill2Time = Time.time + cooldown;
-        else if (slotIndex == 2) nextSkill3Time = Time.time + cooldown;
-
-        // Authoritative spawn of the skill prefab. Phase 12 will replace
-        // Instantiate with Runner.Spawn on a NetworkPrefab.
-        RPC_PlaySkillAnim(slotIndex);
-        StartCoroutine(ExecuteSkillWithDelay(prefab, slotIndex, skillCastDelay, aimWorldPosition));
-    }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayAttackAnim()
@@ -479,6 +451,11 @@ public class PlayerCombat : NetworkBehaviour
         else if (slotIndex == 1) nextSkill2Time = Time.time + cooldown;
         else if (slotIndex == 2) nextSkill3Time = Time.time + cooldown;
 
+        if (IsNetworked)
+        {
+            RPC_PlaySkillAnim(slotIndex);
+        }
+
         if (animation != null) animation.TriggerSkill(slotIndex);
         else if (animator != null) animator.SetTrigger(animTrigger);
         OnSkillCast?.Invoke(slotIndex, cooldown);
@@ -558,15 +535,24 @@ public class PlayerCombat : NetworkBehaviour
     private void SyncCorruptionLevelToServer()
     {
         float newCorruption = MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel;
+
+        int profileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
+        if (profileId <= 0)
+        {
+            profileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, 0);
+        }
+
+        if (profileId <= 0)
+        {
+            Debug.LogWarning("[PlayerCombat] Cannot sync corruption: Unknown profile ID.");
+            return;
+        }
+
         var request = new MysticJourney.API.Models.Request.UpdatePlayerProfileRequest
         {
             CorruptionLevel = newCorruption
         };
-        int profileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, 0);
-        if (profileId > 0)
-        {
-            MysticJourney.API.Endpoints.PlayerApi.Instance.UpdateProfile(profileId, request, null, null);
-        }
+        MysticJourney.API.Endpoints.PlayerApi.Instance.UpdateProfile(profileId, request, null, null);
     }
 
     private IEnumerator ExecuteSkillWithDelay(GameObject prefab, int slotIndex, float delay, Vector3? targetPosition = null)
@@ -668,8 +654,12 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    private bool IsBusy() => animator.GetCurrentAnimatorStateInfo(0).IsName("BasicAttack") ||
-                             animator.GetCurrentAnimatorStateInfo(0).IsName("SkillCast");
+    private bool IsBusy()
+    {
+        if (animator == null) return false;
+        return animator.GetCurrentAnimatorStateInfo(0).IsName("BasicAttack") ||
+               animator.GetCurrentAnimatorStateInfo(0).IsName("SkillCast");
+    }
 
     private void OnDrawGizmosSelected()
     {

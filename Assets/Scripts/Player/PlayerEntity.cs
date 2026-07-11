@@ -86,7 +86,10 @@ public class PlayerEntity : MonoBehaviour
     {
         // Poll the networked HP every frame and broadcast to legacy listeners
         // when it changes. Cheap: only fires the event on actual change.
-        if (_networkPlayer == null) return;
+        if (_networkPlayer == null || _networkPlayer.Object == null) return;
+        
+        // ONLY broadcast the health of the local player to the UI
+        if (!_networkPlayer.HasInputAuthority) return;
 
         int netHp = _networkPlayer.CurrentHp;
         int netMaxHp = _networkPlayer.MaxHp;
@@ -94,11 +97,20 @@ public class PlayerEntity : MonoBehaviour
 
         if (netHp != _lastBroadcastHp || netMaxHp != _lastBroadcastMaxHp)
         {
+            bool hpChanged = netHp != _lastBroadcastHp;
+            
             _lastBroadcastHp = netHp;
             _lastBroadcastMaxHp = netMaxHp;
             currentHealth = netHp;
             maxHealth = netMaxHp;
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+            // If HP changed (e.g. took damage or healed), sync to DB using the rate-limited coroutine
+            if (hpChanged)
+            {
+                if (syncHpCoroutine != null) StopCoroutine(syncHpCoroutine);
+                syncHpCoroutine = StartCoroutine(SyncHpRoutine());
+            }
         }
 
         if (netAlive != _lastBroadcastAlive)
@@ -112,6 +124,9 @@ public class PlayerEntity : MonoBehaviour
     // Public API
     // ─────────────────────────────────────────────────────────────────────────
 
+    public int MaxHealth => maxHealth;
+    public int CurrentHealth => currentHealth;
+
     public void ApplyHealth(int currentHp, int maxHp)
     {
         maxHealth = Mathf.Max(0, maxHp);
@@ -119,6 +134,13 @@ public class PlayerEntity : MonoBehaviour
         _lastBroadcastHp = currentHealth;
         _lastBroadcastMaxHp = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        // If the avatar is already spawned and we have authority, push to network
+        if (_networkPlayer != null && _networkPlayer.Object != null && _networkPlayer.HasStateAuthority)
+        {
+            _networkPlayer.MaxHp = maxHealth;
+            _networkPlayer.CurrentHp = currentHealth;
+        }
     }
 
     /// <summary>

@@ -51,7 +51,7 @@ GameObject:
   - component: {fileID: 8415173338828809175}
   m_Layer: 0
   m_Name: Knight
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -258,7 +258,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 939e08ef4d7c510469f7bb93954c99d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  moveSpeed: 3.5
+  baseMoveSpeed: 4
+  fallbackLocalInput: 1
 --- !u!114 &3884950144262116676
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -271,7 +272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39c917d58e3263e4cacb62def6dd830a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimation
-  movement: {fileID: 5457670027549794729}
+  animator: {fileID: 0}
   spriteRenderer: {fileID: 1543723038390747145}
 --- !u!114 &75771915763769350
 MonoBehaviour:
@@ -286,9 +287,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   animator: {fileID: 3595454145502944361}
+  animation: {fileID: 0}
   maxCastRange: 6
   aoeIndicatorPrefab: {fileID: 2471827344372199260, guid: 4b888d36b20ff894eac2d1d2dcb95d8e, type: 3}
-  attackCooldown: 0.5
+  baseAttackCooldown: 0.5
   basicAttackDelay: 0.2
   basicAttackDamage: 25
   critRate: 20

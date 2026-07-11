@@ -79,7 +79,7 @@ namespace UI.Friend
 
         public void ShowMyProfile()
         {
-            int myProfileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
+            int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
             if (myProfileId > 0)
             {
                 ShowProfile(myProfileId, null);
@@ -96,7 +96,7 @@ namespace UI.Friend
             ClearAchievementList();
             SetLoadingState();
 
-            _isCurrentPlayerProfile = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0) == profileId;
+            _isCurrentPlayerProfile = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId == profileId;
 
             FriendApi.GetFriendProfile(profileId, profile =>
             {
