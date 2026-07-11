@@ -26,7 +26,7 @@ public class PlayerEntity : MonoBehaviour
     [SerializeField] private int maxHealth = 200;
     private int currentHealth;
 
-    public static PlayerEntity Instance { get; private set; }
+    public static PlayerEntity Instance { get; internal set; }
 
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;

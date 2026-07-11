@@ -39,6 +39,12 @@ public static class WorldState
         set => _service.PlayerClass = value;
     }
 
+    public static int EquippedSkinId
+    {
+        get => _service.EquippedSkinId;
+        set => _service.EquippedSkinId = value;
+    }
+
     public static string CurrentMapName
     {
         get => _service.CurrentMapName;

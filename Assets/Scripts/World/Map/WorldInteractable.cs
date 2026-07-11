@@ -92,9 +92,9 @@ public class WorldInteractable : MonoBehaviour
             return $"{DisplayName}\nPress E to {InteractionType}";
 
         if (kind == WorldInteractableKind.QuestItem)
-            return $"{DisplayName}\nPress P to collect";
+            return $"{DisplayName}\nPress E to collect";
 
-        return $"{DisplayName}\nPress P to {InteractionType}";
+        return $"{DisplayName}\nPress E to {InteractionType}";
     }
 }
 

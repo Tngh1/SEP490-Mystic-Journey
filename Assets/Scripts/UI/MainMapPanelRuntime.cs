@@ -45,12 +45,11 @@ public class MainMapPanelRuntime : MonoBehaviour
     public UIMapDetailPanel mapDetailPopup;
 
     private List<UIMapSlotReference> allSlots;
-    private bool isFetchingData = false;
+    private bool isFetchingData;
+    private bool pendingFetch;
 
-    // Single source of truth: IsUnlocked đến từ API (WorldApi.GetState).
-    // Được populate sau mỗi lần FetchMapProgress thành công.
     private readonly Dictionary<string, bool> _mapUnlockState =
-        new(System.StringComparer.OrdinalIgnoreCase);
+        new(StringComparer.OrdinalIgnoreCase);
 
     private void Awake()
     {
@@ -79,13 +78,31 @@ public class MainMapPanelRuntime : MonoBehaviour
     private void OnEnable()
     {
         SyncMinimapBackground();
-        FetchMapProgress();
+
         WorldRuntimeEvents.MapCompleted += OnQuestClaimedCheckMapUnlock;
+        WorldRuntimeEvents.QuestsChanged += OnQuestsChanged;
+        WorldRuntimeEvents.MapChanged += OnMapChanged;
+
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestsLoaded -= FetchMapProgress;
+            QuestManager.Instance.OnQuestsLoaded += FetchMapProgress;
+            QuestManager.Instance.LoadMyQuests();
+        }
+
+        FetchMapProgress();
     }
 
     private void OnDisable()
     {
         WorldRuntimeEvents.MapCompleted -= OnQuestClaimedCheckMapUnlock;
+        WorldRuntimeEvents.QuestsChanged -= OnQuestsChanged;
+        WorldRuntimeEvents.MapChanged -= OnMapChanged;
+
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestsLoaded -= FetchMapProgress;
+        }
     }
 
     private void BindMapButton(UIMapSlotReference slot)
@@ -99,24 +116,39 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void FetchMapProgress()
     {
-        if (isFetchingData) return;
+        if (isFetchingData)
+        {
+            pendingFetch = true;
+            return;
+        }
+
         isFetchingData = true;
 
         WorldApi.Instance.GetState(
             state =>
             {
-                isFetchingData = false;
                 if (state != null && state.Maps != null)
                 {
                     UpdateSlotsUI(state.Maps);
                 }
+
+                CompleteFetch();
             },
             error =>
             {
-                isFetchingData = false;
                 Debug.LogError($"[MainMapPanelRuntime] Failed to fetch World State: {error.Message}");
+                CompleteFetch();
             }
         );
+    }
+
+    private void CompleteFetch()
+    {
+        isFetchingData = false;
+
+        if (!pendingFetch) return;
+        pendingFetch = false;
+        FetchMapProgress();
     }
 
     private void UpdateSlotsUI(List<WorldMapProgressResponse> mapsProgress)
@@ -125,24 +157,20 @@ public class MainMapPanelRuntime : MonoBehaviour
         {
             if (slot == null || slot.mapData == null) continue;
 
-            // Lấy ExplorationPercent và DisplayName từ API response
-            var progress = mapsProgress.FirstOrDefault(m => m.MapName == slot.mapData.mapName);
+            var progress = mapsProgress?.FirstOrDefault(m =>
+                string.Equals(m.MapName, slot.mapData.mapName, StringComparison.OrdinalIgnoreCase));
 
-            // IsUnlocked: dùng MapData.unlockQuestId (Unity asset) + QuestManager (quest state từ server)
-            // MapData là nguồn truth về "map này cần unlock quest nào"
-            // QuestManager là nguồn truth về "quest đó đã Claimed chưa"
-            bool isUnlocked = QuestManager.Instance != null
-                && QuestManager.Instance.CanEnterMap(slot.mapData);
+            var apiUnlocked = progress != null && progress.IsUnlocked;
+            var questUnlocked = QuestManager.Instance != null && QuestManager.Instance.CanEnterMap(slot.mapData);
+            var isUnlocked = slot.mapData.unlockQuestId <= 0 || apiUnlocked || questUnlocked;
 
             int explorationPct = progress?.ExplorationPercent ?? 0;
-            string displayName = (!string.IsNullOrEmpty(progress?.DisplayName))
+            string displayName = !string.IsNullOrEmpty(progress?.DisplayName)
                 ? progress.DisplayName
                 : slot.mapData.mapName;
 
-            // Cache lại để OnMapButtonClicked dùng — 1 nguồn truth duy nhất
             _mapUnlockState[slot.mapData.mapName] = isUnlocked;
 
-            // Update UI
             if (slot.mapNameText != null)
                 slot.mapNameText.text = displayName;
 
@@ -167,7 +195,6 @@ public class MainMapPanelRuntime : MonoBehaviour
     {
         if (slot.mapData == null) return;
 
-        // Dùng IsUnlocked từ API (đã cache trong _mapUnlockState) — single source of truth
         _mapUnlockState.TryGetValue(slot.mapData.mapName, out bool canEnter);
 
         if (canEnter)
@@ -203,9 +230,6 @@ public class MainMapPanelRuntime : MonoBehaviour
         }
     }
 
-    // Được gọi mỗi khi 1 quest bất kỳ được Claimed.
-    // Kiểm tra: quest đó có phải là unlockQuestId của slot nào không?
-    // Nếu có → map mới vừa mở → tự động show MapPanel để player chuyển map.
     private void OnQuestClaimedCheckMapUnlock(int claimedQuestId)
     {
         if (allSlots == null) return;
@@ -217,17 +241,25 @@ public class MainMapPanelRuntime : MonoBehaviour
 
         if (!newMapJustUnlocked) return;
 
-        Debug.Log($"[MainMapPanelRuntime] Map mới unlock (unlockQuestId={claimedQuestId}). Mở Map Panel.");
-
-        // Delay nhỏ để quest popup kịp hiển thị trước khi mở panel
+        Debug.Log($"[MainMapPanelRuntime] Map unlocked by questId={claimedQuestId}. Opening Map Panel.");
         StartCoroutine(OpenMapPanelDelayed());
+    }
+
+    private void OnQuestsChanged()
+    {
+        FetchMapProgress();
+    }
+
+    private void OnMapChanged(string mapName)
+    {
+        SyncMinimapBackground();
+        FetchMapProgress();
     }
 
     private IEnumerator OpenMapPanelDelayed()
     {
         yield return new WaitForSeconds(1.5f);
 
-        // Refresh data trước khi show để slot hiện đúng trạng thái mới
         FetchMapProgress();
 
         if (UIManager.Instance != null && UIManager.Instance.mapPanel != null)
@@ -236,7 +268,6 @@ public class MainMapPanelRuntime : MonoBehaviour
         }
         else
         {
-            // Fallback: tự SetActive nếu không có UIManager
             gameObject.SetActive(true);
         }
     }

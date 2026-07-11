@@ -61,11 +61,30 @@ public class UISkinDetailPopup : MonoBehaviour
             if (t) skinNameText = t.GetComponent<TMP_Text>();
         }
 
-        if (skinIcon == null)
+        // Force find the correct Icon object, ignoring incorrect Inspector assignments
+        var iconTransform = transform.Find("Container/SkinPanel/SkinIcon_Frame/Icon");
+        if (iconTransform != null) 
         {
-            var t = transform.Find("Container/SkinPanel/SkinIcon_Frame/Icon");
-            if (t) skinIcon = t.GetComponent<Image>();
+            skinIcon = iconTransform.GetComponent<Image>();
         }
+        else
+        {
+            var images = GetComponentsInChildren<Image>(true);
+            foreach (var img in images)
+            {
+                // Must be the actual Icon child, not the Frame
+                if (img.gameObject.name == "Icon")
+                {
+                    skinIcon = img;
+                    break;
+                }
+            }
+        }
+        
+        if (skinIcon != null)
+            Debug.Log($"[UISkinDetailPopup] Successfully found skinIcon: {skinIcon.gameObject.name}");
+        else
+            Debug.LogError("[UISkinDetailPopup] CRITICAL: Could not find skinIcon Image component in prefab!");
 
         if (confirmSkinButton) confirmSkinButton.onClick.AddListener(HandleSkinConfirmed);
         if (cancelSkinButton)  cancelSkinButton.onClick.AddListener(Hide);
@@ -80,7 +99,19 @@ public class UISkinDetailPopup : MonoBehaviour
 
         if (skinPanel) skinPanel.SetActive(true);
 
-        if (skinIcon) skinIcon.sprite = icon;
+        if (skinIcon)
+        {
+            skinIcon.sprite = icon;
+            skinIcon.enabled = icon != null;
+            skinIcon.preserveAspect = true;
+            skinIcon.color = Color.white;
+            Debug.Log($"[UISkinDetailPopup] Setting skinIcon ({skinIcon.gameObject.name}) to sprite: {(icon ? icon.name : "NULL")}");
+        }
+        else
+        {
+            Debug.LogWarning("[UISkinDetailPopup] skinIcon is NULL!");
+        }
+
         if (skinNameText) skinNameText.text = skin.SkinName;
 
         if (skinTitleText)

@@ -77,6 +77,8 @@ public class InventoryManager : MonoBehaviour
     private bool _showingSkins = false;
     private bool _requestInFlight;
     private bool _eventsBound;
+
+    private SkinDatabaseSO _skinDatabase;
     private float _lastLoadedAt = -999f;
 
     // -------------------------------------------------------------------------
@@ -322,6 +324,7 @@ public class InventoryManager : MonoBehaviour
             onSuccess: response =>
             {
                 Debug.Log($"[InventoryManager] ✅ EquipSkin OK | SkinName={response?.SkinName}");
+                UpdateLocalNetworkPlayerSkin(skin.SkinId);
                 LoadInventory(force: true);
             },
             onError: error =>
@@ -345,6 +348,7 @@ public class InventoryManager : MonoBehaviour
             onSuccess: _ =>
             {
                 Debug.Log($"[InventoryManager] ✅ UnequipSkin OK");
+                UpdateLocalNetworkPlayerSkin(0);
                 LoadInventory(force: true);
             },
             onError: error =>
@@ -353,6 +357,28 @@ public class InventoryManager : MonoBehaviour
                 ShowActionError($"Unequip skin thất bại: {error.Message}");
             }
         );
+    }
+
+    private void UpdateLocalNetworkPlayerSkin(int skinId)
+    {
+        int normalizedSkinId = Mathf.Max(0, skinId);
+
+        NetworkPlayer networkPlayer = NetworkPlayer.Local;
+        if (networkPlayer == null && PlayerEntity.Instance != null)
+            networkPlayer = PlayerEntity.Instance.GetComponent<NetworkPlayer>();
+
+        if (networkPlayer != null && networkPlayer.Object != null)
+        {
+            networkPlayer.ApplyEquippedSkin(normalizedSkinId);
+            return;
+        }
+
+        WorldState.EquippedSkinId = normalizedSkinId;
+        WorldState.SaveToPlayerPrefs();
+
+        var spawner = UnityEngine.Object.FindFirstObjectByType<PlayerSpawner>();
+        if (spawner != null)
+            spawner.RespawnWithSkin();
     }
 
     // =========================================================================
@@ -653,29 +679,37 @@ public class InventoryManager : MonoBehaviour
 
     private Sprite ResolveIcon(int itemId, string iconUrl, string itemName = null, string itemType = null)
     {
-        // 1. Local database: lookup by name → type (no longer fragile itemId)
+        var isSkinLookup = string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemType) && itemId > 0;
+
+        if (isSkinLookup)
+        {
+            var prefabIcon = ResolveSkinPrefabIcon(itemId);
+            if (prefabIcon != null)
+                return prefabIcon;
+
+            var remoteIcon = ResolveRemoteIcon(iconUrl);
+            if (remoteIcon != null)
+                return remoteIcon;
+        }
+
         if (ItemIconDatabase.Instance != null)
         {
             var localIcon = ItemIconDatabase.Instance.GetIcon(itemName, itemType);
-            if (localIcon != null) return localIcon;
-        }
+            if (localIcon != null)
+                return localIcon;
 
-        // 2. Remote URL cache
-        var cachedRemote = RemoteSpriteCache.GetCached(iconUrl);
-        if (cachedRemote != null)
-            return cachedRemote;
-
-        // 3. Kick off remote load (result arrives async → refreshes tab)
-        if (!string.IsNullOrWhiteSpace(iconUrl))
-        {
-            RemoteSpriteCache.Load(this, iconUrl, sprite =>
+            if (isSkinLookup)
             {
-                if (sprite != null && isActiveAndEnabled && _summary != null)
-                    RefreshCurrentTab();
-            });
+                if (ItemIconDatabase.Instance.TryGetIcon($"skin:{itemId}", out localIcon) && localIcon != null)
+                    return localIcon;
+                if (ItemIconDatabase.Instance.TryGetIcon(itemId.ToString(), out localIcon) && localIcon != null)
+                    return localIcon;
+                if (ItemIconDatabase.Instance.TryGetIcon("Skin", out localIcon) && localIcon != null)
+                    return localIcon;
+            }
         }
 
-        return null;
+        return ResolveRemoteIcon(iconUrl);
     }
 
     private Button FindButton(params string[] names)
@@ -880,5 +914,39 @@ public class InventoryManager : MonoBehaviour
     {
         return item != null &&
                string.Equals(item.ItemType, itemType, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private Sprite ResolveRemoteIcon(string iconUrl)
+    {
+        var cachedRemote = RemoteSpriteCache.GetCached(iconUrl);
+        if (cachedRemote != null)
+            return cachedRemote;
+
+        if (!string.IsNullOrWhiteSpace(iconUrl))
+        {
+            RemoteSpriteCache.Load(this, iconUrl, sprite =>
+            {
+                if (sprite != null && isActiveAndEnabled && _summary != null)
+                    RefreshCurrentTab();
+            });
+        }
+
+        return null;
+    }
+
+
+    private Sprite ResolveSkinPrefabIcon(int skinId)
+    {
+        if (skinId <= 0)
+            return null;
+
+        if (_skinDatabase == null)
+            _skinDatabase = SkinDatabaseSO.LoadDefault();
+
+        if (_skinDatabase != null && _skinDatabase.TryGetPreviewSprite(skinId, out var previewSprite))
+            return previewSprite;
+
+        return null;
     }
 }

@@ -11,6 +11,7 @@ namespace MysticJourney.Core.Services
         public int PlayerLevel { get; set; } = 1;
         public string PlayerName { get; set; }
         public string PlayerClass { get; set; }
+        public int EquippedSkinId { get; set; }
         public string CurrentMapName { get; set; }
         public Vector3 LastPosition { get; set; }
         public float CorruptionLevel { get; set; }
@@ -22,6 +23,7 @@ namespace MysticJourney.Core.Services
             PlayerLevel = 1;
             PlayerName = null;
             PlayerClass = "Knight";
+            EquippedSkinId = 0;
             CurrentMapName = "ElfForest";
             LastPosition = new Vector3(11.9f, 17.8f, 0f);
             CorruptionLevel = 0f;
@@ -33,6 +35,7 @@ namespace MysticJourney.Core.Services
             PlayerLevel = PlayerPrefs.GetInt("mj_player_level", 1);
             PlayerName = PlayerPrefs.GetString("mj_user_name", string.Empty);
             PlayerClass = PlayerPrefs.GetString("mj_player_class", "Knight");
+            EquippedSkinId = PlayerPrefs.GetInt("mj_equipped_skin_id", 0);
             CurrentMapName = PlayerPrefs.GetString("mj_last_map", "ElfForest");
             LastPosition = new Vector3(
                 PlayerPrefs.GetFloat("mj_pos_x", 11.9f),
@@ -47,6 +50,7 @@ namespace MysticJourney.Core.Services
             PlayerPrefs.SetInt("mj_player_level", PlayerLevel);
             PlayerPrefs.SetString("mj_user_name", PlayerName ?? string.Empty);
             PlayerPrefs.SetString("mj_player_class", PlayerClass ?? "Knight");
+            PlayerPrefs.SetInt("mj_equipped_skin_id", EquippedSkinId);
             PlayerPrefs.SetString("mj_last_map", CurrentMapName ?? "ElfForest");
             PlayerPrefs.SetFloat("mj_pos_x", LastPosition.x);
             PlayerPrefs.SetFloat("mj_pos_y", LastPosition.y);

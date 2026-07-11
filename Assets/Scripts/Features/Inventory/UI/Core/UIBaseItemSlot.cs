@@ -32,6 +32,8 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         {
             iconImage.sprite = data.icon;
             iconImage.enabled = data.icon != null;
+            iconImage.preserveAspect = true;
+            iconImage.color = Color.white;
         }
 
         if (itemNameText != null)

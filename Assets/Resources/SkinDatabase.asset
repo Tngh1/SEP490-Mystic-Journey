@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c2e830737370c84d9b45d2c9e54996e, type: 3}
+  m_Name: SkinDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::SkinDatabaseSO
+  skinPrefabs:
+  - skinName: '[ELF] ElfForest Default'
+    characterClass: 1
+    skinId: 1
+    prefab: {fileID: 8459041412210492460, guid: 73ee62921cfb93d4abf4759e3e6ce7cd, type: 3}
+    previewSprite: {fileID: 601325958733788123, guid: 7456d4f763c7eed489ca0b56055e5623, type: 3}
+    controller: {fileID: 9100000, guid: b7f330fd43d6515449bab3818aa4d5ba, type: 2}
+  - skinName: Archer Default Skin
+    characterClass: 0
+    skinId: 2
+    prefab: {fileID: 327403664891963297, guid: a3eaa8870c6dea644ace16ad957cb24f, type: 3}
+    previewSprite: {fileID: -8832760425727250348, guid: ae3f27f603ba8e946a14e1da0f15e3fc, type: 3}
+    controller: {fileID: 9100000, guid: 207f8a217c54318439ff71fab7f3ffd0, type: 2}
+  - skinName: '[ELF] Elven Blade'
+    characterClass: 2
+    skinId: 3
+    prefab: {fileID: 3101978762884820572, guid: 127bd6c85f5c14440b81859a1b72618c, type: 3}
+    previewSprite: {fileID: -5552417913062985601, guid: 067d6940c6a3b5f46877a8f0035ebf11, type: 3}
+    controller: {fileID: 9100000, guid: 05b2df4dbb0fd884ab24a9a83ab9bcb4, type: 2}
+  - skinName: '[ELF] Ranger Cloak'
+    characterClass: 1
+    skinId: 4
+    prefab: {fileID: 327403664891963297, guid: a3eaa8870c6dea644ace16ad957cb24f, type: 3}
+    previewSprite: {fileID: -8832760425727250348, guid: ae3f27f603ba8e946a14e1da0f15e3fc, type: 3}
+    controller: {fileID: 9100000, guid: 207f8a217c54318439ff71fab7f3ffd0, type: 2}
