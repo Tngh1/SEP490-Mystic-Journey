@@ -204,8 +204,16 @@ public class EnemyBehaviour : MonoBehaviour
             // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
 
-            // Gây sát thương thẳng lên PlayerEntity
-            if (PlayerEntity.Instance != null)
+            // Deal damage to the target player. Online, the AI runs only on the
+            // enemy's authority (this client), so route through the target's
+            // NetworkPlayer so the hit applies on that player's own avatar
+            // authority and replicates. Offline, hit the local PlayerEntity.
+            var targetPlayer = GetNearestNetworkPlayer();
+            if (targetPlayer != null)
+            {
+                targetPlayer.RequestDamage(attackDamage);
+            }
+            else if (PlayerEntity.Instance != null)
             {
                 PlayerEntity.Instance.TakeDamage(attackDamage);
             }
@@ -260,8 +268,14 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
-    private static Transform GetPlayerTarget()
+    private Transform GetPlayerTarget()
     {
+        // Online: chase the NEAREST networked player so the enemy reacts to any
+        // party member, not just the local one.
+        var nearest = GetNearestNetworkPlayer();
+        if (nearest != null)
+            return nearest.transform;
+
         if (PlayerBehaviour.Instance != null)
             return PlayerBehaviour.Instance.transform;
 
@@ -269,6 +283,28 @@ public class EnemyBehaviour : MonoBehaviour
             return PlayerMovement.Instance.transform;
 
         return null;
+    }
+
+    /// <summary>Nearest live networked player to THIS enemy, or null when offline.</summary>
+    private NetworkPlayer GetNearestNetworkPlayer()
+    {
+        var players = UnityEngine.Object.FindObjectsByType<NetworkPlayer>(FindObjectsSortMode.None);
+        if (players == null || players.Length == 0) return null;
+
+        Vector3 from = transform.position;
+        NetworkPlayer best = null;
+        float bestSqr = float.MaxValue;
+        foreach (var p in players)
+        {
+            if (p == null || !p.IsAlive) continue;
+            float sqr = (p.transform.position - from).sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                best = p;
+            }
+        }
+        return best;
     }
 
     private bool CanUseNavMeshAgent()

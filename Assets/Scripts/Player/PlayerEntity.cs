@@ -1,6 +1,26 @@
 using UnityEngine;
 using System;
 
+/// <summary>
+/// Player health adapter. Bridges backend stats and the network-authoritative HP
+/// stored on <see cref="NetworkPlayer"/> to the legacy single-player UI / event
+/// consumers (<c>PlayerHUDController</c>, <c>DamagePopupManager</c>, etc.).
+///
+/// Why adapter (not NetworkBehaviour):
+///   - Per the Phase 0 decision, the multiplayer path keeps the legacy
+///     PlayerEntity singleton API so existing UI does not need to be rewritten.
+///   - HP authoritative state lives on <see cref="NetworkPlayer.CurrentHp"/> /
+///     <c>MaxHp</c> / <c>IsAlive</c> ([Networked]).
+///   - PlayerEntity polls NetworkPlayer.CurrentHp and forwards changes via the
+///     legacy OnHealthChanged static event.
+///
+/// Single-player fallback:
+///   - When no NetworkPlayer exists (Photon not started), PlayerEntity behaves
+///     exactly as before — local HP field, TakeDamage, Die event.
+///
+/// Lifetime: MonoBehaviour, attached to PlayerNetwork prefab root. Legacy
+/// callers read <see cref="Instance"/> for the local player's HP.
+/// </summary>
 public class PlayerEntity : MonoBehaviour
 {
     [SerializeField] private int maxHealth = 200;
@@ -11,26 +31,39 @@ public class PlayerEntity : MonoBehaviour
     public event EventHandler OnTakeHit;
     public event EventHandler OnDeath;
 
-    public float MoveSpeed { get; private set; } = 100f; // Default
-    public float AttackSpeed { get; private set; } = 100f; // Default
+    public float MoveSpeed { get; private set; } = 100f;
+    public float AttackSpeed { get; private set; } = 100f;
 
     public static event Action OnStatsLoaded;
-
-    // 👇 SỰ KIỆN TĨNH: Phát sóng mỗi khi máu thay đổi (Truyền đi Máu hiện tại và Máu tối đa)
     public static event Action<int, int> OnHealthChanged;
+
+    // Cached reference to NetworkPlayer (may be null in single-player fallback).
+    private NetworkPlayer _networkPlayer;
+    private int _lastBroadcastHp = -1;
+    private int _lastBroadcastMaxHp = -1;
+    private bool _lastBroadcastAlive = true;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Unity lifecycle
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
         Instance = this;
         currentHealth = maxHealth;
+        _networkPlayer = GetComponent<NetworkPlayer>();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     private void Start()
     {
-        // Khi nhân vật vừa xuất hiện, gửi ngay sự kiện để UI hiển thị mức máu đầy ban đầu (fallback)
+        // Fire initial event so UI can render a full-HP fallback before stats arrive.
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
-        // Lấy dữ liệu thật từ API
         if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
         {
             MysticJourney.API.Endpoints.CharacterApi.Instance.GetMyStats(
@@ -40,31 +73,67 @@ public class PlayerEntity : MonoBehaviour
                     {
                         MoveSpeed = response.MoveSpeed;
                         AttackSpeed = response.AttackSpeed;
-
                         ApplyHealth(response.CurrentHp, response.MaxHp);
-
                         OnStatsLoaded?.Invoke();
                     }
                 },
-                error =>
-                {
-                    Debug.LogWarning($"[PlayerEntity] GetMyStats failed: {error.Message}");
-                }
+                error => Debug.LogWarning($"[PlayerEntity] GetMyStats failed: {error.Message}")
             );
         }
     }
+
+    private void Update()
+    {
+        // Poll the networked HP every frame and broadcast to legacy listeners
+        // when it changes. Cheap: only fires the event on actual change.
+        if (_networkPlayer == null) return;
+
+        int netHp = _networkPlayer.CurrentHp;
+        int netMaxHp = _networkPlayer.MaxHp;
+        bool netAlive = _networkPlayer.IsAlive;
+
+        if (netHp != _lastBroadcastHp || netMaxHp != _lastBroadcastMaxHp)
+        {
+            _lastBroadcastHp = netHp;
+            _lastBroadcastMaxHp = netMaxHp;
+            currentHealth = netHp;
+            maxHealth = netMaxHp;
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+
+        if (netAlive != _lastBroadcastAlive)
+        {
+            _lastBroadcastAlive = netAlive;
+            if (!netAlive) Die();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public API
+    // ─────────────────────────────────────────────────────────────────────────
 
     public void ApplyHealth(int currentHp, int maxHp)
     {
         maxHealth = Mathf.Max(0, maxHp);
         currentHealth = maxHealth > 0 ? Mathf.Clamp(currentHp, 0, maxHealth) : Mathf.Max(0, currentHp);
+        _lastBroadcastHp = currentHealth;
+        _lastBroadcastMaxHp = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
-    private Coroutine syncHpCoroutine;
-
+    /// <summary>
+    /// Apply damage to the player. In multiplayer this delegates to
+    /// <see cref="NetworkPlayer.ApplyDamage"/>, which is server-authoritative.
+    /// In single-player fallback it directly mutates local HP.
+    /// </summary>
     public void TakeDamage(int damage)
     {
+        if (_networkPlayer != null)
+        {
+            _networkPlayer.ApplyDamage(damage);
+            return;
+        }
+
         bool isCrit = UnityEngine.Random.Range(0f, 100f) <= 10f;
         int finalDamage = isCrit ? Mathf.RoundToInt(damage * 1.5f) : damage;
 
@@ -76,9 +145,7 @@ public class PlayerEntity : MonoBehaviour
             DamagePopupManager.Instance.Create(transform.position, finalDamage, isCrit, true);
         }
 
-        // 👇 KHI BỊ ĐÁNH, GỌI SỰ KIỆN NÀY ĐỂ BÁO CHO UI CẬP NHẬT
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
-
         OnTakeHit?.Invoke(this, EventArgs.Empty);
 
         if (currentHealth <= 0)
@@ -86,13 +153,21 @@ public class PlayerEntity : MonoBehaviour
             Die();
         }
 
-        // --- ĐỒNG BỘ MÁU VỀ API (DEBOUNCE 1 GIÂY) ---
-        if (syncHpCoroutine != null)
-        {
-            StopCoroutine(syncHpCoroutine);
-        }
+        if (syncHpCoroutine != null) StopCoroutine(syncHpCoroutine);
         syncHpCoroutine = StartCoroutine(SyncHpRoutine());
     }
+
+    public void Die()
+    {
+        Debug.Log("[PlayerEntity] Player died.");
+        OnDeath?.Invoke(this, EventArgs.Empty);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Backend HP sync (single-player fallback only)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private Coroutine syncHpCoroutine;
 
     private System.Collections.IEnumerator SyncHpRoutine()
     {
@@ -102,14 +177,8 @@ public class PlayerEntity : MonoBehaviour
             MysticJourney.API.Endpoints.CharacterApi.Instance.UpdateHp(
                 currentHealth,
                 response => { /* Sync OK */ },
-                error => { Debug.LogWarning($"[PlayerEntity] Sync HP failed: {error.Message}"); }
+                error => Debug.LogWarning($"[PlayerEntity] Sync HP failed: {error.Message}")
             );
         }
-    }
-
-    public void Die()
-    {
-        Debug.Log("Người chơi đã chết!");
-        OnDeath?.Invoke(this, EventArgs.Empty);
     }
 }

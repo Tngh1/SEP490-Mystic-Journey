@@ -346,12 +346,12 @@ public class DungeonSpawner : MonoBehaviour
         foreach (var request in requests)
         {
             index++;
-            GameObject instance = Instantiate(
+            GameObject instance = SpawnEnemyObject(
                 request.Prefab,
                 request.Position,
-                Quaternion.identity,
-                monsterContainer       // Parent = MonsterContainer for clean hierarchy
-            );
+                Quaternion.identity);
+
+            if (instance == null) continue; // proxy client — enemy arrives replicated
 
             instance.name = $"{request.MonsterName}_{index}";
 
@@ -370,6 +370,35 @@ public class DungeonSpawner : MonoBehaviour
 
             Debug.Log($"[DungeonSpawner]   ✓ '{instance.name}' at {request.Position} (group: {request.GroupName})");
         }
+    }
+
+    /// <summary>
+    /// Create one enemy GameObject. Online (Photon running) ONLY the master client
+    /// spawns it as a networked object via Runner.Spawn — it holds authority, runs
+    /// the AI, and Fusion replicates the enemy to every other client (which return
+    /// a null here and pick up the replicated NetworkObject instead). Offline it is
+    /// a plain Instantiate exactly as before.
+    /// </summary>
+    private GameObject SpawnEnemyObject(GameObject prefab, Vector3 position, Quaternion rotation)
+    {
+        var photon = PhotonManager.Instance;
+        bool online = photon != null && photon.IsConnected;
+
+        if (online && prefab.GetComponent<Fusion.NetworkObject>() != null)
+        {
+            // Non-authority clients do not spawn — they receive the replica.
+            if (!photon.IsHost) return null;
+
+            var netObj = photon.Runner.Spawn(prefab, position, rotation);
+            if (netObj == null) return null;
+
+            // Parent for a clean hierarchy (does not affect networked transform).
+            if (monsterContainer != null)
+                netObj.transform.SetParent(monsterContainer, worldPositionStays: true);
+            return netObj.gameObject;
+        }
+
+        return Instantiate(prefab, position, rotation, monsterContainer);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -395,12 +424,18 @@ public class DungeonSpawner : MonoBehaviour
             return null;
         }
 
-        GameObject bossInstance = Instantiate(
-            _bossSpawnData.Prefab, 
-            spawnGO.transform.position, 
-            Quaternion.identity,
-            monsterContainer
-        );
+        GameObject bossInstance = SpawnEnemyObject(
+            _bossSpawnData.Prefab,
+            spawnGO.transform.position,
+            Quaternion.identity);
+
+        if (bossInstance == null)
+        {
+            // Proxy client — the boss is spawned by the master client and arrives
+            // as a replicated NetworkObject; no local instance to return.
+            return null;
+        }
+
         bossInstance.name = $"{_bossSpawnData.MonsterName}(Boss)";
 
         var entity = bossInstance.GetComponent<EnemyEntity>();
