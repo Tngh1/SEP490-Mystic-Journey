@@ -4,24 +4,45 @@ using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
 using System.Collections.Generic;
+using System.Linq;
+using MysticJourney.UI; // For UIPopupManager
 
 namespace MysticJourney.UI.Guild
 {
     public class GuildUIManager : MonoBehaviour
     {
         [Header("Panels")]
+        [SerializeField] private GameObject mainGuildPanel; // Panel bự nhất chứa tất cả
+        [SerializeField] private GameObject tabsPanel; // Panel chứa các Tab bên phải (Info, Rank, Chat)
         [SerializeField] private GameObject guildListPanel;
         [SerializeField] private GameObject guildDetailPanel;
         [SerializeField] private GameObject createGuildPanel;
         [SerializeField] private GameObject guildInfoPanel;
         [SerializeField] private GameObject memberListPanel;
 
-        [Header("Info Tab UI")]
+        [Header("Preview Detail UI (Outsider)")]
+        [SerializeField] private TextMeshProUGUI txtPreviewName;
+        [SerializeField] private TextMeshProUGUI txtPreviewMember;
+        [SerializeField] private TextMeshProUGUI txtPreviewLeader;
+        [SerializeField] private TextMeshProUGUI txtPreviewNotice;
+        [SerializeField] private Button btnPreviewApply;
+
+        [Header("Guild Info Tabs (Containers)")]
+        [SerializeField] private GameObject infoTabContainer;
+        [SerializeField] private GameObject manageTabContainer;
+        [SerializeField] private Image btnInfoTabImage;
+        [SerializeField] private Image btnManageTabImage;
+
+        [Header("Info Tab UI (Insider)")]
         [SerializeField] private TextMeshProUGUI txtGuildName;
         [SerializeField] private TextMeshProUGUI txtMemberCount;
         [SerializeField] private TextMeshProUGUI txtGuildLevel;
         [SerializeField] private TextMeshProUGUI txtGuildTotalMedals;
         [SerializeField] private TextMeshProUGUI txtGuildNotice;
+
+        [Header("Create Guild UI")]
+        [SerializeField] private TMP_InputField inputCreateName;
+        [SerializeField] private TMP_InputField inputCreateNotice;
 
         [Header("Manage Tab UI")]
         [SerializeField] private TextMeshProUGUI txtGuildExp;
@@ -40,9 +61,13 @@ namespace MysticJourney.UI.Guild
         private void Start()
         {
             // Tạm thời để ẩn hết
-            guildListPanel.SetActive(false);
-            guildDetailPanel.SetActive(false);
-            createGuildPanel.SetActive(false);
+            if (mainGuildPanel != null) mainGuildPanel.SetActive(false);
+            if (guildListPanel != null) guildListPanel.SetActive(false);
+            if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
+            if (createGuildPanel != null) createGuildPanel.SetActive(false);
+            
+            // Ràng buộc số lượng ký tự nhập vào khi tạo Guild
+            if (inputCreateName != null) inputCreateName.characterLimit = 15;
         }
 
         /// <summary>
@@ -50,7 +75,38 @@ namespace MysticJourney.UI.Guild
         /// </summary>
         public void OpenGuildSystem()
         {
-            OpenGuildList();
+            this.gameObject.SetActive(true); // Đảm bảo script được chạy
+            if (mainGuildPanel != null) mainGuildPanel.SetActive(true); // Bật Panel tổng lên!
+            
+            // Ẩn tất cả trước khi có kết quả
+            if (guildListPanel != null) guildListPanel.SetActive(false);
+            if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
+            if (createGuildPanel != null) createGuildPanel.SetActive(false);
+
+            GuildApi.GetMyGuild(
+                onSuccess: (detail) => {
+                    if (detail != null && detail.guildId > 0)
+                    {
+                        // Đã có Guild -> Mở tab Info của Guild mình
+                        OpenMyGuildDashboard(detail);
+                    }
+                    else
+                    {
+                        // Chưa có Guild -> Mở danh sách
+                        OpenGuildList();
+                    }
+                },
+                onError: (err) => {
+                    Debug.LogWarning("Không thể lấy thông tin Guild hiện tại, mở danh sách. Lỗi: " + err.Message);
+                    OpenGuildList();
+                }
+            );
+        }
+
+        public void CloseGuildSystem()
+        {
+            if (mainGuildPanel != null) mainGuildPanel.SetActive(false);
+            this.gameObject.SetActive(false); // Ẩn luôn cục quản lý để tối ưu performance
         }
 
         public void SearchGuild()
@@ -61,12 +117,157 @@ namespace MysticJourney.UI.Guild
 
         public void OpenGuildList()
         {
-            guildListPanel.SetActive(true);
+            Debug.Log("[GuildUIManager] OpenGuildList() is called! StackTrace: " + UnityEngine.StackTraceUtility.ExtractStackTrace());
+            guildListPanel.SetActive(false);
             guildDetailPanel.SetActive(false);
             createGuildPanel.SetActive(false);
+            if (guildInfoPanel != null) guildInfoPanel.SetActive(false);
+            if (memberListPanel != null) memberListPanel.SetActive(false);
+            if (tabsPanel != null) tabsPanel.SetActive(false); // Ẩn các tab bên phải
+
+            guildListPanel.SetActive(true);
 
             if (inputSearchGuild != null) inputSearchGuild.text = "";
             LoadGuildList("");
+        }
+
+        public void OpenCreateGuildPanel()
+        {
+            // Không ẩn guildListPanel vì nó nằm bên phải, create nằm bên trái
+            if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
+            if (guildInfoPanel != null) guildInfoPanel.SetActive(false);
+            if (tabsPanel != null) tabsPanel.SetActive(false);
+            
+            if (createGuildPanel != null) createGuildPanel.SetActive(true);
+        }
+
+        public void SubmitCreateGuild()
+        {
+            if (inputCreateName == null || string.IsNullOrWhiteSpace(inputCreateName.text))
+            {
+                Debug.LogWarning("[GuildUIManager] Guild name cannot be empty!");
+                return;
+            }
+
+            var request = new CreateGuildRequestDto
+            {
+                name = inputCreateName.text,
+                notice = inputCreateNotice != null ? inputCreateNotice.text : "",
+                requiredLevel = 1,
+                joinPolicy = 1 // Open
+            };
+
+            GuildApi.CreateGuild(request,
+                onSuccess: (guildResp) =>
+                {
+                    // Tắt loading hoặc hiện thông báo
+                    if (UIPopupManager.Instance != null)
+                    {
+                        UIPopupManager.Instance.ShowAlert("Success", $"Created guild '{guildResp.name}' successfully!");
+                    }
+                    else
+                    {
+                        Debug.Log($"[GuildUIManager] Created guild '{guildResp.name}' successfully!");
+                    }
+                    
+                    // Clear the form
+                    inputCreateName.text = "";
+                    if (inputCreateNotice != null) inputCreateNotice.text = "";
+                    
+                    // Automatically open the Guild System again (which will fetch My Guild and open Info Panel)
+                    OpenGuildSystem();
+                },
+                onError: (err) =>
+                {
+                    if (UIPopupManager.Instance != null)
+                    {
+                        UIPopupManager.Instance.ShowAlert("Failed", "Error creating guild:\n" + err.Message);
+                    }
+                    else
+                    {
+                        Debug.LogError("[GuildUIManager] Error creating guild: " + err.Message);
+                    }
+                });
+        }
+
+        public void RequestLeaveGuild()
+        {
+            if (currentGuild == null) return;
+            
+            int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+            
+            if (currentGuild.leaderId == myProfileId)
+            {
+                // Kiểm tra xem bang còn ai khác không
+                if (currentGuild.members != null && currentGuild.members.Count > 1)
+                {
+                    // Tìm 1 người khác (ưu tiên Officer, hoặc level cao nhất, hoặc random ai đó khác leader)
+                    var nextLeader = currentGuild.members
+                        .Where(m => m.playerProfileId != myProfileId)
+                        .OrderBy(m => m.role == "Officer" ? 0 : 1) // ưu tiên Officer
+                        .ThenByDescending(m => m.playerLevel)
+                        .FirstOrDefault();
+
+                    if (nextLeader != null)
+                    {
+                        if (UIPopupManager.Instance != null)
+                        {
+                            UIPopupManager.Instance.ShowConfirm(
+                                "Transfer & Leave",
+                                $"Do you want to transfer leadership to {nextLeader.playerDisplayName} and leave the guild?",
+                                onConfirm: () =>
+                                {
+                                    GuildApi.TransferLeader(currentGuild.guildId, nextLeader.playerProfileId,
+                                        onSuccess: (res) =>
+                                        {
+                                            ExecuteLeaveGuild();
+                                        },
+                                        onError: (err) =>
+                                        {
+                                            UIPopupManager.Instance.ShowAlert("Error", "Failed to transfer leadership: " + err.Message);
+                                        });
+                                }
+                            );
+                        }
+                        else
+                        {
+                            Debug.LogWarning("You must transfer leadership before leaving.");
+                        }
+                    }
+                }
+                else
+                {
+                    // Chỉ có 1 mình -> Giải tán bang
+                    if (UIPopupManager.Instance != null)
+                    {
+                        UIPopupManager.Instance.ShowConfirm(
+                            "Dissolve Guild", 
+                            $"You are the only member of '{currentGuild.name}'. Leaving will permanently dissolve the guild. Are you sure you want to dissolve it?", 
+                            onConfirm: ExecuteDissolveGuild
+                        );
+                    }
+                    else
+                    {
+                        ExecuteDissolveGuild();
+                    }
+                }
+            }
+            else
+            {
+                // Thành viên bình thường -> Rời bang
+                if (UIPopupManager.Instance != null)
+                {
+                    UIPopupManager.Instance.ShowConfirm(
+                        "Leave Guild", 
+                        $"Are you sure you want to leave the guild '{currentGuild.name}'?", 
+                        onConfirm: ExecuteLeaveGuild
+                    );
+                }
+                else
+                {
+                    ExecuteLeaveGuild();
+                }
+            }
         }
 
         private void LoadGuildList(string keyword)
@@ -87,8 +288,9 @@ namespace MysticJourney.UI.Guild
                         {
                             GameObject obj = Instantiate(guildEntryPrefab, guildListContainer);
                             UIGuildEntry entry = obj.GetComponent<UIGuildEntry>();
-                            // Truyền dữ liệu và callback hàm Apply vào Prefab
-                            entry.Setup(guild, (id) => ApplyToGuild(id));
+                            entry.Setup(guild, 
+                                entryClicked: (id) => OpenGuildDetail(id), 
+                                applyClicked: (id) => ApplyToGuild(id));
                         }
                     }
                 },
@@ -97,33 +299,85 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // ─────────────────────────────────────────────────────────────────────────
+        // Dành cho: NGƯỜI CHƯA CÓ GUILD (Bấm vào xem Preview)
+        // ─────────────────────────────────────────────────────────────────────────
         public void OpenGuildDetail(int guildId)
         {
-            guildListPanel.SetActive(false);
-            createGuildPanel.SetActive(false);
+            if (createGuildPanel != null) createGuildPanel.SetActive(false); // Ẩn Create panel (bên trái)
 
             GuildApi.GetGuildDetail(guildId, 
                 onSuccess: (detail) => {
-                    currentGuild = detail;
                     guildDetailPanel.SetActive(true);
+                    
+                    // Gắn thông tin cho bảng Preview (Dành cho người chưa có Guild)
+                    if (txtPreviewName != null) txtPreviewName.text = detail.name;
+                    if (txtPreviewMember != null) txtPreviewMember.text = $"Members: {detail.memberCount}/{detail.maxMembers}";
+                    if (txtPreviewLeader != null) txtPreviewLeader.text = $"Leader: {detail.leaderName}";
+                    if (txtPreviewNotice != null) txtPreviewNotice.text = detail.notice;
 
-                    // Map UI
-                    // Tab Info
-                    if (txtGuildName != null) txtGuildName.text = detail.name;
-                    if (txtGuildLevel != null) txtGuildLevel.text = $"Lv. {detail.level}";
-                    if (txtGuildNotice != null) txtGuildNotice.text = detail.notice;
-                    if (txtMemberCount != null) txtMemberCount.text = $"Member: {detail.memberCount}/{detail.maxMembers}";
-                    if (txtGuildTotalMedals != null) txtGuildTotalMedals.text = $"Medals: {detail.totalMedals}";
-
-                    // Tab Manage
-                    if (txtGuildExp != null) txtGuildExp.text = $"EXP: {detail.guildExp}/{detail.expToNextLevel}";
-                    if (txtMedalsToLevelUp != null) txtMedalsToLevelUp.text = $"Medals: {detail.medalsToNextLevel}";
-
-                    Debug.Log($"Guild loaded: {detail.name} with {detail.members.Count} members.");
+                    if (btnPreviewApply != null)
+                    {
+                        btnPreviewApply.onClick.RemoveAllListeners();
+                        btnPreviewApply.onClick.AddListener(() => ApplyToGuild(detail.guildId));
+                    }
+                    
+                    Debug.Log($"Preview Guild: {detail.name}");
                 },
                 onError: (err) => {
                     Debug.LogError("Error loading guild detail: " + err.Message);
                 });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Dành cho: NGƯỜI ĐÃ CÓ GUILD (Mở Dashboard quản lý)
+        // ─────────────────────────────────────────────────────────────────────────
+        public void OpenMyGuildDashboard(GuildDetailResponseDto detail)
+        {
+            currentGuild = detail;
+
+            // Ẩn các màn hình khác
+            if (guildListPanel != null) guildListPanel.SetActive(false);
+            if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
+            if (createGuildPanel != null) createGuildPanel.SetActive(false);
+            
+            // Bật màn hình Dashboard (Info Panel) và Tab mặc định là Info
+            if (guildInfoPanel != null) guildInfoPanel.SetActive(true);
+            if (tabsPanel != null) tabsPanel.SetActive(true); // Bật các tab bên phải lên
+            SwitchToInfoTab();
+
+            // Map UI cho Tab Info
+            if (txtGuildName != null) txtGuildName.text = detail.name;
+            if (txtGuildLevel != null) txtGuildLevel.text = $"Lv. {detail.level}";
+            if (txtGuildNotice != null) txtGuildNotice.text = detail.notice;
+            if (txtMemberCount != null) txtMemberCount.text = $"Member: {detail.memberCount}/{detail.maxMembers}";
+            if (txtGuildTotalMedals != null) txtGuildTotalMedals.text = $"Medals: {detail.totalMedals}";
+
+            // Map UI cho Tab Manage
+            if (txtGuildExp != null) txtGuildExp.text = $"EXP: {detail.guildExp}/{detail.expToNextLevel}";
+            if (txtMedalsToLevelUp != null) txtMedalsToLevelUp.text = $"Medals: {detail.medalsToNextLevel}";
+
+            Debug.Log($"My Guild loaded: {detail.name} with {detail.members.Count} members.");
+        }
+
+        public void SwitchToInfoTab()
+        {
+            if (infoTabContainer != null) infoTabContainer.SetActive(true);
+            if (manageTabContainer != null) manageTabContainer.SetActive(false);
+            HighlightTab(btnInfoTabImage, btnManageTabImage);
+        }
+
+        public void SwitchToManageTab()
+        {
+            if (infoTabContainer != null) infoTabContainer.SetActive(false);
+            if (manageTabContainer != null) manageTabContainer.SetActive(true);
+            HighlightTab(btnManageTabImage, btnInfoTabImage);
+        }
+
+        private void HighlightTab(Image activeTab, Image inactiveTab)
+        {
+            if (activeTab != null) activeTab.color = Color.white;
+            if (inactiveTab != null) inactiveTab.color = new Color(0.6f, 0.6f, 0.6f, 1f); // Màu xám tối
         }
 
         public void ApplyToGuild(int guildId)
@@ -183,7 +437,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
-        public void LeaveGuild()
+        private void ExecuteLeaveGuild()
         {
             if (currentGuild == null) return;
 
@@ -191,17 +445,49 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (result) => {
                     if (result.success)
                     {
-                        Debug.Log("Left guild successfully.");
+                        if (UIPopupManager.Instance != null)
+                            UIPopupManager.Instance.ShowAlert("Success", "Left guild successfully.");
+                        else
+                            Debug.Log("Left guild successfully.");
+                            
                         currentGuild = null;
                         OpenGuildList(); // Quay về màn hình tìm guild
                     }
                     else
                     {
-                        Debug.LogWarning("Cannot leave: " + result.message);
+                        if (UIPopupManager.Instance != null)
+                            UIPopupManager.Instance.ShowAlert("Warning", "Cannot leave: " + result.message);
+                        else
+                            Debug.LogWarning("Cannot leave: " + result.message);
                     }
                 },
                 onError: (err) => {
-                    Debug.LogError("Leave Guild failed: " + err.Message);
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    else
+                        Debug.LogError("Leave Guild failed: " + err.Message);
+                });
+        }
+
+        private void ExecuteDissolveGuild()
+        {
+            if (currentGuild == null) return;
+
+            GuildApi.DissolveGuild(currentGuild.guildId,
+                onSuccess: (result) => {
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Success", "Guild dissolved successfully.");
+                    else
+                        Debug.Log("Guild dissolved successfully.");
+                        
+                    currentGuild = null;
+                    OpenGuildList(); // Quay về màn hình tìm guild
+                },
+                onError: (err) => {
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    else
+                        Debug.LogError("Dissolve Guild failed: " + err.Message);
                 });
         }
     }

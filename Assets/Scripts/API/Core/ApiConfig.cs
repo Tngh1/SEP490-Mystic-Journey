@@ -61,6 +61,7 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         // GUILDS CONTROLLER - Hệ thống Bang hội v3
         // ═══════════════════════════════════════════════════════════════════════
+        public const string GuildMyGuild = "/api/guilds/my-guild"; // GET
         public const string GuildList = "/api/guilds"; // GET, POST
         public const string GuildDetail = "/api/guilds/{id}"; // GET, DELETE
         public const string GuildMembers = "/api/guilds/{id}/members"; // GET
