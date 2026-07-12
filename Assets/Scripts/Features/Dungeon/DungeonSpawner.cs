@@ -382,7 +382,7 @@ public class DungeonSpawner : MonoBehaviour
     private GameObject SpawnEnemyObject(GameObject prefab, Vector3 position, Quaternion rotation)
     {
         var photon = PhotonManager.Instance;
-        bool online = photon != null && photon.IsConnected;
+        bool online = photon != null && photon.IsDungeonSession;
 
         if (online && prefab.GetComponent<Fusion.NetworkObject>() != null)
         {

@@ -46,7 +46,7 @@ public class DungeonEntrance : MonoBehaviour
 
         if (targetPanel != null)
         {
-            // Activate the panel first so that Awake() runs and UIDungeonRoomPanel.Instance is initialized!
+            // Activate the panel first so that Awake() runs and UIPartyPanel.Instance is initialized!
             if (UIManager.Instance != null && UIManager.Instance.dungeonPanel == targetPanel)
             {
                 UIManager.Instance.ShowPanel(targetPanel);
@@ -56,10 +56,10 @@ public class DungeonEntrance : MonoBehaviour
                 targetPanel.SetActive(true);
             }
 
-            var lobbyScript = targetPanel.GetComponent<UIDungeonRoomPanel>();
+            var lobbyScript = targetPanel.GetComponent<UIPartyPanel>();
             if (lobbyScript == null)
             {
-                lobbyScript = targetPanel.AddComponent<UIDungeonRoomPanel>();
+                lobbyScript = targetPanel.AddComponent<UIPartyPanel>();
             }
             // The dungeon scene name is now hardcoded since the game uses one common scene
             lobbyScript.OpenForDungeon(dungeonConfigId, "HollowCryptDungeon", energyCost, dungeonName);

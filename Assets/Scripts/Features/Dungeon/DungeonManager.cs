@@ -135,6 +135,97 @@ public class DungeonManager : MonoBehaviour
         );
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PARTY DUNGEON ENTRY (multiplayer)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// HOST path: create the backend dungeon session (Enter API) ONCE, then hand the
+    /// resulting session id back so the host can publish it to the party. The scene
+    /// transition itself is driven separately (after every member has migrated) via
+    /// <see cref="EnterDungeonScene"/>. Falls back to a dummy session id on API error
+    /// (matching the existing solo behaviour).
+    /// </summary>
+public void CreatePartySession(int configId, string dungeonSceneName, int cost, string dungeonName,
+                                  List<string> partyMembers, Action<int> onReady)
+    {
+        CurrentDungeonConfigId = configId;
+        CurrentDungeonCost = cost;
+        CurrentDungeonName = dungeonName;
+        _currentPartyMembers = partyMembers ?? new List<string>();
+        _currentDungeonSceneName = dungeonSceneName;
+
+        DungeonApi.Instance.Enter(configId, _currentPartyMembers,
+            onSuccess: response =>
+            {
+                CurrentSessionId = response != null ? response.DungeonSessionId : 0;
+                if (CurrentSessionId <= 0)
+                {
+                    Debug.LogWarning("[DungeonManager] Party Enter API returned no session id. Aborting dungeon entry.");
+                    WorldRuntimeEvents.RaiseMessage("Cannot start dungeon: backend returned no session.");
+                    onReady?.Invoke(0);
+                    return;
+                }
+                onReady?.Invoke(CurrentSessionId);
+            },
+            onError: error =>
+            {
+                Debug.LogWarning($"[DungeonManager] Party Enter API failed: {error.Message}. Aborting dungeon entry.");
+                CurrentSessionId = 0;
+                WorldRuntimeEvents.RaiseMessage($"Cannot start dungeon: {error.Message}");
+                onReady?.Invoke(0);
+            }
+        );
+    }
+
+    /// <summary>
+    /// EVERY client (host + members): perform the actual scene transition into the
+    /// dungeon using an already-established session id (from the host). Does NOT call
+    /// the Enter API again — members reuse the host's session. Reuses the existing
+    /// <see cref="TransitionToDungeon"/> pipeline so camera/scene handling is identical
+    /// to the solo flow. The networked avatar (spawned by PhotonManager on migration)
+    /// is picked up by FindPlayerInstance just like a local player.
+    /// </summary>
+    public void EnterDungeonScene(int configId, string dungeonSceneName, int cost, string dungeonName, int sessionId)
+    {
+        if (sessionId <= 0)
+        {
+            Debug.LogWarning("[DungeonManager] EnterDungeonScene aborted: invalid session id.");
+            WorldRuntimeEvents.RaiseMessage("Cannot enter dungeon: backend session missing.");
+            return;
+        }
+
+        CurrentDungeonConfigId = configId;
+        CurrentDungeonCost = cost;
+        CurrentDungeonName = dungeonName;
+        _currentDungeonSceneName = dungeonSceneName;
+        CurrentSessionId = sessionId;
+        IsInDungeon = true;
+
+        EnemiesKilledCount = 0;
+        bossKilled = false;
+        _currentPhase = DungeonPhase.Normal;
+        _normalEnemies.Clear();
+        _bossEnemies.Clear();
+        _bossDeathPosition = Vector3.zero;
+
+        PreviousMapSceneName = WorldState.CurrentMapName;
+
+        var player = FindPlayerInstance();
+        if (player != null && player.transform.position != Vector3.zero)
+        {
+            PreviousPlayerPosition = player.transform.position;
+            HasPreviousPlayerPosition = true;
+        }
+        else
+        {
+            PreviousPlayerPosition = WorldState.LastPosition;
+            HasPreviousPlayerPosition = true;
+        }
+
+        StartCoroutine(TransitionToDungeon(dungeonSceneName));
+    }
+
     private IEnumerator TransitionToDungeon(string dungeonSceneName)
     {
         // Find player first before unloading

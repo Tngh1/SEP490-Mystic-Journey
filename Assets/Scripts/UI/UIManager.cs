@@ -198,7 +198,7 @@ public class UIManager : MonoBehaviour
         EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");
         EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
         EnsurePanelRuntime<UIChestRewardPanel>(chestPanel, "ChestPanel");
-        EnsurePanelRuntime<UIDungeonRoomPanel>(dungeonPanel, "TeamPanel");
+        EnsurePanelRuntime<UIPartyPanel>(dungeonPanel, "TeamPanel");
 
         if (DungeonManager.Instance == null)
         {

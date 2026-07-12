@@ -121,9 +121,9 @@ public class PlayerSpawner : MonoBehaviour
 
     private void SpawnPlayer()
     {
-        if (PhotonManager.Instance != null && PhotonManager.Instance.IsConnected)
+        if (PhotonManager.Instance != null && PhotonManager.Instance.IsDungeonSession)
         {
-            Debug.Log("[PlayerSpawner] Photon connected - skipping local spawn; NetworkPlayer will own the avatar.");
+            Debug.Log("[PlayerSpawner] Dungeon session active - skipping local spawn; NetworkPlayer will own the avatar.");
             return;
         }
 
