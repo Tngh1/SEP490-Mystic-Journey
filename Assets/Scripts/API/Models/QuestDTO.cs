@@ -1,6 +1,5 @@
 namespace MysticJourney.API.Models.Response
 {
-    // Maps QuestResponseDto
     [System.Serializable]
     public class QuestResponse
     {
@@ -17,13 +16,26 @@ namespace MysticJourney.API.Models.Response
         public string QuestGiverName { get; set; }
         public int RequiredLevel { get; set; }
         public int TargetAmount { get; set; }
+
+        public string IconUrl { get; set; }
+        public string QuestIconUrl { get; set; }
+        public string IconKey { get; set; }
+        public string QuestIconKey { get; set; }
+
         public int RewardExperience { get; set; }
         public decimal RewardGold { get; set; }
         public decimal RewardGems { get; set; }
+        public string RewardExperienceIconUrl { get; set; }
+        public string RewardExpIconUrl { get; set; }
+        public string RewardGoldIconUrl { get; set; }
+        public string RewardGemsIconUrl { get; set; }
+        public string RewardGemIconUrl { get; set; }
         public int? RewardItemId { get; set; }
         public string RewardItemName { get; set; }
+        public string RewardItemIconUrl { get; set; }
         public int? RewardSkillId { get; set; }
         public string RewardSkillName { get; set; }
+        public string RewardSkillIconUrl { get; set; }
         public bool IsActive { get; set; }
     }
 }

@@ -372,10 +372,12 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
                     string className = WorldState.PlayerClass ?? "Knight";
                     if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
                         parsed = CharacterClass.Knight;
+
                     netPlayer.PlayerClass = (int)parsed;
                     netPlayer.PlayerName = WorldState.PlayerName ?? "Player";
                     netPlayer.PlayerProfileId = WorldState.PlayerProfileId;
                     netPlayer.Level = Mathf.Max(1, WorldState.PlayerLevel);
+                    netPlayer.EquippedSkinId = Mathf.Max(0, WorldState.EquippedSkinId);
                 }
             });
 

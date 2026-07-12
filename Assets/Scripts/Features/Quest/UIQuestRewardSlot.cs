@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -39,8 +39,18 @@ public class UIQuestRewardSlot : MonoBehaviour
     {
         Bind();
 
-        if (rewardIcon != null && sprite != null)
-            rewardIcon.sprite = sprite;
+        if (rewardIcon != null)
+        {
+            if (sprite != null)
+            {
+                rewardIcon.sprite = sprite;
+                rewardIcon.enabled = true;
+            }
+            else
+            {
+                rewardIcon.enabled = false;
+            }
+        }
 
         if (rewardNameText != null)
             rewardNameText.text = rewardName ?? string.Empty;
