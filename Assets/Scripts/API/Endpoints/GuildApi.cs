@@ -11,6 +11,14 @@ namespace MysticJourney.API.Endpoints
     {
         // ─── View ─────────────────────────────────────────────────────────
 
+        public static void GetMyGuild(
+            Action<GuildDetailResponseDto> onSuccess,
+            Action<ApiException> onError = null)
+        {
+            string url = ApiConfig.GuildMyGuild + "?t=" + System.DateTime.Now.Ticks;
+            ApiClient.Instance.Get<GuildDetailResponseDto>(url, onSuccess, onError, requiresAuth: true);
+        }
+
         public static void GetGuildList(string search, int? joinPolicy, int? minLevel, Action<List<GuildResponseDto>> onSuccess, Action<ApiException> onError)
         {
             string url = $"{ApiConfig.GuildList}?search={UnityWebRequest.EscapeURL(search ?? "")}";

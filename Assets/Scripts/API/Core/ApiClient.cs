@@ -299,11 +299,11 @@ namespace MysticJourney.API.Core
             }
 
             // Parse thành công → deserialize JSON thành kiểu T
+            T result = default;
             try
             {
-                T result = UnwrapEnvelope<T>(rawBody);
+                result = UnwrapEnvelope<T>(rawBody);
                 Debug.Log($"[ApiClient] ✅ {request.responseCode} OK | type={typeof(T).Name}");
-                onSuccess?.Invoke(result);
             }
             catch (Exception ex)
             {
@@ -318,7 +318,11 @@ namespace MysticJourney.API.Core
                     Message = $"Không thể parse JSON sang {typeof(T).Name}: {ex.Message}",
                     RawBody = rawBody
                 });
+                return; // Stop execution if parsing fails
             }
+
+            // Gọi onSuccess BÊN NGOÀI try-catch để lỗi của Callback không bị nhầm thành lỗi Parse JSON
+            onSuccess?.Invoke(result);
         }
 
         // Unwrap envelope ApiResponse<T> { success, message, errorCode, data }
@@ -329,7 +333,10 @@ namespace MysticJourney.API.Core
             
             // Nếu T là ApiResponse<> → parse trực tiếp
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>))
+            {
+                Debug.Log($"[ApiClient] RAW JSON for {targetType.Name}: {rawBody}");
                 return JsonConvert.DeserializeObject<T>(rawBody);
+            }
 
             // Thử parse envelope trước
             try
@@ -339,14 +346,20 @@ namespace MysticJourney.API.Core
                 {
                     // Re-serialize Data rồi deserialize sang T để unwrap
                     string dataJson = JsonConvert.SerializeObject(envelope.Data);
+                    Debug.Log($"[ApiClient] UNWRAPPED JSON for {targetType.Name}: {dataJson}");
                     return JsonConvert.DeserializeObject<T>(dataJson);
                 }
+                else
+                {
+                    Debug.LogWarning($"[ApiClient] ENVELOPE FAILED OR DATA NULL. Raw: {rawBody}");
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Không phải envelope → fallback parse raw
+                Debug.LogWarning($"[ApiClient] Envelope parse error: {ex.Message}");
             }
             
+            Debug.Log($"[ApiClient] FALLBACK JSON for {targetType.Name}: {rawBody}");
             // Parse trực tiếp nếu không có envelope
             return JsonConvert.DeserializeObject<T>(rawBody);
         }
