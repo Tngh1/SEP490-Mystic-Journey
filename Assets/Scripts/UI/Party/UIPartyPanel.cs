@@ -1,0 +1,874 @@
+using System;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using MysticJourney.API.Endpoints;
+using MysticJourney.API.Models.Response;
+
+/// <summary>
+/// The pre-dungeon party panel (VIEW). It renders the live party roster from
+/// <see cref="PartyLobby.Local"/> and translates user clicks into <see cref="PartyService"/>
+/// calls — it holds NO party business logic and NO local roster state; the authoritative
+/// state is the replicated PartyLobby.
+///
+/// Two modes share the same UI:
+///   • Solo  — no party yet. Slot 1 shows the local player; slots 2-4 show "+" invite
+///             buttons; Start enters the dungeon single-player (existing flow, untouched).
+///   • Party — the local player created/joined a party. Slots show real members
+///             (name / class / level / ready / host icon) and update in realtime via
+///             Fusion; Start/Ready/Kick/Leave route through PartyService.
+///
+/// Inviting the first friend lazily creates the party (PartyService.InviteByProfileId),
+/// so the solo→party transition is seamless.
+/// </summary>
+public class UIPartyPanel : MonoBehaviour
+{
+    public static UIPartyPanel Instance { get; private set; }
+
+    [Header("Static References")]
+    [SerializeField] private TMP_Text dungeonNameText;
+    [SerializeField] private TMP_Text descriptionText;
+    [SerializeField] private TMP_Text energyCostText;
+    [SerializeField] private Button startButton;
+    [SerializeField] private Button closeButton;
+
+    [Header("Party Slots (index 0 = host slot). Auto-found under 'Players' if empty.")]
+    [SerializeField] private UIPartySlot[] slots;
+
+    [Tooltip("Class → avatar sprite mapping. Auto-loaded from Resources/ClassAvatarDatabase if empty.")]
+    [SerializeField] private ClassAvatarDatabaseSO avatarDatabase;
+
+    [Header("Runtime Info")]
+    private int selectedConfigId = 1;
+    private string selectedSceneName = "AbandonedMines";
+    private string selectedDungeonName = "Abandoned Mines";
+    private int energyCost = 20;
+    private int playerEnergy = 0;
+    private int recommendedLevel = 1;
+    private int difficulty = 1;
+
+    // Local player identity (for the host slot in solo mode + as fallback).
+    private string localPlayerName = "Player";
+    private int localPlayerLevel = 1;
+
+    private GameObject dynamicCanvasObj;
+    private GameObject friendModalObj;
+
+    // Currently hooked party (for instance-event subscription lifecycle).
+    private PartyLobby _hookedParty;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(this);
+            return;
+        }
+        gameObject.SetActive(false);
+    }
+
+    private void OnEnable()
+    {
+        PartyLobby.OnLocalPartyChanged += HandleLocalPartyChanged;
+        RehookPartyEvents();
+    }
+
+    private void OnDisable()
+    {
+        PartyLobby.OnLocalPartyChanged -= HandleLocalPartyChanged;
+        UnhookPartyEvents();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Party event wiring — keep instance-level subscriptions pointed at the
+    // current PartyLobby.Local (which changes as we join / leave / get promoted).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void RehookPartyEvents()
+    {
+        UnhookPartyEvents();
+        _hookedParty = PartyLobby.Local;
+        if (_hookedParty != null)
+        {
+            _hookedParty.OnRosterChanged += UpdateUI;
+            _hookedParty.OnPartyStateChanged += HandlePartyState;
+        }
+    }
+
+    private void UnhookPartyEvents()
+    {
+        if (_hookedParty != null)
+        {
+            _hookedParty.OnRosterChanged -= UpdateUI;
+            _hookedParty.OnPartyStateChanged -= HandlePartyState;
+            _hookedParty = null;
+        }
+    }
+
+    private void HandleLocalPartyChanged()
+    {
+        RehookPartyEvents();
+        if (gameObject.activeInHierarchy) UpdateUI();
+    }
+
+    private void HandlePartyState(PartyLobby.PartyState state)
+    {
+        // Leaving the lobby (host pressed Start) closes this panel; the actual dungeon
+        // transition is driven by PartyManager (Step 5).
+        if (state != PartyLobby.PartyState.Lobby)
+        {
+            Close();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Open / data load
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Direct initialization from DungeonEntrance triggers
+    public void OpenForDungeon(int configId, string sceneName, int cost, string displayName)
+    {
+        selectedConfigId = configId;
+        selectedSceneName = sceneName;
+        energyCost = cost;
+        selectedDungeonName = displayName;
+
+        // Fetch detailed config info via GetById to grab recommended level, difficulty and energy cost
+        DungeonApi.Instance.GetById(configId,
+            response =>
+            {
+                if (response != null)
+                {
+                    recommendedLevel = response.LevelRequirement;
+                    difficulty = response.Difficulty;
+                    energyCost = response.EnergyCost;
+                }
+                gameObject.SetActive(true);
+                PublishDungeonSelectionIfHost();
+                FetchPlayerEnergy();
+            },
+            error =>
+            {
+                recommendedLevel = 1;
+                difficulty = 2;
+                gameObject.SetActive(true);
+                PublishDungeonSelectionIfHost();
+                FetchPlayerEnergy();
+            }
+        );
+    }
+
+    // Backward compatibility for general string matching search
+    public void OpenForDungeon(string matchName)
+    {
+        gameObject.SetActive(true);
+        LoadDungeonAndEnergy(matchName);
+    }
+
+    private void LoadDungeonAndEnergy(string matchName)
+    {
+        DungeonApi.Instance.GetAll(1, 10,
+            onSuccess: response =>
+            {
+                if (response?.Items != null)
+                {
+                    DungeonResponse mines = null;
+                    foreach (var d in response.Items)
+                    {
+                        if (d != null && d.Name != null && d.Name.ToLower().Contains(matchName.ToLower()))
+                        {
+                            mines = d;
+                            break;
+                        }
+                    }
+
+                    if (mines != null)
+                    {
+                        selectedConfigId = mines.DungeonConfigId;
+                        selectedDungeonName = mines.Name;
+                        energyCost = mines.EnergyCost;
+                        recommendedLevel = mines.LevelRequirement;
+                        difficulty = mines.Difficulty;
+                        selectedSceneName = "HollowCryptDungeon";
+                    }
+                    else
+                    {
+                        selectedConfigId = 1;
+                        selectedSceneName = "HollowCryptDungeon";
+                        selectedDungeonName = "Abandoned Mines";
+                        energyCost = 20;
+                        recommendedLevel = 1;
+                        difficulty = 2;
+                    }
+                }
+                PublishDungeonSelectionIfHost();
+                FetchPlayerEnergy();
+            },
+            onError: error =>
+            {
+                selectedConfigId = 1;
+                selectedSceneName = "AbandonedMines";
+                selectedDungeonName = "Abandoned Mines";
+                energyCost = 20;
+                recommendedLevel = 1;
+                difficulty = 2;
+                PublishDungeonSelectionIfHost();
+                FetchPlayerEnergy();
+            }
+        );
+    }
+
+    /// <summary>If the local player hosts a party, share the current selection so
+    /// every member's panel shows the same dungeon (24.2).</summary>
+    private void PublishDungeonSelectionIfHost()
+    {
+        if (PartyService.IsHost)
+            PartyService.SetDungeon(selectedConfigId, selectedSceneName, selectedDungeonName);
+    }
+
+    private void FetchPlayerEnergy()
+    {
+        PlayerApi.Instance.GetMyProfile(
+            profile =>
+            {
+                playerEnergy = profile.Energy;
+                localPlayerName = profile.DisplayName;
+                localPlayerLevel = Mathf.Max(1, profile.Level);
+                UpdateUI();
+            },
+            error =>
+            {
+                Debug.LogWarning($"[UIPartyPanel] GetMyProfile failed: {error.Message}");
+                playerEnergy = 100; // Fallback
+                localPlayerName = WorldState.PlayerName ?? "Player";
+                localPlayerLevel = Mathf.Max(1, WorldState.PlayerLevel);
+                UpdateUI();
+            }
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Rendering
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void UpdateUI()
+    {
+        if (transform.Find("Players") == null)
+        {
+            Debug.LogError("[UIPartyPanel] Players child not found on PartyPanel! Designed UI hierarchy is incorrect.");
+            return;
+        }
+
+        FindReferences();
+
+        var party = PartyLobby.Local;
+        bool nonHostMember = party != null && !party.IsLocalHost;
+
+        // Header dungeon name: a non-host member reads the host's published selection.
+        string dungeonName = selectedDungeonName;
+        if (nonHostMember && !string.IsNullOrEmpty(party.DungeonName.Value))
+            dungeonName = party.DungeonName.Value;
+
+        if (dungeonNameText != null)
+        {
+            dungeonNameText.text = dungeonName;
+            dungeonNameText.textWrappingMode = TextWrappingModes.NoWrap;
+            dungeonNameText.enableAutoSizing = true;
+            dungeonNameText.fontSizeMax = 48;
+            dungeonNameText.fontSizeMin = 18;
+        }
+        if (descriptionText != null)
+            descriptionText.text = "Enter the dungeon and defeat the boss to claim the ancient reward chest.";
+
+        UpdateEnergyCostLabel();
+        UpdatePlayersPanel();
+        UpdateBottomBar();
+    }
+
+    private void UpdateEnergyCostLabel()
+    {
+        if (energyCostText == null) return;
+        energyCostText.text = $"-{energyCost}";
+        energyCostText.color = playerEnergy >= energyCost
+            ? new Color(0.18f, 0.8f, 0.25f)   // green
+            : new Color(0.9f, 0.2f, 0.2f);    // red
+    }
+
+    private void FindReferences()
+    {
+        // 1. Header & Exit button
+        Transform headerTrans = transform.Find("Header");
+        if (headerTrans != null)
+        {
+            Transform exitBtnTrans = headerTrans.Find("ExitButton");
+            if (exitBtnTrans != null)
+            {
+                closeButton = exitBtnTrans.GetComponent<Button>();
+                if (closeButton != null)
+                {
+                    closeButton.onClick.RemoveAllListeners();
+                    closeButton.onClick.AddListener(OnExitClick);
+                    AddHoverEffect(closeButton.gameObject);
+                }
+            }
+
+            Transform dungeonNameTrans = headerTrans.Find("DungeonName");
+            if (dungeonNameTrans != null)
+            {
+                dungeonNameText = dungeonNameTrans.GetComponentInChildren<TMP_Text>(true);
+            }
+        }
+
+        // 2. DungeonInformation
+        Transform infoTrans = transform.Find("DungeonInformation");
+        if (infoTrans != null)
+        {
+            Transform descPanelTrans = infoTrans.Find("DescriptionPanel");
+            if (descPanelTrans != null)
+            {
+                Transform descTrans = descPanelTrans.Find("Description");
+                descriptionText = (descTrans != null ? descTrans : descPanelTrans).GetComponentInChildren<TMP_Text>(true);
+            }
+
+            SetTextOfChild(infoTrans, "TypeDungeon", "Type: Normal");
+            SetTextOfChild(infoTrans, "LevelRequirement", $"Req. Level: Lv. {recommendedLevel}");
+            SetTextOfChild(infoTrans, "Difficulty", $"Difficulty: {difficulty} / 5 Stars");
+        }
+
+        // 3. BottomSection
+        Transform bottomTrans = transform.Find("BottomSection");
+        if (bottomTrans != null)
+        {
+            Transform startBtnTrans = bottomTrans.Find("StartButton");
+            if (startBtnTrans != null)
+            {
+                startButton = startBtnTrans.GetComponent<Button>();
+                AddHoverEffect(startButton != null ? startButton.gameObject : startBtnTrans.gameObject);
+            }
+
+            Transform energyTrans = bottomTrans.Find("EnergyCost");
+            if (energyTrans != null)
+            {
+                energyCostText = energyTrans.GetComponentInChildren<TMP_Text>(true);
+            }
+        }
+    }
+
+    private void SetTextOfChild(Transform parent, string childName, string text)
+    {
+        Transform child = parent.Find(childName);
+        if (child == null) return;
+        var tmp = child.GetComponentInChildren<TMP_Text>(true);
+        if (tmp != null) { tmp.text = text; return; }
+        var legacy = child.GetComponentInChildren<Text>(true);
+        if (legacy != null) legacy.text = text;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Player slots (24.1 View Party List)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void UpdatePlayersPanel()
+    {
+        Transform playersTrans = transform.Find("Players");
+        if (playersTrans == null) return;
+
+        EnsureSlotsResolved();
+        if (slots == null || slots.Length == 0) return;
+
+        var party = PartyLobby.Local;
+        bool localIsHost = party == null || party.IsLocalHost; // solo counts as host of the "+" buttons
+
+        // ── Slot 0: host ─────────────────────────────────────────────────────
+        if (slots.Length > 0 && slots[0] != null)
+        {
+            string hostName; int hostLevel; CharacterClass hostCls;
+            if (party != null && TryGetHostMember(party, out var hostMember))
+            {
+                hostName = hostMember.Name.Value;
+                hostLevel = hostMember.Level;
+                hostCls = (CharacterClass)hostMember.PlayerClass;
+            }
+            else
+            {
+                hostName = localPlayerName;
+                hostLevel = localPlayerLevel;
+                if (!Enum.TryParse(WorldState.PlayerClass ?? "Knight", true, out hostCls))
+                    hostCls = CharacterClass.Knight;
+            }
+            slots[0].RenderHost(hostName, hostLevel, hostCls, AvatarFor(hostCls));
+        }
+
+        // ── Slots 1..N: other members / invite buttons ───────────────────────
+        var others = new PartyLobby.Member[Mathf.Max(0, slots.Length - 1)];
+        int otherCount = 0;
+        if (party != null)
+        {
+            for (int i = 0; i < PartyLobby.MaxMembers && otherCount < others.Length; i++)
+            {
+                var m = party.Members[i];
+                if (m.IsOccupied && m.Player != party.HostPlayer)
+                    others[otherCount++] = m;
+            }
+        }
+
+        for (int s = 1; s < slots.Length; s++)
+        {
+            var slot = slots[s];
+            if (slot == null) continue;
+
+            int otherIdx = s - 1;
+            if (otherIdx < otherCount)
+            {
+                var m = others[otherIdx];
+                var cls = (CharacterClass)m.PlayerClass;
+                var target = m.Player;
+                slot.RenderMember(m.Name.Value, m.Level, cls, AvatarFor(cls), m.Ready,
+                    canKick: localIsHost, onKick: () => PartyService.KickMember(target));
+            }
+            else
+            {
+                slot.RenderEmpty(canInvite: localIsHost, onInvite: OpenFriendListModal);
+            }
+        }
+    }
+
+    private void EnsureSlotsResolved()
+    {
+        if (slots != null && slots.Length > 0)
+        {
+            // Fill any null entries by name (Player1..PlayerN under Players).
+            bool anyNull = false;
+            for (int i = 0; i < slots.Length; i++) if (slots[i] == null) anyNull = true;
+            if (!anyNull) { EnsureAvatarDb(); return; }
+        }
+
+        Transform playersTrans = transform.Find("Players");
+        if (playersTrans != null)
+        {
+            int count = playersTrans.childCount;
+            var resolved = new UIPartySlot[count];
+            for (int i = 0; i < count; i++)
+            {
+                var child = playersTrans.Find($"Player{i + 1}");
+                if (child == null) child = playersTrans.GetChild(i);
+                if (child == null) continue;
+                var comp = child.GetComponent<UIPartySlot>();
+                if (comp == null) comp = child.gameObject.AddComponent<UIPartySlot>();
+                resolved[i] = comp;
+            }
+            slots = resolved;
+        }
+
+        EnsureAvatarDb();
+    }
+
+    private void EnsureAvatarDb()
+    {
+        if (avatarDatabase == null)
+            avatarDatabase = ClassAvatarDatabaseSO.LoadDefault();
+    }
+
+    private Sprite AvatarFor(CharacterClass cls)
+    {
+        return avatarDatabase != null ? avatarDatabase.GetSprite(cls) : null;
+    }
+
+    private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)
+    {
+        for (int i = 0; i < PartyLobby.MaxMembers; i++)
+        {
+            var m = party.Members[i];
+            if (m.IsOccupied && m.Player == party.HostPlayer)
+            {
+                host = m;
+                return true;
+            }
+        }
+        host = default;
+        return false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Bottom bar: Start (host / solo) or Ready toggle (member) — 24.8 + Start
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void UpdateBottomBar()
+    {
+        if (startButton == null) return;
+
+        var party = PartyLobby.Local;
+        var label = startButton.GetComponentInChildren<TMP_Text>(true);
+        startButton.onClick.RemoveAllListeners();
+
+        if (party != null && !party.IsLocalHost)
+        {
+            // Non-host member → Ready / Unready toggle.
+            bool ready = IsLocalMemberReady(party);
+            if (label != null) label.text = ready ? "READY ✓" : "READY";
+            startButton.interactable = true;
+            bool next = !ready;
+            startButton.onClick.AddListener(() => PartyService.SetReady(next));
+            return;
+        }
+
+        // Host or solo → Start.
+        if (label != null) label.text = "START";
+
+        if (party != null)
+        {
+            // Party host: gated by ≥2 members, all ready, no pending invite.
+            startButton.interactable = party.CanStartDungeon && playerEnergy >= energyCost;
+            startButton.onClick.AddListener(OnStartClick);
+        }
+        else
+        {
+            // Solo: existing single-player entry, gated only by energy.
+            startButton.interactable = playerEnergy >= energyCost;
+            startButton.onClick.AddListener(OnStartClick);
+        }
+    }
+
+    private bool IsLocalMemberReady(PartyLobby party)
+    {
+        var runner = PhotonManager.Instance != null ? PhotonManager.Instance.Runner : null;
+        if (runner == null) return false;
+        for (int i = 0; i < PartyLobby.MaxMembers; i++)
+        {
+            var m = party.Members[i];
+            if (m.IsOccupied && m.Player == runner.LocalPlayer) return m.Ready;
+        }
+        return false;
+    }
+
+    private void OnStartClick()
+    {
+        if (playerEnergy < energyCost)
+        {
+            WorldRuntimeEvents.RaiseMessage("Not enough energy for this dungeon!");
+            return;
+        }
+
+        var party = PartyLobby.Local;
+        if (party != null && party.IsLocalHost)
+        {
+            // Party path — flip networked state; PartyManager (Step 5) drives the load.
+            if (!party.CanStartDungeon)
+            {
+                WorldRuntimeEvents.RaiseMessage("All members must be ready (need at least 2 players).");
+                return;
+            }
+            PartyService.StartDungeon(selectedConfigId, selectedSceneName);
+            return;
+        }
+
+        // Solo path — unchanged existing single-player dungeon entry.
+        Close();
+        DungeonManager.Instance.StartDungeon(selectedConfigId, selectedSceneName, energyCost, selectedDungeonName);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Exit / leave (24.7)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void OnExitClick()
+    {
+        // Leaving the panel while in a party leaves the party too.
+        if (PartyLobby.Local != null)
+        {
+            PartyService.LeaveParty();
+        }
+        Close();
+        WorldRuntimeEvents.RaiseMessage("Dungeon expedition cancelled.");
+    }
+
+    public void Close()
+    {
+        if (UIManager.Instance != null && UIManager.Instance.dungeonPanel == gameObject)
+        {
+            UIManager.Instance.ClosePanel(gameObject);
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
+
+        if (friendModalObj != null)
+        {
+            Destroy(friendModalObj);
+            friendModalObj = null;
+        }
+        if (dynamicCanvasObj != null)
+        {
+            Destroy(dynamicCanvasObj);
+            dynamicCanvasObj = null;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Friend list modal (24.4 Invite Player)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void OpenFriendListModal()
+    {
+        if (friendModalObj != null) Destroy(friendModalObj);
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) return;
+
+        friendModalObj = new GameObject("FriendListModal_Container");
+        friendModalObj.transform.SetParent(canvas.transform, false);
+
+        GameObject blockObj = new GameObject("BlockOverlay", typeof(RectTransform), typeof(Image));
+        blockObj.transform.SetParent(friendModalObj.transform, false);
+        blockObj.GetComponent<Image>().color = new Color(0, 0, 0, 0.4f);
+        RectTransform blockRt = blockObj.GetComponent<RectTransform>();
+        blockRt.anchorMin = Vector2.zero;
+        blockRt.anchorMax = Vector2.one;
+        blockRt.sizeDelta = Vector2.zero;
+
+        GameObject frameObj = new GameObject("Frame", typeof(RectTransform), typeof(Image));
+        frameObj.transform.SetParent(friendModalObj.transform, false);
+        frameObj.GetComponent<Image>().color = new Color(0.15f, 0.15f, 0.18f, 0.98f);
+        RectTransform frameRt = frameObj.GetComponent<RectTransform>();
+        frameRt.anchorMin = new Vector2(0.5f, 0.5f);
+        frameRt.anchorMax = new Vector2(0.5f, 0.5f);
+        frameRt.sizeDelta = new Vector2(340, 400);
+
+        GameObject modalTitleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        modalTitleObj.transform.SetParent(frameObj.transform, false);
+        TextMeshProUGUI modalTitle = modalTitleObj.GetComponent<TextMeshProUGUI>();
+        modalTitle.text = "INVITE FRIENDS";
+        modalTitle.fontSize = 16;
+        modalTitle.fontStyle = FontStyles.Bold;
+        modalTitle.alignment = TextAlignmentOptions.Center;
+        modalTitle.color = Color.white;
+        RectTransform mtRt = modalTitleObj.GetComponent<RectTransform>();
+        mtRt.anchorMin = new Vector2(0.5f, 1f);
+        mtRt.anchorMax = new Vector2(0.5f, 1f);
+        mtRt.pivot = new Vector2(0.5f, 1f);
+        mtRt.anchoredPosition = new Vector2(0, -15);
+        mtRt.sizeDelta = new Vector2(300, 30);
+
+        GameObject scrollAreaObj = new GameObject("ScrollArea", typeof(RectTransform), typeof(VerticalLayoutGroup));
+        scrollAreaObj.transform.SetParent(frameObj.transform, false);
+        RectTransform saRt = scrollAreaObj.GetComponent<RectTransform>();
+        saRt.anchorMin = new Vector2(0, 0);
+        saRt.anchorMax = new Vector2(1, 1);
+        saRt.offsetMin = new Vector2(15, 65);
+        saRt.offsetMax = new Vector2(-15, -45);
+
+        VerticalLayoutGroup saLayout = scrollAreaObj.GetComponent<VerticalLayoutGroup>();
+        saLayout.spacing = 8;
+        saLayout.childAlignment = TextAnchor.UpperCenter;
+        saLayout.childControlHeight = false;
+        saLayout.childControlWidth = true;
+
+        GameObject closeBtnObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        closeBtnObj.transform.SetParent(frameObj.transform, false);
+        closeBtnObj.GetComponent<Image>().color = new Color(0.5f, 0.2f, 0.2f);
+        AddHoverEffect(closeBtnObj);
+        RectTransform cRt = closeBtnObj.GetComponent<RectTransform>();
+        cRt.anchorMin = new Vector2(0.5f, 0f);
+        cRt.anchorMax = new Vector2(0.5f, 0f);
+        cRt.pivot = new Vector2(0.5f, 0f);
+        cRt.anchoredPosition = new Vector2(0, 15);
+        cRt.sizeDelta = new Vector2(120, 32);
+
+        Button closeBtn = closeBtnObj.GetComponent<Button>();
+        closeBtn.onClick.AddListener(() =>
+        {
+            Destroy(friendModalObj);
+            friendModalObj = null;
+        });
+
+        GameObject closeTxtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        closeTxtObj.transform.SetParent(closeBtnObj.transform, false);
+        TextMeshProUGUI closeTxt = closeTxtObj.GetComponent<TextMeshProUGUI>();
+        closeTxt.text = "CLOSE";
+        closeTxt.fontSize = 12;
+        closeTxt.fontStyle = FontStyles.Bold;
+        closeTxt.alignment = TextAlignmentOptions.Center;
+        closeTxt.color = Color.white;
+        RectTransform ctRt = closeTxtObj.GetComponent<RectTransform>();
+        ctRt.anchorMin = Vector2.zero;
+        ctRt.anchorMax = Vector2.one;
+        ctRt.sizeDelta = Vector2.zero;
+
+        PlayerApi.Instance.GetFriends(
+            response =>
+            {
+                if (response != null && response.Length > 0)
+                {
+                    foreach (var friend in response)
+                    {
+                        if (friend == null) continue;
+                        AddFriendRow(scrollAreaObj.transform, friend);
+                    }
+                }
+                else
+                {
+                    AddNoFriendsLabel(scrollAreaObj.transform);
+                }
+            },
+            error =>
+            {
+                Debug.LogWarning($"[UIPartyPanel] GetFriends failed: {error.Message}");
+                AddNoFriendsLabel(scrollAreaObj.transform);
+            }
+        );
+    }
+
+    private void AddFriendRow(Transform parent, PlayerProfileResponse friend)
+    {
+        GameObject row = new GameObject($"FriendRow_{friend.DisplayName}", typeof(RectTransform), typeof(Image));
+        row.transform.SetParent(parent, false);
+        row.GetComponent<Image>().color = new Color(0.2f, 0.2f, 0.24f, 0.6f);
+        row.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 45);
+
+        GameObject textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textObj.transform.SetParent(row.transform, false);
+        TextMeshProUGUI txt = textObj.GetComponent<TextMeshProUGUI>();
+        txt.text = $"👤 {friend.DisplayName} (Lv.{friend.Level} {friend.PlayerClass})";
+        txt.fontSize = 12;
+        txt.color = Color.white;
+        txt.alignment = TextAlignmentOptions.MidlineLeft;
+
+        RectTransform rt = textObj.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(10, 0);
+        rt.offsetMax = new Vector2(-75, 0);
+
+        GameObject inviteBtnObj = new GameObject("InviteBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        inviteBtnObj.transform.SetParent(row.transform, false);
+        Image btnImg = inviteBtnObj.GetComponent<Image>();
+        Button btn = inviteBtnObj.GetComponent<Button>();
+        AddHoverEffect(inviteBtnObj);
+
+        RectTransform btnRt = inviteBtnObj.GetComponent<RectTransform>();
+        btnRt.anchorMin = new Vector2(1, 0.5f);
+        btnRt.anchorMax = new Vector2(1, 0.5f);
+        btnRt.pivot = new Vector2(1, 0.5f);
+        btnRt.anchoredPosition = new Vector2(-8, 0);
+        btnRt.sizeDelta = new Vector2(60, 28);
+
+        // Already in the party?
+        bool alreadyInParty = IsProfileInParty(friend.PlayerProfileId);
+        btnImg.color = alreadyInParty ? new Color(0.4f, 0.4f, 0.4f, 0.5f) : new Color(0.2f, 0.5f, 0.2f);
+        btn.interactable = !alreadyInParty;
+
+        GameObject btnTxtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        btnTxtObj.transform.SetParent(inviteBtnObj.transform, false);
+        TextMeshProUGUI btnTxt = btnTxtObj.GetComponent<TextMeshProUGUI>();
+        btnTxt.text = alreadyInParty ? "IN" : "INVITE";
+        btnTxt.fontSize = 11;
+        btnTxt.fontStyle = FontStyles.Bold;
+        btnTxt.alignment = TextAlignmentOptions.Center;
+        btnTxt.color = Color.white;
+        RectTransform btnTxtRt = btnTxtObj.GetComponent<RectTransform>();
+        btnTxtRt.anchorMin = Vector2.zero;
+        btnTxtRt.anchorMax = Vector2.one;
+        btnTxtRt.sizeDelta = Vector2.zero;
+
+        if (!alreadyInParty)
+        {
+            int profileId = friend.PlayerProfileId;
+            string friendName = friend.DisplayName;
+            btn.onClick.AddListener(() =>
+            {
+                bool sent = PartyService.InviteByProfileId(profileId);
+                if (sent)
+                {
+                    WorldRuntimeEvents.RaiseMessage($"Invited {friendName}.");
+                    btnTxt.text = "SENT";
+                    btnImg.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+                    btn.interactable = false;
+                    UpdateUI();
+                }
+                else
+                {
+                    WorldRuntimeEvents.RaiseMessage($"{friendName} is not online right now.");
+                }
+            });
+        }
+    }
+
+    private static bool IsProfileInParty(int profileId)
+    {
+        var party = PartyLobby.Local;
+        if (party == null) return false;
+        for (int i = 0; i < PartyLobby.MaxMembers; i++)
+        {
+            var m = party.Members[i];
+            if (m.IsOccupied && m.ProfileId == profileId) return true;
+        }
+        return false;
+    }
+
+    private void AddNoFriendsLabel(Transform parent)
+    {
+        GameObject txtObj = new GameObject("NoFriendsText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        txtObj.transform.SetParent(parent, false);
+        TextMeshProUGUI txt = txtObj.GetComponent<TextMeshProUGUI>();
+        txt.text = "No friends online.";
+        txt.fontSize = 13;
+        txt.color = new Color(0.6f, 0.6f, 0.6f);
+        txt.alignment = TextAlignmentOptions.Center;
+        txtObj.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 40);
+    }
+
+    private void AddHoverEffect(GameObject go)
+    {
+        if (go == null) return;
+        if (go.GetComponent<UIHoverScaleEffect>() == null)
+        {
+            go.AddComponent<UIHoverScaleEffect>();
+        }
+    }
+}
+
+public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPointerEnterHandler, UnityEngine.EventSystems.IPointerExitHandler
+{
+    private Vector3 originalScale;
+    private Vector3 targetScale;
+
+    private void Start()
+    {
+        originalScale = transform.localScale;
+        targetScale = originalScale;
+    }
+
+    private void Update()
+    {
+        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * 12f);
+    }
+
+    public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        targetScale = originalScale * 1.05f;
+    }
+
+    public void OnPointerExit(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        targetScale = originalScale;
+    }
+
+    private void OnDisable()
+    {
+        transform.localScale = originalScale;
+        targetScale = originalScale;
+    }
+}

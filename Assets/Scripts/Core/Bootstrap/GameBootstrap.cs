@@ -37,6 +37,18 @@ public class GameBootstrap : MonoBehaviour
             yield return SceneManager.UnloadSceneAsync(bootstrapScene);
 
         Debug.Log($"=== LOAD DONE | UI=Main | Map={WorldState.CurrentMapName} ===");
+
+        // Join the shared social lobby room (presence + party invites) once we are in
+        // Main and know who we are. Fire-and-forget: JoinSocialLobbyAsync swallows its
+        // own failures so a Photon outage never blocks the Main scene. Only attempt it
+        // for a logged-in player with a real profile id.
+        if (ApiClient.Instance.HasToken() && WorldState.PlayerProfileId > 0 && PhotonManager.Instance != null)
+        {
+            _ = PhotonManager.Instance.JoinSocialLobbyAsync();
+            // Listen for incoming party invites while in Main.
+            PartyInvitePopup.EnsureExists();
+        }
+
         Destroy(gameObject);
     }
 
