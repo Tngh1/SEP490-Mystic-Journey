@@ -49,6 +49,20 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtMedalsToLevelUp;
         [SerializeField] private Button btnLevelUp;
         [SerializeField] private Button btnLeave;
+        [SerializeField] private Button btnApprove;
+        [SerializeField] private Toggle toggleRequireApproval;
+        [SerializeField] private TMP_InputField inputRequiredLevel;
+        [SerializeField] private Button btnSaveSettings;
+
+        [Header("Member List UI")]
+        [SerializeField] private Transform memberListContainer;
+        [SerializeField] private GameObject memberEntryPrefab;
+
+        [Header("Application List UI")]
+        [SerializeField] private Transform applicationListContainer;
+        [SerializeField] private GameObject applicationEntryPrefab;
+        [SerializeField] private TextMeshProUGUI txtApplicationCount;
+        [SerializeField] private GameObject applicationListPanel;
 
         [Header("Guild List UI")]
         [SerializeField] private TMP_InputField inputSearchGuild;
@@ -57,6 +71,7 @@ namespace MysticJourney.UI.Guild
 
         // Lưu thông tin Guild hiện tại
         private GuildDetailResponseDto currentGuild;
+        private bool isShowingApplications = false;
 
         private void Start()
         {
@@ -68,6 +83,43 @@ namespace MysticJourney.UI.Guild
             
             // Ràng buộc số lượng ký tự nhập vào khi tạo Guild
             if (inputCreateName != null) inputCreateName.characterLimit = 15;
+
+            if (toggleRequireApproval != null)
+            {
+                toggleRequireApproval.onValueChanged.AddListener(isOn => {
+                    if (inputRequiredLevel != null) inputRequiredLevel.interactable = isOn;
+                });
+            }
+
+            if (btnSaveSettings != null)
+            {
+                btnSaveSettings.onClick.AddListener(OnSaveSettingsClicked);
+            }
+        }
+
+        private void OnSaveSettingsClicked()
+        {
+            if (currentGuild == null) return;
+            
+            int joinPolicy = toggleRequireApproval != null && toggleRequireApproval.isOn ? 1 : 0;
+            int requiredLevel = 1;
+            
+            if (inputRequiredLevel != null && !string.IsNullOrEmpty(inputRequiredLevel.text))
+            {
+                int.TryParse(inputRequiredLevel.text, out requiredLevel);
+                if (requiredLevel < 1) requiredLevel = 1; // Khong cho nhap am
+            }
+
+            GuildApi.UpdateSettings(currentGuild.guildId, requiredLevel, joinPolicy, 
+                response => {
+                    UIPopupManager.Instance.ShowAlert("Notice", "Guild settings saved!");
+                    // Update local copy
+                    currentGuild.joinPolicy = joinPolicy;
+                    currentGuild.requiredLevel = requiredLevel;
+                },
+                error => {
+                    UIPopupManager.Instance.ShowAlert("Error", "Error saving settings: " + error.Message);
+                });
         }
 
         /// <summary>
@@ -280,6 +332,7 @@ namespace MysticJourney.UI.Guild
                     // Xóa danh sách cũ
                     if (guildListContainer != null)
                     {
+                        guildListContainer.gameObject.SetActive(true);
                         foreach (Transform child in guildListContainer)
                             Destroy(child.gameObject);
                         
@@ -287,6 +340,8 @@ namespace MysticJourney.UI.Guild
                         foreach (var guild in list)
                         {
                             GameObject obj = Instantiate(guildEntryPrefab, guildListContainer);
+                            obj.SetActive(true);
+                            obj.transform.localScale = Vector3.one;
                             UIGuildEntry entry = obj.GetComponent<UIGuildEntry>();
                             entry.Setup(guild, 
                                 entryClicked: (id) => OpenGuildDetail(id), 
@@ -357,6 +412,9 @@ namespace MysticJourney.UI.Guild
             if (txtGuildExp != null) txtGuildExp.text = $"EXP: {detail.guildExp}/{detail.expToNextLevel}";
             if (txtMedalsToLevelUp != null) txtMedalsToLevelUp.text = $"Medals: {detail.medalsToNextLevel}";
 
+            // Load danh sách thành viên (bao gồm cả bản thân)
+            LoadMemberList();
+
             Debug.Log($"My Guild loaded: {detail.name} with {detail.members.Count} members.");
         }
 
@@ -364,14 +422,226 @@ namespace MysticJourney.UI.Guild
         {
             if (infoTabContainer != null) infoTabContainer.SetActive(true);
             if (manageTabContainer != null) manageTabContainer.SetActive(false);
+            if (memberListPanel != null) memberListPanel.SetActive(true);
+            if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
             HighlightTab(btnInfoTabImage, btnManageTabImage);
+
+            // Hiển thị danh sách thành viên khi vào Info Tab
+            if (currentGuild != null)
+            {
+                LoadMemberList();
+            }
         }
 
         public void SwitchToManageTab()
         {
             if (infoTabContainer != null) infoTabContainer.SetActive(false);
             if (manageTabContainer != null) manageTabContainer.SetActive(true);
+            if (memberListPanel != null) memberListPanel.SetActive(true);
             HighlightTab(btnManageTabImage, btnInfoTabImage);
+
+            // Chuyển về hiển thị danh sách Member mặc định khi sang Manage Tab
+            isShowingApplications = false;
+            LoadMemberList();
+
+            // Bật nút Approve chỉ khi là Leader hoặc Officer
+            UpdateApproveButtonVisibility();
+
+            // Setup settings UI
+            if (currentGuild != null)
+            {
+                if (toggleRequireApproval != null)
+                {
+                    toggleRequireApproval.SetIsOnWithoutNotify(currentGuild.joinPolicy == 1);
+                }
+                if (inputRequiredLevel != null)
+                {
+                    inputRequiredLevel.text = currentGuild.requiredLevel.ToString();
+                    inputRequiredLevel.interactable = currentGuild.joinPolicy == 1;
+                }
+            }
+
+            if (btnApprove != null)
+            {
+                var txt = btnApprove.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null) txt.text = "Approve";
+            }
+        }
+
+        private void UpdateApproveButtonVisibility()
+        {
+            if (btnApprove == null) return;
+
+            int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+            bool isLeaderOrOfficer = currentGuild != null && currentGuild.members != null &&
+                currentGuild.members.Any(m => m.playerProfileId == myProfileId &&
+                    (m.role == "Leader" || m.role == "Officer"));
+
+            btnApprove.gameObject.SetActive(isLeaderOrOfficer);
+        }
+
+        public void ToggleApplicationsList()
+        {
+            if (currentGuild == null) return;
+
+            isShowingApplications = !isShowingApplications;
+
+            // Nếu 2 panel khác nhau thì bật tắt, nếu giống nhau thì luôn bật
+            if (applicationListPanel != null && applicationListPanel != memberListPanel)
+            {
+                applicationListPanel.SetActive(isShowingApplications);
+                if (memberListPanel != null) 
+                    memberListPanel.SetActive(!isShowingApplications);
+            }
+            else if (memberListPanel != null)
+            {
+                memberListPanel.SetActive(true);
+            }
+
+            if (btnApprove != null)
+            {
+                var txt = btnApprove.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null) txt.text = isShowingApplications ? "Member" : "Approve";
+            }
+
+            if (isShowingApplications)
+            {
+                LoadApplicationList();
+            }
+            else
+            {
+                LoadMemberList();
+            }
+        }
+
+        private void LoadMemberList()
+        {
+            if (currentGuild == null || currentGuild.members == null) return;
+            if (memberListContainer == null || memberEntryPrefab == null) return;
+
+            // Xóa danh sách cũ
+            memberListContainer.gameObject.SetActive(true);
+            foreach (Transform child in memberListContainer)
+                Destroy(child.gameObject);
+
+            // Sắp xếp: Leader > Officer > Member, sau đó theo level
+            var sortedMembers = currentGuild.members
+                .OrderByDescending(m => m.role == "Leader" ? 2 : m.role == "Officer" ? 1 : 0)
+                .ThenByDescending(m => m.playerLevel)
+                .ToList();
+
+            int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+
+            foreach (var member in sortedMembers)
+            {
+                GameObject obj = Instantiate(memberEntryPrefab, memberListContainer);
+                obj.SetActive(true);
+                obj.transform.localScale = Vector3.one;
+                UIGuildMemberEntry entry = obj.GetComponent<UIGuildMemberEntry>();
+                if (entry != null)
+                {
+                    entry.Setup(member);
+                }
+            }
+
+            Debug.Log($"Loaded {sortedMembers.Count} guild members (including self)");
+        }
+
+        private void LoadApplicationList()
+        {
+            if (currentGuild == null) return;
+            if (applicationListContainer == null || applicationEntryPrefab == null) return;
+
+            GuildApi.GetApplications(currentGuild.guildId,
+                onSuccess: (applications) =>
+                {
+                    // Xóa danh sách cũ
+                    applicationListContainer.gameObject.SetActive(true);
+                    foreach (Transform child in applicationListContainer)
+                        Destroy(child.gameObject);
+
+                    if (txtApplicationCount != null)
+                        txtApplicationCount.text = $"Applications ({applications.Count})";
+
+                    foreach (var app in applications)
+                    {
+                        GameObject obj = Instantiate(applicationEntryPrefab, applicationListContainer);
+                        obj.SetActive(true);
+                        obj.transform.localScale = Vector3.one;
+                        UIGuildApplicationEntry entry = obj.GetComponent<UIGuildApplicationEntry>();
+                        if (entry != null)
+                        {
+                            entry.Setup(app, currentGuild.guildId,
+                                onApprove: () => OnApplicationApproved(app.guildApplicationId),
+                                onReject: () => OnApplicationRejected(app.guildApplicationId));
+                        }
+                    }
+
+                    Debug.Log($"Loaded {applications.Count} applications");
+                },
+                onError: (err) =>
+                {
+                    Debug.LogError("Error loading applications: " + err.Message);
+                });
+        }
+
+        private void OnApplicationApproved(int applicationId)
+        {
+            if (currentGuild == null) return;
+
+            GuildApi.ApproveApplication(currentGuild.guildId, applicationId,
+                onSuccess: (result) =>
+                {
+                    Debug.Log("Application approved!");
+                    // Refresh lại danh sách
+                    RefreshCurrentGuild();
+                },
+                onError: (err) =>
+                {
+                    Debug.LogError("Error approving application: " + err.Message);
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Error", "Failed to approve: " + err.Message);
+                });
+        }
+
+        private void OnApplicationRejected(int applicationId)
+        {
+            if (currentGuild == null) return;
+
+            GuildApi.RejectApplication(currentGuild.guildId, applicationId,
+                onSuccess: (result) =>
+                {
+                    Debug.Log("Application rejected!");
+                    // Refresh lại danh sách
+                    RefreshCurrentGuild();
+                },
+                onError: (err) =>
+                {
+                    Debug.LogError("Error rejecting application: " + err.Message);
+                });
+        }
+
+        private void RefreshCurrentGuild()
+        {
+            if (currentGuild == null) return;
+
+            GuildApi.GetGuildDetail(currentGuild.guildId,
+                onSuccess: (detail) =>
+                {
+                    currentGuild = detail;
+                    if (isShowingApplications)
+                    {
+                        LoadApplicationList();
+                    }
+                    else
+                    {
+                        LoadMemberList();
+                    }
+                },
+                onError: (err) =>
+                {
+                    Debug.LogError("Error refreshing guild: " + err.Message);
+                });
         }
 
         private void HighlightTab(Image activeTab, Image inactiveTab)
@@ -386,24 +656,23 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (result) => {
                     if (result.success)
                     {
-                        Debug.Log("Applied / Joined successfully!");
-                        OpenGuildDetail(guildId); // Refresh
+                        UIPopupManager.Instance.ShowAlert("Notice", result.message);
+                        OpenGuildSystem(); // Refresh toàn bộ hệ thống
                     }
                     else if (!result.canJoin && result.cooldownRemainingSeconds > 0)
                     {
                         // Hiện Popup thông báo cooldown 24h
                         int hours = result.cooldownRemainingSeconds / 3600;
                         int minutes = (result.cooldownRemainingSeconds % 3600) / 60;
-                        Debug.LogWarning($"Cooldown! Chờ {hours}h {minutes}m nữa.");
-                        // TODO: UIManager.ShowPopup(result.message);
+                        UIPopupManager.Instance.ShowAlert("Cannot join Guild", $"You must wait {hours}h {minutes}m.");
                     }
                     else
                     {
-                        Debug.LogWarning("Failed: " + result.message);
+                        UIPopupManager.Instance.ShowAlert("Failed", result.message);
                     }
                 },
                 onError: (err) => {
-                    Debug.LogError("API Error: " + err.Message);
+                    UIPopupManager.Instance.ShowAlert("API Error", err.Message);
                 });
         }
 

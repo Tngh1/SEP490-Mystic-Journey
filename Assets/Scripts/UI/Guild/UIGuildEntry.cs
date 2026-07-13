@@ -30,6 +30,23 @@ namespace MysticJourney.UI.Guild
 
             if (btnApply != null)
             {
+                var txt = btnApply.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null)
+                {
+                    txt.text = data.joinPolicy == 0 ? "Join" : "Apply";
+                }
+
+                int playerLevel = UnityEngine.PlayerPrefs.GetInt("mj_player_level", 1);
+                if (playerLevel < data.requiredLevel)
+                {
+                    btnApply.interactable = false;
+                    if (txt != null) txt.text = $"Lv {data.requiredLevel}+";
+                }
+                else
+                {
+                    btnApply.interactable = true;
+                }
+
                 btnApply.onClick.RemoveAllListeners();
                 btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
             }

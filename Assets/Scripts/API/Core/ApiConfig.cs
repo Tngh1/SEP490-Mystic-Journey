@@ -5,9 +5,9 @@ namespace MysticJourney.API.Core
     public static class ApiConfig
     {
         // URL gốc của backend. Đổi thành domain thật khi deploy.
-        // Local:      "https://localhost:7116" (HTTPS profile)
+        // Local:      "http://localhost:5176" (HTTP profile)
         // Production: "https://api.mysticjourney.com"
-        public const string BaseUrl = "https://localhost:7116";
+        public const string BaseUrl = "http://localhost:5176";
 
         // Thời gian tối đa chờ response (giây)
         public const int Timeout = 30;
