@@ -5,10 +5,10 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// Maps a <see cref="CharacterClass"/> to the avatar sprite shown in party slots.
-/// Kept separate from <see cref="SkinDatabaseSO"/> (which maps by skinId and loads full
-/// gameplay prefabs) because the party roster only replicates a player's CLASS, and a
-/// slot only needs a lightweight portrait — no prefab instantiation.
+/// Maps a <see cref="CharacterClass"/> to the art shown in a party slot: the class
+/// <see cref="ClassArt.flag"/> banner and the <see cref="ClassArt.nameplate"/> label
+/// behind the player's name. The party roster only replicates a player's CLASS, so a
+/// slot swaps to that class's art when a member sits down.
 ///
 /// Place the asset in a <c>Resources</c> folder named "ClassAvatarDatabase" so it can be
 /// loaded at runtime without an Inspector reference (mirrors SkinDatabaseSO.LoadDefault).
@@ -17,19 +17,17 @@ using UnityEditor;
 public class ClassAvatarDatabaseSO : ScriptableObject
 {
     [System.Serializable]
-    public struct ClassAvatar
+    public struct ClassArt
     {
         public CharacterClass characterClass;
-        public Sprite avatar;
+        public Sprite flag;      // class banner (the "Flag" image on a slot)
+        public Sprite nameplate; // class name label (the "Name" image on a slot)
     }
 
-    [Tooltip("One entry per class (Knight / Mage / Archer). Drag the portrait sprite for each.")]
-    public List<ClassAvatar> avatars = new List<ClassAvatar>();
+    [Tooltip("One entry per class (Knight / Mage / Archer). Drag the flag + name sprites for each.")]
+    public List<ClassArt> classes = new List<ClassArt>();
 
-    [Tooltip("Optional fallback sprite when a class has no mapped avatar.")]
-    public Sprite fallbackAvatar;
-
-    private Dictionary<CharacterClass, Sprite> _lookup;
+    private Dictionary<CharacterClass, ClassArt> _lookup;
 
     public static ClassAvatarDatabaseSO LoadDefault()
     {
@@ -48,14 +46,19 @@ public class ClassAvatarDatabaseSO : ScriptableObject
         return null;
     }
 
-    /// <summary>Sprite for the given class, or the fallback (may be null).</summary>
-    public Sprite GetSprite(CharacterClass characterClass)
+    /// <summary>Class banner sprite (Flag), or null when unmapped.</summary>
+    public Sprite GetFlag(CharacterClass characterClass)
     {
         EnsureLookup();
-        return _lookup.TryGetValue(characterClass, out var s) && s != null ? s : fallbackAvatar;
+        return _lookup.TryGetValue(characterClass, out var a) ? a.flag : null;
     }
 
-    public Sprite GetSprite(int classId) => GetSprite((CharacterClass)classId);
+    /// <summary>Class name-label sprite (Name plate), or null when unmapped.</summary>
+    public Sprite GetNameplate(CharacterClass characterClass)
+    {
+        EnsureLookup();
+        return _lookup.TryGetValue(characterClass, out var a) ? a.nameplate : null;
+    }
 
     private void OnEnable() => RebuildLookup();
 #if UNITY_EDITOR
@@ -69,12 +72,12 @@ public class ClassAvatarDatabaseSO : ScriptableObject
 
     private void RebuildLookup()
     {
-        _lookup = new Dictionary<CharacterClass, Sprite>();
-        if (avatars == null) return;
-        foreach (var a in avatars)
+        _lookup = new Dictionary<CharacterClass, ClassArt>();
+        if (classes == null) return;
+        foreach (var a in classes)
         {
             if (!_lookup.ContainsKey(a.characterClass))
-                _lookup[a.characterClass] = a.avatar;
+                _lookup[a.characterClass] = a;
         }
     }
 }
