@@ -96,6 +96,7 @@ public class PlayerCombat : NetworkBehaviour
     private int _aimingSlotIndex;
     private float _aimingCooldown;
     private string _aimingAnimTrigger;
+    private float _aimingStartTime;
     private GameObject _aimingIndicatorInstance;
 
     // Single source of truth for input. AoE aim position + confirm/cancel are
@@ -471,6 +472,7 @@ public class PlayerCombat : NetworkBehaviour
     private void EnterAimingMode(GameObject prefab, int slotIndex, float cooldown, string animTrigger)
     {
         _isAimingAoE = true;
+        _aimingStartTime = Time.time;
         _aimingPrefab = prefab;
         _aimingSlotIndex = slotIndex;
         _aimingCooldown = cooldown;
@@ -502,18 +504,10 @@ public class PlayerCombat : NetworkBehaviour
                 Vector3 mouseWorldPosition = aimWorld.Value;
                 mouseWorldPosition.z = 0f;
 
-                Vector3 directionToMouse = mouseWorldPosition - transform.position;
-                if (directionToMouse.magnitude > maxCastRange)
-                {
-                    _aimingIndicatorInstance.transform.position = transform.position + directionToMouse.normalized * maxCastRange;
-                }
-                else
-                {
-                    _aimingIndicatorInstance.transform.position = mouseWorldPosition;
-                }
+                _aimingIndicatorInstance.transform.position = mouseWorldPosition;
             }
 
-            if (_input != null && _input.PointerConfirmPressed)
+            if (_input != null && _input.PointerConfirmPressed && Time.time > _aimingStartTime + 0.1f)
             {
                 if (UnityEngine.EventSystems.EventSystem.current != null &&
                     UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
@@ -571,7 +565,15 @@ public class PlayerCombat : NetworkBehaviour
 
         if (isAoE)
         {
-            if (targetPosition.HasValue) spawnPosition = targetPosition.Value;
+            if (targetPosition.HasValue)
+            {
+                Vector3 directionToTarget = targetPosition.Value - transform.position;
+                if (directionToTarget.magnitude > maxCastRange)
+                {
+                    spawnPosition = transform.position + directionToTarget.normalized * maxCastRange;
+                }
+                else spawnPosition = targetPosition.Value;
+            }
             else
             {
                 Vector3 mouseWorldPosition = _input != null && _input.PointerWorldPosition.HasValue
@@ -591,7 +593,15 @@ public class PlayerCombat : NetworkBehaviour
         else
         {
             spawnPosition = firePoint.position;
-            Vector2 direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
+            Vector3 mouseWorldPosition = _input != null && _input.PointerWorldPosition.HasValue
+                ? (Vector3)_input.PointerWorldPosition.Value
+                : transform.position;
+            mouseWorldPosition.z = 0f;
+
+            Vector2 direction = (mouseWorldPosition - firePoint.position).normalized;
+            if (direction == Vector2.zero)
+                direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
+
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             spawnRotation = Quaternion.Euler(0, 0, angle);
         }

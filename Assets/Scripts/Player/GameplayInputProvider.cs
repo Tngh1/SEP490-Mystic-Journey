@@ -168,13 +168,11 @@ public class GameplayInputProvider : MonoBehaviour
     // LocalInputCollector) free of direct Mouse.current reads.
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Current pointer position in screen pixels, or null if no pointer device.</summary>
     public Vector2? PointerScreenPosition
     {
         get
         {
-            if (Mouse.current != null) return Mouse.current.position.ReadValue();
-            return null;
+            return Input.mousePosition;
         }
     }
 
@@ -189,7 +187,9 @@ public class GameplayInputProvider : MonoBehaviour
             var screen = PointerScreenPosition;
             if (screen == null) return null;
             var cam = Camera.main;
+            if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
             if (cam == null) return null;
+            
             Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.Value.x, screen.Value.y, 0f));
             return new Vector2(world.x, world.y);
         }
