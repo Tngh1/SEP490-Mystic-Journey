@@ -1,8 +1,8 @@
-using Fusion;
-using MysticJourney.API.Models.Response;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Fusion;
+using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -49,7 +49,7 @@ public class PlayerCombat : NetworkBehaviour
     [SerializeField] private GameObject aoeIndicatorPrefab;
 
     [Header("Basic Attack Settings")]
-    [SerializeField] private float baseAttackCooldown = 0.5f;
+    [SerializeField] private float baseAttackCooldown = 1.0f;
     private float currentAttackCooldown;
     [SerializeField] private float basicAttackDelay = 0.2f;
     [SerializeField] private float basicAttackDamage = 25f;
@@ -657,8 +657,8 @@ public class PlayerCombat : NetworkBehaviour
     private bool IsBusy()
     {
         if (animator == null) return false;
-        return animator.GetCurrentAnimatorStateInfo(0).IsName("BasicAttack") ||
-               animator.GetCurrentAnimatorStateInfo(0).IsName("SkillCast");
+        // Cho phép ngắt BasicAttack để đánh tiếp hoặc dùng chiêu (combat mượt hơn)
+        return animator.GetCurrentAnimatorStateInfo(0).IsName("SkillCast");
     }
 
     private void OnDrawGizmosSelected()

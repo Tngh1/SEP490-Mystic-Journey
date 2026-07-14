@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b385c2272843fc84ab53f8804b562fa3, type: 3}
+  m_Name: ClassAvatarDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::ClassAvatarDatabaseSO
+  classes:
+  - characterClass: 0
+    flag: {fileID: -2756934493599303400, guid: 4b59d496d8c8baf4a8da23c4a61cda28, type: 3}
+    nameplate: {fileID: -3507646798960216248, guid: 1b024afcd4b1c3344a9aa46ee458382b, type: 3}
+  - characterClass: 1
+    flag: {fileID: 3705409001198054398, guid: 7fa6c4bcb48fb8f4fa7a9088bd83384f, type: 3}
+    nameplate: {fileID: 8958968452486388477, guid: e8e4b4148f325a54194f38426ad50595, type: 3}
+  - characterClass: 2
+    flag: {fileID: -7840527155550388648, guid: 5bf88bc03a12b5f498b24dee6ff5441d, type: 3}
+    nameplate: {fileID: -1195567785222939298, guid: d33e5d15b60fe2d45a2721e7b0ed4f43, type: 3}

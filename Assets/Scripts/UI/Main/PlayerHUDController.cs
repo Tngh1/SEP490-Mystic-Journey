@@ -135,8 +135,11 @@ public class PlayerHUDController : MonoBehaviour
     {
         if (_isRefreshing) return;
         _isRefreshing = true;
+        
+        // Send heartbeat to keep status Online
+        PlayerApi.Instance.SendHeartbeat();
 
-        // Step 1: Refresh Profile (Username, Level, Experience)
+        // Step 1: Refresh Profile (Level, Exp)
         PlayerApi.Instance.GetMyProfile(
             profile =>
             {

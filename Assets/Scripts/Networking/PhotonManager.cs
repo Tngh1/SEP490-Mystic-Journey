@@ -33,6 +33,44 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
              "NetworkObject + NetworkPlayer + the rigidbody/collider hierarchy.")]
     [SerializeField] private NetworkPrefabRef playerPrefab;
 
+    [Tooltip("Network prefab holding the party roster (member list + ready state). " +
+             "Spawned once by the host when a party lobby is created. Must contain " +
+             "NetworkObject + PartyLobby.")]
+    [SerializeField] private NetworkPrefabRef partyLobbyPrefab;
+
+    [Tooltip("Network prefab holding the per-player social presence / invite mailbox. " +
+             "Each client spawns ONE for itself on joining the social lobby room. Must " +
+             "contain NetworkObject + PlayerPresence. No avatar, no gameplay.")]
+    [SerializeField] private NetworkPrefabRef presencePrefab;
+
+    [Header("Social Lobby")]
+    [Tooltip("Shared room every online player joins on entering Main. Used purely for " +
+             "presence discovery + party invites — no avatars spawn here.")]
+    [SerializeField] private string socialLobbySessionName = "MYSTIC_SOCIAL_LOBBY";
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Connection phase
+    //
+    // The SAME runner serves two very different phases so we do not have to tear
+    // it down between the party lobby and the dungeon fight:
+    //   • Lobby   — players gather, invite friends, toggle ready. NO gameplay
+    //               avatar is spawned and ProvideInput is OFF (nothing to drive).
+    //   • Dungeon — the real fight. Avatars spawn (OnPlayerJoined) and input is
+    //               collected every tick. This is the original behaviour.
+    // Milestone 1 only reaches Lobby; Milestone 2 flips the phase to Dungeon.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public enum PartyPhase { None, Lobby, Dungeon }
+
+    /// <summary>Current connection phase. <see cref="PartyPhase.None"/> when offline.</summary>
+    public PartyPhase Phase { get; private set; } = PartyPhase.None;
+
+    /// <summary>Raised when Fusion delivers an updated session list (lobby browsing).</summary>
+    public event Action<List<SessionInfo>> OnSessionListChanged;
+
+    /// <summary>Latest session list from the lobby, or empty when not browsing.</summary>
+    public IReadOnlyList<SessionInfo> KnownSessions => _knownSessions;
+
     // ─────────────────────────────────────────────────────────────────────────
     // State
     // ─────────────────────────────────────────────────────────────────────────
@@ -40,6 +78,7 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     private NetworkRunner _runner;
     private LocalInputCollector _inputCollector;
     private readonly HashSet<PlayerRef> _spawnedPlayers = new HashSet<PlayerRef>();
+    private readonly List<SessionInfo> _knownSessions = new List<SessionInfo>();
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -50,6 +89,14 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
 
     /// <summary>True once the runner has successfully entered a session.</summary>
     public bool IsConnected => _runner != null && _runner.IsRunning;
+
+    /// <summary>
+    /// True only during a networked DUNGEON session (avatars + combat replicate).
+    /// FALSE while merely connected to the social lobby. Gameplay spawn code
+    /// (PlayerSpawner, DungeonSpawner) must gate on THIS, not <see cref="IsConnected"/>,
+    /// so being present in the social lobby never triggers networked spawning.
+    /// </summary>
+    public bool IsDungeonSession => IsConnected && Phase == PartyPhase.Dungeon;
 
     /// <summary>True if the local client owns StateAuthority (i.e. is the Host).</summary>
     public bool IsHost => _runner != null && _runner.IsSharedModeMasterClient;
@@ -120,8 +167,82 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     // Connection
     // ─────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Join the shared SOCIAL LOBBY room (presence + party invites). No avatar is
+    /// spawned and no input is collected. Every online client calls this once on
+    /// entering Main. Safe to call when already connected — it no-ops. Failures are
+    /// swallowed (logged) so a Photon outage never blocks the Main scene.
+    /// </summary>
+    public async Task JoinSocialLobbyAsync()
+    {
+        if (IsConnected)
+        {
+            Debug.Log("[PhotonManager] JoinSocialLobbyAsync: already connected, ignored.");
+            return;
+        }
+
+        try
+        {
+            await StartAsync(socialLobbySessionName, PartyPhase.Lobby);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[PhotonManager] JoinSocialLobbyAsync failed (Main scene continues offline): {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Migrate from the social lobby to an isolated DUNGEON room in the Dungeon phase
+    /// (avatars spawn, input collected). Cleanly shuts down the current runner FIRST
+    /// (awaited, without raising <see cref="OnDisconnected"/> so no local fallback avatar
+    /// is spawned mid-transition), then connects to <paramref name="dungeonRoomName"/>.
+    /// Every party member calls this with the SAME room name so they land together.
+    /// </summary>
+    public async Task MigrateToDungeonAsync(string dungeonRoomName)
+    {
+        // Tear down the lobby runner fully before reconnecting (reconnect-safe).
+        if (_runner != null)
+        {
+            var old = _runner;
+            old.RemoveCallbacks(this);
+            _runner = null;
+            _spawnedPlayers.Clear();
+            _knownSessions.Clear();
+            Phase = PartyPhase.None;
+
+            try { await old.Shutdown(destroyGameObject: false); }
+            catch (Exception ex) { Debug.LogWarning($"[PhotonManager] Lobby shutdown during migrate threw: {ex.Message}"); }
+
+            if (old != null) Destroy(old);
+        }
+
+        Debug.Log($"[PhotonManager] Migrating into dungeon room '{dungeonRoomName}'.");
+        await StartAsync(dungeonRoomName, PartyPhase.Dungeon);
+    }
+
+    /// <summary>
+    /// Connect to a room as a PARTY LOBBY: players gather + ready-check, but no
+    /// gameplay avatar is spawned and no input is collected. Milestone 1 flow.
+    /// The host passes its own party room name (e.g. "PARTY_&lt;profileId&gt;"); an
+    /// invited friend passes the SAME name to join.
+    /// </summary>
+    public Task StartPartyLobbyAsync(string sessionName)
+    {
+        return StartAsync(sessionName, PartyPhase.Lobby);
+    }
+
+    /// <summary>
+    /// Legacy/direct entry: connect straight into the dungeon phase (avatars spawn,
+    /// input collected). Kept for the old MultiplayerBootstrap test panel and any
+    /// caller that wants the original one-step connect.
+    /// </summary>
     /// <param name="sessionName">Room name. Pass null to use <see cref="defaultSessionName"/>.</param>
-    public async Task StartAsync(string sessionName = null)
+    public Task StartAsync(string sessionName = null)
+    {
+        return StartAsync(sessionName, PartyPhase.Dungeon);
+    }
+
+    private async Task StartAsync(string sessionName, PartyPhase phase)
     {
         if (IsConnected)
         {
@@ -136,10 +257,13 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             return;
         }
 
+        Phase = phase;
+
         // Create the runner on this GameObject. We never instantiate it from a prefab
         // because we want it to live exactly as long as PhotonManager itself.
         _runner = gameObject.AddComponent<NetworkRunner>();
-        _runner.ProvideInput = true;
+        // Input is only collected in the dungeon phase — the lobby has no avatar to drive.
+        _runner.ProvideInput = phase == PartyPhase.Dungeon;
 
         // Use a pass-through scene manager so Fusion does NOT unload the current scenes
         // (Main UI, ElfForest world, etc.). We want to netcode the scene we are already in.
@@ -161,19 +285,83 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             SceneManager = sceneManager,
         };
 
-        Debug.Log($"[PhotonManager] Connecting to session '{args.SessionName}' (appVersion={appVersion})...");
+        Debug.Log($"[PhotonManager] Connecting to session '{args.SessionName}' " +
+                  $"(phase={phase}, appVersion={appVersion})...");
         var result = await _runner.StartGame(args);
 
         if (!result.Ok)
         {
             Debug.LogError($"[PhotonManager] StartGame failed: {result.ShutdownReason}");
+            Phase = PartyPhase.None;
             Destroy(_runner);
             _runner = null;
             return;
         }
 
-        Debug.Log("<color=green>[PhotonManager] Connected to Photon.</color>");
-        // Note: we DO NOT spawn here. Spawning happens in OnPlayerJoined, gated by StateAuthority.
+        Debug.Log($"<color=green>[PhotonManager] Connected to Photon (phase={phase}).</color>");
+        // In the lobby phase we do NOT spawn a gameplay avatar — OnPlayerJoined is
+        // guarded on Phase. Milestone 2 flips Phase to Dungeon to start spawning.
+    }
+
+    /// <summary>
+    /// Spawn this client's own <see cref="PlayerPresence"/> in the social lobby room.
+    /// Called from <see cref="OnPlayerJoined"/> for the local player during the Lobby
+    /// phase. Identity is copied from WorldState into the Spawn initializer so it is
+    /// populated before first replication. No-ops if a local presence already exists.
+    /// </summary>
+    private void SpawnLocalPresence(NetworkRunner runner)
+    {
+        if (PlayerPresence.Local != null) return;
+
+        if (presencePrefab == default)
+        {
+            Debug.LogError("[PhotonManager] presencePrefab is not assigned in Inspector. " +
+                           "Social presence / party invites cannot work.");
+            return;
+        }
+
+        runner.Spawn(
+            presencePrefab,
+            Vector3.zero,
+            Quaternion.identity,
+            runner.LocalPlayer,
+            (r, obj) =>
+            {
+                var presence = obj.GetComponent<PlayerPresence>();
+                if (presence == null) return;
+
+                string className = WorldState.PlayerClass ?? "Knight";
+                if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
+                    parsed = CharacterClass.Knight;
+
+                presence.ProfileId = WorldState.PlayerProfileId;
+                presence.DisplayName = WorldState.PlayerName ?? "Player";
+                presence.PlayerClass = (int)parsed;
+                presence.Level = Mathf.Max(1, WorldState.PlayerLevel);
+            });
+    }
+
+    /// <summary>
+    /// Create a new <see cref="PartyLobby"/> owned by the local player (host). In Shared
+    /// Mode the spawning client automatically holds StateAuthority over it. No-ops and
+    /// returns the existing party if the local player is already in one. Returns null if
+    /// the prefab is unassigned or the runner is not connected.
+    /// </summary>
+    public PartyLobby CreateParty()
+    {
+        if (_runner == null || !_runner.IsRunning) return null;
+
+        if (PartyLobby.Local != null) return PartyLobby.Local;
+
+        if (partyLobbyPrefab == default)
+        {
+            Debug.LogError("[PhotonManager] partyLobbyPrefab is not assigned in Inspector. " +
+                           "Cannot spawn the party roster.");
+            return null;
+        }
+
+        var obj = _runner.Spawn(partyLobbyPrefab, Vector3.zero, Quaternion.identity, _runner.LocalPlayer);
+        return obj != null ? obj.GetComponent<PartyLobby>() : null;
     }
 
     /// <summary>
@@ -195,6 +383,8 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
         runnerToShutdown.RemoveCallbacks(this);
         _runner = null;
         _spawnedPlayers.Clear();
+        _knownSessions.Clear();
+        Phase = PartyPhase.None;
 
         ShutdownRunnerAsync(runnerToShutdown, notify);
     }
@@ -273,6 +463,12 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
     {
+        _knownSessions.Clear();
+        if (sessionList != null)
+            _knownSessions.AddRange(sessionList);
+
+        Debug.Log($"[PhotonManager] OnSessionListUpdated: {_knownSessions.Count} session(s).");
+        OnSessionListChanged?.Invoke(_knownSessions);
     }
 
     public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
@@ -346,7 +542,18 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        Debug.Log($"[PhotonManager] OnPlayerJoined: {player} (local={runner.LocalPlayer})");
+        Debug.Log($"[PhotonManager] OnPlayerJoined: {player} (local={runner.LocalPlayer}, phase={Phase})");
+
+        // Lobby phase: no gameplay avatar. Each client spawns ONLY its own lightweight
+        // PlayerPresence (identity + invite mailbox) so others can discover/invite it.
+        if (Phase != PartyPhase.Dungeon)
+        {
+            if (player == runner.LocalPlayer)
+            {
+                SpawnLocalPresence(runner);
+            }
+            return;
+        }
 
         if (player != runner.LocalPlayer)
         {

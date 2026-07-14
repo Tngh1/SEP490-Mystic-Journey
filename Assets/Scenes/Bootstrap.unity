@@ -212,6 +212,13 @@ MonoBehaviour:
   appVersion: 0.1.0
   playerPrefab:
     RawGuidValue: 16a1671e854da88409421dc4b38fca76
+  partyLobbyPrefab:
+    RawGuidValue: e1bbc47dfcd391d43ad9d2d6555e83f1
+  presencePrefab:
+    RawGuidValue: 16fdb541d8bda7e45becc9cad0ca87de
+  socialLobbySessionName: MYSTIC_SOCIAL_LOBBY
+  preferredGameplayScenes:
+  - ElfForest
 --- !u!114 &1301054278
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -224,7 +231,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53313f9d1f474cb4294ef3bd4cbe76de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LocalInputCollector
-  inputActions: {fileID: -944628639613478452, guid: 553a6d029af0e5340af5a1c363248f66, type: 3}
   aimWorldDepth: 0
 --- !u!1 &2012552647
 GameObject:
@@ -309,6 +315,7 @@ MonoBehaviour:
   archerController: {fileID: 0}
   knightController: {fileID: 0}
   mageController: {fileID: 0}
+  skinDatabase: {fileID: 0}
   sortingLayerName: Characters
   baseSortingOrder: 0
 --- !u!4 &2077338909

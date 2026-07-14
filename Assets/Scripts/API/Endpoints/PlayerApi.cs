@@ -185,5 +185,22 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        // ── Gửi Heartbeat ───────────────────────────────────────────────
+        public void SendHeartbeat(Action<SimpleResponse> onSuccess = null, Action<ApiException> onError = null)
+        {
+            ApiClient.Instance.Post<object, SimpleResponse>(
+                "/api/player/heartbeat", new { },
+                response =>
+                {
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"SendHeartbeat FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

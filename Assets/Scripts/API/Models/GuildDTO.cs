@@ -111,7 +111,10 @@ namespace MysticJourney.API.Models
         public int guildApplicationId;
         public int playerProfileId;
         public string playerName;
+        public string playerAvatarUrl;
         public int playerLevel;
+        public int medals;
+        public int feats;
         public string status;
         public string createdAt;
     }

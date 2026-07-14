@@ -11,6 +11,14 @@ namespace MysticJourney.API.Endpoints
     {
         // ─── View ─────────────────────────────────────────────────────────
 
+        public static void GetMyGuild(
+            Action<GuildDetailResponseDto> onSuccess,
+            Action<ApiException> onError = null)
+        {
+            string url = ApiConfig.GuildMyGuild + "?t=" + System.DateTime.Now.Ticks;
+            ApiClient.Instance.Get<GuildDetailResponseDto>(url, onSuccess, onError, requiresAuth: true);
+        }
+
         public static void GetGuildList(string search, int? joinPolicy, int? minLevel, Action<List<GuildResponseDto>> onSuccess, Action<ApiException> onError)
         {
             string url = $"{ApiConfig.GuildList}?search={UnityWebRequest.EscapeURL(search ?? "")}";
@@ -119,6 +127,18 @@ namespace MysticJourney.API.Endpoints
         }
 
         // ─── Settings ─────────────────────────────────────────────────────
+
+        public static void UpdateSettings(int id, int? requiredLevel, int? joinPolicy, Action<object> onSuccess, Action<ApiException> onError)
+        {
+            string url = $"/api/guilds/{id}/settings";
+            var payload = new { requiredLevel = requiredLevel, joinPolicy = joinPolicy };
+
+            ApiClient.Instance.Put<object, object>(
+                url, payload,
+                response => onSuccess?.Invoke(response),
+                error => onError?.Invoke(error)
+            );
+        }
 
         public static void UpdateNotice(int id, string notice, Action<object> onSuccess, Action<ApiException> onError)
         {

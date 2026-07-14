@@ -168,19 +168,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 3007513199219076703}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 459204d8537eb714083b756d985529da, type: 3}
+  m_Script: {fileID: 11500000, guid: da04d838c8a8dcf4b8fd0bdf7b42ab5d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UI.Friend.UIFriendEntry
-  nameText: {fileID: 5855275594972707445}
-  levelText: {fileID: 7708139382257530651}
-  classText: {fileID: 0}
-  statusText: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::MysticJourney.UI.Guild.UIGuildMemberEntry
+  txtMemberName: {fileID: 5855275594972707445}
+  txtLevel: {fileID: 7708139382257530651}
+  txtMedals: {fileID: 5114075744173765689}
+  txtFeats: {fileID: 5532621653716310378}
+  txtStatus: {fileID: 6311422594569675889}
   avatarImage: {fileID: 7860999288953821635}
-  mainButton: {fileID: 0}
-  addFriendButton: {fileID: 0}
-  acceptButton: {fileID: 0}
-  declineButton: {fileID: 0}
-  unblockButton: {fileID: 0}
+  onlineIndicator: {fileID: 0}
 --- !u!1 &3510818152227213033
 GameObject:
   m_ObjectHideFlags: 0
