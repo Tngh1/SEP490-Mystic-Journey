@@ -63,7 +63,7 @@ public class UIChatMessage : MonoBehaviour
         ChatMessageId = chatMessageId;
         
         // Chỉ hiện nút Report cho tin nhắn của ng khác.
-        CanReport = !isMine && !isReported;
+        CanReport = chatMessageId > 0 && !isMine && !isReported;
 
         if (senderText != null)
         {

@@ -43,6 +43,16 @@ namespace MysticJourney.API.Models.Response
     }
 
     [Serializable]
+    public class PartyChatMessageResponse
+    {
+        public int SenderId { get; set; }
+        public string SenderName { get; set; }
+        public string Content { get; set; }
+        public string Channel { get; set; } = "Party";
+        public string SentAt { get; set; }
+    }
+
+    [Serializable]
     public class FriendChatMessageResponse
     {
         public int ChatMessageId { get; set; }

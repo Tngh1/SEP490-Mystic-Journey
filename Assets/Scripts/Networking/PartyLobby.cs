@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Fusion;
+using MysticJourney.API.Models.Response;
 using UnityEngine;
 
 /// <summary>
@@ -92,6 +93,8 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     /// Loading). Step 5 wires this to DungeonManager. Args: configId, sceneName.
     /// </summary>
     public event Action<int, string> OnDungeonStartRequested;
+
+    public event Action<PartyChatMessageResponse> PartyMessageReceived;
 
     private ChangeDetector _changes;
 
@@ -255,6 +258,88 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     /// </summary>
     public bool CanStartDungeon =>
         MemberCount >= 2 && AllReady && PendingInviteCount <= 0 && State == PartyState.Lobby;
+    public bool IsLocalMember =>
+        Runner != null && FindSlot(Runner.LocalPlayer) >= 0;
+
+    public bool BroadcastPartyMessage(PartyChatMessageResponse message)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.Content))
+        {
+            return false;
+        }
+
+        if (Runner == null || !Runner.IsRunning || !IsLocalMember)
+        {
+            return false;
+        }
+
+        int senderId = WorldState.PlayerProfileId > 0 ? WorldState.PlayerProfileId : message.SenderId;
+        if (senderId <= 0 || !HasMemberProfileId(senderId))
+        {
+            return false;
+        }
+
+        string senderName = !string.IsNullOrWhiteSpace(WorldState.PlayerName)
+            ? WorldState.PlayerName
+            : message.SenderName;
+
+        NetworkString<_128> networkSenderName = TrimForFusion(senderName, 120);
+        NetworkString<_512> networkContent = TrimForFusion(message.Content, 500);
+        NetworkString<_64> networkSentAt = TrimForFusion(
+            string.IsNullOrWhiteSpace(message.SentAt) ? DateTime.UtcNow.ToString("O") : message.SentAt,
+            60);
+
+        RPC_PartyMessageReceived(senderId, networkSenderName, networkContent, networkSentAt);
+        return true;
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_PartyMessageReceived(
+        int senderId,
+        NetworkString<_128> senderName,
+        NetworkString<_512> content,
+        NetworkString<_64> sentAt)
+    {
+        RefreshLocalMembership();
+
+        if (Local != this || senderId <= 0 || !HasMemberProfileId(senderId))
+        {
+            return;
+        }
+
+        PartyMessageReceived?.Invoke(new PartyChatMessageResponse
+        {
+            SenderId = senderId,
+            SenderName = senderName.ToString(),
+            Content = content.ToString(),
+            Channel = "Party",
+            SentAt = sentAt.ToString()
+        });
+    }
+
+    private bool HasMemberProfileId(int profileId)
+    {
+        for (int i = 0; i < MaxMembers; i++)
+        {
+            var member = Members[i];
+            if (member.IsOccupied && member.ProfileId == profileId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string TrimForFusion(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+    }
 
     private int FindSlot(PlayerRef player)
     {
