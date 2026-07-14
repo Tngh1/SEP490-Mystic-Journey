@@ -27,9 +27,10 @@ public class UIPartyPanel : MonoBehaviour
 
     [Header("Static References")]
     [SerializeField] private TMP_Text dungeonNameText;
-    [SerializeField] private TMP_Text descriptionText;
     [SerializeField] private TMP_Text energyCostText;
     [SerializeField] private Button startButton;
+    [SerializeField] private Button readyButton;   // BottomSection/ReadyButton (member only)
+    [SerializeField] private Button inviteButton;  // BottomSection/InviteButton (global → friend list)
     [SerializeField] private Button closeButton;
 
     [Header("Party Slots (index 0 = host slot). Auto-found under 'Players' if empty.")]
@@ -289,8 +290,6 @@ public class UIPartyPanel : MonoBehaviour
             dungeonNameText.fontSizeMax = 48;
             dungeonNameText.fontSizeMin = 18;
         }
-        if (descriptionText != null)
-            descriptionText.text = "Enter the dungeon and defeat the boss to claim the ancient reward chest.";
 
         UpdateEnergyCostLabel();
         UpdatePlayersPanel();
@@ -331,23 +330,7 @@ public class UIPartyPanel : MonoBehaviour
             }
         }
 
-        // 2. DungeonInformation
-        Transform infoTrans = transform.Find("DungeonInformation");
-        if (infoTrans != null)
-        {
-            Transform descPanelTrans = infoTrans.Find("DescriptionPanel");
-            if (descPanelTrans != null)
-            {
-                Transform descTrans = descPanelTrans.Find("Description");
-                descriptionText = (descTrans != null ? descTrans : descPanelTrans).GetComponentInChildren<TMP_Text>(true);
-            }
-
-            SetTextOfChild(infoTrans, "TypeDungeon", "Type: Normal");
-            SetTextOfChild(infoTrans, "LevelRequirement", $"Req. Level: Lv. {recommendedLevel}");
-            SetTextOfChild(infoTrans, "Difficulty", $"Difficulty: {difficulty} / 5 Stars");
-        }
-
-        // 3. BottomSection
+        // 2. BottomSection — StartButton, ReadyButton, InviteButton (global), EnergyCost.
         Transform bottomTrans = transform.Find("BottomSection");
         if (bottomTrans != null)
         {
@@ -358,22 +341,31 @@ public class UIPartyPanel : MonoBehaviour
                 AddHoverEffect(startButton != null ? startButton.gameObject : startBtnTrans.gameObject);
             }
 
+            Transform readyBtnTrans = bottomTrans.Find("ReadyButton");
+            if (readyBtnTrans != null)
+            {
+                readyButton = readyBtnTrans.GetComponent<Button>();
+                AddHoverEffect(readyButton != null ? readyButton.gameObject : readyBtnTrans.gameObject);
+            }
+
+            Transform inviteBtnTrans = bottomTrans.Find("InviteButton");
+            if (inviteBtnTrans != null)
+            {
+                inviteButton = inviteBtnTrans.GetComponent<Button>();
+                if (inviteButton != null)
+                {
+                    inviteButton.onClick.RemoveAllListeners();
+                    inviteButton.onClick.AddListener(OpenFriendListModal);
+                    AddHoverEffect(inviteButton.gameObject);
+                }
+            }
+
             Transform energyTrans = bottomTrans.Find("EnergyCost");
             if (energyTrans != null)
             {
                 energyCostText = energyTrans.GetComponentInChildren<TMP_Text>(true);
             }
         }
-    }
-
-    private void SetTextOfChild(Transform parent, string childName, string text)
-    {
-        Transform child = parent.Find(childName);
-        if (child == null) return;
-        var tmp = child.GetComponentInChildren<TMP_Text>(true);
-        if (tmp != null) { tmp.text = text; return; }
-        var legacy = child.GetComponentInChildren<Text>(true);
-        if (legacy != null) legacy.text = text;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -389,7 +381,7 @@ public class UIPartyPanel : MonoBehaviour
         if (slots == null || slots.Length == 0) return;
 
         var party = PartyLobby.Local;
-        bool localIsHost = party == null || party.IsLocalHost; // solo counts as host of the "+" buttons
+        bool localIsHost = party != null && party.IsLocalHost;
 
         // ── Slot 0: host ─────────────────────────────────────────────────────
         if (slots.Length > 0 && slots[0] != null)
@@ -408,7 +400,7 @@ public class UIPartyPanel : MonoBehaviour
                 if (!Enum.TryParse(WorldState.PlayerClass ?? "Knight", true, out hostCls))
                     hostCls = CharacterClass.Knight;
             }
-            slots[0].RenderHost(hostName, hostLevel, hostCls, AvatarFor(hostCls));
+            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls));
         }
 
         // ── Slots 1..N: other members / invite buttons ───────────────────────
@@ -435,12 +427,12 @@ public class UIPartyPanel : MonoBehaviour
                 var m = others[otherIdx];
                 var cls = (CharacterClass)m.PlayerClass;
                 var target = m.Player;
-                slot.RenderMember(m.Name.Value, m.Level, cls, AvatarFor(cls), m.Ready,
+                slot.RenderMember(m.Name.Value, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
                     canKick: localIsHost, onKick: () => PartyService.KickMember(target));
             }
             else
             {
-                slot.RenderEmpty(canInvite: localIsHost, onInvite: OpenFriendListModal);
+                slot.RenderEmpty();
             }
         }
     }
@@ -458,18 +450,19 @@ public class UIPartyPanel : MonoBehaviour
         Transform playersTrans = transform.Find("Players");
         if (playersTrans != null)
         {
-            int count = playersTrans.childCount;
-            var resolved = new UIPartySlot[count];
-            for (int i = 0; i < count; i++)
+            // Only the "Player*" podium children are real slots — a decorative child
+            // (e.g. a header Image) under Players has no UIPartySlot and is skipped.
+            // GetChild order == sibling order, so slots stay Player1..PlayerN.
+            var resolved = new System.Collections.Generic.List<UIPartySlot>();
+            for (int i = 0; i < playersTrans.childCount; i++)
             {
-                var child = playersTrans.Find($"Player{i + 1}");
-                if (child == null) child = playersTrans.GetChild(i);
-                if (child == null) continue;
+                var child = playersTrans.GetChild(i);
+                if (child == null || !child.name.StartsWith("Player")) continue;
                 var comp = child.GetComponent<UIPartySlot>();
                 if (comp == null) comp = child.gameObject.AddComponent<UIPartySlot>();
-                resolved[i] = comp;
+                resolved.Add(comp);
             }
-            slots = resolved;
+            slots = resolved.ToArray();
         }
 
         EnsureAvatarDb();
@@ -481,9 +474,14 @@ public class UIPartyPanel : MonoBehaviour
             avatarDatabase = ClassAvatarDatabaseSO.LoadDefault();
     }
 
-    private Sprite AvatarFor(CharacterClass cls)
+    private Sprite FlagFor(CharacterClass cls)
     {
-        return avatarDatabase != null ? avatarDatabase.GetSprite(cls) : null;
+        return avatarDatabase != null ? avatarDatabase.GetFlag(cls) : null;
+    }
+
+    private Sprite NameplateFor(CharacterClass cls)
+    {
+        return avatarDatabase != null ? avatarDatabase.GetNameplate(cls) : null;
     }
 
     private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)
@@ -507,37 +505,51 @@ public class UIPartyPanel : MonoBehaviour
 
     private void UpdateBottomBar()
     {
-        if (startButton == null) return;
-
         var party = PartyLobby.Local;
-        var label = startButton.GetComponentInChildren<TMP_Text>(true);
-        startButton.onClick.RemoveAllListeners();
+        bool inParty = party != null;
+        bool isHostOrSolo = party == null || party.IsLocalHost;
 
-        if (party != null && !party.IsLocalHost)
+        // Invite is available whenever the local player can host (solo or party host).
+        if (inviteButton != null)
         {
-            // Non-host member → Ready / Unready toggle.
-            bool ready = IsLocalMemberReady(party);
-            if (label != null) label.text = ready ? "READY ✓" : "READY";
-            startButton.interactable = true;
-            bool next = !ready;
-            startButton.onClick.AddListener(() => PartyService.SetReady(next));
-            return;
+            inviteButton.gameObject.SetActive(isHostOrSolo);
+            inviteButton.interactable = isHostOrSolo;
         }
 
-        // Host or solo → Start.
-        if (label != null) label.text = "START";
+        // ── Start button: host or solo only ──────────────────────────────────
+        if (startButton != null)
+        {
+            startButton.gameObject.SetActive(isHostOrSolo);
+            startButton.onClick.RemoveAllListeners();
+            if (isHostOrSolo)
+            {
+                var label = startButton.GetComponentInChildren<TMP_Text>(true);
+                if (label != null) label.text = "START";
 
-        if (party != null)
-        {
-            // Party host: gated by ≥2 members, all ready, no pending invite.
-            startButton.interactable = party.CanStartDungeon && playerEnergy >= energyCost;
-            startButton.onClick.AddListener(OnStartClick);
+                if (inParty)
+                    startButton.interactable = party.CanStartDungeon && playerEnergy >= energyCost;
+                else
+                    startButton.interactable = playerEnergy >= energyCost;
+
+                startButton.onClick.AddListener(OnStartClick);
+            }
         }
-        else
+
+        // ── Ready button: non-host member only ───────────────────────────────
+        if (readyButton != null)
         {
-            // Solo: existing single-player entry, gated only by energy.
-            startButton.interactable = playerEnergy >= energyCost;
-            startButton.onClick.AddListener(OnStartClick);
+            bool isMember = inParty && !party.IsLocalHost;
+            readyButton.gameObject.SetActive(isMember);
+            readyButton.onClick.RemoveAllListeners();
+            if (isMember)
+            {
+                bool ready = IsLocalMemberReady(party);
+                var label = readyButton.GetComponentInChildren<TMP_Text>(true);
+                if (label != null) label.text = ready ? "READY ✓" : "READY";
+                readyButton.interactable = true;
+                bool next = !ready;
+                readyButton.onClick.AddListener(() => PartyService.SetReady(next));
+            }
         }
     }
 
