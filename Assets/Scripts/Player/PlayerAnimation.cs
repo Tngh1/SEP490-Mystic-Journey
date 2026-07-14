@@ -61,10 +61,14 @@ public class PlayerAnimation : MonoBehaviour
 
         float moveX = Mathf.Abs(move.x);
         float moveY = move.y;
+        float sqrMag = move.sqrMagnitude;
 
-        animator.SetFloat(HashMoveX, moveX);
-        animator.SetFloat(HashMoveY, moveY);
-        animator.SetFloat(HashSpeed, move.sqrMagnitude > 0.01f ? 1f : 0f);
+        if (sqrMag > 0.01f)
+        {
+            animator.SetFloat(HashMoveX, moveX);
+            animator.SetFloat(HashMoveY, moveY);
+        }
+        animator.SetFloat(HashSpeed, sqrMag > 0.01f ? 1f : 0f);
 
         bool isDead = !isAlive;
         if (isDead != _lastIsDead)

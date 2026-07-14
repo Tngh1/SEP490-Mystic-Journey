@@ -12,14 +12,17 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtLevel;
         [SerializeField] private TextMeshProUGUI txtMemberCount;
         [SerializeField] private Button btnApply;
+        [SerializeField] private Button btnEntry; // Cả cái thẻ bự
 
         private int guildId;
-        private Action<int> onApplyClicked;
+        private Action<int> onApplyCallback;
+        private Action<int> onEntryCallback;
 
-        public void Setup(GuildResponseDto data, Action<int> applyCallback)
+        public void Setup(GuildResponseDto data, Action<int> entryClicked, Action<int> applyClicked)
         {
             guildId = data.guildId;
-            onApplyClicked = applyCallback;
+            onEntryCallback = entryClicked;
+            onApplyCallback = applyClicked;
 
             if (txtGuildName != null) txtGuildName.text = data.name;
             if (txtLevel != null) txtLevel.text = $"Lv. {data.level}";
@@ -27,14 +30,32 @@ namespace MysticJourney.UI.Guild
 
             if (btnApply != null)
             {
-                btnApply.onClick.RemoveAllListeners();
-                btnApply.onClick.AddListener(OnApplyBtnClicked);
-            }
-        }
+                var txt = btnApply.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null)
+                {
+                    txt.text = data.joinPolicy == 0 ? "Join" : "Apply";
+                }
 
-        private void OnApplyBtnClicked()
-        {
-            onApplyClicked?.Invoke(guildId);
+                int playerLevel = UnityEngine.PlayerPrefs.GetInt("mj_player_level", 1);
+                if (playerLevel < data.requiredLevel)
+                {
+                    btnApply.interactable = false;
+                    if (txt != null) txt.text = $"Lv {data.requiredLevel}+";
+                }
+                else
+                {
+                    btnApply.interactable = true;
+                }
+
+                btnApply.onClick.RemoveAllListeners();
+                btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
+            }
+
+            if (btnEntry != null)
+            {
+                btnEntry.onClick.RemoveAllListeners();
+                btnEntry.onClick.AddListener(() => onEntryCallback?.Invoke(guildId));
+            }
         }
     }
 }

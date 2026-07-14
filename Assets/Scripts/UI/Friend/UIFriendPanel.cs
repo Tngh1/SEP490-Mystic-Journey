@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
 using System.Linq;
+using MysticJourney.UI; // For UIPopupManager
 
 namespace UI.Friend
 {
@@ -163,6 +164,7 @@ namespace UI.Friend
             friendPanel?.SetActive(true);
             HideDetailPanel(); // Hide until a friend is clicked
             LoadFriends();
+            HighlightTab(friendTabButton, addTabButton);
         }
 
         private void ShowAddTab()
@@ -176,6 +178,16 @@ namespace UI.Friend
             {
                 OnSearchClicked(); // Right column of Add tab
             }
+            HighlightTab(addTabButton, friendTabButton);
+        }
+
+        private void HighlightTab(Button activeTab, Button inactiveTab)
+        {
+            if (activeTab != null && activeTab.GetComponent<Image>() != null)
+                activeTab.GetComponent<Image>().color = Color.white;
+                
+            if (inactiveTab != null && inactiveTab.GetComponent<Image>() != null)
+                inactiveTab.GetComponent<Image>().color = new Color(0.6f, 0.6f, 0.6f, 1f); // Màu xám tối
         }
 
         private void SetAllPanelsActive(bool active)
@@ -311,20 +323,40 @@ namespace UI.Friend
                 ClearSelectedFriendState(true);
                 return;
             }
+            if (UIPopupManager.Instance != null)
+            {
+                UIPopupManager.Instance.ShowConfirm(
+                    "Unfriend", 
+                    $"Are you sure you want to remove '{selectedFriendName}' from your friend list?", 
+                    onConfirm: ExecuteUnfriend
+                );
+            }
+            else
+            {
+                ExecuteUnfriend();
+            }
+        }
 
-            int removedProfileId = selectedProfileId;
-            SetButtonLoading(detailUnfriendButton);
-            FriendApi.RemoveFriend(removedProfileId, (res) =>
-            {
-                ResetButtonText(detailUnfriendButton, "");
-                ClearSelectedFriendState(true);
-                RefreshData();
-            },
-            err =>
-            {
-                ResetButtonText(detailUnfriendButton, "");
-                Debug.LogError(err.Message);
-            });
+        private void ExecuteUnfriend()
+        {
+            FriendApi.RemoveFriend(selectedProfileId, 
+                onSuccess: (res) => 
+                {
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Success", "Friend removed successfully!");
+                    else
+                        Debug.Log("Unfriended successfully.");
+                        
+                    RefreshData();
+                },
+                onError: (err) => 
+                {
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    else
+                        Debug.LogError("Unfriend failed: " + err.Message);
+                }
+            );
         }
 
         private void OnDetailBlockClicked()
@@ -335,19 +367,45 @@ namespace UI.Friend
                 return;
             }
 
-            int blockedProfileId = selectedProfileId;
+            if (UIPopupManager.Instance != null)
+            {
+                UIPopupManager.Instance.ShowConfirm(
+                    "Block Player", 
+                    $"Are you sure you want to block '{selectedFriendName}'? They won't be able to send you messages or friend requests.", 
+                    onConfirm: ExecuteBlock
+                );
+            }
+            else
+            {
+                ExecuteBlock();
+            }
+        }
+
+        private void ExecuteBlock()
+        {
             SetButtonLoading(detailBlockButton);
-            FriendApi.BlockPlayer(blockedProfileId, (res) =>
-            {
-                ResetButtonText(detailBlockButton, "");
-                ClearSelectedFriendState(true);
-                RefreshData();
-            },
-            err =>
-            {
-                ResetButtonText(detailBlockButton, "");
-                Debug.LogError(err.Message);
-            });
+            FriendApi.BlockPlayer(selectedProfileId, 
+                onSuccess: (res) => 
+                {
+                    ResetButtonText(detailBlockButton, "");
+                    ClearSelectedFriendState(true);
+                    
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Success", "Player blocked successfully.");
+                    else
+                        Debug.Log("Blocked successfully.");
+                        
+                    RefreshData();
+                },
+                onError: (err) => 
+                {
+                    ResetButtonText(detailBlockButton, "");
+                    if (UIPopupManager.Instance != null)
+                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    else
+                        Debug.LogError("Block failed: " + err.Message);
+                }
+            );
         }
 
         private void OnDetailProfileClicked()
