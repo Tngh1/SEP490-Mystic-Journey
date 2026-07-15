@@ -69,6 +69,15 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private Transform guildListContainer;
         [SerializeField] private GameObject guildEntryPrefab;
 
+        [Header("Rank Settings")]
+        [SerializeField] private GameObject rankListPanel; // Panel chứa danh sách rank
+        [SerializeField] private Transform rankListContainer; // Container sinh prefab
+        [SerializeField] private GameObject rankEntryPrefab; // Prefab của 1 dòng rank
+        [SerializeField] private GameObject memberHeaders; // Chứa text Members, Medals, Feats, Status
+        [SerializeField] private GameObject rankHeaders; // Chứa text hạng, tên guild, level, điểm
+        [SerializeField] private Image btnRankTabImage; // Nút bấm Tab Rank bên phải
+
+
         // Lưu thông tin Guild hiện tại
         private GuildDetailResponseDto currentGuild;
         private bool isShowingApplications = false;
@@ -424,9 +433,15 @@ namespace MysticJourney.UI.Guild
             if (manageTabContainer != null) manageTabContainer.SetActive(false);
             if (memberListPanel != null) memberListPanel.SetActive(true);
             if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
-            HighlightTab(btnInfoTabImage, btnManageTabImage);
+            
+            if (rankListPanel != null) rankListPanel.SetActive(false);
+            if (memberHeaders != null) memberHeaders.SetActive(true);
+            if (rankHeaders != null) rankHeaders.SetActive(false);
 
-            // Hiển thị danh sách thành viên khi vào Info Tab
+            HighlightTab(btnInfoTabImage, btnManageTabImage);
+            if (btnRankTabImage != null) btnRankTabImage.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+
+            // Hiện thị danh sách thành viên khi vào Info Tab
             if (currentGuild != null)
             {
                 LoadMemberList();
@@ -438,13 +453,20 @@ namespace MysticJourney.UI.Guild
             if (infoTabContainer != null) infoTabContainer.SetActive(false);
             if (manageTabContainer != null) manageTabContainer.SetActive(true);
             if (memberListPanel != null) memberListPanel.SetActive(true);
+            if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
+            
+            if (rankListPanel != null) rankListPanel.SetActive(false);
+            if (memberHeaders != null) memberHeaders.SetActive(true);
+            if (rankHeaders != null) rankHeaders.SetActive(false);
+
             HighlightTab(btnManageTabImage, btnInfoTabImage);
+            if (btnRankTabImage != null) btnRankTabImage.color = new Color(0.6f, 0.6f, 0.6f, 1f);
 
             // Chuyển về hiển thị danh sách Member mặc định khi sang Manage Tab
             isShowingApplications = false;
             LoadMemberList();
 
-            // Bật nút Approve chỉ khi là Leader hoặc Officer
+// Bật nút Approve chỉ khi là Leader hoặc Officer
             UpdateApproveButtonVisibility();
 
             // Setup settings UI
@@ -479,6 +501,64 @@ namespace MysticJourney.UI.Guild
 
             btnApprove.gameObject.SetActive(isLeaderOrOfficer);
         }
+
+        public void SwitchToRankTab()
+        {
+            // Tắt Info/Manage/Member
+            if (infoTabContainer != null) infoTabContainer.SetActive(false);
+            if (manageTabContainer != null) manageTabContainer.SetActive(false);
+            if (memberListPanel != null) memberListPanel.SetActive(false);
+            if (applicationListPanel != null) applicationListPanel.SetActive(false);
+            
+            // Ẩn Header Member, Bật Header Rank
+            if (memberHeaders != null) memberHeaders.SetActive(false);
+            if (rankHeaders != null) rankHeaders.SetActive(true);
+
+            // Bật Panel Rank
+            if (rankListPanel != null) rankListPanel.SetActive(true);
+
+            // Tắt màu Info/Manage, Bật màu Rank
+            if (btnInfoTabImage != null) btnInfoTabImage.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            if (btnManageTabImage != null) btnManageTabImage.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            if (btnRankTabImage != null) btnRankTabImage.color = Color.white;
+
+            LoadGuildRankings();
+        }
+
+        private void LoadGuildRankings()
+        {
+            // Xóa list cũ
+            if (rankListContainer != null)
+            {
+                foreach (Transform child in rankListContainer)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+
+            GuildApi.GetGuildRankings(
+                onSuccess: (rankings) => {
+                    if (rankListContainer == null || rankEntryPrefab == null) return;
+                    foreach (var rank in rankings)
+                    {
+                        GameObject obj = Instantiate(rankEntryPrefab, rankListContainer);
+                        obj.SetActive(true);
+                        obj.transform.localScale = Vector3.one;
+                        var entry = obj.GetComponent<UIGuildEntry>();
+                        if (entry != null)
+                        {
+                            entry.SetupRank(rank, 
+                                entryClicked: (id) => OpenGuildDetail(id), 
+                                applyClicked: (id) => ApplyToGuild(id));
+                        }
+                    }
+                },
+                onError: (err) => {
+                    Debug.LogError("Lỗi khi load bảng xếp hạng: " + err.Message);
+                });
+        }
+
+
 
         public void ToggleApplicationsList()
         {

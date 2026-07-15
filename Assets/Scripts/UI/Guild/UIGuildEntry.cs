@@ -12,7 +12,11 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtLevel;
         [SerializeField] private TextMeshProUGUI txtMemberCount;
         [SerializeField] private Button btnApply;
-        [SerializeField] private Button btnEntry; // Cả cái thẻ bự
+        [SerializeField] private Button btnEntry; // Có cái thì bỏ
+        
+        [Header("Rank Specific (Optional)")]
+        [SerializeField] private TextMeshProUGUI txtRank;
+        [SerializeField] private TextMeshProUGUI txtFeats;
 
         private int guildId;
         private Action<int> onApplyCallback;
@@ -47,6 +51,41 @@ namespace MysticJourney.UI.Guild
                     btnApply.interactable = true;
                 }
 
+                btnApply.onClick.RemoveAllListeners();
+                btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
+            }
+
+            if (btnEntry != null)
+            {
+                btnEntry.onClick.RemoveAllListeners();
+                btnEntry.onClick.AddListener(() => onEntryCallback?.Invoke(guildId));
+            }
+        }
+
+        public void SetupRank(GuildRankResponseDto data, Action<int> entryClicked, Action<int> applyClicked)
+        {
+            guildId = data.guildId;
+            onEntryCallback = entryClicked;
+            onApplyCallback = applyClicked;
+
+            if (txtRank != null) txtRank.text = data.rank.ToString();
+            if (txtGuildName != null) txtGuildName.text = data.name;
+            if (txtLevel != null) txtLevel.text = $"Lv. {data.level}";
+            if (txtMemberCount != null) txtMemberCount.text = $"{data.memberCount}/{data.maxMembers}";
+            if (txtFeats != null) txtFeats.text = data.totalFeats.ToString();
+
+            // In rank view, btnApply is probably a "Join/Apply" button for viewers.
+            if (btnApply != null)
+            {
+                var txt = btnApply.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null)
+                {
+                    // Since GuildRankResponseDto doesn't have joinPolicy, we default to Apply,
+                    // or just show "Apply".
+                    txt.text = "Apply";
+                }
+
+                btnApply.interactable = true; // Assuming level check is skipped for simplicity here, or you can add it if needed.
                 btnApply.onClick.RemoveAllListeners();
                 btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
             }
