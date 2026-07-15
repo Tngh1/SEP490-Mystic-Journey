@@ -202,6 +202,10 @@ namespace MysticJourney.API.Core
         public const string ShopItemAll = "/api/shopitems";
         public const string ShopItemById = "/api/shopitems/{0}";
         public const string PlayerShopItems = "/api/shop/items";
+        public const string PlayerShopFixed = "/api/shop/fixed";
+        public const string PlayerShopDailyDeals = "/api/shop/daily-deals";
+        public const string PlayerShopRefreshStatus = "/api/shop/daily-deals/refresh-status";
+        public const string PlayerShopRefresh = "/api/shop/daily-deals/refresh";
         public const string PlayerShopPurchase = "/api/shop/purchase";
 
         // ═══════════════════════════════════════════════════════════════════════
