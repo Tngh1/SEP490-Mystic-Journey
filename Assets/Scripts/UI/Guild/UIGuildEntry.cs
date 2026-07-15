@@ -12,7 +12,11 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtLevel;
         [SerializeField] private TextMeshProUGUI txtMemberCount;
         [SerializeField] private Button btnApply;
-        [SerializeField] private Button btnEntry; // Cả cái thẻ bự
+        [SerializeField] private Button btnEntry; // Có cái thì bỏ
+        
+        [Header("Rank Specific (Optional)")]
+        [SerializeField] private TextMeshProUGUI txtRank;
+        [SerializeField] private TextMeshProUGUI txtFeats;
 
         private int guildId;
         private Action<int> onApplyCallback;
@@ -49,6 +53,31 @@ namespace MysticJourney.UI.Guild
 
                 btnApply.onClick.RemoveAllListeners();
                 btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
+            }
+
+            if (btnEntry != null)
+            {
+                btnEntry.onClick.RemoveAllListeners();
+                btnEntry.onClick.AddListener(() => onEntryCallback?.Invoke(guildId));
+            }
+        }
+
+        public void SetupRank(GuildRankResponseDto data, Action<int> entryClicked, Action<int> applyClicked)
+        {
+            guildId = data.guildId;
+            onEntryCallback = entryClicked;
+            onApplyCallback = applyClicked;
+
+            if (txtRank != null) txtRank.text = data.rank.ToString();
+            if (txtGuildName != null) txtGuildName.text = data.name;
+            if (txtLevel != null) txtLevel.text = $"Lv. {data.level}";
+            if (txtMemberCount != null) txtMemberCount.text = $"{data.memberCount}/{data.maxMembers}";
+            if (txtFeats != null) txtFeats.text = data.totalFeats.ToString();
+
+            // In rank view, we want to HIDE the Apply button
+            if (btnApply != null)
+            {
+                btnApply.gameObject.SetActive(false);
             }
 
             if (btnEntry != null)
