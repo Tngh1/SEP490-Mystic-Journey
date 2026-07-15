@@ -98,6 +98,7 @@ public class EnemyBehaviour : MonoBehaviour
         {
             default:
             case State.Idle:
+                CheckCurrentState();
                 break;
             case State.Roaming:
                 roamingTime -= Time.deltaTime;
@@ -145,7 +146,7 @@ public class EnemyBehaviour : MonoBehaviour
             return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, target.position);
-        State newState = State.Roaming;
+        State newState = startingState;
 
         if (isChasingEnemy)
         {
@@ -184,6 +185,11 @@ public class EnemyBehaviour : MonoBehaviour
                 if (CanUseNavMeshAgent())
                     navMeshAgent.ResetPath();
             }
+            else if (newState == State.Idle)
+            {
+                if (CanUseNavMeshAgent())
+                    navMeshAgent.ResetPath();
+            }
 
             currentState = newState;
         }
@@ -193,7 +199,12 @@ public class EnemyBehaviour : MonoBehaviour
     {
         get
         {
-            return navMeshAgent != null && navMeshAgent.velocity.magnitude > 0.1f;
+            if (navMeshAgent == null) return false;
+            
+            bool isMoving = navMeshAgent.velocity.magnitude > 0.05f;
+            bool hasPath = (navMeshAgent.hasPath && navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance) || navMeshAgent.pathPending;
+            
+            return isMoving || hasPath;
         }
     }
 
@@ -204,14 +215,26 @@ public class EnemyBehaviour : MonoBehaviour
             // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
 
-            // Deal damage to the target player. Online, the AI runs only on the
-            // enemy's authority (this client), so route through the target's
-            // NetworkPlayer so the hit applies on that player's own avatar
-            // authority and replicates. Offline, hit the local PlayerEntity.
-            var targetPlayer = GetNearestNetworkPlayer();
-            if (targetPlayer != null)
+            var target = GetPlayerTarget();
+            if (target != null)
             {
-                targetPlayer.RequestDamage(attackDamage);
+                var networkPlayer = target.GetComponent<NetworkPlayer>();
+                if (networkPlayer != null)
+                {
+                    networkPlayer.RequestDamage(attackDamage);
+                }
+                else
+                {
+                    var playerEntity = target.GetComponent<PlayerEntity>();
+                    if (playerEntity != null)
+                    {
+                        playerEntity.TakeDamage(attackDamage);
+                    }
+                    else if (PlayerEntity.Instance != null)
+                    {
+                        PlayerEntity.Instance.TakeDamage(attackDamage);
+                    }
+                }
             }
             else if (PlayerEntity.Instance != null)
             {
@@ -270,38 +293,25 @@ public class EnemyBehaviour : MonoBehaviour
 
     private Transform GetPlayerTarget()
     {
-        // Online: chase the NEAREST networked player so the enemy reacts to any
-        // party member, not just the local one.
-        var nearest = GetNearestNetworkPlayer();
-        if (nearest != null)
-            return nearest.transform;
-
-        if (PlayerBehaviour.Instance != null)
-            return PlayerBehaviour.Instance.transform;
-
-        if (PlayerMovement.Instance != null)
-            return PlayerMovement.Instance.transform;
-
-        return null;
-    }
-
-    /// <summary>Nearest live networked player to THIS enemy, or null when offline.</summary>
-    private NetworkPlayer GetNearestNetworkPlayer()
-    {
-        var players = UnityEngine.Object.FindObjectsByType<NetworkPlayer>(FindObjectsSortMode.None);
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
         if (players == null || players.Length == 0) return null;
 
         Vector3 from = transform.position;
-        NetworkPlayer best = null;
+        Transform best = null;
         float bestSqr = float.MaxValue;
+        
         foreach (var p in players)
         {
-            if (p == null || !p.IsAlive) continue;
+            if (p == null || !p.activeInHierarchy) continue;
+            
+            var networkPlayer = p.GetComponent<NetworkPlayer>();
+            if (networkPlayer != null && !networkPlayer.IsAlive) continue;
+
             float sqr = (p.transform.position - from).sqrMagnitude;
             if (sqr < bestSqr)
             {
                 bestSqr = sqr;
-                best = p;
+                best = p.transform;
             }
         }
         return best;
