@@ -102,6 +102,10 @@ public class EnemyEntity : MonoBehaviour
     /// <summary>Called by NetworkEnemy.Spawned to enable the networked damage route.</summary>
     public void BindNetwork(NetworkEnemy network) => _network = network;
 
+    /// <summary>The bound NetworkEnemy when in a live session, else null. Lets callers
+    /// broadcast networked effects (e.g. melee damage popups) to every client.</summary>
+    public NetworkEnemy Network => (_network != null && _network.IsNetworkActive) ? _network : null;
+
     /// <summary>
     /// Public damage entry point. Projectiles / AoE / melee call this without
     /// knowing whether we are online. When networked, the request is routed to

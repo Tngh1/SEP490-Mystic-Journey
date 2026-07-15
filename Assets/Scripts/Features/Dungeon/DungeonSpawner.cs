@@ -5,6 +5,7 @@ using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Data-driven dungeon monster spawner. Placed as a component in the dungeon scene.
@@ -392,9 +393,38 @@ public class DungeonSpawner : MonoBehaviour
             var netObj = photon.Runner.Spawn(prefab, position, rotation);
             if (netObj == null) return null;
 
-            // Parent for a clean hierarchy (does not affect networked transform).
-            if (monsterContainer != null)
-                netObj.transform.SetParent(monsterContainer, worldPositionStays: true);
+            // Do NOT reparent networked enemies: Fusion's NetworkTransform replicates
+            // LOCAL position and this prefab has SyncParent disabled, so parenting the
+            // authority's enemy under monsterContainer (not at the origin) would make its
+            // local position = world - containerPos; the proxy, staying unparented, would
+            // then render it offset by containerPos — off-screen (the old "hit but
+            // invisible" bug).
+            //
+            // BUT Runner.Spawn drops the object into the ACTIVE scene, which is "Main" by
+            // the time the spawner runs (TransitionToDungeon re-activates Main). Enemies
+            // must live in the dungeon scene so they unload with it and share its NavMesh.
+            // Move by SCENE MEMBERSHIP only (world position preserved, no transform
+            // parent) — this restores what the reparent used to provide, without the
+            // local-position offset.
+            var dungeonScene = SceneManager.GetSceneByName(WorldState.CurrentMapName);
+            if (dungeonScene.IsValid() && dungeonScene.isLoaded)
+                SceneManager.MoveGameObjectToScene(netObj.gameObject, dungeonScene);
+
+            // Runner.Spawn instantiated the enemy in the Main scene (the active scene),
+            // whose has no NavMesh, so its NavMeshAgent logged "Failed to create agent"
+            // and never attached. Now that it lives in the dungeon scene (which DOES bake
+            // a NavMesh), re-initialise the agent so it binds to that NavMesh and the AI
+            // can move. This path only runs on the host (authority) — the proxy disables
+            // its agent in NetworkEnemy.Spawned, so we never fight that here.
+            var agent = netObj.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null)
+            {
+                agent.enabled = false;
+                agent.enabled = true; // re-bind to the dungeon scene's NavMesh
+                if (UnityEngine.AI.NavMesh.SamplePosition(position, out var hit, 3f, UnityEngine.AI.NavMesh.AllAreas))
+                    agent.Warp(hit.position);
+            }
+
             return netObj.gameObject;
         }
 

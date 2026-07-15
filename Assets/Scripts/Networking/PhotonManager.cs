@@ -198,9 +198,31 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// is spawned mid-transition), then connects to <paramref name="dungeonRoomName"/>.
     /// Every party member calls this with the SAME room name so they land together.
     /// </summary>
-    public async Task MigrateToDungeonAsync(string dungeonRoomName)
+    public Task MigrateToDungeonAsync(string dungeonRoomName)
     {
-        // Tear down the lobby runner fully before reconnecting (reconnect-safe).
+        return MigrateToRoomAsync(dungeonRoomName, PartyPhase.Dungeon);
+    }
+
+    /// <summary>
+    /// Exit a dungeon room back to the shared SOCIAL LOBBY (Lobby phase — no avatars,
+    /// no input). Called when a player leaves the dungeon so the dungeon room's runner
+    /// is fully torn down (their avatar despawns for everyone) and they rejoin the
+    /// common lobby where invites/party are possible again. Mirrors
+    /// <see cref="MigrateToDungeonAsync"/> but targets the lobby room + phase.
+    /// </summary>
+    public Task MigrateToSocialLobbyAsync()
+    {
+        return MigrateToRoomAsync(socialLobbySessionName, PartyPhase.Lobby);
+    }
+
+    /// <summary>
+    /// Shared runner-migration core: tear down the current runner (awaited, no local
+    /// fallback avatar), wait out the UserId-release grace window, then connect to the
+    /// target room/phase with retry+backoff against the transient reconnect kick.
+    /// </summary>
+    private async Task MigrateToRoomAsync(string roomName, PartyPhase phase)
+    {
+        // Tear down the current runner fully before reconnecting (reconnect-safe).
         if (_runner != null)
         {
             var old = _runner;
@@ -211,13 +233,42 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             Phase = PartyPhase.None;
 
             try { await old.Shutdown(destroyGameObject: false); }
-            catch (Exception ex) { Debug.LogWarning($"[PhotonManager] Lobby shutdown during migrate threw: {ex.Message}"); }
+            catch (Exception ex) { Debug.LogWarning($"[PhotonManager] Runner shutdown during migrate threw: {ex.Message}"); }
 
             if (old != null) Destroy(old);
+
+            // The Photon cloud releases the peer's UserId slightly AFTER Fusion's Shutdown
+            // Task completes. Reconnecting to a new room with the same UserId before that
+            // release makes the server kick the fresh peer with DisconnectByServerLogic
+            // (code 104). A short grace delay lets the old peer fully drain first.
+            await Task.Delay(700);
         }
 
-        Debug.Log($"[PhotonManager] Migrating into dungeon room '{dungeonRoomName}'.");
-        await StartAsync(dungeonRoomName, PartyPhase.Dungeon);
+        // The kick-on-reuse (code 104) is TRANSIENT: once the old peer fully drains
+        // server-side, the reconnect succeeds. The host holds StateAuthority over shared
+        // objects so its peer drains slower and is the one that tends to lose the race —
+        // a single fixed delay is not reliable for it. Retry with backoff so whichever
+        // client got kicked keeps trying until the slot is free.
+        const int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            Debug.Log($"[PhotonManager] Migrating into room '{roomName}' (phase={phase}, attempt {attempt}/{maxAttempts}).");
+            bool ok = await StartAsync(roomName, phase);
+            if (ok)
+            {
+                Debug.Log($"[PhotonManager] Migration into '{roomName}' succeeded on attempt {attempt}.");
+                return;
+            }
+
+            if (attempt < maxAttempts)
+            {
+                int backoff = 600 * attempt; // 600, 1200, 1800, 2400 ms
+                Debug.LogWarning($"[PhotonManager] Migration attempt {attempt} failed — retrying in {backoff}ms.");
+                await Task.Delay(backoff);
+            }
+        }
+
+        Debug.LogError($"[PhotonManager] Migration into '{roomName}' FAILED after {maxAttempts} attempts.");
     }
 
     /// <summary>
@@ -242,19 +293,21 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
         return StartAsync(sessionName, PartyPhase.Dungeon);
     }
 
-    private async Task StartAsync(string sessionName, PartyPhase phase)
+    /// <summary>Connect the runner to a session. Returns true on success, false if the
+    /// StartGame call was rejected (e.g. a transient reconnect kick) so callers can retry.</summary>
+    private async Task<bool> StartAsync(string sessionName, PartyPhase phase)
     {
         if (IsConnected)
         {
             Debug.LogWarning("[PhotonManager] StartAsync called while already connected. Ignored.");
-            return;
+            return true;
         }
 
         if (playerPrefab == default)
         {
             Debug.LogError("[PhotonManager] playerPrefab is not assigned in Inspector. " +
                            "Multiplayer cannot start.");
-            return;
+            return false;
         }
 
         Phase = phase;
@@ -295,12 +348,13 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             Phase = PartyPhase.None;
             Destroy(_runner);
             _runner = null;
-            return;
+            return false;
         }
 
         Debug.Log($"<color=green>[PhotonManager] Connected to Photon (phase={phase}).</color>");
         // In the lobby phase we do NOT spawn a gameplay avatar — OnPlayerJoined is
         // guarded on Phase. Milestone 2 flips Phase to Dungeon to start spawning.
+        return true;
     }
 
     /// <summary>

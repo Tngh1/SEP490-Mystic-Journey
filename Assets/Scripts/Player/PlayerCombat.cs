@@ -403,7 +403,16 @@ public class PlayerCombat : NetworkBehaviour
                 if (isCrit) finalDamage *= critDamageMultiplier;
                 int damageInt = Mathf.RoundToInt(finalDamage);
                 enemy.TakeDamage(damageInt);
-                if (DamagePopupManager.Instance != null)
+
+                // Damage number: online, broadcast via the enemy's NetworkEnemy so it
+                // shows on EVERY client (melee has no networked object of its own to
+                // broadcast from). Offline, spawn it locally as before.
+                var net = enemy.Network;
+                if (net != null)
+                {
+                    net.RPC_ShowDamagePopup(enemy.transform.position, damageInt, isCrit);
+                }
+                else if (DamagePopupManager.Instance != null)
                 {
                     DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
                 }
