@@ -15,6 +15,7 @@ public class UIItemDisplayData
     // Legacy integer price kept for old local/test callers. API shop uses unitPrice.
     public int price;
     public decimal unitPrice;
+    public decimal originalUnitPrice;
     public string currency = "Gold";
     public Sprite currencyIcon;
 
@@ -39,6 +40,7 @@ public class UIItemDisplayData
     public object rawData;
 
     public decimal EffectiveUnitPrice => unitPrice > 0 ? unitPrice : price;
+    public bool HasDealPrice => originalUnitPrice > EffectiveUnitPrice && EffectiveUnitPrice > 0;
 
     public int GetMaxPurchaseQuantity(int hardCap = 99)
     {

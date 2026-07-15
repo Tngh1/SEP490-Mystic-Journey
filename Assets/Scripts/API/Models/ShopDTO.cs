@@ -19,7 +19,9 @@ namespace MysticJourney.API.Models.Response
         public string ItemName { get; set; }
         public string ItemIconUrl { get; set; }
         public string ItemType { get; set; }
+        public string ShopSection { get; set; }
         public string Currency { get; set; }
+        public decimal? OriginalPrice { get; set; }
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public int DailyPurchaseLimit { get; set; }
@@ -42,7 +44,9 @@ namespace MysticJourney.API.Models.Response
         public string Rarity { get; set; }
         public string Slot { get; set; }
         public int MaxStack { get; set; }
+        public string ShopSection { get; set; }
         public string Currency { get; set; }
+        public decimal? OriginalPrice { get; set; }
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public bool IsUnlimitedStock { get; set; }
@@ -56,6 +60,26 @@ namespace MysticJourney.API.Models.Response
         public string AvailableTo { get; set; }
         public bool CanPurchase { get; set; }
         public string UnavailableReason { get; set; }
+    }
+
+    [System.Serializable]
+    public class ShopRefreshStatusResponse
+    {
+        public string ShopDateUtc { get; set; }
+        public string NextResetUtc { get; set; }
+        public int RefreshesUsedToday { get; set; }
+        public int RefreshesRemainingToday { get; set; }
+        public int MaxDailyRefreshes { get; set; }
+        public bool CanRefresh { get; set; }
+    }
+
+    [System.Serializable]
+    public class ShopRefreshResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public ShopRefreshStatusResponse RefreshStatus { get; set; }
+        public PagedResultResponse<ShopItemPublicResponse> Shop { get; set; }
     }
 
     [System.Serializable]

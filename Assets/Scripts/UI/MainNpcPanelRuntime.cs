@@ -290,6 +290,31 @@ public class MainNpcPanelRuntime : MonoBehaviour
         if (actionAreaRect != null)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(actionAreaRect);
+
+            // Fix layout gap/overlap if VerticalLayoutGroup is missing in Prefab
+            if (actionAreaRect.GetComponent<UnityEngine.UI.VerticalLayoutGroup>() == null && actionButtons.Count > 0)
+            {
+                float spacing = 10f; // Khoảng cách giữa các nút
+                var firstBtnRect = actionButtons[0] != null ? actionButtons[0].transform as RectTransform : null;
+                
+                if (firstBtnRect != null)
+                {
+                    float currentY = firstBtnRect.anchoredPosition.y;
+                    for (int i = 0; i < actionButtons.Count; i++)
+                    {
+                        var btn = actionButtons[i];
+                        if (btn != null && btn.gameObject.activeSelf)
+                        {
+                            var rect = btn.transform as RectTransform;
+                            if (rect != null)
+                            {
+                                rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, currentY);
+                                currentY -= (rect.rect.height + spacing);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
