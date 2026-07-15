@@ -65,7 +65,11 @@ public class UIConfirmPurchase : MonoBehaviour
             itemIcon.sprite = currentItem?.icon;
             itemIcon.enabled = currentItem?.icon != null;
         }
-        if (itemPriceText != null) itemPriceText.text = FormatAmount(currentItem?.EffectiveUnitPrice ?? 0);
+        if (itemPriceText != null)
+        {
+            itemPriceText.richText = true;
+            itemPriceText.text = FormatDisplayPrice(currentItem);
+        }
         if (currencyNameText != null) currencyNameText.text = string.IsNullOrWhiteSpace(currentItem?.currency) ? "Gold" : currentItem.currency;
 
         UpdateUI();
@@ -124,6 +128,20 @@ public class UIConfirmPurchase : MonoBehaviour
     private void Cancel()
     {
         gameObject.SetActive(false);
+    }
+
+
+    private static string FormatDisplayPrice(UIItemDisplayData item)
+    {
+        if (item == null)
+            return FormatAmount(0);
+
+        string currentPrice = FormatAmount(item.EffectiveUnitPrice);
+        if (!item.HasDealPrice)
+            return currentPrice;
+
+        string originalPrice = FormatAmount(item.originalUnitPrice);
+        return $"<s><color=#9CA3AF>{originalPrice}</color></s> <b><color=#FFD34D>{currentPrice}</color></b>";
     }
 
     private static string FormatAmount(decimal amount)

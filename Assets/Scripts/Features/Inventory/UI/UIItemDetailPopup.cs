@@ -106,7 +106,7 @@ public class UIItemDetailPopup : MonoBehaviour
         // Detail Buttons
         if (equipButton)      equipButton.onClick.AddListener(HandleEquipInitiated);
         if (unequipButton)    unequipButton.onClick.AddListener(HandleUnequip);
-        if (consumeButton)    consumeButton.onClick.AddListener(ShowConsumePanel);
+        if (consumeButton)    consumeButton.onClick.AddListener(HandleConsumeButtonClick);
         if (closeDetailButton) closeDetailButton.onClick.AddListener(Hide);
 
         // Equip Comparison Buttons
@@ -317,6 +317,18 @@ public class UIItemDetailPopup : MonoBehaviour
     // =========================================================================
     // CONSUME PANEL
     // =========================================================================
+    private void HandleConsumeButtonClick()
+    {
+        if (_currentItem != null && _currentItem.ItemName != null && _currentItem.ItemName.Contains("Lucky Ticket", StringComparison.OrdinalIgnoreCase))
+        {
+            OnConsumeConfirmed?.Invoke(_currentItem, 1);
+        }
+        else
+        {
+            ShowConsumePanel();
+        }
+    }
+
     private void ShowConsumePanel()
     {
         if (_currentItem == null || !IsConsumable(_currentItem) || _currentItem.Quantity <= 0) return;
@@ -364,7 +376,7 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private static bool IsConsumable(InventoryItemResponse item)
     {
-        return IsItemType(item, "Consumable");
+        return IsItemType(item, "Consumable") || (item != null && item.ItemName != null && item.ItemName.Contains("Lucky Ticket", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsEquipment(InventoryItemResponse item)

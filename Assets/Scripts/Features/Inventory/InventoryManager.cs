@@ -284,6 +284,17 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleConsumeItem(InventoryItemResponse item, int quantity)
     {
+        if (item != null && item.ItemName != null && item.ItemName.Contains("Lucky Ticket", System.StringComparison.OrdinalIgnoreCase))
+        {
+            itemDetailPopup?.Hide();
+            UIManager.Instance?.CloseAll();
+            if (UIManager.Instance != null && UIManager.Instance.gachaPanel != null)
+            {
+                UIManager.Instance.OpenPanel(UIManager.Instance.gachaPanel);
+            }
+            return;
+        }
+
         if (!IsConsumable(item) || quantity <= 0)
         {
             ShowActionError("Only consumable items can be used.");
@@ -895,7 +906,7 @@ public class InventoryManager : MonoBehaviour
 
     private static bool IsConsumable(InventoryItemResponse item)
     {
-        return IsItemType(item, "Consumable");
+        return IsItemType(item, "Consumable") || (item != null && item.ItemName != null && item.ItemName.Contains("Lucky Ticket", System.StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsEquipment(InventoryItemResponse item)

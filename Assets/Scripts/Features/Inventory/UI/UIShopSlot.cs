@@ -61,7 +61,10 @@ public class UIShopSlot : UIBaseItemSlot
             gemGroup.SetActive(true);
             
             if (gemPriceText != null)
-                gemPriceText.text = FormatPrice(data.EffectiveUnitPrice, ""); // Ko cần truyền chữ Gem nữa vì đã có icon
+            {
+                gemPriceText.richText = true;
+                gemPriceText.text = FormatDisplayPrice(data);
+            }
         }
         else
         {
@@ -70,7 +73,10 @@ public class UIShopSlot : UIBaseItemSlot
             if (gemGroup != null) gemGroup.SetActive(false);
             
             if (priceText != null)
-                priceText.text = FormatPrice(data.EffectiveUnitPrice, "");
+            {
+                priceText.richText = true;
+                priceText.text = FormatDisplayPrice(data);
+            }
         }
 
         // Vẫn giữ logic update ảnh cũ nếu user dùng 1 cái Image xài chung
@@ -98,6 +104,20 @@ public class UIShopSlot : UIBaseItemSlot
     {
         if (RawData != null)
             OnSlotClicked?.Invoke(this);
+    }
+
+
+    private static string FormatDisplayPrice(UIItemDisplayData data)
+    {
+        if (data == null)
+            return FormatPrice(0, string.Empty);
+
+        string currentPrice = FormatPrice(data.EffectiveUnitPrice, string.Empty);
+        if (!data.HasDealPrice)
+            return currentPrice;
+
+        string originalPrice = FormatPrice(data.originalUnitPrice, string.Empty);
+        return $"<s><color=#9CA3AF>{originalPrice}</color></s> <b><color=#FFD34D>{currentPrice}</color></b>";
     }
 
     private static string FormatPrice(decimal amount, string currency)
