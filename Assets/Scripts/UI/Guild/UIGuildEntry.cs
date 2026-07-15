@@ -74,20 +74,10 @@ namespace MysticJourney.UI.Guild
             if (txtMemberCount != null) txtMemberCount.text = $"{data.memberCount}/{data.maxMembers}";
             if (txtFeats != null) txtFeats.text = data.totalFeats.ToString();
 
-            // In rank view, btnApply is probably a "Join/Apply" button for viewers.
+            // In rank view, we want to HIDE the Apply button
             if (btnApply != null)
             {
-                var txt = btnApply.GetComponentInChildren<TextMeshProUGUI>();
-                if (txt != null)
-                {
-                    // Since GuildRankResponseDto doesn't have joinPolicy, we default to Apply,
-                    // or just show "Apply".
-                    txt.text = "Apply";
-                }
-
-                btnApply.interactable = true; // Assuming level check is skipped for simplicity here, or you can add it if needed.
-                btnApply.onClick.RemoveAllListeners();
-                btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
+                btnApply.gameObject.SetActive(false);
             }
 
             if (btnEntry != null)

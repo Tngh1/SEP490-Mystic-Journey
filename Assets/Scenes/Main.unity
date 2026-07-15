@@ -17661,7 +17661,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Chat
+  m_text: 'Quest
+
+'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7f528eaff45a19b4a8f9f32d1ad10c74, type: 2}
   m_sharedMaterial: {fileID: -4936762262204577934, guid: 7f528eaff45a19b4a8f9f32d1ad10c74, type: 2}
@@ -78815,7 +78817,7 @@ GameObject:
   - component: {fileID: 1262540352}
   - component: {fileID: 1262540351}
   m_Layer: 5
-  m_Name: ChatButton
+  m_Name: QuestButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -80320,7 +80322,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 10}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1286180872
 MonoBehaviour:
@@ -117877,7 +117879,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1885666073
 RectTransform:
   m_ObjectHideFlags: 0
@@ -119717,12 +119719,9 @@ MonoBehaviour:
   inputSearchGuild: {fileID: 471980126}
   guildListContainer: {fileID: 1015944292}
   guildEntryPrefab: {fileID: 6649594850028626485, guid: 31911506e0b5cee48ad48dc8bd5d0b27, type: 3}
-  rankListPanel: {fileID: 0}
-  rankListContainer: {fileID: 0}
-  rankEntryPrefab: {fileID: 0}
   memberHeaders: {fileID: 0}
   rankHeaders: {fileID: 0}
-  btnRankTabImage: {fileID: 0}
+  btnRankTabImage: {fileID: 236302632}
 --- !u!1 &1933109822
 GameObject:
   m_ObjectHideFlags: 0
