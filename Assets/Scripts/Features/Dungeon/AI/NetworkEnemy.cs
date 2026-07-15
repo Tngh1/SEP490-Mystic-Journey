@@ -134,4 +134,18 @@ public class NetworkEnemy : NetworkBehaviour
     {
         _entity.ApplyDamageAuthoritative(amount);
     }
+
+    /// <summary>
+    /// Broadcast a floating damage number to EVERY client. Any client may invoke it
+    /// (Shared Mode RpcSources.All → RpcTargets.All), and all clients — including the
+    /// caller — spawn the popup once. Used by melee, which (unlike the networked skill
+    /// projectiles) has no networked object of its own to broadcast from, so the damage
+    /// number would otherwise only appear on the attacker's screen.
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ShowDamagePopup(Vector3 worldPos, int amount, NetworkBool isCrit)
+    {
+        if (DamagePopupManager.Instance != null)
+            DamagePopupManager.Instance.Create(worldPos, amount, isCrit, false);
+    }
 }

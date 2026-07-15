@@ -58,19 +58,64 @@ public class DungeonManager : MonoBehaviour
     }
     private GameObject FindPlayerInstance()
     {
-        var pm = FindFirstObjectByType<PlayerMovement>();
-        if (pm != null) return pm.gameObject;
-        
-        var pwi = FindFirstObjectByType<PlayerWorldInteractor>();
-        if (pwi != null) return pwi.gameObject;
+        GameObject found = null;
 
-        return GameObject.FindWithTag("Player") ?? 
-               GameObject.Find("Knight") ?? 
-               GameObject.Find("Mage") ?? 
-               GameObject.Find("Archer") ?? 
-               GameObject.Find("Knight(Clone)") ?? 
-               GameObject.Find("Mage(Clone)") ?? 
-               GameObject.Find("Archer(Clone)");
+        // Prefer the local networked avatar in multiplayer — its own PlayerMovement is
+        // on the NetworkPlayer root, whereas FindFirstObjectByType<PlayerMovement> can
+        // match the class VISUAL child (which briefly carries a PlayerMovement before
+        // CharacterFactory strips it). A child is not a scene root, so returning it
+        // makes MoveGameObjectToScene throw "Gameobject is not a root in a scene".
+        if (NetworkPlayer.Local != null)
+            found = NetworkPlayer.Local.gameObject;
+
+        if (found == null)
+        {
+            var pm = FindFirstObjectByType<PlayerMovement>();
+            if (pm != null) found = pm.gameObject;
+        }
+
+        if (found == null)
+        {
+            var pwi = FindFirstObjectByType<PlayerWorldInteractor>();
+            if (pwi != null) found = pwi.gameObject;
+        }
+
+        found ??= GameObject.FindWithTag("Player") ??
+                  GameObject.Find("Knight") ??
+                  GameObject.Find("Mage") ??
+                  GameObject.Find("Archer") ??
+                  GameObject.Find("Knight(Clone)") ??
+                  GameObject.Find("Mage(Clone)") ??
+                  GameObject.Find("Archer(Clone)");
+
+        // Always return the scene ROOT: SceneManager.MoveGameObjectToScene rejects any
+        // non-root object. Fusion spawns network avatars as scene roots, so transform.root
+        // resolves to the avatar root even if we matched a child component above.
+        return found != null ? found.transform.root.gameObject : null;
+    }
+
+    /// <summary>
+    /// Move a player into a scene without letting a failure kill the calling coroutine.
+    /// MoveGameObjectToScene throws if the object is not a scene root; guarding it here
+    /// means a bad move logs an error but the dungeon transition still completes (avoids
+    /// the half-loaded "black screen" hang). Returns true on success.
+    /// </summary>
+    private static bool SafeMoveToScene(GameObject go, Scene scene)
+    {
+        if (go == null || !scene.IsValid() || !scene.isLoaded) return false;
+        if (go.scene == scene) return true; // already there
+        try
+        {
+            // MoveGameObjectToScene requires a scene root; force it defensively.
+            var root = go.transform.root.gameObject;
+            SceneManager.MoveGameObjectToScene(root, scene);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[DungeonManager] MoveGameObjectToScene('{go.name}' → '{scene.name}') failed: {ex.Message}");
+            return false;
+        }
     }
     public void StartDungeon(int configId, string dungeonSceneName, int cost, string dungeonName, List<string> partyMembers = null)
     {
@@ -186,7 +231,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     /// to the solo flow. The networked avatar (spawned by PhotonManager on migration)
     /// is picked up by FindPlayerInstance just like a local player.
     /// </summary>
-    public void EnterDungeonScene(int configId, string dungeonSceneName, int cost, string dungeonName, int sessionId)
+    public void EnterDungeonScene(int configId, string dungeonSceneName, int cost, string dungeonName, int sessionId,
+                                  bool hasReturnPoint = false, string returnMapName = null, Vector3 returnPosition = default)
     {
         if (sessionId <= 0)
         {
@@ -209,18 +255,32 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _bossEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
 
-        PreviousMapSceneName = WorldState.CurrentMapName;
-
-        var player = FindPlayerInstance();
-        if (player != null && player.transform.position != Vector3.zero)
+        // Return point: the party path migrates the Photon runner FIRST, which destroys
+        // the world avatar and spawns a fresh networked one at a different position — so
+        // reading the (post-migration) avatar's transform here would save the wrong
+        // "previous" position and exit the dungeon to the wrong spot. The caller
+        // (PartyManager) captures the true world position BEFORE migrating and passes it
+        // in. Solo entry (StartDungeon) captures it there and does not use this method.
+        if (hasReturnPoint)
         {
-            PreviousPlayerPosition = player.transform.position;
+            PreviousMapSceneName = string.IsNullOrEmpty(returnMapName) ? WorldState.CurrentMapName : returnMapName;
+            PreviousPlayerPosition = returnPosition;
             HasPreviousPlayerPosition = true;
         }
         else
         {
-            PreviousPlayerPosition = WorldState.LastPosition;
-            HasPreviousPlayerPosition = true;
+            PreviousMapSceneName = WorldState.CurrentMapName;
+            var player = FindPlayerInstance();
+            if (player != null && player.transform.position != Vector3.zero)
+            {
+                PreviousPlayerPosition = player.transform.position;
+                HasPreviousPlayerPosition = true;
+            }
+            else
+            {
+                PreviousPlayerPosition = WorldState.LastPosition;
+                HasPreviousPlayerPosition = true;
+            }
         }
 
         StartCoroutine(TransitionToDungeon(dungeonSceneName));
@@ -233,11 +293,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         if (player != null)
         {
             var mainScene = SceneManager.GetSceneByName("Main");
-            if (mainScene.IsValid() && mainScene.isLoaded)
-            {
-                SceneManager.MoveGameObjectToScene(player, mainScene);
+            if (SafeMoveToScene(player, mainScene))
                 Debug.Log("[DungeonManager] Moved player to Main scene defensively.");
-            }
         }
 
         // Unload any active map scenes defensively (excluding "Main" and the target dungeon scene)
@@ -257,20 +314,31 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // Load dungeon scene additively
         yield return SceneManager.LoadSceneAsync(dungeonSceneName, LoadSceneMode.Additive);
 
+        // The local (networked) avatar may not exist yet on a client that just migrated
+        // — if it is still null here we skip the teleport and the player is left at the
+        // spawn position NetworkPlayer chose (world position + fan-out offset), so the
+        // two players end up in different spots. Wait briefly for it so EVERY client
+        // teleports its own avatar to the shared PlayerSpawn.
+        if (player == null)
+        {
+            float waitAvatar = 5f;
+            while (waitAvatar > 0f && (player = FindPlayerInstance()) == null)
+            {
+                waitAvatar -= Time.deltaTime;
+                yield return null;
+            }
+        }
+
         // Move player into the dungeon scene
         if (player != null)
         {
             var dungeonScene = SceneManager.GetSceneByName(dungeonSceneName);
-            if (dungeonScene.IsValid() && dungeonScene.isLoaded)
-            {
-                SceneManager.MoveGameObjectToScene(player, dungeonScene);
+            if (SafeMoveToScene(player, dungeonScene))
                 Debug.Log($"[DungeonManager] Moved player into dungeon scene: {dungeonSceneName}");
-            }
         }
         else
         {
-            // If player was null, try to find it now (in case PlayerSpawner in dungeon spawned a new one)
-            player = FindPlayerInstance();
+            Debug.LogWarning("[DungeonManager] Local avatar still null after wait — teleport to PlayerSpawn will be skipped.");
         }
 
         // Teleport player to the PlayerSpawn position
@@ -673,16 +741,27 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     private IEnumerator TransitionToWorld()
     {
+        // If we entered the dungeon as a networked party, leave the dungeon Photon room
+        // and return to the shared social lobby FIRST. This tears down the dungeon runner
+        // so our avatar despawns for the other members (and theirs for us) — otherwise
+        // both players keep seeing each other in the world because they're still in the
+        // same dungeon room. Done before the scene swap so the networked avatar is gone
+        // before PlayerSpawner puts a local one back.
+        var photon = PhotonManager.Instance;
+        if (photon != null && photon.IsDungeonSession)
+        {
+            Debug.Log("[DungeonManager] Exiting dungeon room → migrating back to social lobby.");
+            var migrate = photon.MigrateToSocialLobbyAsync();
+            while (!migrate.IsCompleted) yield return null;
+        }
+
         // Find player first before unloading
         var player = FindPlayerInstance();
         if (player != null)
         {
             var mainSceneObj = SceneManager.GetSceneByName("Main");
-            if (mainSceneObj.IsValid() && mainSceneObj.isLoaded)
-            {
-                SceneManager.MoveGameObjectToScene(player, mainSceneObj);
+            if (SafeMoveToScene(player, mainSceneObj))
                 Debug.Log("[DungeonManager] Moved player to Main scene defensively.");
-            }
         }
 
         // Unload any active map scenes defensively (excluding "Main" and the target world scene)
@@ -708,12 +787,11 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         if (player != null)
         {
             var worldScene = SceneManager.GetSceneByName(PreviousMapSceneName);
-            if (worldScene.IsValid() && worldScene.isLoaded)
+            if (SafeMoveToScene(player, worldScene))
             {
-                SceneManager.MoveGameObjectToScene(player, worldScene);
                 player.transform.position = returnPos;
                 Debug.Log($"[DungeonManager] Moved player into world scene: {PreviousMapSceneName} at {returnPos}");
-                
+
                 // Save position to backend so logout doesn't get stuck in dungeon
                 MysticJourney.API.Endpoints.WorldApi.Instance?.UpdatePosition(PreviousMapSceneName, returnPos, null, null);
             }
@@ -791,10 +869,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         if (player != null)
         {
             var mainScene = SceneManager.GetSceneByName("Main");
-            if (mainScene.IsValid() && mainScene.isLoaded)
-            {
-                SceneManager.MoveGameObjectToScene(player, mainScene);
-            }
+            SafeMoveToScene(player, mainScene);
         }
 
         // 2. Unload the CURRENT dungeon scene
@@ -811,10 +886,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         if (player != null)
         {
             var newDungeonScene = SceneManager.GetSceneByName(dungeonSceneName);
-            if (newDungeonScene.IsValid() && newDungeonScene.isLoaded)
+            if (SafeMoveToScene(player, newDungeonScene))
             {
-                SceneManager.MoveGameObjectToScene(player, newDungeonScene);
-                
                 GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
                 if (targetSpawnPoint == null)
                 {

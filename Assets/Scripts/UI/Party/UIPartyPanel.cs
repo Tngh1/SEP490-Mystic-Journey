@@ -121,6 +121,11 @@ public class UIPartyPanel : MonoBehaviour
     private void HandleLocalPartyChanged()
     {
         RehookPartyEvents();
+        // The party is created lazily on the first invite — AFTER the host opened the
+        // panel (when PartyLobby.Local was still null, so the initial publish was a
+        // no-op). Republish now that we're seated as host so members' panels get the
+        // real dungeon config/name/scene instead of the empty networked defaults.
+        PublishDungeonSelectionIfHost();
         if (gameObject.activeInHierarchy) UpdateUI();
     }
 
@@ -146,6 +151,17 @@ public class UIPartyPanel : MonoBehaviour
         energyCost = cost;
         selectedDungeonName = displayName;
 
+        // A member may open the panel BEFORE the host has published a real config id
+        // (arrives via PartyLobby networked props a frame later). configId <= 0 would
+        // hit DungeonApi.GetById(0) → 404, so skip the fetch and just show the panel;
+        // UpdateUI reads the host's published DungeonName once it replicates.
+        if (configId <= 0)
+        {
+            gameObject.SetActive(true);
+            FetchPlayerEnergy();
+            return;
+        }
+
         // Fetch detailed config info via GetById to grab recommended level, difficulty and energy cost
         DungeonApi.Instance.GetById(configId,
             response =>
@@ -155,6 +171,8 @@ public class UIPartyPanel : MonoBehaviour
                     recommendedLevel = response.LevelRequirement;
                     difficulty = response.Difficulty;
                     energyCost = response.EnergyCost;
+                    if (!string.IsNullOrEmpty(response.Name))
+                        selectedDungeonName = response.Name;
                 }
                 gameObject.SetActive(true);
                 PublishDungeonSelectionIfHost();
@@ -545,7 +563,7 @@ public class UIPartyPanel : MonoBehaviour
             {
                 bool ready = IsLocalMemberReady(party);
                 var label = readyButton.GetComponentInChildren<TMP_Text>(true);
-                if (label != null) label.text = ready ? "READY ✓" : "READY";
+                if (label != null) label.text = ready ? "UNREADY" : "READY";
                 readyButton.interactable = true;
                 bool next = !ready;
                 readyButton.onClick.AddListener(() => PartyService.SetReady(next));
