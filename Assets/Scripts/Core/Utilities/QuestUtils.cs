@@ -93,8 +93,31 @@ namespace MysticJourney.Core.Utilities
             if (quest.RewardExperience > 0) parts.Add($"EXP +{quest.RewardExperience}");
             if (quest.RewardGold > 0) parts.Add($"Gold +{quest.RewardGold:0}");
             if (quest.RewardGems > 0) parts.Add($"Gems +{quest.RewardGems:0}");
-            if (!string.IsNullOrWhiteSpace(quest.RewardItemName)) parts.Add($"Item: {quest.RewardItemName}");
-            if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
+            if (quest.RewardItems != null && quest.RewardItems.Count > 0)
+            {
+                foreach (var item in quest.RewardItems)
+                {
+                    var itemLabel = !string.IsNullOrWhiteSpace(item.ItemName) ? item.ItemName : $"Item #{item.ItemId}";
+                    var quantity = Mathf.Max(1, item.Quantity);
+                    parts.Add($"Item: {itemLabel} x{quantity}");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(quest.RewardItemName))
+            {
+                parts.Add($"Item: {quest.RewardItemName}");
+            }
+
+            if (quest.RewardSkills != null && quest.RewardSkills.Count > 0)
+            {
+                foreach (var skill in quest.RewardSkills)
+                {
+                    var skillLabel = !string.IsNullOrWhiteSpace(skill.SkillName) ? skill.SkillName : $"Skill #{skill.SkillId}";
+                    if (!string.IsNullOrWhiteSpace(skill.ClassRequirement))
+                        skillLabel += $" ({skill.ClassRequirement})";
+                    parts.Add($"Skill: {skillLabel}");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
             {
                 var skillLabel = !string.IsNullOrWhiteSpace(quest.RewardSkillName)
                     ? quest.RewardSkillName
