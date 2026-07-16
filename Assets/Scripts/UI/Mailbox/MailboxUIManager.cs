@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
@@ -11,21 +12,18 @@ namespace MysticJourney.Screen.Mail
     public class MailboxUIManager : MonoBehaviour
     {
         [Header("Left Panel - General")]
-        [SerializeField] private GameObject totalMailContainer;
-        [SerializeField] private TMP_Text totalMailText;
         [SerializeField] private Transform contentContainer;
         [SerializeField] private GameObject mailItemPrefab;
         [SerializeField] private TMP_Text emptyListText;
 
         [Header("Left Panel - Pagination")]
         [SerializeField] private GameObject paginationContainer;
-        [SerializeField] private Button firstButton;
         [SerializeField] private Button previousButton;
-        [SerializeField] private TMP_Text pageNumber1;
-        [SerializeField] private TMP_Text pageNumber2;
-        [SerializeField] private TMP_Text pageNumber3;
+        // Single "current / total" label. Keeps the reference that used to be wired to
+        // the middle page number so re-assignment in the Inspector isn't required.
+        [FormerlySerializedAs("pageNumber2")]
+        [SerializeField] private TMP_Text pageInfoText;
         [SerializeField] private Button nextButton;
-        [SerializeField] private Button lastButton;
 
         [Header("Right Panel - General")]
         [SerializeField] private GameObject rightPanel;
@@ -78,10 +76,8 @@ namespace MysticJourney.Screen.Mail
             if (popupOkButton != null) popupOkButton.onClick.AddListener(OnPopupOkClicked);
             if (popupCancelButton != null) popupCancelButton.onClick.AddListener(OnPopupCancelClicked);
 
-            if (firstButton != null) firstButton.onClick.AddListener(() => GoToPage(1));
             if (previousButton != null) previousButton.onClick.AddListener(() => GoToPage(_currentPage - 1));
             if (nextButton != null) nextButton.onClick.AddListener(() => GoToPage(_currentPage + 1));
-            if (lastButton != null) lastButton.onClick.AddListener(() => GoToPage(_totalPages));
         }
 
         private void OnEnable()
@@ -113,7 +109,6 @@ namespace MysticJourney.Screen.Mail
 
         private void LoadMailsFromBackend()
         {
-            if (totalMailContainer != null) totalMailContainer.SetActive(false);
             if (paginationContainer != null) paginationContainer.SetActive(false);
             if (emptyListText != null) emptyListText.gameObject.SetActive(false);
             if (contentContainer != null)
@@ -153,18 +148,15 @@ namespace MysticJourney.Screen.Mail
                     }
                 }
 
-                if (totalMailContainer != null) totalMailContainer.SetActive(false);
                 if (paginationContainer != null) paginationContainer.SetActive(false);
                 HideRightPanelContent();
                 if (emptyRightText != null) emptyRightText.gameObject.SetActive(true);
 
-                UpdatePaginationUI(0, 1, 0);
+                UpdatePaginationUI(1, 0);
                 return;
             }
 
             if (emptyListText != null) emptyListText.gameObject.SetActive(false);
-            if (totalMailContainer != null) totalMailContainer.SetActive(true);
-            if (totalMailText != null) totalMailText.text = $"Total: {response.TotalMails}";
             if (emptyRightText != null) emptyRightText.gameObject.SetActive(false);
             if (paginationContainer != null) paginationContainer.SetActive(true);
 
@@ -195,27 +187,21 @@ namespace MysticJourney.Screen.Mail
                 }
             }
 
-            UpdatePaginationUI(response.TotalMails, response.Page, response.TotalPages);
+            UpdatePaginationUI(response.Page, response.TotalPages);
         }
 
-        private void UpdatePaginationUI(int totalMails, int currentPage, int totalPages)
+        private void UpdatePaginationUI(int currentPage, int totalPages)
         {
             _currentPage = currentPage;
             _totalPages = totalPages;
 
-            if (pageNumber1 != null)
-                pageNumber1.text = (currentPage > 1) ? (currentPage - 1).ToString() : "";
+            // Show "current / total" (e.g. "2 / 5"). Clamp the displayed total to at
+            // least 1 so an empty mailbox reads "1 / 1" rather than "1 / 0".
+            if (pageInfoText != null)
+                pageInfoText.text = $"{currentPage} / {Mathf.Max(1, totalPages)}";
 
-            if (pageNumber2 != null)
-                pageNumber2.text = (totalPages > 0) ? currentPage.ToString() : "1";
-
-            if (pageNumber3 != null)
-                pageNumber3.text = (currentPage < totalPages) ? (currentPage + 1).ToString() : "";
-
-            if (firstButton != null) firstButton.interactable = currentPage > 1;
             if (previousButton != null) previousButton.interactable = currentPage > 1;
             if (nextButton != null) nextButton.interactable = currentPage < totalPages;
-            if (lastButton != null) lastButton.interactable = currentPage < totalPages;
         }
 
         private void GoToPage(int page)
@@ -251,80 +237,14 @@ namespace MysticJourney.Screen.Mail
             if (typeText != null) typeText.text = mailData.Type;
             if (bodyText != null) bodyText.text = mailData.Content;
 
-            bool hasGold = mailData.AttachedGold > 0;
-            bool hasGems = mailData.AttachedGems > 0;
-            bool hasItems = mailData.AttachedItems != null && mailData.AttachedItems.Length > 0;
-            bool hasAnyReward = hasGold || hasGems || hasItems;
-
-            Debug.Log($"[MailboxUI] Gold: {mailData.AttachedGold}, Gems: {mailData.AttachedGems}, Items count: {(mailData.AttachedItems != null ? mailData.AttachedItems.Length : 0)}");
-
-            if (rewardsContainer != null)
-            {
-                rewardsContainer.SetActive(hasAnyReward);
-
-                // Gold
-                if (goldSlot != null) goldSlot.SetActive(hasGold);
-                if (hasGold && goldAmountText != null) goldAmountText.text = $"x{(int)mailData.AttachedGold}";
-
-                // Gems
-                if (gemSlot != null) gemSlot.SetActive(hasGems);
-                if (hasGems && gemAmountText != null) gemAmountText.text = $"x{(int)mailData.AttachedGems}";
-
-                // Items động
-                if (itemsContainer != null && itemSlotPrefab != null)
-                {
-                    // Dọn dẹp item cũ
-                    foreach (Transform child in itemsContainer)
-                    {
-                        Destroy(child.gameObject);
-                    }
-
-                    if (hasItems)
-                    {
-                        foreach (var item in mailData.AttachedItems)
-                        {
-                            GameObject itemObj = Instantiate(itemSlotPrefab, itemsContainer);
-
-                            // SỬA LỖI 1: Reset lại scale để tránh UI bị biến dạng hoặc tàng hình (scale = 0)
-                            itemObj.transform.localScale = Vector3.one;
-                            itemObj.SetActive(true);
-
-                            // Thay vì dùng GetComponentInChildren hoặc transform.Find...
-                            // Hãy lấy TRỰC TIẾP component Image nằm ngay trên object ItemSlot
-                            var iconImage = itemObj.GetComponent<UnityEngine.UI.Image>();
-                            var quantityText = itemObj.GetComponentInChildren<TMP_Text>();
-
-                            if (iconImage != null && ItemIconDatabase.Instance != null)
-                            {
-                                // Lấy icon từ database
-                                Sprite icon = ItemIconDatabase.Instance.GetIcon(item.ItemName, null);
-
-                                if (icon != null)
-                                {
-                                    iconImage.sprite = icon; // Gán hình vào
-                                }
-                                else
-                                {
-                                    // Nếu vẫn nhảy vào đây, nghĩa là key trong Database VẪN CHƯA KHỚP
-                                    Debug.LogWarning($"[MailboxUI] Vẫn không tìm thấy icon cho: '{item.ItemName}'");
-                                }
-                            }
-
-                            if (quantityText != null)
-                            {
-                                quantityText.text = $"x{item.Quantity}";
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Debug.Log("[MailboxUI] Thư này không có AttachedItems.");
-                    }
-                }
-            }
-
-            if (claimButton != null) claimButton.gameObject.SetActive(hasAnyReward && !mailData.IsClaimed);
-            if (claimedStamp != null) claimedStamp.SetActive(hasAnyReward && mailData.IsClaimed);
+            // ponytail: Rewards section intentionally left blank — to be built later.
+            // Keep the whole reward area (gold/gem/items) and the claim button/stamp
+            // hidden so the right panel shows only title/type/body for now. Re-enable by
+            // restoring the reward-rendering block below (git history) once the reward UI
+            // is finalized.
+            if (rewardsContainer != null) rewardsContainer.SetActive(false);
+            if (claimButton != null) claimButton.gameObject.SetActive(false);
+            if (claimedStamp != null) claimedStamp.SetActive(false);
 
             if (!mailData.IsRead)
             {
