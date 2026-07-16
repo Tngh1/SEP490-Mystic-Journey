@@ -11,6 +11,8 @@ namespace MysticJourney.UI.Guild
 {
     public class GuildUIManager : MonoBehaviour
     {
+        public static GuildUIManager Instance { get; private set; }
+
         [Header("Panels")]
         [SerializeField] private GameObject mainGuildPanel; // Panel bự nhất chứa tất cả
         [SerializeField] private GameObject tabsPanel; // Panel chứa các Tab bên phải (Info, Rank, Chat)
@@ -19,6 +21,7 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private GameObject createGuildPanel;
         [SerializeField] private GameObject guildInfoPanel;
         [SerializeField] private GameObject memberListPanel;
+        [SerializeField] private UIGuildInvitePanel invitePanel;
 
         [Header("Preview Detail UI (Outsider)")]
         [SerializeField] private TextMeshProUGUI txtPreviewName;
@@ -76,10 +79,15 @@ namespace MysticJourney.UI.Guild
 
 
         // Lưu thông tin Guild hiện tại
-        private GuildDetailResponseDto currentGuild;
+        public GuildDetailResponseDto currentGuild; // Lu thng tin Guild ca ti hoc Guild dang xem chi tit
         private bool isShowingApplications = false;
 
-        
+        private void Awake()
+        {
+            if (Instance == null) Instance = this;
+            else Destroy(gameObject);
+        }
+
         private void Update()
         {
             // Auto hide/show tabsPanel if we are inside GuildInfo but viewing GuildDetail preview (from Rank list)
@@ -974,6 +982,18 @@ namespace MysticJourney.UI.Guild
                     else
                         Debug.LogError("Dissolve Guild failed: " + err.Message);
                 });
+        }
+
+        public void OpenInvitePanel()
+        {
+            if (invitePanel != null)
+            {
+                invitePanel.OpenPanel();
+            }
+            else
+            {
+                Debug.LogWarning("Invite Panel is not assigned in GuildUIManager");
+            }
         }
     }
 }
