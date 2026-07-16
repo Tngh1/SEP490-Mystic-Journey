@@ -170,3 +170,18 @@ namespace MysticJourney.API.Models
         public string createdAt;
     }
 }
+
+    [System.Serializable]
+    public class GuildRankResponseDto
+    {
+        public int rank;
+        public int guildId;
+        public string name;
+        public int iconId;
+        public int level;
+        public int totalMedals;
+        public int totalFeats;
+        public int memberCount;
+        public int maxMembers;
+    }
+
