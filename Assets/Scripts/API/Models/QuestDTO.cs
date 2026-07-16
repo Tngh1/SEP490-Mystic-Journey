@@ -1,6 +1,30 @@
+using System;
+using System.Collections.Generic;
+
 namespace MysticJourney.API.Models.Response
 {
-    [System.Serializable]
+    [Serializable]
+    public class QuestRewardItemResponse
+    {
+        public int QuestRewardItemId { get; set; }
+        public int ItemId { get; set; }
+        public string ItemName { get; set; }
+        public string IconUrl { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    [Serializable]
+    public class QuestRewardSkillResponse
+    {
+        public int QuestRewardSkillId { get; set; }
+        public int SkillId { get; set; }
+        public string SkillName { get; set; }
+        public string ClassRequirement { get; set; }
+        public string Type { get; set; }
+        public string DamageType { get; set; }
+    }
+
+    [Serializable]
     public class QuestResponse
     {
         public int QuestId { get; set; }
@@ -33,9 +57,11 @@ namespace MysticJourney.API.Models.Response
         public int? RewardItemId { get; set; }
         public string RewardItemName { get; set; }
         public string RewardItemIconUrl { get; set; }
+        public List<QuestRewardItemResponse> RewardItems { get; set; } = new();
         public int? RewardSkillId { get; set; }
         public string RewardSkillName { get; set; }
         public string RewardSkillIconUrl { get; set; }
+        public List<QuestRewardSkillResponse> RewardSkills { get; set; } = new();
         public bool IsActive { get; set; }
     }
 }
