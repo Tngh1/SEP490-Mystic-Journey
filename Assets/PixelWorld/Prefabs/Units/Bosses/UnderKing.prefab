@@ -410,6 +410,16 @@ MonoBehaviour:
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+  leashDistance: 15
+  canCastSkill: 1
+  skillPrefab: {fileID: 581651899946598449, guid: 590ae3323108ed44b8d17ca6e4369b6b, type: 3}
+  skillCooldown: 7
+  skillSpawnDelay: 0.5
+  skillSpawnPoint: {fileID: 0}
+  canCastSkill2: 1
+  skill2Prefab: {fileID: 8063904768506647147, guid: bd5a856c8da9a104ca3af21540d6c5bd, type: 3}
+  skill2Cooldown: 20
+  skill2SpawnDelay: 0.5
 --- !u!195 &6579752352164247718
 NavMeshAgent:
   m_ObjectHideFlags: 0

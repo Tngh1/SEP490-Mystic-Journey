@@ -23,6 +23,8 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float chasingSpeedMultiplier = 2f;
     [SerializeField] private float attackDistance = 2f;
     [SerializeField] private float attackRate = 2f;
+    [SerializeField] private float leashDistance = 15f; // Quãng đường tối đa đi xa khỏi nhà
+    private bool isReturning = false; // Trạng thái đang quay về
 
     [Header("Skill Settings")]
     [SerializeField] private bool canCastSkill = false;
@@ -31,6 +33,13 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float skillSpawnDelay = 0.5f; // Thời gian chờ để khớp với animation
     [SerializeField] private Transform skillSpawnPoint;
     private float nextSkillTime = 0f;
+
+    [Header("Skill 2 Settings (Boss Only)")]
+    [SerializeField] private bool canCastSkill2 = false;
+    [SerializeField] private GameObject skill2Prefab;
+    [SerializeField] private float skill2Cooldown = 20f;
+    [SerializeField] private float skill2SpawnDelay = 0.5f;
+    private float nextSkill2Time = 0f;
 
     private float chasingSpeed;
     private float nextAttackTime = 1f;
@@ -57,6 +66,7 @@ public class EnemyBehaviour : MonoBehaviour
     {
         startingPosition = transform.position;
         nextSkillTime = Time.time + skillCooldown;
+        nextSkill2Time = Time.time + skill2Cooldown;
     }
 
     private void Awake()
@@ -153,6 +163,42 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void CheckCurrentState()
     {
+        // 1. KIỂM TRA PHẠM VI (LEASH)
+        float distanceFromStart = Vector3.Distance(transform.position, startingPosition);
+
+        if (isReturning)
+        {
+            // Nếu đã về tới gần điểm xuất phát -> Hủy trạng thái đi về, sinh hoạt bình thường
+            if (distanceFromStart <= roamingDistanceMax + 1f)
+            {
+                isReturning = false;
+            }
+            else
+            {
+                // Bắt buộc ở trạng thái Roaming để đi về nhà
+                if (currentState != State.Roaming)
+                {
+                    currentState = State.Roaming;
+                    roamingTime = 0f; // Kích hoạt đi dạo ngay lập tức để tìm đường về
+                    if (CanUseNavMeshAgent()) navMeshAgent.speed = roamingSpeed;
+                }
+                return; // Ngăn chặn code đuổi theo người chơi bên dưới
+            }
+        }
+        else if (leashDistance > 0 && distanceFromStart > leashDistance)
+        {
+            // Đi quá xa -> Bật trạng thái quay về
+            isReturning = true;
+            if (currentState != State.Roaming)
+            {
+                currentState = State.Roaming;
+                roamingTime = 0f;
+                if (CanUseNavMeshAgent()) navMeshAgent.speed = roamingSpeed;
+            }
+            return;
+        }
+
+        // 2. CHECK ĐUỔI VÀ ĐÁNH (Như cũ)
         var target = GetPlayerTarget();
         if (target == null)
             return;
@@ -279,8 +325,6 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void CheckSkillCasting()
     {
-        if (!canCastSkill || skillPrefab == null) return;
-
         var target = GetPlayerTarget();
         if (target == null) return;
 
@@ -288,22 +332,31 @@ public class EnemyBehaviour : MonoBehaviour
         
         if (distanceToPlayer <= chasingDistance * 2f) 
         {
-            if (Time.time >= nextSkillTime)
+            // Kiểm tra Skill 2 trước (ưu tiên)
+            if (canCastSkill2 && skill2Prefab != null && Time.time >= nextSkill2Time)
             {
-                CastSkill(target);
+                CastSkill(target, skill2Prefab, skill2SpawnDelay);
+                nextSkill2Time = Time.time + skill2Cooldown;
+                return; // Cast xong skill 2 thì dừng, không cast skill 1 cùng lúc
+            }
+
+            // Nếu không dùng skill 2, kiểm tra skill 1
+            if (canCastSkill && skillPrefab != null && Time.time >= nextSkillTime)
+            {
+                CastSkill(target, skillPrefab, skillSpawnDelay);
                 nextSkillTime = Time.time + skillCooldown;
             }
         }
     }
 
-    private void CastSkill(Transform target)
+    private void CastSkill(Transform target, GameObject prefabToCast, float delay)
     {
         OnEnemyCastSkill?.Invoke(this, EventArgs.Empty);
 
-        StartCoroutine(SpawnSkillWithDelay(target, skillSpawnDelay));
+        StartCoroutine(SpawnSkillWithDelay(target, prefabToCast, delay));
     }
 
-    private IEnumerator SpawnSkillWithDelay(Transform target, float delay)
+    private IEnumerator SpawnSkillWithDelay(Transform target, GameObject prefabToCast, float delay)
     {
         if (delay > 0)
         {
@@ -319,7 +372,7 @@ public class EnemyBehaviour : MonoBehaviour
             spawnPosition = skillSpawnPoint.position;
         }
 
-        Instantiate(skillPrefab, spawnPosition, Quaternion.identity);
+        Instantiate(prefabToCast, spawnPosition, Quaternion.identity);
     }
 
     private void Roaming()
