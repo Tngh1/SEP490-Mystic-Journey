@@ -149,7 +149,7 @@ GameObject:
   - component: {fileID: 3775991171014104583}
   - component: {fileID: 8483476526512037600}
   m_Layer: 3
-  m_Name: DragonForest
+  m_Name: GreenDragonForest
   m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -321,6 +321,12 @@ MonoBehaviour:
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+  leashDistance: 15
+  canCastSkill: 0
+  skillPrefab: {fileID: 0}
+  skillCooldown: 7
+  skillSpawnDelay: 0.5
+  skillSpawnPoint: {fileID: 0}
 --- !u!195 &8543158005501537259
 NavMeshAgent:
   m_ObjectHideFlags: 0
