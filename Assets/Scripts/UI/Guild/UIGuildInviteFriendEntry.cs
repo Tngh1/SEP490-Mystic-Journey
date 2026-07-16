@@ -10,41 +10,38 @@ namespace MysticJourney.UI.Guild
     {
         public TMP_Text nameText;
         public TMP_Text levelText;
-        public Button inviteButton;
-        private int targetId;
+        public UnityEngine.UI.Image avatarImage; // Thêm biến để kéo avatar vào
+        public Button cardButton; // Nút bao phủ toàn bộ thẻ để bấm chọn
+        public GameObject selectedOverlay; // Hiển thị mờ/đổi màu khi được chọn
         
-        public void Setup(FriendDto friend)
+        private int targetId;
+        private bool isSelected = false;
+        private System.Action<int, bool> onToggleCallback;
+        
+        public void Setup(FriendDto friend, System.Action<int, bool> toggleCallback)
         {
             targetId = friend.FriendProfileId;
+            onToggleCallback = toggleCallback;
+            isSelected = false;
+
             if (nameText != null) nameText.text = friend.FriendName;
             if (levelText != null) levelText.text = $"Lv. {friend.FriendLevel}";
+            if (selectedOverlay != null) selectedOverlay.SetActive(false);
             
-            if (inviteButton != null)
+            if (cardButton != null)
             {
-                inviteButton.interactable = true;
-                inviteButton.onClick.RemoveAllListeners();
-                inviteButton.onClick.AddListener(OnInviteClicked);
+                cardButton.interactable = true;
+                cardButton.onClick.RemoveAllListeners();
+                cardButton.onClick.AddListener(OnCardClicked);
             }
         }
         
-        private void OnInviteClicked()
+        private void OnCardClicked()
         {
-            if (GuildUIManager.Instance == null || GuildUIManager.Instance.currentGuild == null) 
-            {
-                UIPopupManager.Instance.ShowAlert("Error", "You are not in a guild!");
-                return;
-            }
+            isSelected = !isSelected;
+            if (selectedOverlay != null) selectedOverlay.SetActive(isSelected);
             
-            int guildId = GuildUIManager.Instance.currentGuild.guildId;
-            
-            GuildApi.InviteMember(guildId, targetId,
-                onSuccess: (res) => {
-                    UIPopupManager.Instance.ShowAlert("Success", "Invitation sent!");
-                    if (inviteButton != null) inviteButton.interactable = false;
-                },
-                onError: (err) => {
-                    UIPopupManager.Instance.ShowAlert("Failed", err.Message);
-                });
+            onToggleCallback?.Invoke(targetId, isSelected);
         }
     }
 }

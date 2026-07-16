@@ -125,6 +125,21 @@ namespace MysticJourney.UI.Guild
                 btnSaveSettings.onClick.AddListener(OnSaveSettingsClicked);
             }
 
+            if (btnLeave != null)
+            {
+                btnLeave.onClick.AddListener(RequestLeaveGuild);
+            }
+
+            if (btnApprove != null)
+            {
+                btnApprove.onClick.AddListener(ToggleApplicationsList);
+            }
+
+            if (btnLevelUp != null)
+            {
+                btnLevelUp.onClick.AddListener(LevelUp);
+            }
+
             // Bind Right Tabs
             if (tabsPanel != null)
             {
@@ -323,12 +338,15 @@ namespace MysticJourney.UI.Guild
 
         public void RequestLeaveGuild()
         {
+            Debug.Log($"[GuildUIManager] RequestLeaveGuild called. currentGuild: {(currentGuild != null ? currentGuild.name : "null")}");
             if (currentGuild == null) return;
             
             int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+            Debug.Log($"[GuildUIManager] myProfileId: {myProfileId}, leaderId: {currentGuild.leaderId}");
             
             if (currentGuild.leaderId == myProfileId)
             {
+                Debug.Log($"[GuildUIManager] User is leader. Members count: {(currentGuild.members != null ? currentGuild.members.Count : 0)}");
                 // Kiểm tra xem bang còn ai khác không
                 if (currentGuild.members != null && currentGuild.members.Count > 1)
                 {
@@ -385,6 +403,7 @@ namespace MysticJourney.UI.Guild
             }
             else
             {
+                Debug.Log("[GuildUIManager] User is NOT leader. Showing leave confirm popup.");
                 // Thành viên bình thường -> Rời bang
                 if (UIPopupManager.Instance != null)
                 {

@@ -312,12 +312,13 @@ public class PlayerCombat : NetworkBehaviour
 
     private bool IsNetworked => Runner != null && Runner.IsRunning;
 
+    private bool isPointerOverUI = false;
+
     public void OnAttack(InputValue value)
     {
         if (IsNetworked) return;
         if (!value.isPressed) return;
-        if (UnityEngine.EventSystems.EventSystem.current != null &&
-            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+        if (isPointerOverUI)
         {
             return;
         }
@@ -502,6 +503,11 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
+        if (UnityEngine.EventSystems.EventSystem.current != null)
+        {
+            isPointerOverUI = UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+        }
+
         if (_isAimingAoE)
         {
             Vector3? aimWorld = _input != null && _input.PointerWorldPosition.HasValue
