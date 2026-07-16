@@ -38,9 +38,11 @@ namespace MysticJourney.API.Models.Response
         public int? RewardItemId { get; set; }
         public string RewardItemName { get; set; }
         public string RewardItemIconUrl { get; set; }
+        public List<QuestRewardItemResponse> RewardItems { get; set; } = new();
         public int? RewardSkillId { get; set; }
         public string RewardSkillName { get; set; }
         public string RewardSkillIconUrl { get; set; }
+        public List<QuestRewardSkillResponse> RewardSkills { get; set; } = new();
         public string AcceptedAt { get; set; }
         public string CompletedAt { get; set; }
         public string ClaimedAt { get; set; }
