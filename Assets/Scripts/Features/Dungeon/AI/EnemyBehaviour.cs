@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using EnemyPatrol.Utilites;
 using System;
+using System.Collections;
 
 public class EnemyBehaviour : MonoBehaviour
 {
@@ -23,12 +24,21 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float attackDistance = 2f;
     [SerializeField] private float attackRate = 2f;
 
+    [Header("Skill Settings")]
+    [SerializeField] private bool canCastSkill = false;
+    [SerializeField] private GameObject skillPrefab;
+    [SerializeField] private float skillCooldown = 7f;
+    [SerializeField] private float skillSpawnDelay = 0.5f; // Thời gian chờ để khớp với animation
+    [SerializeField] private Transform skillSpawnPoint;
+    private float nextSkillTime = 0f;
+
     private float chasingSpeed;
     private float nextAttackTime = 1f;
     private float roamingSpeed;
     private float roamingTime;
 
     public event EventHandler OnEnemyAttack;
+    public event EventHandler OnEnemyCastSkill;
 
     private float nextCheckDirectionTime = 0f;
     private float checkDirectionDuration = 0.1f;
@@ -46,6 +56,7 @@ public class EnemyBehaviour : MonoBehaviour
     private void Start()
     {
         startingPosition = transform.position;
+        nextSkillTime = Time.time + skillCooldown;
     }
 
     private void Awake()
@@ -82,6 +93,7 @@ public class EnemyBehaviour : MonoBehaviour
     {
         StateController();
         MovementDirection();
+        CheckSkillCasting();
     }
 
     public void SetDeathState()
@@ -263,6 +275,51 @@ public class EnemyBehaviour : MonoBehaviour
             lastPosition = transform.position;
             nextCheckDirectionTime = Time.time + checkDirectionDuration;
         }
+    }
+
+    private void CheckSkillCasting()
+    {
+        if (!canCastSkill || skillPrefab == null) return;
+
+        var target = GetPlayerTarget();
+        if (target == null) return;
+
+        float distanceToPlayer = Vector3.Distance(transform.position, target.position);
+        
+        if (distanceToPlayer <= chasingDistance * 2f) 
+        {
+            if (Time.time >= nextSkillTime)
+            {
+                CastSkill(target);
+                nextSkillTime = Time.time + skillCooldown;
+            }
+        }
+    }
+
+    private void CastSkill(Transform target)
+    {
+        OnEnemyCastSkill?.Invoke(this, EventArgs.Empty);
+
+        StartCoroutine(SpawnSkillWithDelay(target, skillSpawnDelay));
+    }
+
+    private IEnumerator SpawnSkillWithDelay(Transform target, float delay)
+    {
+        if (delay > 0)
+        {
+            yield return new WaitForSeconds(delay);
+        }
+
+        // Cần check lại xem target có bị null hoặc boss có bị tiêu diệt trong lúc delay không
+        if (target == null || currentState == State.Death) yield break;
+
+        Vector3 spawnPosition = target.position;
+        if (skillSpawnPoint != null)
+        {
+            spawnPosition = skillSpawnPoint.position;
+        }
+
+        Instantiate(skillPrefab, spawnPosition, Quaternion.identity);
     }
 
     private void Roaming()

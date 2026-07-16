@@ -118,11 +118,12 @@ Transform:
   m_GameObject: {fileID: 3956450508181879834}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.009, y: -0.084, z: 0}
+  m_LocalPosition: {x: 0.009, y: 0.11, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6289723310731444108}
+  - {fileID: 6847991577217080703}
   m_Father: {fileID: 7099087125539511842}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &2062319002310427473
@@ -219,6 +220,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyBehaviour: {fileID: 7867892375940036920}
   enemyEntity: {fileID: 5936923882346042558}
+--- !u!1 &7252767472903677714
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6847991577217080703}
+  m_Layer: 0
+  m_Name: SkillSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6847991577217080703
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7252767472903677714}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.02, y: -0.05, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1479822294914643330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7859024662854985799
 GameObject:
   m_ObjectHideFlags: 0
@@ -472,6 +504,10 @@ MonoBehaviour:
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+  canCastSkill: 1
+  skillPrefab: {fileID: 4641934613873771552, guid: c15d157fc79005d4f8fa9709fed0f021, type: 3}
+  skillCooldown: 7
+  skillSpawnPoint: {fileID: 6847991577217080703}
 --- !u!114 &5936923882346042558
 MonoBehaviour:
   m_ObjectHideFlags: 0

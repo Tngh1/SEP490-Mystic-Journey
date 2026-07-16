@@ -16,6 +16,7 @@ public class EnemyAnimations : MonoBehaviour
     private const string ATTACK = "EnemyAttack";
     private const string TAKEHIT = "TakeDamage";
     private const string DIED = "Died";
+    private const string CAST_SKILL = "CastSkill";
 
     SpriteRenderer spriteRenderer;
 
@@ -30,6 +31,7 @@ public class EnemyAnimations : MonoBehaviour
     private void Start()
     {
         enemyBehaviour.OnEnemyAttack += enemyBehaviour_OnEnemyAttack;
+        enemyBehaviour.OnEnemyCastSkill += enemyBehaviour_OnEnemyCastSkill;
         enemyEntity.OnTakeHit += enemyEntity_OnTakeHit;
         enemyEntity.OnDeath += enemyEntity_OnDeath;
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -47,7 +49,11 @@ public class EnemyAnimations : MonoBehaviour
 
     private void OnDestroy()
     {
-        enemyBehaviour.OnEnemyAttack -= enemyBehaviour_OnEnemyAttack;
+        if (enemyBehaviour != null)
+        {
+            enemyBehaviour.OnEnemyAttack -= enemyBehaviour_OnEnemyAttack;
+            enemyBehaviour.OnEnemyCastSkill -= enemyBehaviour_OnEnemyCastSkill;
+        }
     }
 
     void Update()
@@ -70,6 +76,11 @@ public class EnemyAnimations : MonoBehaviour
     private void enemyBehaviour_OnEnemyAttack(object sender, System.EventArgs e)
     {
         anim.SetTrigger(ATTACK);
+    }
+
+    private void enemyBehaviour_OnEnemyCastSkill(object sender, System.EventArgs e)
+    {
+        anim.SetTrigger(CAST_SKILL);
     }
 
     private void enemyEntity_OnTakeHit(object sender, EventArgs e)
