@@ -69,9 +69,29 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private Transform guildListContainer;
         [SerializeField] private GameObject guildEntryPrefab;
 
+        [Header("Rank Settings")]
+        [SerializeField] private GameObject memberHeaders; // Chứa text Members, Medals, Feats, Status
+        [SerializeField] private GameObject rankHeaders; // Chứa text hạng, tên guild, level, điểm
+        [SerializeField] private Image btnRankTabImage; // Nút bấm Tab Rank bên phải
+
+
         // Lưu thông tin Guild hiện tại
         private GuildDetailResponseDto currentGuild;
         private bool isShowingApplications = false;
+
+        
+        private void Update()
+        {
+            // Auto hide/show tabsPanel if we are inside GuildInfo but viewing GuildDetail preview (from Rank list)
+            if (currentGuild != null && guildInfoPanel != null && guildInfoPanel.activeInHierarchy)
+            {
+                bool isViewingDetail = (guildDetailPanel != null && guildDetailPanel.activeInHierarchy);
+                if (tabsPanel != null && tabsPanel.activeSelf == isViewingDetail)
+                {
+                    tabsPanel.SetActive(!isViewingDetail);
+                }
+            }
+        }
 
         private void Start()
         {
@@ -89,11 +109,55 @@ namespace MysticJourney.UI.Guild
                 toggleRequireApproval.onValueChanged.AddListener(isOn => {
                     if (inputRequiredLevel != null) inputRequiredLevel.interactable = isOn;
                 });
+                toggleRequireApproval.isOn = false;
             }
 
             if (btnSaveSettings != null)
             {
                 btnSaveSettings.onClick.AddListener(OnSaveSettingsClicked);
+            }
+
+            // Bind Right Tabs
+            if (tabsPanel != null)
+            {
+                Transform btnRightInfo = tabsPanel.transform.Find("InfoButton");
+                if (btnRightInfo != null) {
+                    btnRightInfo.GetComponent<Button>()?.onClick.RemoveAllListeners();
+                    btnRightInfo.GetComponent<Button>()?.onClick.AddListener(SwitchToInfoTab);
+                }
+
+                Transform btnRightRank = tabsPanel.transform.Find("RankButton");
+                if (btnRightRank != null) {
+                    btnRightRank.GetComponent<Button>()?.onClick.RemoveAllListeners();
+                    btnRightRank.GetComponent<Button>()?.onClick.AddListener(SwitchToRankTab);
+                }
+            }
+            else
+            {
+                // Fallback if tabsPanel is somehow null
+                if (btnInfoTabImage != null) btnInfoTabImage.GetComponent<Button>()?.onClick.AddListener(SwitchToInfoTab);
+                if (btnManageTabImage != null) btnManageTabImage.GetComponent<Button>()?.onClick.AddListener(SwitchToManageTab);
+                if (btnRankTabImage != null) btnRankTabImage.GetComponent<Button>()?.onClick.AddListener(SwitchToRankTab);
+            }
+
+            // Bind Left Tabs
+            if (guildInfoPanel != null)
+            {
+                Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
+                if (leftTabs != null)
+                {
+                    Transform btnLeftInfo = leftTabs.Find("InfoButton");
+                    if (btnLeftInfo != null) {
+                        btnLeftInfo.GetComponent<Button>()?.onClick.RemoveAllListeners();
+                        btnLeftInfo.GetComponent<Button>()?.onClick.AddListener(SwitchToInfoTab);
+                    }
+
+                    Transform btnLeftManage = leftTabs.Find("ManageButton");
+                    if (btnLeftManage != null) {
+                        btnLeftManage.GetComponent<Button>()?.onClick.RemoveAllListeners();
+                        btnLeftManage.GetComponent<Button>()?.onClick.AddListener(SwitchToManageTab);
+                    }
+                }
             }
         }
 
@@ -170,14 +234,21 @@ namespace MysticJourney.UI.Guild
         public void OpenGuildList()
         {
             Debug.Log("[GuildUIManager] OpenGuildList() is called! StackTrace: " + UnityEngine.StackTraceUtility.ExtractStackTrace());
-            guildListPanel.SetActive(false);
-            guildDetailPanel.SetActive(false);
-            createGuildPanel.SetActive(false);
+            if (guildListPanel != null) guildListPanel.SetActive(false);
+            if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
+            if (createGuildPanel != null) createGuildPanel.SetActive(false);
             if (guildInfoPanel != null) guildInfoPanel.SetActive(false);
             if (memberListPanel != null) memberListPanel.SetActive(false);
-            if (tabsPanel != null) tabsPanel.SetActive(false); // Ẩn các tab bên phải
+            if (tabsPanel != null) tabsPanel.SetActive(false); // Ẩn các tab bên phải khi chưa có guild
 
-            guildListPanel.SetActive(true);
+            // Nếu GuildList đang được dùng làm Rank thì nút Create bị ẩn đi, giờ cần hiện lại
+            if (guildListPanel != null)
+            {
+                Transform createBtn = guildListPanel.transform.Find("CreateButton");
+                if (createBtn != null) createBtn.gameObject.SetActive(true);
+            }
+
+            if (guildListPanel != null) guildListPanel.SetActive(true);
 
             if (inputSearchGuild != null) inputSearchGuild.text = "";
             LoadGuildList("");
@@ -424,7 +495,21 @@ namespace MysticJourney.UI.Guild
             if (manageTabContainer != null) manageTabContainer.SetActive(false);
             if (memberListPanel != null) memberListPanel.SetActive(true);
             if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
-            HighlightTab(btnInfoTabImage, btnManageTabImage);
+            if (memberHeaders != null) memberHeaders.SetActive(true);
+            if (rankHeaders != null) rankHeaders.SetActive(false);
+            
+            // Ẩn panel của Rank tab (vì nó dùng chung guildListPanel)
+            if (guildListPanel != null) guildListPanel.SetActive(false);
+
+            HighlightLeftTab("InfoButton");
+            HighlightRightTab("InfoButton");
+
+            // Show Left Tabs
+            if (guildInfoPanel != null)
+            {
+                Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
+                if (leftTabs != null) leftTabs.gameObject.SetActive(true);
+            }
 
             // Hiển thị danh sách thành viên khi vào Info Tab
             if (currentGuild != null)
@@ -438,13 +523,28 @@ namespace MysticJourney.UI.Guild
             if (infoTabContainer != null) infoTabContainer.SetActive(false);
             if (manageTabContainer != null) manageTabContainer.SetActive(true);
             if (memberListPanel != null) memberListPanel.SetActive(true);
-            HighlightTab(btnManageTabImage, btnInfoTabImage);
+            if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
+            if (memberHeaders != null) memberHeaders.SetActive(true);
+            if (rankHeaders != null) rankHeaders.SetActive(false);
+            
+            // Ẩn panel của Rank tab
+            if (guildListPanel != null) guildListPanel.SetActive(false);
+
+            HighlightLeftTab("ManageButton");
+            HighlightRightTab("InfoButton");
+
+            // Show Left Tabs
+            if (guildInfoPanel != null)
+            {
+                Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
+                if (leftTabs != null) leftTabs.gameObject.SetActive(true);
+            }
 
             // Chuyển về hiển thị danh sách Member mặc định khi sang Manage Tab
             isShowingApplications = false;
             LoadMemberList();
 
-            // Bật nút Approve chỉ khi là Leader hoặc Officer
+// Bật nút Approve chỉ khi là Leader hoặc Officer
             UpdateApproveButtonVisibility();
 
             // Setup settings UI
@@ -479,6 +579,78 @@ namespace MysticJourney.UI.Guild
 
             btnApprove.gameObject.SetActive(isLeaderOrOfficer);
         }
+
+        public void SwitchToRankTab()
+        {
+            // Tắt Info/Manage/Member
+            if (infoTabContainer != null) infoTabContainer.SetActive(false);
+            if (manageTabContainer != null) manageTabContainer.SetActive(false);
+            if (memberListPanel != null) memberListPanel.SetActive(false);
+            if (applicationListPanel != null) applicationListPanel.SetActive(false);
+            
+            // Ẩn Header Member, Bật Header Rank
+            if (memberHeaders != null) memberHeaders.SetActive(false);
+            if (rankHeaders != null) rankHeaders.SetActive(true);
+
+            // Bật Panel Rank
+            if (guildListPanel != null) guildListPanel.SetActive(true);
+
+            // Tắt màu Info/Manage, Bật màu Rank
+            HighlightRightTab("RankButton");
+
+            // Hide Left Tabs
+            if (guildInfoPanel != null)
+            {
+                Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
+                if (leftTabs != null) leftTabs.gameObject.SetActive(false);
+            }
+
+            if (createGuildPanel != null) createGuildPanel.SetActive(false);
+
+            // Hide Create Button if we are viewing Rank while not in a guild
+            if (guildListPanel != null)
+            {
+                Transform createBtn = guildListPanel.transform.Find("CreateButton");
+                if (createBtn != null) createBtn.gameObject.SetActive(false);
+            }
+
+            LoadGuildRankings();
+        }
+
+        private void LoadGuildRankings()
+        {
+            // Xóa list cũ
+            if (guildListContainer != null)
+            {
+                foreach (Transform child in guildListContainer)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+
+            GuildApi.GetGuildRankings(
+                onSuccess: (rankings) => {
+                    if (guildListContainer == null || guildEntryPrefab == null) return;
+                    foreach (var rank in rankings)
+                    {
+                        GameObject obj = Instantiate(guildEntryPrefab, guildListContainer);
+                        obj.SetActive(true);
+                        obj.transform.localScale = Vector3.one;
+                        var entry = obj.GetComponent<UIGuildEntry>();
+                        if (entry != null)
+                        {
+                            entry.SetupRank(rank, 
+                                entryClicked: (id) => OpenGuildDetail(id), 
+                                applyClicked: (id) => ApplyToGuild(id));
+                        }
+                    }
+                },
+                onError: (err) => {
+                    Debug.LogError("Lỗi khi load bảng xếp hạng: " + err.Message);
+                });
+        }
+
+
 
         public void ToggleApplicationsList()
         {
@@ -644,10 +816,54 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
-        private void HighlightTab(Image activeTab, Image inactiveTab)
+        private void HighlightLeftTab(string activeTabName)
         {
-            if (activeTab != null) activeTab.color = Color.white;
-            if (inactiveTab != null) inactiveTab.color = new Color(0.6f, 0.6f, 0.6f, 1f); // Màu xám tối
+            if (guildInfoPanel == null) return;
+            Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
+            if (leftTabs == null) return;
+
+            Color activeBgColor = Color.white;
+            Color inactiveBgColor = new Color(0.5f, 0.5f, 0.5f, 1f); 
+            Color activeTxtColor = new Color(0.35f, 0.2f, 0.05f, 1f); // Nâu đậm
+            Color inactiveTxtColor = new Color(0.4f, 0.4f, 0.4f, 1f); // Xám
+
+            string[] tabNames = { "InfoButton", "ManageButton" };
+            foreach (var tabName in tabNames)
+            {
+                Transform tab = leftTabs.Find(tabName);
+                if (tab == null) continue;
+                
+                bool isActive = (tabName == activeTabName);
+                var img = tab.GetComponent<Image>();
+                if (img != null) img.color = isActive ? activeBgColor : inactiveBgColor;
+
+                var txt = tab.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null) txt.color = isActive ? activeTxtColor : inactiveTxtColor;
+            }
+        }
+
+        private void HighlightRightTab(string activeTabName)
+        {
+            if (tabsPanel == null) return;
+
+            Color activeBgColor = Color.white;
+            Color inactiveBgColor = new Color(0.5f, 0.5f, 0.5f, 1f); 
+            Color activeTxtColor = new Color(0.35f, 0.2f, 0.05f, 1f); // Nâu đậm
+            Color inactiveTxtColor = new Color(0.4f, 0.4f, 0.4f, 1f); // Xám
+
+            string[] tabNames = { "InfoButton", "RankButton", "QuestButton" };
+            foreach (var tabName in tabNames)
+            {
+                Transform tab = tabsPanel.transform.Find(tabName);
+                if (tab == null) continue;
+
+                bool isActive = (tabName == activeTabName);
+                var img = tab.GetComponent<Image>();
+                if (img != null) img.color = isActive ? activeBgColor : inactiveBgColor;
+
+                var txt = tab.GetComponentInChildren<TextMeshProUGUI>();
+                if (txt != null) txt.color = isActive ? activeTxtColor : inactiveTxtColor;
+            }
         }
 
         public void ApplyToGuild(int guildId)

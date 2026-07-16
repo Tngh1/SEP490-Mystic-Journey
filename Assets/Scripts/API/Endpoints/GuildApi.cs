@@ -27,6 +27,12 @@ namespace MysticJourney.API.Endpoints
             ApiClient.Instance.Get(url, onSuccess, onError, requiresAuth: true);
         }
 
+        public static void GetGuildRankings(Action<List<GuildRankResponseDto>> onSuccess, Action<ApiException> onError)
+        {
+            string url = $"{ApiConfig.GuildList}/rankings";
+            ApiClient.Instance.Get(url, onSuccess, onError, requiresAuth: true);
+        }
+
         public static void GetGuildDetail(int id, Action<GuildDetailResponseDto> onSuccess, Action<ApiException> onError)
         {
             string url = ApiConfig.GuildDetail.Replace("{id}", id.ToString());
