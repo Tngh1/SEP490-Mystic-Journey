@@ -68,11 +68,16 @@ namespace MysticJourney.API.Endpoints
         public void Pull(
             int bannerId,
             int pullCount,
+            bool isFreePull,
             Action<MultiPullResultResponse> onSuccess,
             Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.GachaPull, bannerId);
-            var body = new MysticJourney.API.Models.Request.GachaPullRequest { GachaBannerId = bannerId, PullCount = pullCount };
+            var body = new MysticJourney.API.Models.Request.GachaPullRequest { 
+                GachaBannerId = bannerId, 
+                PullCount = pullCount,
+                IsFreePull = isFreePull
+            };
 
             ApiClient.Instance.Post<MysticJourney.API.Models.Request.GachaPullRequest, MultiPullResultResponse>(
                 endpoint,

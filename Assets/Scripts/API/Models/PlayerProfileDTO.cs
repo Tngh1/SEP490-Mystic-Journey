@@ -16,6 +16,12 @@ namespace MysticJourney.API.Models.Request
         public float? CorruptionLevel { get; set; }
         public bool? IsBanned { get; set; }
     }
+
+    [System.Serializable]
+    public class ChangeNameRequestDto
+    {
+        public string NewName { get; set; }
+    }
 }
 
 namespace MysticJourney.API.Models.Response
@@ -44,6 +50,8 @@ namespace MysticJourney.API.Models.Response
         public string CreatedAt { get; set; }
         public string UpdatedAt { get; set; }
         public bool IsBanned { get; set; }
+        public string LastFreeGachaTime { get; set; }
+        public bool HasChangedName { get; set; }
     }
 
     // Response mở rộng kèm Stats
@@ -53,7 +61,6 @@ namespace MysticJourney.API.Models.Response
         public PlayerStatsResponse Stats { get; set; }
     }
 
-    // Stats của player
     [System.Serializable]
     public class PlayerStatsResponse
     {
@@ -71,5 +78,6 @@ namespace MysticJourney.API.Models.Response
         public int TotalLosses { get; set; }
         public int TotalKills { get; set; }
         public int TotalDeaths { get; set; }
+        public System.Collections.Generic.List<PlayerBuffDTO> ActiveBuffs { get; set; }
     }
 }

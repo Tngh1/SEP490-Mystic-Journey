@@ -37,11 +37,16 @@ namespace MysticJourney.UI.Guild
                 var txt = btnApply.GetComponentInChildren<TextMeshProUGUI>();
                 if (txt != null)
                 {
-                    txt.text = data.joinPolicy == 0 ? "Join" : "Apply";
+                    if (data.isInvited)
+                        txt.text = "Accept";
+                    else
+                        txt.text = data.joinPolicy == 0 ? "Join" : "Apply";
                 }
 
                 int playerLevel = UnityEngine.PlayerPrefs.GetInt("mj_player_level", 1);
-                if (playerLevel < data.requiredLevel)
+                
+                // Bypass level requirement if invited
+                if (!data.isInvited && playerLevel < data.requiredLevel)
                 {
                     btnApply.interactable = false;
                     if (txt != null) txt.text = $"Lv {data.requiredLevel}+";
@@ -53,6 +58,13 @@ namespace MysticJourney.UI.Guild
 
                 btnApply.onClick.RemoveAllListeners();
                 btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
+                
+                // Highlight button color if invited
+                var img = btnApply.GetComponent<UnityEngine.UI.Image>();
+                if (img != null)
+                {
+                    img.color = data.isInvited ? new Color(0.2f, 0.8f, 0.2f, 1f) : Color.white; // Green if invited
+                }
             }
 
             if (btnEntry != null)

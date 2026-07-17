@@ -157,7 +157,16 @@ public class PlayerEntity : MonoBehaviour
         }
 
         bool isCrit = UnityEngine.Random.Range(0f, 100f) <= 10f;
-        int finalDamage = isCrit ? Mathf.RoundToInt(damage * 1.5f) : damage;
+        int initialDamage = isCrit ? Mathf.RoundToInt(damage * 1.5f) : damage;
+
+        // Giảm trừ sát thương bằng Def
+        float currentDef = 0f;
+        var combat = GetComponent<PlayerCombat>();
+        if (combat != null) currentDef = combat.TotalDef;
+
+        // Ví dụ công thức: Giảm (Def / 5) điểm sát thương, tối đa giảm 50% sát thương nhận vào
+        int reducedDamage = Mathf.RoundToInt(currentDef / 5f);
+        int finalDamage = Mathf.Max(Mathf.RoundToInt(initialDamage * 0.5f), initialDamage - reducedDamage);
 
         currentHealth -= finalDamage;
         if (currentHealth < 0) currentHealth = 0;

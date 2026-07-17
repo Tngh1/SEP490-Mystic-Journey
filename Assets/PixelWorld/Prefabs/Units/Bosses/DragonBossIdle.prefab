@@ -106,6 +106,9 @@ GameObject:
   - component: {fileID: 8483377438563360681}
   - component: {fileID: 7943769286385528771}
   - component: {fileID: 5848758824757470770}
+  - component: {fileID: 1993000447208712848}
+  - component: {fileID: 3804217952497485769}
+  - component: {fileID: 2202384562105501630}
   m_Layer: 0
   m_Name: DragonBossIdle
   m_TagString: Untagged
@@ -127,6 +130,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3873140305307427925}
+  - {fileID: 516054002161986012}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5873183395328046233
@@ -175,7 +179,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
   m_SortingLayer: 0
-  m_SortingOrder: 3
+  m_SortingOrder: 5
   m_Sprite: {fileID: -944558564, guid: 8aa2465b7e16205469bc5a8b2a0f5229, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -294,7 +298,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyEntity
-  maxHealth: 0
+  maxHealth: 300
   monsterId: 0
   monsterSpawnId: 0
   useApiStats: 1
@@ -314,3 +318,98 @@ MonoBehaviour:
   _MaxHp: 0
   _IsAlive:
     _value: 0
+--- !u!114 &1993000447208712848
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172419713170817087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6dbcc92e44457541a7702f9a8b72815, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehaviour
+  startingState: 0
+  roamingDistanceMax: 7
+  roamingDistanceMin: 3
+  roamingTimeMax: 2
+  isChasingEnemy: 1
+  isAttackingEnemy: 1
+  attackDamage: 10
+  chasingDistance: 4
+  chasingSpeedMultiplier: 2
+  attackDistance: 2
+  attackRate: 2
+  canCastSkill: 1
+  skillPrefab: {fileID: 1075396962841395876, guid: 58f0c4c96717c59469fdae1d51924caa, type: 3}
+  skillCooldown: 5
+  skillSpawnDelay: 0.5
+  skillSpawnPoint: {fileID: 516054002161986012}
+--- !u!195 &3804217952497485769
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172419713170817087}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 1
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 0.46
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &2202384562105501630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172419713170817087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ac3894736ba7d849a9cc7dd8ff15337, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimations
+  enemyBehaviour: {fileID: 1993000447208712848}
+  enemyEntity: {fileID: 7943769286385528771}
+--- !u!1 &8313003941646082007
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 516054002161986012}
+  m_Layer: 0
+  m_Name: SkillSpawm
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &516054002161986012
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8313003941646082007}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.75, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6421518163564970639}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

@@ -22,6 +22,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text gemText;
     [SerializeField] private TMP_Text corruptionText;
     [SerializeField] private Image corruptionBarImage;
+    [SerializeField] private Image avatarImage;
 
     [Header("HUD Buttons")]
     [SerializeField] private GameObject settingsButtonObj;
@@ -64,10 +65,16 @@ public class PlayerHUDController : MonoBehaviour
     public void FindHUDReferences()
     {
         if (playerNameText == null) playerNameText = transform.Find("TopBar/Button/PlayerNameText")?.GetComponent<TMP_Text>();
-        if (levelText == null) levelText = transform.Find("TopBar/Button/LevelText")?.GetComponent<TMP_Text>();
-        if (expBarImage == null) expBarImage = transform.Find("TopBar/Button/ExpBar")?.GetComponent<Image>();
-        if (hpBarImage == null) hpBarImage = transform.Find("BottomCenter/HPBar")?.GetComponent<Image>();
-        if (hpText == null) hpText = transform.Find("BottomCenter/HPBar/HPText")?.GetComponent<TMP_Text>();
+        if (levelText == null) levelText = transform.Find("TopBar/Button/Avatar/Level/LevelText")?.GetComponent<TMP_Text>();
+        if (avatarImage == null) avatarImage = transform.Find("TopBar/Button/Avatar")?.GetComponent<Image>();
+        if (expBarImage == null) expBarImage = transform.Find("TopBar/Button/ExpBar/ExpFill")?.GetComponent<Image>();
+        if (hpBarImage == null) hpBarImage = transform.Find("TopBar/Button/HPBar/HPFill")?.GetComponent<Image>();
+
+        // fillAmount only applies to Filled images; force it so a Simple-typed
+        // sprite in the scene doesn't silently render the bar permanently full.
+        MakeHorizontalFill(expBarImage);
+        MakeHorizontalFill(hpBarImage);
+        if (hpText == null) hpText = transform.Find("TopBar/Button/HPBar/HPNumber")?.GetComponent<TMP_Text>();
         if (energyText == null)
         {
             energyText = transform.Find("TopBar/Center_Resources/EnergyBox/EnergyText")?.GetComponent<TMP_Text>();
@@ -76,17 +83,30 @@ public class PlayerHUDController : MonoBehaviour
         if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
         if (corruptionText == null) corruptionText = transform.Find("TopBar/Center_Resources/CorruptionBox/CorruptionText")?.GetComponent<TMP_Text>();
 
-        if (settingsButtonObj == null) 
+        if (settingsButtonObj == null)
         {
-            var btn = transform.Find("TopRight/SettingsButton"); // Tùy chỉnh đường dẫn này theo UI thực tế
+            var btn = transform.Find("TopBar/Right_Buttons/SettingButton");
             if (btn != null) settingsButtonObj = btn.gameObject;
         }
 
         if (pauseButtonObj == null)
         {
-            var btn = transform.Find("TopRight/PauseButton"); // Tùy chỉnh đường dẫn này theo UI thực tế
+            var btn = transform.Find("TopBar/Right_Buttons/PauseButton");
             if (btn != null) pauseButtonObj = btn.gameObject;
         }
+
+        // Same hover-scale transition the party panel uses on its Start/Ready buttons.
+        AddHoverEffect(transform.Find("Left/DailyButton"));
+        AddHoverEffect(transform.Find("Left/GachaButton"));
+        AddHoverEffect(transform.Find("Left/ShopButton"));
+        AddHoverEffect(transform.Find("Left/FriendButton"));
+        AddHoverEffect(transform.Find("Left/GuildButton"));
+        AddHoverEffect(transform.Find("Left/BestiaryButton"));
+        AddHoverEffect(transform.Find("Left/InventoryButton"));
+        AddHoverEffect(transform.Find("ChatButton"));
+        AddHoverEffect(transform.Find("BottomCenter/Skills/SkillButton"));
+        AddHoverEffect(transform.Find("TopBar/Right_Buttons/MailButton"));
+        AddHoverEffect(transform.Find("TopBar/Right_Buttons/SettingButton"));
 
         ConfigureResourceText(energyText);
         ConfigureResourceText(goldText);
@@ -232,12 +252,22 @@ public class PlayerHUDController : MonoBehaviour
 
         if (corruptionText != null)
         {
-            corruptionText.text = $"L.O.D: {Mathf.RoundToInt(profile.CorruptionLevel)}/100";
+            corruptionText.text = $"{Mathf.RoundToInt(profile.CorruptionLevel)}/100";
         }
 
         if (corruptionBarImage != null)
         {
             corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
+        }
+
+        if (avatarImage != null)
+        {
+            string avatarUrl = string.IsNullOrEmpty(profile.AvatarUrl) ? "avatar_1" : profile.AvatarUrl;
+            Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+            if (avatarSprite != null)
+            {
+                avatarImage.sprite = avatarSprite;
+            }
         }
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);
@@ -312,6 +342,21 @@ public class PlayerHUDController : MonoBehaviour
             return;
 
         text.textWrappingMode = TextWrappingModes.NoWrap;
+    }
+
+    private static void MakeHorizontalFill(Image img)
+    {
+        if (img == null) return;
+        img.type = Image.Type.Filled;
+        img.fillMethod = Image.FillMethod.Horizontal;
+        img.fillOrigin = (int)Image.OriginHorizontal.Left;
+    }
+
+    private static void AddHoverEffect(Transform t)
+    {
+        if (t == null) return;
+        if (t.GetComponent<UIHoverScaleEffect>() == null)
+            t.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
     private static string FormatCurrencyAmount(decimal amount)

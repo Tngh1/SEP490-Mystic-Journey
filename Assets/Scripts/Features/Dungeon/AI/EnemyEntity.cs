@@ -180,13 +180,13 @@ public class EnemyEntity : MonoBehaviour
     {
         Debug.Log("Disabled");
 
-        polyColl.enabled = false;
+        if (polyColl != null) polyColl.enabled = false;
     }
     public void PolyCollTurnOn()
     {
         Debug.Log("Enabled");
 
-        polyColl.enabled = true;
+        if (polyColl != null) polyColl.enabled = true;
     }
 
 
@@ -195,9 +195,9 @@ public class EnemyEntity : MonoBehaviour
         if (currentHealth <= 0 && !isDead)
         {
             isDead = true;
-            boxColl.enabled = false;
-            polyColl.enabled = false;
-            capsuleColl.enabled = false;
+            if (boxColl != null) boxColl.enabled = false;
+            if (polyColl != null) polyColl.enabled = false;
+            if (capsuleColl != null) capsuleColl.enabled = false;
 
             enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");

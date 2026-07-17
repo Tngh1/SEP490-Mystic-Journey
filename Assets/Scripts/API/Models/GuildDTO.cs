@@ -24,6 +24,7 @@ namespace MysticJourney.API.Models
         public int joinPolicy;
         public int totalMedals;
         public bool isActive;
+        public bool isInvited;
         public string createdAt;
     }
 

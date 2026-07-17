@@ -46,6 +46,11 @@ public class GachaUIManager : MonoBehaviour
     public TextMeshProUGUI warningMessageText;
     public Button btnCloseWarning;
 
+    [Header("--- Free Pull ---")]
+    public TextMeshProUGUI freeCountdownText;
+    private const string LastFreePullKey = "LastFreePullTime";
+    private int _pull1CostCache = 0;
+
     private int _pityLimit = 90;
     private List<GachaBannerItemResponse> _cachedBannerItems = new List<GachaBannerItemResponse>();
 
@@ -94,7 +99,11 @@ public class GachaUIManager : MonoBehaviour
             onSuccess: (response) =>
             {
                 if (bannerNameText != null) bannerNameText.text = response.Name;
-                if (pull1CostText != null) pull1CostText.text = response.PullCost.ToString();
+                if (pull1CostText != null) 
+                {
+                    _pull1CostCache = response.PullCost;
+                    pull1CostText.text = response.PullCost.ToString();
+                }
                 if (pull10CostText != null) pull10CostText.text = (response.PullCost * 10).ToString();
 
                 _pityLimit = response.PityLimit;
@@ -230,10 +239,70 @@ public class GachaUIManager : MonoBehaviour
         );
     }
 
+    private void Update()
+    {
+        UpdateFreePullUI();
+    }
+
+    private void UpdateFreePullUI()
+    {
+        if (pull1CostText == null || _pull1CostCache == 0) return;
+
+        if (IsFreePullAvailable())
+        {
+            pull1CostText.text = "Free";
+            if (freeCountdownText != null)
+            {
+                freeCountdownText.text = "";
+                freeCountdownText.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            pull1CostText.text = _pull1CostCache.ToString();
+            if (freeCountdownText != null)
+            {
+                freeCountdownText.gameObject.SetActive(true);
+                System.TimeSpan timeleft = GetNextFreePullTime() - System.DateTime.Now;
+                if (timeleft.TotalSeconds < 0) timeleft = System.TimeSpan.Zero;
+                freeCountdownText.text = string.Format("{0:D2}:{1:D2}:{2:D2}", timeleft.Hours, timeleft.Minutes, timeleft.Seconds);
+            }
+        }
+    }
+
+    private bool IsFreePullAvailable()
+    {
+        return System.DateTime.Now >= GetNextFreePullTime();
+    }
+
+    private System.DateTime GetNextFreePullTime()
+    {
+        string timeStr = PlayerPrefs.GetString(LastFreePullKey, "");
+        if (string.IsNullOrEmpty(timeStr)) return System.DateTime.MinValue;
+        if (System.DateTime.TryParse(timeStr, out System.DateTime lastTime))
+        {
+            return lastTime.AddHours(24);
+        }
+        return System.DateTime.MinValue;
+    }
+
+    private void UseFreePull()
+    {
+        PlayerPrefs.SetString(LastFreePullKey, System.DateTime.Now.ToString("O"));
+        PlayerPrefs.Save();
+    }
+
     private void PerformPull(int amount)
     {
+        bool isFreePull = false;
+        if (amount == 1 && IsFreePullAvailable())
+        {
+            isFreePull = true;
+            UseFreePull();
+        }
+
         SetButtonsInteractable(false);
-        GachaApi.Instance.Pull(currentBannerId, amount,
+        GachaApi.Instance.Pull(currentBannerId, amount, isFreePull,
             onSuccess: (result) =>
             {
                 ShowResultPopup(result);
@@ -243,6 +312,13 @@ public class GachaUIManager : MonoBehaviour
             onError: (error) =>
             {
                 Debug.LogWarning("[GachaUI] Quay thất bại: " + error.Message);
+
+                // Nếu có lỗi, hoàn lại lượt free (tuỳ logic, tạm thời có thể hoàn lại nếu server từ chối)
+                if (isFreePull)
+                {
+                    PlayerPrefs.DeleteKey(LastFreePullKey);
+                    PlayerPrefs.Save();
+                }
 
                 // 👇 HIỂN THỊ POPUP NẾU QUAY LỖI (Ví dụ: Server báo không đủ vé)
                 ShowWarningPopup("Không đủ vé quay hoặc có lỗi xảy ra!\n" + error.Message);
