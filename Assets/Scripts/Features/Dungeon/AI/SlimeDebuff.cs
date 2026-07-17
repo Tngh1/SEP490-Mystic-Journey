@@ -34,6 +34,9 @@ public class SlimeDebuff : MonoBehaviour
             // Áp dụng tốc độ bị làm chậm
             playerMovement.SetMoveSpeedOverride(slowedSpeed);
         }
+
+        var buffMgr = GetComponent<BuffManager>();
+        if (buffMgr != null) buffMgr.AddBuff("Chất Nhầy Slime", "slime_debuff_icon", duration, true);
     }
 
     public void Refresh(float newDuration)
@@ -44,6 +47,9 @@ public class SlimeDebuff : MonoBehaviour
         {
             duration = newDuration;
         }
+
+        var buffMgr = GetComponent<BuffManager>();
+        if (buffMgr != null) buffMgr.AddBuff("Chất Nhầy Slime", "slime_debuff_icon", duration, true);
     }
 
     private void Update()
@@ -57,6 +63,12 @@ public class SlimeDebuff : MonoBehaviour
             tickTimer = 0f;
             if (playerEntity != null && playerEntity.CurrentHealth > 0)
             {
+                var combat = playerEntity.GetComponent<PlayerCombat>();
+                if (combat != null && combat.IsDebuffImmune)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
                 playerEntity.TakeDamage(damagePerTick);
             }
         }

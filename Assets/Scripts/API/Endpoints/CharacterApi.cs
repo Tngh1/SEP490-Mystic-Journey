@@ -116,5 +116,30 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+        // ── POST /api/characters/buffs ───────────────────────────────────────
+        /// <summary>
+        /// Sync active buffs with the server.
+        /// </summary>
+        public void SyncBuffs(
+            UpdatePlayerBuffsRequest request,
+            Action onSuccess,
+            Action<ApiException> onError)
+        {
+            SafeDebugLog("SyncBuffs...");
+            ApiClient.Instance.Post<UpdatePlayerBuffsRequest, object>(
+                ApiConfig.CharacterBuffs,
+                request,
+                response =>
+                {
+                    SafeDebugLog("SyncBuffs OK");
+                    onSuccess?.Invoke();
+                },
+                error =>
+                {
+                    SafeDebugError($"SyncBuffs FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

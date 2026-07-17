@@ -23,7 +23,17 @@ namespace UI.Friend
         [SerializeField] private TMP_Text friendsCountText;
         [SerializeField] private Button closeButton;
 
-
+        [Header("Avatar & Name Edit")]
+        [SerializeField] private Button editAvatarButton;
+        [SerializeField] private UIAvatarSelectionPanel avatarSelectionPanel;
+        [SerializeField] private Button editNameButton;
+        
+        [Header("Name Change Panel")]
+        [SerializeField] private GameObject nameChangePanel;
+        [SerializeField] private TMP_InputField nameChangeInput;
+        [SerializeField] private Button nameChangeSaveButton;
+        [SerializeField] private Button nameChangeCancelButton;
+        [SerializeField] private TMP_Text nameChangeMessageText;
 
         [Header("Achievement List")]
         [SerializeField] private GameObject achievementListPanel;
@@ -75,6 +85,21 @@ namespace UI.Friend
 
             if (achievementDetailPanel != null)
                 achievementDetailPanel.SetActive(false);
+
+            if (editAvatarButton != null)
+                editAvatarButton.onClick.AddListener(OpenAvatarSelection);
+
+            if (editNameButton != null)
+                editNameButton.onClick.AddListener(OpenNameChangePanel);
+
+            if (nameChangeSaveButton != null)
+                nameChangeSaveButton.onClick.AddListener(OnNameChangeSaveClicked);
+
+            if (nameChangeCancelButton != null)
+                nameChangeCancelButton.onClick.AddListener(CloseNameChangePanel);
+
+            if (nameChangePanel != null)
+                nameChangePanel.SetActive(false);
         }
 
         public void ShowMyProfile()
@@ -141,6 +166,106 @@ namespace UI.Friend
             if (levelText != null) levelText.text = $"Level {profile.Level}";
             if (guildText != null) guildText.text = $"Guild: {profile.Guild}";
             if (titleText != null) titleText.text = $"Title: {profile.Title}";
+
+            ApplyProfileAvatar(profile.AvatarUrl);
+
+            if (editAvatarButton != null)
+                editAvatarButton.gameObject.SetActive(_isCurrentPlayerProfile);
+
+            if (editNameButton != null)
+                editNameButton.gameObject.SetActive(_isCurrentPlayerProfile);
+        }
+
+        private void OpenNameChangePanel()
+        {
+            if (nameChangePanel != null)
+            {
+                if (nameChangeInput != null) nameChangeInput.text = "";
+                if (nameChangeMessageText != null) nameChangeMessageText.text = "";
+                
+                // Cập nhật text của nút save dựa theo việc đổi tên có tốn phí hay không
+                if (nameChangeSaveButton != null)
+                {
+                    var btnText = nameChangeSaveButton.GetComponentInChildren<TMP_Text>();
+                    if (btnText != null)
+                    {
+                        bool isFree = _currentProfile != null && !_currentProfile.HasChangedName;
+                        btnText.text = isFree ? "Save (Free)" : "Save (500 Gems)";
+                    }
+                }
+
+                nameChangePanel.SetActive(true);
+            }
+        }
+
+        private void CloseNameChangePanel()
+        {
+            if (nameChangePanel != null)
+                nameChangePanel.SetActive(false);
+        }
+
+        private void OnNameChangeSaveClicked()
+        {
+            if (nameChangeInput == null) return;
+
+            string newName = nameChangeInput.text.Trim();
+            if (string.IsNullOrEmpty(newName) || newName.Length < 3 || newName.Length > 16)
+            {
+                if (nameChangeMessageText != null) nameChangeMessageText.text = "Name must be 3-16 chars.";
+                return;
+            }
+
+            if (nameChangeSaveButton != null) nameChangeSaveButton.interactable = false;
+            if (nameChangeMessageText != null) nameChangeMessageText.text = "Processing...";
+
+            var request = new MysticJourney.API.Models.Request.ChangeNameRequestDto { NewName = newName };
+
+            MysticJourney.API.Endpoints.PlayerApi.Instance.ChangeName(request,
+                response =>
+                {
+                    if (nameChangeSaveButton != null) nameChangeSaveButton.interactable = true;
+                    if (nameText != null) nameText.text = response.DisplayName;
+                    // Cập nhật lại current profile
+                    if (_currentProfile != null) _currentProfile.HasChangedName = true;
+                    CloseNameChangePanel();
+                },
+                error =>
+                {
+                    if (nameChangeSaveButton != null) nameChangeSaveButton.interactable = true;
+                    if (nameChangeMessageText != null) nameChangeMessageText.text = error.Message;
+                    Debug.LogError($"Change Name Failed: {error.Message}");
+                });
+        }
+
+        private void ApplyProfileAvatar(string avatarUrl)
+        {
+            if (avatarImage == null) return;
+
+            if (string.IsNullOrEmpty(avatarUrl))
+                avatarUrl = "avatar_1"; // Default avatar
+
+            Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+            if (avatarSprite != null)
+            {
+                avatarImage.sprite = avatarSprite;
+            }
+        }
+
+        private void OpenAvatarSelection()
+        {
+            if (_isCurrentPlayerProfile && avatarSelectionPanel != null && _currentProfile != null)
+            {
+                int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
+                avatarSelectionPanel.OpenPanel(myProfileId, _currentProfile.AvatarUrl, this);
+            }
+        }
+
+        public void UpdateAvatarImage(string avatarUrl)
+        {
+            if (_currentProfile != null)
+                _currentProfile.AvatarUrl = avatarUrl;
+                
+            ApplyProfileAvatar(avatarUrl);
         }
 
         private void LoadFriendsCount()
@@ -244,10 +369,14 @@ namespace UI.Friend
 
                 string rarityHex = GetRarityColorHex(achievement.Point);
                 string rarityLabel = GetRarityLabel(achievement.Point);
-                string statusLabel = isOwned ? "Unlocked" : "Locked";
+                string statusLabel = owned != null 
+                    ? (owned.IsCompleted ? "Unlocked" : $"{owned.Progress}/{achievement.RequiredValue}") 
+                    : $"0/{achievement.RequiredValue}";
                 string displayText = $"<color={rarityHex}>{achievement.Name}</color>\n<size=70%>{rarityLabel}</size>\n<size=60%>{statusLabel}</size>";
 
-                var tmpText = item.GetComponentInChildren<TMP_Text>(true);
+                var titleTextTransform = item.transform.Find("TitleText");
+                var tmpText = titleTextTransform != null ? titleTextTransform.GetComponent<TMP_Text>() : item.GetComponentInChildren<TMP_Text>(true);
+                
                 if (tmpText != null)
                 {
                     tmpText.text = displayText;
@@ -261,10 +390,20 @@ namespace UI.Friend
                     }
                 }
 
-                var image = item.GetComponent<Image>();
+                var iconTransform = item.transform.Find("Icon");
+                var image = iconTransform != null ? iconTransform.GetComponent<Image>() : item.GetComponent<Image>();
+                
                 if (image != null)
                 {
                     image.color = isOwned ? new Color(1f, 1f, 1f, 1f) : new Color(1f, 1f, 1f, 0.55f);
+                    if (!string.IsNullOrEmpty(achievement.IconUrl))
+                    {
+                        var sprite = Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
+                        if (sprite != null)
+                        {
+                            image.sprite = sprite;
+                        }
+                    }
                 }
 
                 var button = item.GetComponent<Button>() ?? item.GetComponentInChildren<Button>(true);
@@ -316,9 +455,25 @@ namespace UI.Friend
                     : "Status: Locked";
             }
 
+            if (achievementDetailIconImage != null && !string.IsNullOrEmpty(achievement.IconUrl))
+            {
+                var sprite = Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
+                if (sprite != null)
+                {
+                    achievementDetailIconImage.sprite = sprite;
+                    achievementDetailIconImage.enabled = true; // MUST ENABLE THE IMAGE
+                    // Optional: You can make it opaque if unlocked, slightly transparent if locked
+                    achievementDetailIconImage.color = (ownedAchievement != null && ownedAchievement.IsCompleted) 
+                        ? new Color(1f, 1f, 1f, 1f) 
+                        : new Color(1f, 1f, 1f, 0.55f);
+                }
+            }
+
             if (achievementDetailBuffText != null)
             {
-                achievementDetailBuffText.text = GetBuffDescription(achievement.Point, achievement.Type);
+                achievementDetailBuffText.text = !string.IsNullOrEmpty(achievement.BuffDescription) 
+                    ? achievement.BuffDescription 
+                    : GetBuffDescription(achievement.Point, achievement.Type);
             }
 
             if (achievementDetailBadgeText != null)
@@ -327,7 +482,19 @@ namespace UI.Friend
                 achievementDetailBadgeText.color = GetRarityColor(achievement.Point);
             }
 
-            ApplyAchievementIcon(achievement.IconUrl);
+            // Apply custom icon from Resources based on IconUrl
+            if (!string.IsNullOrEmpty(achievement.IconUrl))
+            {
+                var sprite = Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
+                if (sprite != null && achievementDetailIconImage != null)
+                {
+                    achievementDetailIconImage.sprite = sprite;
+                }
+            }
+            else
+            {
+                ApplyAchievementIcon(achievement.IconUrl);
+            }
         }
 
         public void ShowAchievementListView()

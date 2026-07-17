@@ -38,6 +38,8 @@ public class DarknessCurseSkill : MonoBehaviour
             }
 
             // Bắt đầu chu kỳ gây sát thương và cộng dồn hắc hoá
+            var buffMgr = player.GetComponent<BuffManager>();
+            if (buffMgr != null) buffMgr.AddBuff("Lời Nguyền Bóng Đêm", "curse_icon", duration, true);
             StartCoroutine(CurseRoutine());
 
             // Tự động huỷ sau thời gian duration
@@ -62,6 +64,12 @@ public class DarknessCurseSkill : MonoBehaviour
             // Trừ máu
             if (targetEntity != null)
             {
+                var combat = targetEntity.GetComponent<PlayerCombat>();
+                if (combat != null && combat.IsDebuffImmune)
+                {
+                    Destroy(gameObject);
+                    yield break;
+                }
                 targetEntity.TakeDamage(damagePerSecond);
             }
 

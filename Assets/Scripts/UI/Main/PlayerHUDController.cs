@@ -22,6 +22,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text gemText;
     [SerializeField] private TMP_Text corruptionText;
     [SerializeField] private Image corruptionBarImage;
+    [SerializeField] private Image avatarImage;
 
     [Header("HUD Buttons")]
     [SerializeField] private GameObject settingsButtonObj;
@@ -65,6 +66,7 @@ public class PlayerHUDController : MonoBehaviour
     {
         if (playerNameText == null) playerNameText = transform.Find("TopBar/Button/PlayerNameText")?.GetComponent<TMP_Text>();
         if (levelText == null) levelText = transform.Find("TopBar/Button/Avatar/Level/LevelText")?.GetComponent<TMP_Text>();
+        if (avatarImage == null) avatarImage = transform.Find("TopBar/Button/Avatar")?.GetComponent<Image>();
         if (expBarImage == null) expBarImage = transform.Find("TopBar/Button/ExpBar/ExpFill")?.GetComponent<Image>();
         if (hpBarImage == null) hpBarImage = transform.Find("TopBar/Button/HPBar/HPFill")?.GetComponent<Image>();
 
@@ -256,6 +258,16 @@ public class PlayerHUDController : MonoBehaviour
         if (corruptionBarImage != null)
         {
             corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
+        }
+
+        if (avatarImage != null)
+        {
+            string avatarUrl = string.IsNullOrEmpty(profile.AvatarUrl) ? "avatar_1" : profile.AvatarUrl;
+            Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+            if (avatarSprite != null)
+            {
+                avatarImage.sprite = avatarSprite;
+            }
         }
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);

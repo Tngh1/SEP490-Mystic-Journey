@@ -7,5 +7,6 @@ namespace MysticJourney.API.Models.Request
     {
         public int GachaBannerId;
         public int PullCount;
+        public bool IsFreePull;
     }
 }

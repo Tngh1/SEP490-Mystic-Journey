@@ -55,6 +55,20 @@ public class PlayerCombat : NetworkBehaviour
     [SerializeField] private float basicAttackDamage = 25f;
     [SerializeField, Range(0f, 100f)] private float critRate = 20f;
     [SerializeField] private float critDamageMultiplier = 1.5f;
+
+    // Các chỉ số class-scaling
+    private float maxHp = 0f;
+    private float def = 0f;
+    private float attackSpeedStat = 100f;
+
+    // Buffs
+    private float buffedDef = 0f;
+    private float defBuffTimer = 0f;
+    public bool IsDebuffImmune { get; private set; } = false;
+    private float debuffImmuneTimer = 0f;
+
+    public float TotalDef => def + buffedDef;
+
     [Tooltip("KÉO PREFAB MŨI TÊN / CẦU PHÉP VÀO ĐÂY. NẾU LÀ ĐẤU SĨ CHÉM GẦN -> HÃY ĐỂ TRỐNG (NONE)")]
     [SerializeField] private GameObject basicAttackPrefab;
 
@@ -77,6 +91,7 @@ public class PlayerCombat : NetworkBehaviour
     // ─────────────────────────────────────────────────────────────────────────
     // Runtime state
     // ─────────────────────────────────────────────────────────────────────────
+    private System.Collections.Generic.List<SpriteRenderer> _highlightedMonsters = new System.Collections.Generic.List<SpriteRenderer>();
 
     private float nextAttackTime;
     private float nextSkill1Time;
@@ -163,9 +178,19 @@ public class PlayerCombat : NetworkBehaviour
                         basicAttackDamage = response.Atk;
                         critRate = response.CritRate;
                         critDamageMultiplier = response.CritDamage / 100f;
+                        maxHp = response.MaxHp;
+                        def = response.Def;
+                        attackSpeedStat = response.AttackSpeed;
+
                         if (response.AttackSpeed > 0)
                         {
                             currentAttackCooldown = (100f / response.AttackSpeed) * baseAttackCooldown;
+                        }
+                        
+                        var buffMgr = GetComponent<BuffManager>();
+                        if (buffMgr != null)
+                        {
+                            buffMgr.LoadFromServer(response.ActiveBuffs);
                         }
                     }
                 },
@@ -364,7 +389,7 @@ public class PlayerCombat : NetworkBehaviour
         if (IsNetworked && basicAttackPrefab != null &&
             basicAttackPrefab.GetComponent<NetworkObject>() != null)
         {
-            float dmg = basicAttackDamage;
+            float dmg = GetClassScaledDamage(basicAttackDamage);
             Runner.Spawn(basicAttackPrefab, firePoint.position, rotation, Object.InputAuthority,
                 (r, o) =>
                 {
@@ -385,7 +410,7 @@ public class PlayerCombat : NetworkBehaviour
                 scale.x *= -1;
                 projectileObj.transform.localScale = scale;
             }
-            projectileScript.Setup(basicAttackDamage);
+            projectileScript.Setup(GetClassScaledDamage(basicAttackDamage));
         }
     }
 
@@ -400,7 +425,7 @@ public class PlayerCombat : NetworkBehaviour
             {
                 damagedEnemies.Add(enemy);
                 bool isCrit = Random.Range(0f, 100f) <= critRate;
-                float finalDamage = basicAttackDamage;
+                float finalDamage = GetClassScaledDamage(basicAttackDamage);
                 if (isCrit) finalDamage *= critDamageMultiplier;
                 int damageInt = Mathf.RoundToInt(finalDamage);
                 enemy.TakeDamage(damageInt);
@@ -427,7 +452,49 @@ public class PlayerCombat : NetworkBehaviour
 
     private float GetCooldown(int slotIndex, float fallback)
     {
-        return _skillCooldowns.ContainsKey(slotIndex) ? _skillCooldowns[slotIndex] : fallback;
+        float baseCd = _skillCooldowns.ContainsKey(slotIndex) ? _skillCooldowns[slotIndex] : fallback;
+        string pClass = MysticJourney.Core.Services.GameStateService.Instance.PlayerClass;
+
+        if (string.Equals(pClass, "Mage", System.StringComparison.OrdinalIgnoreCase))
+        {
+            // Pháp sư: Spam skill dựa trên Công phép
+            // Ví dụ: Mỗi 10 công phép giảm 2% hồi chiêu, tối đa giảm 50%
+            float reduction = Mathf.Clamp((basicAttackDamage / 10f) * 0.02f, 0f, 0.5f);
+            return baseCd * (1f - reduction);
+        }
+        else if (string.Equals(pClass, "Archer", System.StringComparison.OrdinalIgnoreCase))
+        {
+            // AD: Dựa trên Công vật lý & tốc đánh
+            float attackSpeedBonus = (attackSpeedStat - 100f) / 100f * 0.2f; // Mỗi 100 tốc đánh giảm 20%
+            float reduction = Mathf.Clamp(attackSpeedBonus, 0f, 0.4f);
+            return baseCd * (1f - reduction);
+        }
+        else if (string.Equals(pClass, "Knight", System.StringComparison.OrdinalIgnoreCase))
+        {
+            // Đấu sĩ: Dựa trên Công vật lý / Tank (thường hồi khá lâu)
+            // Ví dụ: Không giảm nhiều, giữ nguyên hoặc giảm chút xíu nhờ def
+            float reduction = Mathf.Clamp((def / 50f) * 0.05f, 0f, 0.2f);
+            return baseCd * (1f - reduction);
+        }
+
+        return baseCd;
+    }
+
+    private float GetClassScaledDamage(float baseDamage)
+    {
+        string pClass = MysticJourney.Core.Services.GameStateService.Instance.PlayerClass;
+        if (string.Equals(pClass, "Mage", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return baseDamage + (basicAttackDamage * 1.5f);
+        }
+        else if (string.Equals(pClass, "Archer", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return baseDamage + (basicAttackDamage * 1.2f);
+        }
+        else // Knight
+        {
+            return baseDamage + (basicAttackDamage * 1.0f);
+        }
     }
 
     private void TryCastSkill(GameObject prefab, int slotIndex, float cooldown, string animTrigger)
@@ -503,6 +570,18 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
+        // Update Buff Timers
+        if (defBuffTimer > 0)
+        {
+            defBuffTimer -= Time.deltaTime;
+            if (defBuffTimer <= 0) buffedDef = 0f;
+        }
+        
+        if (debuffImmuneTimer > 0)
+        {
+            debuffImmuneTimer -= Time.deltaTime;
+            if (debuffImmuneTimer <= 0) IsDebuffImmune = false;
+        }
         if (UnityEngine.EventSystems.EventSystem.current != null)
         {
             isPointerOverUI = UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
@@ -520,6 +599,30 @@ public class PlayerCombat : NetworkBehaviour
                 mouseWorldPosition.z = 0f;
 
                 _aimingIndicatorInstance.transform.position = mouseWorldPosition;
+
+                // Targeted Aiming Logic for Lightsaber
+                if (_aimingPrefab != null && _aimingPrefab.name.Contains("Lightsaber"))
+                {
+                    // Reset old highlights
+                    foreach (var sr in _highlightedMonsters)
+                    {
+                        if (sr != null) sr.color = Color.white;
+                    }
+                    _highlightedMonsters.Clear();
+
+                    // Find new targets in circle (e.g., radius 3f)
+                    float aimRadius = 3f;
+                    Collider2D[] hits = Physics2D.OverlapCircleAll(mouseWorldPosition, aimRadius, enemyLayer);
+                    foreach (var hit in hits)
+                    {
+                        var sprite = hit.GetComponentInChildren<SpriteRenderer>();
+                        if (sprite != null)
+                        {
+                            sprite.color = Color.red;
+                            _highlightedMonsters.Add(sprite);
+                        }
+                    }
+                }
             }
 
             if (_input != null && _input.PointerConfirmPressed && Time.time > _aimingStartTime + 0.1f)
@@ -531,11 +634,59 @@ public class PlayerCombat : NetworkBehaviour
                 }
 
                 Vector3? targetPos = _aimingIndicatorInstance != null ? _aimingIndicatorInstance.transform.position : (Vector3?)null;
+
+                if (_aimingPrefab != null && _aimingPrefab.name.Contains("Lightsaber"))
+                {
+                    // Confirm selection
+                    Transform selectedTarget = null;
+                    float minDistance = float.MaxValue;
+                    Vector3 clickPos = aimWorld ?? transform.position;
+
+                    foreach (var sr in _highlightedMonsters)
+                    {
+                        if (sr != null)
+                        {
+                            float dist = Vector3.Distance(clickPos, sr.transform.position);
+                            if (dist < minDistance)
+                            {
+                                minDistance = dist;
+                                selectedTarget = sr.transform;
+                            }
+                        }
+                    }
+
+                    // Reset color
+                    foreach (var sr in _highlightedMonsters)
+                    {
+                        if (sr != null) sr.color = Color.white;
+                    }
+                    _highlightedMonsters.Clear();
+
+                    if (selectedTarget == null)
+                    {
+                        // Clicked outside or no target, cancel skill without cooldown
+                        CancelAimingMode();
+                        return;
+                    }
+                    else
+                    {
+                        targetPos = selectedTarget.position;
+                    }
+                }
+
                 ExecuteSkillConfirmed(_aimingPrefab, _aimingSlotIndex, _aimingCooldown, _aimingAnimTrigger, targetPos);
                 CancelAimingMode();
             }
             else if (_input != null && _input.PointerCancelPressed)
             {
+                if (_aimingPrefab != null && _aimingPrefab.name.Contains("Lightsaber"))
+                {
+                    foreach (var sr in _highlightedMonsters)
+                    {
+                        if (sr != null) sr.color = Color.white;
+                    }
+                    _highlightedMonsters.Clear();
+                }
                 CancelAimingMode();
             }
         }
@@ -562,6 +713,24 @@ public class PlayerCombat : NetworkBehaviour
             CorruptionLevel = newCorruption
         };
         MysticJourney.API.Endpoints.PlayerApi.Instance.UpdateProfile(profileId, request, null, null);
+    }
+
+    public void AddDefBuff(float amount, float duration)
+    {
+        if (amount > buffedDef) buffedDef = amount; // override with stronger buff
+        if (duration > defBuffTimer) defBuffTimer = duration;
+        
+        var buffMgr = GetComponent<BuffManager>();
+        if (buffMgr != null) buffMgr.AddBuff("Bảo Hộ", "shield_icon", duration, false);
+    }
+
+    public void AddDebuffImmunity(float duration)
+    {
+        IsDebuffImmune = true;
+        if (duration > debuffImmuneTimer) debuffImmuneTimer = duration;
+        
+        var buffMgr = GetComponent<BuffManager>();
+        if (buffMgr != null) buffMgr.AddBuff("Kháng Hiệu Ứng", "immunity_icon", duration, false);
     }
 
     private IEnumerator ExecuteSkillWithDelay(GameObject prefab, int slotIndex, float delay, Vector3? targetPosition = null)
@@ -628,7 +797,7 @@ public class PlayerCombat : NetworkBehaviour
         // or when the prefab has no NetworkObject registered.
         if (IsNetworked && skillPrefab.GetComponent<NetworkObject>() != null)
         {
-            float netDamage = _skillDamages.ContainsKey(slotIndex) ? _skillDamages[slotIndex] : 0f;
+            float netDamage = _skillDamages.ContainsKey(slotIndex) ? GetClassScaledDamage(_skillDamages[slotIndex]) : 0f;
             bool flip = !isAoE && transform.localScale.x < 0;
             Runner.Spawn(skillPrefab, spawnPosition, spawnRotation, Object.InputAuthority,
                 (r, o) =>
@@ -657,7 +826,7 @@ public class PlayerCombat : NetworkBehaviour
 
         if (_skillDamages.ContainsKey(slotIndex))
         {
-            float damage = _skillDamages[slotIndex];
+            float damage = GetClassScaledDamage(_skillDamages[slotIndex]);
             if (isAoE)
             {
                 skillObj.GetComponent<SkillAoE>().Setup(damage);

@@ -44,9 +44,10 @@ namespace MysticJourney.API.Models
         public int Power;
         public string Guild;
         public string AvatarUrl;
-        public string Title;
-        public string LastOnline;
-        public bool IsOnline;
+        public string Title { get; set; }
+        public string LastOnline { get; set; }
+        public bool IsOnline { get; set; }
+        public bool HasChangedName { get; set; }
     }
 
     [Serializable]
