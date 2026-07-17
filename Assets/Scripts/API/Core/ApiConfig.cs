@@ -45,6 +45,8 @@ namespace MysticJourney.API.Core
         public const string CharacterHp = "/api/characters/hp";
         public const string CharacterUpgrade = "/api/characters/upgrade";
         public const string CharacterBuffs = "/api/characters/buffs";
+        public const string CharacterLevelUpOptions = "/api/characters/level-up-options";
+        public const string CharacterAllocateStat = "/api/characters/allocate-stat";
 
         // ═══════════════════════════════════════════════════════════════════════
         // INVENTORY CONTROLLER - Hành trang
