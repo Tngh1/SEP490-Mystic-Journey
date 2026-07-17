@@ -69,6 +69,25 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // ── Đổi tên ──────────────────────────────────────────────
+        public void ChangeName(ChangeNameRequestDto body, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
+        {
+            SafeDebugLog($"ChangeName → NewName={body?.NewName}");
+            ApiClient.Instance.Post<ChangeNameRequestDto, PlayerProfileResponse>(
+                ApiConfig.PlayerProfileChangeName, body,
+                response =>
+                {
+                    SafeDebugLog($"ChangeName OK | NewName={response.DisplayName}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"ChangeName FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
+
         // ── Lấy inventory ────────────────────────────────────────────────
         public void GetMyInventory(Action<InventorySummaryResponse> onSuccess, Action<ApiException> onError)
         {

@@ -44,6 +44,7 @@ namespace MysticJourney.API.Core
         public const string CharacterStats = "/api/characters/stats";
         public const string CharacterHp = "/api/characters/hp";
         public const string CharacterUpgrade = "/api/characters/upgrade";
+        public const string CharacterBuffs = "/api/characters/buffs";
 
         // ═══════════════════════════════════════════════════════════════════════
         // INVENTORY CONTROLLER - Hành trang
@@ -87,6 +88,7 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         public const string PlayerProfileById = "/api/playerprofiles/{0}";
         public const string PlayerProfileUpdate = "/api/playerprofiles/{0}";
+        public const string PlayerProfileChangeName = "/api/playerprofiles/change-name";
         public const string PlayerProfileMe = "/api/playerprofiles/me";
         public const string PlayerProfileMeFriends = "/api/playerprofiles/me/friends";
 
