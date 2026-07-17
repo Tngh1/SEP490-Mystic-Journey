@@ -33,6 +33,9 @@ public class GameBootstrap : MonoBehaviour
 
         DisableDuplicateAudioListeners();
 
+        // Apply saved settings (volume, graphics, etc.) when game starts
+        SettingsService.Instance.Load();
+
         if (bootstrapScene.IsValid() && bootstrapScene.isLoaded && bootstrapScene.name != "Main" && bootstrapScene.name != WorldState.CurrentMapName)
             yield return SceneManager.UnloadSceneAsync(bootstrapScene);
 

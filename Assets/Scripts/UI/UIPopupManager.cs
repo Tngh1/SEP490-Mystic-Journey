@@ -76,6 +76,7 @@ namespace MysticJourney.UI
         public void ShowConfirm(string title, string message, Action onConfirm, Action onCancel = null, string confirmText = "Yes", string cancelText = "No")
         {
             SetupPopup(title, message, confirmText, cancelText, onConfirm, onCancel, showCancelButton: true);
+            if (!gameObject.activeInHierarchy) gameObject.SetActive(true);
         }
 
         private void SetupPopup(string title, string message, string confirmText, string cancelText, Action onConfirm, Action onCancel, bool showCancelButton)
@@ -103,6 +104,17 @@ namespace MysticJourney.UI
             {
                 popupContainer.SetActive(true);
                 popupContainer.transform.SetAsLastSibling();
+            }
+
+            // Ensure this object and all its parents are active
+            Transform current = transform;
+            while (current != null)
+            {
+                if (!current.gameObject.activeSelf)
+                {
+                    current.gameObject.SetActive(true);
+                }
+                current = current.parent;
             }
 
             // Đảm bảo GameObject chứa script này cũng đang bật
