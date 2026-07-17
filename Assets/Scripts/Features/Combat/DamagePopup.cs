@@ -13,11 +13,16 @@ public class DamagePopup : MonoBehaviour
         textMesh = GetComponent<TextMeshPro>();
     }
 
-    public void Setup(int damageAmount, bool isCritical, bool isPlayerTakingDamage = false)
+    public void Setup(int damageAmount, bool isCritical, bool isPlayerTakingDamage = false, bool isHeal = false)
     {
-        textMesh.text = damageAmount.ToString();
+        textMesh.text = isHeal ? $"+{damageAmount}" : damageAmount.ToString();
 
-        if (isPlayerTakingDamage)
+        if (isHeal)
+        {
+            textMesh.color = Color.green;
+            textMesh.fontSize = 5f;
+        }
+        else if (isPlayerTakingDamage)
         {
             // Nếu người chơi bị đánh, hiện màu Đỏ để dễ phân biệt
             textMesh.color = Color.red;

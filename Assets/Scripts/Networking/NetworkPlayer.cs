@@ -529,6 +529,36 @@ public class NetworkPlayer : NetworkBehaviour
         ApplyDamage(amount);
     }
 
+    public void ApplyHeal(int amount)
+    {
+        if (!Object.HasStateAuthority) return;
+        if (!IsAlive) return;
+
+        CurrentHp = Mathf.Min(MaxHp, CurrentHp + amount);
+
+        if (DamagePopupManager.Instance != null)
+        {
+            // Spawn a green popup for healing
+            DamagePopupManager.Instance.Create(transform.position, amount, false, false, true); 
+        }
+    }
+
+    public void RequestHeal(int amount)
+    {
+        if (amount <= 0) return;
+
+        if (Object.HasStateAuthority)
+            ApplyHeal(amount);
+        else
+            RPC_RequestHeal(amount);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHeal(int amount)
+    {
+        ApplyHeal(amount);
+    }
+
     private void Die()
     {
         IsAlive = false;

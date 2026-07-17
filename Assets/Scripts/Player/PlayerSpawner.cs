@@ -17,6 +17,7 @@ public class PlayerSpawner : MonoBehaviour
     [SerializeField] private SkinDatabaseSO skinDatabase;
 
     [SerializeField] private Transform spawnPoint;
+    public Transform SpawnPoint => spawnPoint;
 
     private bool _loggedMissingSkinDatabase;
 
