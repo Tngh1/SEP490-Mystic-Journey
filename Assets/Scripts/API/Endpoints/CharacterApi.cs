@@ -141,5 +141,47 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
+
+        public void GetLevelUpOptions(
+            Action<System.Collections.Generic.List<string>> onSuccess,
+            Action<ApiException> onError)
+        {
+            SafeDebugLog("GetLevelUpOptions...");
+            ApiClient.Instance.Get<System.Collections.Generic.List<string>>(
+                ApiConfig.CharacterLevelUpOptions,
+                response =>
+                {
+                    SafeDebugLog("GetLevelUpOptions OK");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"GetLevelUpOptions FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
+
+        public void AllocateStat(
+            AllocateStatRequestDto request,
+            Action<PlayerStatsResponse> onSuccess,
+            Action<ApiException> onError)
+        {
+            SafeDebugLog($"AllocateStat {request.StatName}...");
+            ApiClient.Instance.Post<AllocateStatRequestDto, PlayerStatsResponse>(
+                ApiConfig.CharacterAllocateStat,
+                request,
+                response =>
+                {
+                    SafeDebugLog("AllocateStat OK");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"AllocateStat FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }
