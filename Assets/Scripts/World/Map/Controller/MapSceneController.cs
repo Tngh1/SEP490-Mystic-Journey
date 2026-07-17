@@ -48,21 +48,43 @@ public class MapSceneController : MonoBehaviour
                 targetScene,
                 LoadSceneMode.Additive);
 
-        Vector3 spawnPosition;
-        if (MapPositionCache.TryGet(targetScene, out var cachedPos))
+        Vector3 spawnPosition = Vector3.zero;
+        bool positionFound = false;
+
+        if (MapPositionCache.TryGet(targetScene, out var cachedPos) && cachedPos != Vector3.zero)
         {
             spawnPosition = cachedPos;
+            positionFound = true;
             Debug.Log($"[MapSceneController] Returning to {targetScene} at last pos {spawnPosition}");
         }
         else
         {
-            var spawnMarker = GameObject.FindGameObjectWithTag("PlayerSpawn");
-            spawnPosition = spawnMarker != null ? spawnMarker.transform.position : Vector3.zero;
+            // First, try to find a PlayerSpawner in the newly loaded scene
+            var spawners = Object.FindObjectsByType<PlayerSpawner>(FindObjectsSortMode.None);
+            foreach (var spawner in spawners)
+            {
+                if (spawner.gameObject.scene.name == targetScene && spawner.SpawnPoint != null)
+                {
+                    spawnPosition = spawner.SpawnPoint.position;
+                    positionFound = true;
+                    Debug.Log($"[MapSceneController] Found PlayerSpawner in {targetScene}. Spawn: {spawnPosition}");
+                    break;
+                }
+            }
 
-            if (spawnMarker != null)
-                Debug.Log($"[MapSceneController] First visit {targetScene} at PlayerSpawn {spawnPosition}");
-            else
-                Debug.LogWarning($"[MapSceneController] No 'PlayerSpawn' in {targetScene}, using default.");
+            if (!positionFound)
+            {
+                var spawnMarker = GameObject.FindGameObjectWithTag("PlayerSpawn");
+                if (spawnMarker == null) spawnMarker = GameObject.Find("PlayerSpawn");
+                if (spawnMarker == null) spawnMarker = GameObject.Find("PlayerSpawnRuntime");
+
+                spawnPosition = spawnMarker != null ? spawnMarker.transform.position : Vector3.zero;
+
+                if (spawnMarker != null)
+                    Debug.Log($"[MapSceneController] First visit {targetScene} at PlayerSpawn {spawnPosition}");
+                else
+                    Debug.LogWarning($"[MapSceneController] No 'PlayerSpawn' in {targetScene}, using default.");
+            }
         }
 
         WorldState.CurrentMapName = targetScene;

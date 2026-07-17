@@ -68,6 +68,7 @@ public class PlayerCombat : NetworkBehaviour
     private float debuffImmuneTimer = 0f;
 
     public float TotalDef => def + buffedDef;
+    public float TotalAttackDamage => basicAttackDamage;
 
     [Tooltip("KÉO PREFAB MŨI TÊN / CẦU PHÉP VÀO ĐÂY. NẾU LÀ ĐẤU SĨ CHÉM GẦN -> HÃY ĐỂ TRỐNG (NONE)")]
     [SerializeField] private GameObject basicAttackPrefab;
@@ -600,26 +601,35 @@ public class PlayerCombat : NetworkBehaviour
 
                 _aimingIndicatorInstance.transform.position = mouseWorldPosition;
 
-                // Targeted Aiming Logic for Lightsaber
-                if (_aimingPrefab != null && _aimingPrefab.name.Contains("Lightsaber"))
+                // Targeted Aiming Logic
+                if (_aimingPrefab != null)
                 {
-                    // Reset old highlights
-                    foreach (var sr in _highlightedMonsters)
-                    {
-                        if (sr != null) sr.color = Color.white;
-                    }
-                    _highlightedMonsters.Clear();
+                    bool isTargetedSkill = _aimingPrefab.name.Contains("Lightsaber") || _aimingPrefab.GetComponent<NetworkSkillHealing>() != null;
+                    bool isHealingSkill = _aimingPrefab.GetComponent<NetworkSkillHealing>() != null;
 
-                    // Find new targets in circle (e.g., radius 3f)
-                    float aimRadius = 3f;
-                    Collider2D[] hits = Physics2D.OverlapCircleAll(mouseWorldPosition, aimRadius, enemyLayer);
-                    foreach (var hit in hits)
+                    if (isTargetedSkill)
                     {
-                        var sprite = hit.GetComponentInChildren<SpriteRenderer>();
-                        if (sprite != null)
+                        // Reset old highlights
+                        foreach (var sr in _highlightedMonsters)
                         {
-                            sprite.color = Color.red;
-                            _highlightedMonsters.Add(sprite);
+                            if (sr != null) sr.color = Color.white;
+                        }
+                        _highlightedMonsters.Clear();
+
+                        // Find new targets in circle (e.g., radius 3f)
+                        float aimRadius = 3f;
+                        int layerMask = isHealingSkill ? LayerMask.GetMask("Player") : enemyLayer;
+                        Color highlightColor = isHealingSkill ? Color.green : Color.red;
+
+                        Collider2D[] hits = Physics2D.OverlapCircleAll(mouseWorldPosition, aimRadius, layerMask);
+                        foreach (var hit in hits)
+                        {
+                            var sprite = hit.GetComponentInChildren<SpriteRenderer>();
+                            if (sprite != null)
+                            {
+                                sprite.color = highlightColor;
+                                _highlightedMonsters.Add(sprite);
+                            }
                         }
                     }
                 }
@@ -635,7 +645,9 @@ public class PlayerCombat : NetworkBehaviour
 
                 Vector3? targetPos = _aimingIndicatorInstance != null ? _aimingIndicatorInstance.transform.position : (Vector3?)null;
 
-                if (_aimingPrefab != null && _aimingPrefab.name.Contains("Lightsaber"))
+                bool isTargetedSkill = _aimingPrefab != null && (_aimingPrefab.name.Contains("Lightsaber") || _aimingPrefab.GetComponent<NetworkSkillHealing>() != null);
+
+                if (isTargetedSkill)
                 {
                     // Confirm selection
                     Transform selectedTarget = null;
@@ -664,9 +676,17 @@ public class PlayerCombat : NetworkBehaviour
 
                     if (selectedTarget == null)
                     {
-                        // Clicked outside or no target, cancel skill without cooldown
-                        CancelAimingMode();
-                        return;
+                        if (_aimingPrefab != null && _aimingPrefab.GetComponent<NetworkSkillHealing>() != null)
+                        {
+                            // Self-cast
+                            selectedTarget = transform;
+                        }
+                        else
+                        {
+                            // Clicked outside or no target, cancel skill without cooldown
+                            CancelAimingMode();
+                            return;
+                        }
                     }
                     else
                     {
