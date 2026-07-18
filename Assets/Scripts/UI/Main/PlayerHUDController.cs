@@ -15,6 +15,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text playerNameText;
     [SerializeField] private TMP_Text levelText;
     [SerializeField] private Image expBarImage;
+    [SerializeField] private TMP_Text expText;
     [SerializeField] private Image hpBarImage;
     [SerializeField] private TMP_Text hpText;
     [SerializeField] private TMP_Text energyText;
@@ -27,8 +28,12 @@ public class PlayerHUDController : MonoBehaviour
     [Header("HUD Buttons")]
     [SerializeField] private GameObject settingsButtonObj;
     [SerializeField] private GameObject pauseButtonObj;
+    [SerializeField] private Button levelUpButton;
+    [SerializeField] private TMP_Text levelUpPointsText;
+    [SerializeField] private UILevelUpPanel levelUpPanel;
 
-    [Header("HP Bar Color Customization")]
+    [Header("Colors")]
+    [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f); // Light Sky Blue
     [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
     [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);       // #FFEB3B
     [SerializeField] private Color lowHealthColor = new Color(0.956f, 0.263f, 0.212f);    // #F44336
@@ -55,11 +60,27 @@ public class PlayerHUDController : MonoBehaviour
     private void OnEnable()
     {
         StartHUDLoop();
+        if (levelUpButton != null)
+        {
+            levelUpButton.onClick.AddListener(OnLevelUpButtonClicked);
+        }
     }
 
     private void OnDisable()
     {
         StopHUDLoop();
+        if (levelUpButton != null)
+        {
+            levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
+        }
+    }
+
+    private void OnLevelUpButtonClicked()
+    {
+        if (levelUpPanel != null)
+        {
+            levelUpPanel.gameObject.SetActive(true);
+        }
     }
 
     public void FindHUDReferences()
@@ -68,6 +89,7 @@ public class PlayerHUDController : MonoBehaviour
         if (levelText == null) levelText = transform.Find("TopBar/Button/Avatar/Level/LevelText")?.GetComponent<TMP_Text>();
         if (avatarImage == null) avatarImage = transform.Find("TopBar/Button/Avatar")?.GetComponent<Image>();
         if (expBarImage == null) expBarImage = transform.Find("TopBar/Button/ExpBar/ExpFill")?.GetComponent<Image>();
+        if (expText == null) expText = transform.Find("TopBar/Button/ExpBar/ExpNumber")?.GetComponent<TMP_Text>();
         if (hpBarImage == null) hpBarImage = transform.Find("TopBar/Button/HPBar/HPFill")?.GetComponent<Image>();
 
         // fillAmount only applies to Filled images; force it so a Simple-typed
@@ -245,6 +267,15 @@ public class PlayerHUDController : MonoBehaviour
             levelText.text = "Lv " + profile.Level;
         }
 
+        if (levelUpButton != null)
+        {
+            levelUpButton.gameObject.SetActive(profile.AvailableStatPoints > 0);
+            if (levelUpPointsText != null)
+            {
+                levelUpPointsText.text = profile.AvailableStatPoints.ToString();
+            }
+        }
+
         if (energyText != null)
         {
             energyText.text = profile.Energy + "/" + profile.MaxEnergy;
@@ -274,6 +305,8 @@ public class PlayerHUDController : MonoBehaviour
 
         if (expBarImage != null)
         {
+            expBarImage.color = expBarColor;
+            
             // Experience required formula: (Level - 1) * 100
             int level = profile.Level;
             int totalExp = profile.ExperiencePoints;
@@ -285,6 +318,11 @@ public class PlayerHUDController : MonoBehaviour
             if (level >= 100)
             {
                 expRatio = 1f;
+                if (expText != null) expText.text = "EXP: MAX";
+            }
+            else
+            {
+                if (expText != null) expText.text = $"EXP: {currentExpInLevel}/{requiredExpForNextLevel}";
             }
 
             expBarImage.fillAmount = Mathf.Clamp01(expRatio);
@@ -347,6 +385,7 @@ public class PlayerHUDController : MonoBehaviour
     private static void MakeHorizontalFill(Image img)
     {
         if (img == null) return;
+        img.enabled = true;
         img.type = Image.Type.Filled;
         img.fillMethod = Image.FillMethod.Horizontal;
         img.fillOrigin = (int)Image.OriginHorizontal.Left;

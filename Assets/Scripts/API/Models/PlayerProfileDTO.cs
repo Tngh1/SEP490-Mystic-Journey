@@ -38,6 +38,7 @@ namespace MysticJourney.API.Models.Response
         public string PlayerClass { get; set; }
         public int Level { get; set; }
         public int ExperiencePoints { get; set; }
+        public int AvailableStatPoints { get; set; }
         public decimal Gold { get; set; }
         public decimal Gems { get; set; }
         public int Energy { get; set; }
@@ -79,5 +80,14 @@ namespace MysticJourney.API.Models.Response
         public int TotalKills { get; set; }
         public int TotalDeaths { get; set; }
         public System.Collections.Generic.List<PlayerBuffDTO> ActiveBuffs { get; set; }
+    }
+}
+
+namespace MysticJourney.API.Models.Request
+{
+    [System.Serializable]
+    public class AllocateStatRequestDto
+    {
+        public string StatName { get; set; }
     }
 }

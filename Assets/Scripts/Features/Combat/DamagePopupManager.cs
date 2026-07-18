@@ -11,7 +11,7 @@ public class DamagePopupManager : MonoBehaviour
         Instance = this;
     }
 
-    public void Create(Vector3 position, int damageAmount, bool isCritical, bool isPlayer = false)
+    public void Create(Vector3 position, int damageAmount, bool isCritical, bool isPlayer = false, bool isHeal = false)
     {
         if (!SettingsService.Instance.ShowDamageNumbers)
             return;
@@ -20,6 +20,6 @@ public class DamagePopupManager : MonoBehaviour
         GameObject popup = Instantiate(damagePopupPrefab, spawnPos, Quaternion.identity);
 
         DamagePopup damagePopup = popup.GetComponent<DamagePopup>();
-        damagePopup.Setup(damageAmount, isCritical, isPlayer);
+        damagePopup.Setup(damageAmount, isCritical, isPlayer, isHeal);
     }
 }

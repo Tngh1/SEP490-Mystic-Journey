@@ -188,6 +188,36 @@ public class PlayerEntity : MonoBehaviour
         syncHpCoroutine = StartCoroutine(SyncHpRoutine());
     }
 
+    /// <summary>
+    /// Apply healing to the player. In multiplayer delegates to
+    /// <see cref="NetworkPlayer.RequestHeal"/>, which routes to state authority.
+    /// </summary>
+    public void Heal(int amount)
+    {
+        if (amount <= 0) return;
+
+        if (_networkPlayer != null)
+        {
+            _networkPlayer.RequestHeal(amount);
+            return;
+        }
+
+        // Offline / Local healing
+        currentHealth += amount;
+        if (currentHealth > maxHealth) currentHealth = maxHealth;
+
+        if (DamagePopupManager.Instance != null)
+        {
+            // Spawn a green popup for healing
+            DamagePopupManager.Instance.Create(transform.position, amount, false, false, true); 
+        }
+
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        if (syncHpCoroutine != null) StopCoroutine(syncHpCoroutine);
+        syncHpCoroutine = StartCoroutine(SyncHpRoutine());
+    }
+
     public void Die()
     {
         Debug.Log("[PlayerEntity] Player died.");
