@@ -379,7 +379,10 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (firePoint == null) return;
 
-        Vector2 direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
+        PlayerMovement pm = GetComponent<PlayerMovement>();
+        Vector2 direction = pm != null ? pm.LastMove : Vector2.right;
+        if (direction == Vector2.zero) direction = Vector2.right;
+
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         Quaternion rotation = Quaternion.Euler(0, 0, angle);
 
@@ -405,12 +408,6 @@ public class PlayerCombat : NetworkBehaviour
         SkillProjectile projectileScript = projectileObj.GetComponent<SkillProjectile>();
         if (projectileScript != null)
         {
-            if (transform.localScale.x < 0)
-            {
-                Vector3 scale = projectileObj.transform.localScale;
-                scale.x *= -1;
-                projectileObj.transform.localScale = scale;
-            }
             projectileScript.Setup(GetClassScaledDamage(basicAttackDamage));
         }
     }
@@ -797,14 +794,9 @@ public class PlayerCombat : NetworkBehaviour
         else
         {
             spawnPosition = firePoint.position;
-            Vector3 mouseWorldPosition = _input != null && _input.PointerWorldPosition.HasValue
-                ? (Vector3)_input.PointerWorldPosition.Value
-                : transform.position;
-            mouseWorldPosition.z = 0f;
-
-            Vector2 direction = (mouseWorldPosition - firePoint.position).normalized;
-            if (direction == Vector2.zero)
-                direction = PlayerMovement.Instance != null ? PlayerMovement.Instance.LastMove : Vector2.right;
+            PlayerMovement pm = GetComponent<PlayerMovement>();
+            Vector2 direction = pm != null ? pm.LastMove : Vector2.right;
+            if (direction == Vector2.zero) direction = Vector2.right;
 
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             spawnRotation = Quaternion.Euler(0, 0, angle);
@@ -818,16 +810,9 @@ public class PlayerCombat : NetworkBehaviour
         if (IsNetworked && skillPrefab.GetComponent<NetworkObject>() != null)
         {
             float netDamage = _skillDamages.ContainsKey(slotIndex) ? GetClassScaledDamage(_skillDamages[slotIndex]) : 0f;
-            bool flip = !isAoE && transform.localScale.x < 0;
             Runner.Spawn(skillPrefab, spawnPosition, spawnRotation, Object.InputAuthority,
                 (r, o) =>
                 {
-                    if (flip)
-                    {
-                        Vector3 s = o.transform.localScale;
-                        s.x *= -1;
-                        o.transform.localScale = s;
-                    }
                     if (isAoE)
                     {
                         var aoe = o.GetComponent<NetworkSkillAoE>();
@@ -856,12 +841,6 @@ public class PlayerCombat : NetworkBehaviour
                 var projectile = skillObj.GetComponent<SkillProjectile>();
                 if (projectile != null)
                 {
-                    if (transform.localScale.x < 0)
-                    {
-                        Vector3 scale = skillObj.transform.localScale;
-                        scale.x *= -1;
-                        skillObj.transform.localScale = scale;
-                    }
                     projectile.Setup(damage);
                 }
             }
