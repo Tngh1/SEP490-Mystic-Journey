@@ -29,6 +29,10 @@ namespace MysticJourney.API.Core
         public const string PositionXKey = "mj_position_x";
         public const string PositionYKey = "mj_position_y";
 
+        // Remember Me keys
+        public const string RememberMeKey = "mj_remember_me";
+        public const string SavedUsernameKey = "mj_saved_username";
+
         // ═══════════════════════════════════════════════════════════════════════
         // AUTH CONTROLLER - Xác thực và quản lý tài khoản
         // ═══════════════════════════════════════════════════════════════════════
