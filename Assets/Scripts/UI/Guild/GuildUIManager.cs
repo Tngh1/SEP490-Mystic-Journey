@@ -182,7 +182,37 @@ namespace MysticJourney.UI.Guild
                         btnLeftManage.GetComponent<Button>()?.onClick.AddListener(SwitchToManageTab);
                     }
                 }
+                
+                // Bind Donate button if it exists
+                var allButtons = guildInfoPanel.GetComponentsInChildren<Button>(true);
+                foreach (var b in allButtons)
+                {
+                    if (b.name == "DonateButton")
+                    {
+                        b.onClick.RemoveAllListeners();
+                        b.onClick.AddListener(OpenDonatePopup);
+                        break;
+                    }
+                }
             }
+        }
+
+        private UIGuildDonatePopup donatePopup;
+
+        private void OpenDonatePopup()
+        {
+            if (currentGuild == null) return;
+            
+            if (donatePopup == null)
+            {
+                donatePopup = UIGuildDonatePopup.CreateRuntime(mainGuildPanel.transform);
+            }
+            
+            donatePopup.Open(currentGuild.guildId, () => 
+            {
+                // Refresh data on success
+                OpenGuildDetail(currentGuild.guildId);
+            });
         }
 
         private void OnSaveSettingsClicked()
