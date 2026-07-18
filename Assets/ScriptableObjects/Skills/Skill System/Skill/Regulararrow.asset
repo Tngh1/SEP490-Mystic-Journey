@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ea375edf7a841947b2f355188726263, type: 3}
+  m_Name: Regulararrow
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: 0
+  skillIcon: {fileID: 5278171072270197080, guid: a684b6d6e39082a40bd01766271dcaa3, type: 3}
+  skillPrefab: {fileID: 6319617498100810868, guid: f0f9c6c79c641bf4f859aa4b3b27bee4, type: 3}
+  classRequirement: Archer
