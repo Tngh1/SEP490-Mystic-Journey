@@ -126,8 +126,10 @@ public class BuffManager : MonoBehaviour
                 IsDebuff = b.IsDebuff
             });
         }
-
-        CharacterApi.Instance.SyncBuffs(request, null, null);
+        if (CharacterApi.Instance != null)
+        {
+            CharacterApi.Instance.SyncBuffs(request, null, null);
+        }
     }
 
     private void OnApplicationQuit()

@@ -231,6 +231,24 @@ public class EnemyEntity : MonoBehaviour
             }
 
             OnDeath?.Invoke(this, EventArgs.Empty);
+
+            StartCoroutine(DespawnAfterDelay(2f));
+        }
+    }
+
+    private System.Collections.IEnumerator DespawnAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (_network != null && _network.IsNetworkActive)
+        {
+            if (_network.HasStateAuthority)
+            {
+                _network.Runner.Despawn(_network.Object);
+            }
+        }
+        else
+        {
+            Destroy(gameObject);
         }
     }
 }

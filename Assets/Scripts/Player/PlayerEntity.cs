@@ -52,6 +52,11 @@ public class PlayerEntity : MonoBehaviour
         Instance = this;
         currentHealth = maxHealth;
         _networkPlayer = GetComponent<NetworkPlayer>();
+        
+        if (GetComponent<BuffManager>() == null)
+        {
+            gameObject.AddComponent<BuffManager>();
+        }
     }
 
     private void OnDestroy()
