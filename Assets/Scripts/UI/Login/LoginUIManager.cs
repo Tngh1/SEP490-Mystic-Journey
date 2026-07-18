@@ -108,8 +108,8 @@ namespace MysticJourney.Screen.Login
 
                     if (string.IsNullOrEmpty(response.PlayerClass))
                     {
-                        Debug.Log("[LoginUIManager] Loading CharacterCreation scene...");
-                        StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.CharacterCreation, delayBeforeSceneLoad));
+                        Debug.Log("[LoginUIManager] Loading IntroScene for new player...");
+                        StartCoroutine(LoadSceneAfterDelay("IntroScene", delayBeforeSceneLoad));
                     }
                     else
                     {

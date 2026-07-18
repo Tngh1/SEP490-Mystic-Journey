@@ -232,6 +232,7 @@ GameObject:
   - component: {fileID: 716260481}
   - component: {fileID: 716260483}
   - component: {fileID: 716260482}
+  - component: {fileID: 716260484}
   m_Layer: 0
   m_Name: Logo
   m_TagString: Untagged
@@ -334,6 +335,19 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &716260484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 716260480}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 229018cf2712c754082bd6c40620d3d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FadeInLogo
+  fadeDuration: 2
 --- !u!1 &799029407
 GameObject:
   m_ObjectHideFlags: 0
