@@ -100,11 +100,6 @@ namespace UI.Friend
                 if (chatButtonTransform != null) detailChatButton = chatButtonTransform.GetComponent<Button>();
             }
 
-            if (detailChatButton == null)
-            {
-                detailChatButton = CreateChatButtonFromTemplate();
-            }
-
             if (friendChatPanel == null)
             {
                 friendChatPanel = FindFirstObjectByType<UIFriendChatPanel>(FindObjectsInactive.Include);
@@ -119,31 +114,6 @@ namespace UI.Friend
             if (detailUnfriendButton != null) detailUnfriendButton.onClick.AddListener(OnDetailUnfriendClicked);
             if (detailBlockButton != null) detailBlockButton.onClick.AddListener(OnDetailBlockClicked);
             if (detailProfileButton != null) detailProfileButton.onClick.AddListener(OnDetailProfileClicked);
-        }
-
-        private Button CreateChatButtonFromTemplate()
-        {
-            if (detailProfileButton == null)
-            {
-                return null;
-            }
-
-            var chatButtonObject = Instantiate(detailProfileButton.gameObject, detailProfileButton.transform.parent);
-            chatButtonObject.name = "ChatButton";
-
-            var chatButton = chatButtonObject.GetComponent<Button>();
-            if (chatButton != null)
-            {
-                chatButton.onClick.RemoveAllListeners();
-            }
-
-            var label = chatButtonObject.GetComponentInChildren<TMP_Text>();
-            if (label != null)
-            {
-                label.text = "";
-            }
-
-            return chatButton;
         }
 
         private UIFriendChatPanel CreateRuntimeFriendChatPanel()
@@ -173,11 +143,9 @@ namespace UI.Friend
             addPanel?.SetActive(true);
             LoadRequests(); // Left column of Add tab
             
-            // Note: We don't automatically trigger search to save API calls unless there's text
-            if (!string.IsNullOrWhiteSpace(searchInput.text))
-            {
-                OnSearchClicked(); // Right column of Add tab
-            }
+            // Automatically trigger search to get random players when tab opens
+            OnSearchClicked(); // Right column of Add tab
+            
             HighlightTab(addTabButton, friendTabButton);
         }
 
@@ -236,13 +204,13 @@ namespace UI.Friend
             selectedProfileId = friend.FriendProfileId;
             selectedFriendName = friend.FriendName;
             ShowDetailPanel(friend.FriendName, friend.FriendLevel, friend.Class, 
-                friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>");
+                friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>", friend.FriendAvatarUrl);
             
             EnableDetailButtons(showChat: true, showUnfriend: true, showBlock: true, showProfile: true);
             OpenSelectedFriendChat();
         }
 
-        private void ShowDetailPanel(string name, int level, string charClass, string statusText)
+        private void ShowDetailPanel(string name, int level, string charClass, string statusText, string avatarUrl = null)
         {
             if (detailPanelObj != null) detailPanelObj.SetActive(true);
             if (detailNameText != null) detailNameText.text = name;
@@ -252,6 +220,16 @@ namespace UI.Friend
             {
                 detailStatusText.gameObject.SetActive(!string.IsNullOrEmpty(statusText));
                 detailStatusText.text = statusText;
+            }
+            if (detailAvatarImage != null)
+            {
+                if (string.IsNullOrEmpty(avatarUrl)) avatarUrl = "avatar_1"; // Default avatar
+                
+                Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+                if (avatarSprite != null)
+                {
+                    detailAvatarImage.sprite = avatarSprite;
+                }
             }
         }
 
@@ -410,11 +388,20 @@ namespace UI.Friend
 
         private void OnDetailProfileClicked()
         {
-            var profilePanelObj = GameObject.Find("FriendProfilePanel");
-            if (profilePanelObj != null)
+            var panel = FindFirstObjectByType<UIFriendProfilePanel>(FindObjectsInactive.Include);
+            if (panel != null)
             {
-                var panel = profilePanelObj.GetComponent<UIFriendProfilePanel>();
-                panel?.ShowProfile(selectedProfileId, "");
+                // Deselect any focused UI (e.g. chat InputField) to prevent it stealing focus
+                UnityEngine.EventSystems.EventSystem.current?.SetSelectedGameObject(null);
+                
+                // Close friend chat panel explicitly to stop FocusInput loops
+                if (friendChatPanel != null) friendChatPanel.Close();
+                
+                panel.ShowProfile(selectedProfileId, "");
+            }
+            else
+            {
+                Debug.LogWarning("[UIFriendPanel] UIFriendProfilePanel not found in scene!");
             }
         }
 
@@ -520,9 +507,9 @@ namespace UI.Friend
 
         private void OnSearchClicked()
         {
-            if (string.IsNullOrWhiteSpace(searchInput.text)) return;
+            string query = searchInput != null && !string.IsNullOrEmpty(searchInput.text) ? searchInput.text.Trim() : "";
             
-            FriendApi.SearchPlayers(searchInput.text, results =>
+            FriendApi.SearchPlayers(query, results =>
             {
                 searchResults = results;
                 UpdateSearchUI();
@@ -533,11 +520,15 @@ namespace UI.Friend
         {
             if (searchListContainer == null) return;
             foreach (Transform child in searchListContainer) Destroy(child.gameObject);
+            searchListContainer.DetachChildren();
 
-            foreach (var result in searchResults)
+            if (searchResults != null)
             {
-                var entry = Instantiate(searchEntryPrefab, searchListContainer);
-                entry.SetupAsSearch(result, this);
+                foreach (var result in searchResults)
+                {
+                    var entry = Instantiate(searchEntryPrefab, searchListContainer);
+                    entry.SetupAsSearch(result, this);
+                }
             }
         }
 

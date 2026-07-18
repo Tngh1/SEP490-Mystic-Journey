@@ -38,7 +38,8 @@ namespace UI.Friend
             
             if (statusText != null)
             {
-                statusText.text = friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>";
+                statusText.color = friend.IsOnline ? Color.green : Color.gray;
+                statusText.text = friend.IsOnline ? "Online" : "Offline";
             }
 
             if (mainButton != null)
@@ -48,6 +49,7 @@ namespace UI.Friend
                 mainButton.onClick.AddListener(() => parentPanel.SelectFriend(friend));
             }
 
+            ApplyAvatar(friend.FriendAvatarUrl);
             HideInlineButtons();
         }
 
@@ -59,9 +61,17 @@ namespace UI.Friend
             if (nameText != null) nameText.text = req.RequesterName;
             if (levelText != null) levelText.text = $"Lv.{req.RequesterLevel}";
             if (classText != null) classText.text = req.Class;
-            if (statusText != null) statusText.text = $"Sent: {req.CreatedAt}";
+            if (statusText != null)
+            {
+                string dateStr = req.CreatedAt;
+                if (System.DateTime.TryParse(req.CreatedAt, out var dt)) {
+                    dateStr = dt.ToLocalTime().ToString("MM/dd HH:mm");
+                }
+                statusText.text = $"Sent: {dateStr}";
+            }
 
             if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for requests
+            ApplyAvatar(req.RequesterAvatarUrl);
             HideInlineButtons();
 
             if (acceptButton != null)
@@ -87,9 +97,14 @@ namespace UI.Friend
             if (nameText != null) nameText.text = searchResult.CharacterName;
             if (levelText != null) levelText.text = $"Lv.{searchResult.Level}";
             if (classText != null) classText.text = searchResult.Class;
-            if (statusText != null) statusText.text = searchResult.IsOnline ? "<color=green>Online</color>" : "<color=gray>Offline</color>";
+            if (statusText != null) 
+            {
+                statusText.color = searchResult.IsOnline ? Color.green : Color.gray;
+                statusText.text = searchResult.IsOnline ? "Online" : "Offline";
+            }
 
             if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for search
+            ApplyAvatar(searchResult.Avatar);
             HideInlineButtons();
 
             if (addFriendButton != null)
@@ -164,6 +179,7 @@ namespace UI.Friend
             if (statusText != null) statusText.gameObject.SetActive(false);
 
             if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for blocks
+            ApplyAvatar(blockResult.AvatarUrl);
             HideInlineButtons();
 
             if (unblockButton != null)
@@ -180,6 +196,18 @@ namespace UI.Friend
             if (acceptButton != null) acceptButton.gameObject.SetActive(false);
             if (declineButton != null) declineButton.gameObject.SetActive(false);
             if (unblockButton != null) unblockButton.gameObject.SetActive(false);
+        }
+
+        private void ApplyAvatar(string avatarUrl)
+        {
+            if (avatarImage == null) return;
+            if (string.IsNullOrEmpty(avatarUrl)) avatarUrl = "avatar_1"; // Default avatar
+            
+            Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+            if (avatarSprite != null)
+            {
+                avatarImage.sprite = avatarSprite;
+            }
         }
 
         private void OnAcceptClicked()

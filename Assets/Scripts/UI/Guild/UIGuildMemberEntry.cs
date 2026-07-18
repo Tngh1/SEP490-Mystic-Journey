@@ -43,22 +43,11 @@ namespace MysticJourney.UI.Guild
             if (avatarImage != null)
             {
                 avatarImage.enabled = true;
-                avatarImage.sprite = null;
-                if (!string.IsNullOrWhiteSpace(member.playerAvatarUrl))
+                string avatarUrl = string.IsNullOrWhiteSpace(member.playerAvatarUrl) ? "avatar_1" : member.playerAvatarUrl;
+                Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+                if (avatarSprite != null)
                 {
-                    var cached = RemoteSpriteCache.GetCached(member.playerAvatarUrl);
-                    if (cached != null)
-                    {
-                        avatarImage.sprite = cached;
-                    }
-                    else
-                    {
-                        RemoteSpriteCache.Load(this, member.playerAvatarUrl, (sprite) =>
-                        {
-                            if (sprite != null && avatarImage != null)
-                                avatarImage.sprite = sprite;
-                        });
-                    }
+                    avatarImage.sprite = avatarSprite;
                 }
             }
 
