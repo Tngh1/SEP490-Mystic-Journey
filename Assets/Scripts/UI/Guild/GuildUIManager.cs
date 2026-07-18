@@ -56,6 +56,7 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private Toggle toggleRequireApproval;
         [SerializeField] private TMP_InputField inputRequiredLevel;
         [SerializeField] private Button btnSaveSettings;
+        [SerializeField] private Button btnToggleKickMode;
 
         [Header("Member List UI")]
         [SerializeField] private Transform memberListContainer;
@@ -300,7 +301,7 @@ namespace MysticJourney.UI.Guild
                 name = inputCreateName.text,
                 notice = inputCreateNotice != null ? inputCreateNotice.text : "",
                 requiredLevel = 1,
-                joinPolicy = 1 // Open
+                joinPolicy = 0 // Open by default
             };
 
             GuildApi.CreateGuild(request,
@@ -435,15 +436,17 @@ namespace MysticJourney.UI.Guild
                             Destroy(child.gameObject);
                         
                         // Tạo danh sách mới
-                        foreach (var guild in list)
+                        for (int i = 0; i < list.Count; i++)
                         {
+                            var guild = list[i];
                             GameObject obj = Instantiate(guildEntryPrefab, guildListContainer);
                             obj.SetActive(true);
                             obj.transform.localScale = Vector3.one;
                             UIGuildEntry entry = obj.GetComponent<UIGuildEntry>();
                             entry.Setup(guild, 
                                 entryClicked: (id) => OpenGuildDetail(id), 
-                                applyClicked: (id) => ApplyToGuild(id));
+                                applyClicked: (id) => ApplyToGuild(id),
+                                rank: i + 1);
                         }
                     }
                 },
@@ -571,22 +574,8 @@ namespace MysticJourney.UI.Guild
             isShowingApplications = false;
             LoadMemberList();
 
-// Bật nút Approve chỉ khi là Leader hoặc Officer
-            UpdateApproveButtonVisibility();
-
-            // Setup settings UI
-            if (currentGuild != null)
-            {
-                if (toggleRequireApproval != null)
-                {
-                    toggleRequireApproval.SetIsOnWithoutNotify(currentGuild.joinPolicy == 1);
-                }
-                if (inputRequiredLevel != null)
-                {
-                    inputRequiredLevel.text = currentGuild.requiredLevel.ToString();
-                    inputRequiredLevel.interactable = currentGuild.joinPolicy == 1;
-                }
-            }
+            // Bật nút Approve chỉ khi là Leader hoặc Officer
+            UpdateManageButtonsVisibility();
 
             if (btnApprove != null)
             {
@@ -595,16 +584,37 @@ namespace MysticJourney.UI.Guild
             }
         }
 
-        private void UpdateApproveButtonVisibility()
+        private void UpdateManageButtonsVisibility()
         {
-            if (btnApprove == null) return;
-
             int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
-            bool isLeaderOrOfficer = currentGuild != null && currentGuild.members != null &&
-                currentGuild.members.Any(m => m.playerProfileId == myProfileId &&
-                    (m.role == "Leader" || m.role == "Officer"));
+            bool isLeader = currentGuild != null && currentGuild.members != null &&
+                currentGuild.members.Any(m => m.playerProfileId == myProfileId && m.role == "Leader");
+            bool isOfficer = currentGuild != null && currentGuild.members != null &&
+                currentGuild.members.Any(m => m.playerProfileId == myProfileId && m.role == "Officer");
+            bool isLeaderOrOfficer = isLeader || isOfficer;
 
-            btnApprove.gameObject.SetActive(isLeaderOrOfficer);
+            if (btnApprove != null) btnApprove.gameObject.SetActive(isLeaderOrOfficer);
+            
+            // Leader-only buttons
+            if (btnLevelUp != null) btnLevelUp.gameObject.SetActive(isLeader);
+            if (btnSaveSettings != null) btnSaveSettings.gameObject.SetActive(isLeader);
+            if (btnToggleKickMode != null) btnToggleKickMode.gameObject.SetActive(isLeader);
+            
+            // Setup settings UI interactability based on Leader role
+            if (currentGuild != null)
+            {
+                if (toggleRequireApproval != null)
+                {
+                    toggleRequireApproval.interactable = isLeader;
+                    toggleRequireApproval.SetIsOnWithoutNotify(currentGuild.joinPolicy == 1);
+                }
+                
+                if (inputRequiredLevel != null)
+                {
+                    inputRequiredLevel.text = currentGuild.requiredLevel.ToString();
+                    inputRequiredLevel.interactable = isLeader && (currentGuild.joinPolicy == 1);
+                }
+            }
         }
 
         public void SwitchToRankTab()
@@ -730,6 +740,8 @@ namespace MysticJourney.UI.Guild
                 .ToList();
 
             int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+            var myMember = currentGuild.members.FirstOrDefault(m => m.playerProfileId == myProfileId);
+            string myRole = myMember != null ? myMember.role : "Member";
 
             foreach (var member in sortedMembers)
             {
@@ -739,7 +751,14 @@ namespace MysticJourney.UI.Guild
                 UIGuildMemberEntry entry = obj.GetComponent<UIGuildMemberEntry>();
                 if (entry != null)
                 {
-                    entry.Setup(member);
+                    bool canKick = false;
+                    if (member.playerProfileId != myProfileId && myRole != "Member")
+                    {
+                        if (myRole == "Leader") canKick = true;
+                        else if (myRole == "Officer" && member.role == "Member") canKick = true;
+                    }
+                    
+                    entry.Setup(member, canKick, HandleKickMember, isKickModeActive);
                 }
             }
 
@@ -1013,6 +1032,39 @@ namespace MysticJourney.UI.Guild
             {
                 Debug.LogWarning("Invite Panel is not assigned in GuildUIManager");
             }
+        }
+
+        private bool isKickModeActive = false;
+
+        public void ToggleKickMode()
+        {
+            isKickModeActive = !isKickModeActive;
+            if (memberListContainer != null)
+            {
+                foreach (Transform child in memberListContainer)
+                {
+                    var entry = child.GetComponent<UIGuildMemberEntry>();
+                    if (entry != null)
+                    {
+                        entry.SetKickMode(isKickModeActive);
+                    }
+                }
+            }
+        }
+
+        private void HandleKickMember(int memberId)
+        {
+            if (currentGuild == null) return;
+
+            GuildApi.KickMember(currentGuild.guildId, memberId,
+                onSuccess: (res) =>
+                {
+                    RefreshCurrentGuild();
+                },
+                onError: (err) =>
+                {
+                    UIPopupManager.Instance.ShowAlert("Error", err.Message);
+                });
         }
     }
 }

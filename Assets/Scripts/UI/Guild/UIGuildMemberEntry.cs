@@ -14,9 +14,14 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtStatus;
         [SerializeField] private Image avatarImage;
         [SerializeField] private Image onlineIndicator;
+        [SerializeField] private Button btnKick;
 
-        public void Setup(GuildMemberResponseDto member)
+        private bool canKick;
+
+        public void Setup(GuildMemberResponseDto member, bool canKick = false, System.Action<int> onKick = null, bool isKickMode = false)
         {
+            this.canKick = canKick;
+
             if (txtMemberName != null) txtMemberName.text = member.playerDisplayName;
             if (txtLevel != null) txtLevel.text = $"Lv. {member.playerLevel}";
 
@@ -55,6 +60,30 @@ namespace MysticJourney.UI.Guild
                         });
                     }
                 }
+            }
+
+            if (btnKick != null)
+            {
+                btnKick.gameObject.SetActive(this.canKick && isKickMode);
+                btnKick.onClick.RemoveAllListeners();
+                btnKick.onClick.AddListener(() =>
+                {
+                    // Confirmation popup before kicking
+                    MysticJourney.UI.UIPopupManager.Instance.ShowConfirm(
+                        "Kick Member",
+                        $"Are you sure you want to kick {member.playerDisplayName}?",
+                        () => onKick?.Invoke(member.playerProfileId),
+                        null
+                    );
+                });
+            }
+        }
+
+        public void SetKickMode(bool isKickMode)
+        {
+            if (btnKick != null)
+            {
+                btnKick.gameObject.SetActive(this.canKick && isKickMode);
             }
         }
     }

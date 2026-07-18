@@ -64,6 +64,7 @@ public class PlayerHUDController : MonoBehaviour
         {
             levelUpButton.onClick.AddListener(OnLevelUpButtonClicked);
         }
+        PlayerEntity.OnHealthChanged += HandleHealthChanged;
     }
 
     private void OnDisable()
@@ -73,6 +74,7 @@ public class PlayerHUDController : MonoBehaviour
         {
             levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
         }
+        PlayerEntity.OnHealthChanged -= HandleHealthChanged;
     }
 
     private void OnLevelUpButtonClicked()
@@ -169,8 +171,14 @@ public class PlayerHUDController : MonoBehaviour
         while (true)
         {
             RefreshHUD();
-            yield return new WaitForSeconds(3.0f);
+            yield return new WaitForSeconds(15.0f);
         }
+    }
+
+    private void HandleHealthChanged(int currentHp, int maxHp)
+    {
+        FindHUDReferences();
+        UpdateStatsUI(currentHp, maxHp);
     }
 
     public void RefreshHUD()
@@ -200,20 +208,8 @@ public class PlayerHUDController : MonoBehaviour
             }
         );
 
-        // Step 2: Refresh Character Stats (Current HP, Max HP)
-        CharacterApi.Instance.GetMyStats(
-            statsResponse =>
-            {
-                if (statsResponse != null)
-                {
-                    ApplyStats(statsResponse);
-                }
-            },
-            error =>
-            {
-                Debug.LogWarning($"[PlayerHUDController] Failed to refresh stats: {error.Message}");
-            }
-        );
+        // Step 2: Character Stats (Current HP, Max HP) are now updated in real-time via PlayerEntity.OnHealthChanged event.
+        // We no longer poll CharacterApi.Instance.GetMyStats here to save HTTP traffic.
 
         RefreshCurrencyBalance();
     }
@@ -331,7 +327,13 @@ public class PlayerHUDController : MonoBehaviour
 
     private void UpdateStatsUI(PlayerStatsResponse stats)
     {
-        float hpRatio = stats.MaxHp > 0 ? (float)stats.CurrentHp / stats.MaxHp : 0f;
+        if (stats == null) return;
+        UpdateStatsUI(stats.CurrentHp, stats.MaxHp);
+    }
+
+    private void UpdateStatsUI(int currentHp, int maxHp)
+    {
+        float hpRatio = maxHp > 0 ? (float)currentHp / maxHp : 0f;
 
         if (hpBarImage != null)
         {
@@ -357,7 +359,7 @@ public class PlayerHUDController : MonoBehaviour
 
         if (hpText != null)
         {
-            hpText.text = stats.CurrentHp + " / " + stats.MaxHp;
+            hpText.text = currentHp + " / " + maxHp;
         }
     }
 
