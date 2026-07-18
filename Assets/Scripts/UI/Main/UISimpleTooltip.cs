@@ -13,19 +13,36 @@ public class UISimpleTooltip : MonoBehaviour
     {
         Instance = this;
         gameObject.SetActive(false);
+        
+        // Prevent tooltip from blocking mouse raycasts (which causes rapid flicker)
+        var canvasGroup = GetComponent<CanvasGroup>();
+        if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
     }
 
-    public void Show(string content, Vector2 position)
+    private string lastTitle;
+    private string lastTimeText;
+
+    public void Show(string title, string timeText, Vector2 position)
     {
         gameObject.SetActive(true);
-        textComponent.text = content;
-        
-        if (backgroundRect != null)
-        {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(backgroundRect);
-        }
-
         transform.position = position;
+
+        if (lastTitle != title || lastTimeText != timeText)
+        {
+            textComponent.text = title + "\n" + timeText;
+            lastTimeText = timeText;
+        }
+        
+        if (lastTitle != title)
+        {
+            lastTitle = title;
+            if (backgroundRect != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(backgroundRect);
+            }
+        }
     }
 
     public void Hide()

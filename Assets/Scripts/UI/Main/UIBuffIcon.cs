@@ -17,15 +17,26 @@ public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         {
             borderImage.color = _buff.IsDebuff ? Color.red : Color.green;
         }
+
+        if (iconImage != null && !string.IsNullOrEmpty(_buff.IconName))
+        {
+            Sprite sprite = Resources.Load<Sprite>("Icons/Buffs/" + _buff.IconName);
+            if (sprite != null)
+            {
+                iconImage.sprite = sprite;
+                iconImage.color = Color.white;
+            }
+        }
     }
 
     private void Update()
     {
         if (_isHovering && UISimpleTooltip.Instance != null && _buff != null)
         {
-            string typeStr = _buff.IsDebuff ? "<color=red>[Bất Lợi]</color>" : "<color=green>[Có Lợi]</color>";
-            string info = $"{typeStr} {_buff.BuffName}\nCòn lại: {_buff.DurationRemaining:F1}s";
-            UISimpleTooltip.Instance.Show(info, transform.position + new Vector3(0, 50, 0)); // Hiển thị phía trên icon 50px
+            string typeStr = _buff.IsDebuff ? "<color=red>[Debuff]</color>" : "<color=green>[Buff]</color>";
+            string title = $"{typeStr} {_buff.BuffName}";
+            string timeText = $"<mspace=0.55em>{_buff.DurationRemaining:F1}</mspace>s";
+            UISimpleTooltip.Instance.Show(title, timeText, transform.position + new Vector3(0, 50, 0));
         }
     }
 

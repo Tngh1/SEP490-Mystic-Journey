@@ -36,7 +36,7 @@ public class SlimeDebuff : MonoBehaviour
         }
 
         var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Chất Nhầy Slime", "slime_debuff_icon", duration, true);
+        if (buffMgr != null) buffMgr.AddBuff("Slime Sludge", "slime_debuff_icon", duration, true);
     }
 
     public void Refresh(float newDuration)
@@ -49,7 +49,7 @@ public class SlimeDebuff : MonoBehaviour
         }
 
         var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Chất Nhầy Slime", "slime_debuff_icon", duration, true);
+        if (buffMgr != null) buffMgr.AddBuff("Slime Sludge", "slime_debuff_icon", duration, true);
     }
 
     private void Update()
