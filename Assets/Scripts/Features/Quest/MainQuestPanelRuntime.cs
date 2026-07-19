@@ -573,12 +573,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
         SetActive(claimQuestButtonObject, QuestUtils.IsStatus(quest, "Completed"));
         SetActive(claimedButtonObject, QuestUtils.IsStatus(quest, "Claimed"));
 
-        SetText(acceptQuestButtonText, "Accept Quest");
-        SetText(completeQuestButtonText, "Complete Quest");
-        SetText(declineQuestButtonText, "Decline Quest");
-        SetText(claimQuestButtonText, "Claim Reward");
-        SetText(claimedButtonText, "Claimed");
-
         // Cập nhật trạng thái Decline
         SetActive(declineQuestButtonObject, QuestUtils.IsStatus(quest, "NotStarted") || QuestUtils.IsStatus(quest, "InProgress"));
 

@@ -175,7 +175,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         SetText(dialogueText, BuildIntroDialogue(dialogues, fallback));
         SetText(questHintText, BuildQuestHint(linkedQuests));
         ConfigureNpcActions();
-        ApplyPortrait(npc);
+        ApplyPortrait(npc, fallback);
     }
 
     private static string BuildIntroDialogue(List<NPCDialogueResponse> dialogues, WorldInteractable fallback)
@@ -852,10 +852,17 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         return trimmed.Substring(0, Mathf.Max(0, maxLength - 3)).TrimEnd() + "...";
     }
-    private void ApplyPortrait(NPCResponse npc)
+    private void ApplyPortrait(NPCResponse npc, WorldInteractable fallback)
     {
         if (portraitImage == null || npc == null)
             return;
+
+        if (fallback != null && fallback.PortraitSprite != null)
+        {
+            portraitImage.sprite = fallback.PortraitSprite;
+            portraitImage.enabled = true;
+            return;
+        }
 
         var local = GetLibrarySprite($"npc:{npc.NPCId}", npc.Name);
         if (local != null)

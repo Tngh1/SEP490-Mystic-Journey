@@ -24,6 +24,9 @@ public class WorldInteractable : MonoBehaviour
     [SerializeField] private int progressDelta = 1;
     [SerializeField] private int[] linkedQuestIds = new int[0];
 
+    [Header("UI")]
+    [SerializeField] private Sprite portraitSprite;
+
     public WorldInteractableKind Kind => kind;
     public int NpcId => npcId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
@@ -35,6 +38,7 @@ public class WorldInteractable : MonoBehaviour
     public int? QuestId => questId > 0 ? questId : null;
     public int ProgressDelta => Mathf.Max(1, progressDelta);
     public IReadOnlyList<int> LinkedQuestIds => linkedQuestIds;
+    public Sprite PortraitSprite => portraitSprite;
 
     public void ConfigureNpc(int id, string npcName, string npcDescription, string greeting, float radius, IEnumerable<int> questIds)
     {
@@ -94,7 +98,26 @@ public class WorldInteractable : MonoBehaviour
         if (kind == WorldInteractableKind.QuestItem)
             return $"{DisplayName}\nPress E to collect";
 
+
         return $"{DisplayName}\nPress E to {InteractionType}";
+    }
+
+    public void OnSuccessfulInteraction()
+    {
+        if (kind == WorldInteractableKind.QuestItem || kind == WorldInteractableKind.Object)
+        {
+            // Báo cho script hồi sinh biết (nếu có)
+            var respawner = GetComponent<WorldRespawnable>();
+            if (respawner != null)
+            {
+                respawner.ConsumeAndRespawn();
+            }
+            else
+            {
+                // Nếu không có script hồi sinh thì tắt luôn cái này đi (đã thu thập xong)
+                gameObject.SetActive(false);
+            }
+        }
     }
 }
 

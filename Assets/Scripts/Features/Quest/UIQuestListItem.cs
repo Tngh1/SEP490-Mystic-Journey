@@ -37,17 +37,24 @@ public class UIQuestListItem : MonoBehaviour
         onSelected = selectedCallback;
 
         SetText(titleTMP, titleText, data?.QuestTitle ?? "Unknown Quest");
-        SetText(statusTMP, statusText, StatusLabel(data));
+        
+        // Chỉ gán Status và Progress nếu chúng thực sự khác với title/level (tránh trùng lặp do fallback tự động)
+        if (statusTMP != titleTMP && statusTMP != levelTMP)
+            SetText(statusTMP, statusText, StatusLabel(data));
+            
         SetText(levelTMP, levelText, data == null ? "Lv.?" : $"Lv.{data.RequiredLevel}");
-        SetText(progressTMP, progressText, data == null ? string.Empty : ProgressLabel(data));
+        
+        if (progressTMP != titleTMP && progressTMP != levelTMP && progressTMP != statusTMP)
+            SetText(progressTMP, progressText, data == null ? string.Empty : ProgressLabel(data));
 
         if (background != null)
             background.color = selected ? new Color(1f, 1f, 1f, 1f) : defaultBackgroundColor;
 
-        if (icon != null)
+        // Bỏ logic tự tắt icon nếu iconSprite == null. Nếu null thì giữ nguyên icon mặc định (như lá cờ)
+        if (icon != null && iconSprite != null)
         {
             icon.sprite = iconSprite;
-            icon.enabled = iconSprite != null;
+            icon.enabled = true;
         }
 
         if (lockedGroup != null)
@@ -65,7 +72,7 @@ public class UIQuestListItem : MonoBehaviour
         }
 
         if (icon == null)
-            icon = FindImageByName("Icon") ?? FindImageByName("Image") ?? FindFirstChildImageExcept(background);
+            icon = FindImageByName("Icon") ?? FindImageByName("QuestIcon"); // Đổi từ Image thành QuestIcon để không nhận nhầm lá cờ
 
         if (titleTMP == null && titleText == null)
         {
@@ -81,22 +88,23 @@ public class UIQuestListItem : MonoBehaviour
         if (titleTMP == null && titleText == null && allText.Length > 0)
             titleText = allText[0];
 
+        // Khong tu dong lay TMP theo index nua vi se gay trung text va che de
         if (statusTMP == null && statusText == null)
         {
-            statusTMP = FindTMPByName("StatusText") ?? GetTMPAt(allTMP, 1);
-            statusText = FindTextByName("StatusText") ?? GetTextAt(allText, 1);
+            statusTMP = FindTMPByName("StatusText") ?? FindTMPByName("Status");
+            statusText = FindTextByName("StatusText") ?? FindTextByName("Status");
         }
 
         if (levelTMP == null && levelText == null)
         {
-            levelTMP = FindTMPByName("LevelText") ?? FindTMPByName("LvText") ?? GetTMPAt(allTMP, 2);
-            levelText = FindTextByName("LevelText") ?? FindTextByName("LvText") ?? GetTextAt(allText, 2);
+            levelTMP = FindTMPByName("LevelText") ?? FindTMPByName("LvText") ?? FindTMPByName("Text (TMP)");
+            levelText = FindTextByName("LevelText") ?? FindTextByName("LvText") ?? FindTextByName("Text");
         }
 
         if (progressTMP == null && progressText == null)
         {
-            progressTMP = FindTMPByName("ProgressText") ?? GetTMPAt(allTMP, 3);
-            progressText = FindTextByName("ProgressText") ?? GetTextAt(allText, 3);
+            progressTMP = FindTMPByName("ProgressText") ?? FindTMPByName("Progress");
+            progressText = FindTextByName("ProgressText") ?? FindTextByName("Progress");
         }
 
         if (lockedGroup == null)

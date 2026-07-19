@@ -169,6 +169,12 @@ public class PlayerWorldInteractor : MonoBehaviour
                 Debug.Log($"[PlayerWorldInteractor] {target.DisplayName}: {response?.Message ?? "interacted"}");
                 WorldRuntimeEvents.RaiseMessage(response?.Message ?? $"{target.DisplayName} interacted.");
                 WorldRuntimeEvents.RaiseQuestsChanged();
+                
+                // Báo cho vật thể biết tương tác đã thành công (để nó ẩn đi hoặc hồi sinh)
+                if (response != null && response.Success)
+                {
+                    target.OnSuccessfulInteraction();
+                }
             },
             error => Debug.LogWarning($"[PlayerWorldInteractor] InteractObject failed: {error.Message}")
         );
