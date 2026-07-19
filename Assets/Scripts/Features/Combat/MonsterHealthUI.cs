@@ -48,6 +48,12 @@ public class MonsterHealthUI : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        // Giữ thanh máu luôn xoay đúng hướng, không bị lật khi quái quay đầu (quay Y 180 độ)
+        transform.rotation = Quaternion.identity;
+    }
+
     private void UpdateHealthUI(int currentHp, int maxHp)
     {
         if (hpFillImage != null)

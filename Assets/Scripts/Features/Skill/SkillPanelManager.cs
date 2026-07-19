@@ -19,6 +19,40 @@ public class SkillPanelManager : MonoBehaviour
 
     private void OnEnable()
     {
+        // --- BỎ CÁC Ô TRANG BỊ TRONG LIST VÀ CHỈ DÙNG HUD ---
+        var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var hudSlots = new List<SkillSlot>();
+
+        foreach (var s in allSlots)
+        {
+            if (s.transform.IsChildOf(this.transform))
+            {
+                // Ẩn các slot cũ (nếu còn) bên trong Panel
+                s.gameObject.SetActive(false);
+            }
+            else if (s.name.Contains("Slot")) // Chỉ lấy các ô có chữ "Slot" (bỏ qua các nút bấm khác)
+            {
+                // Các slot nằm ngoài (tức là ở HUD)
+                hudSlots.Add(s);
+            }
+        }
+
+        // Sắp xếp các ô HUD theo toạ độ X (trái sang phải) để gán Index chuẩn
+        hudSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
+        
+        // Giới hạn đúng 3 ô để không gửi slotIndex > 2 lên server gây lỗi "Invalid slot index"
+        while (hudSlots.Count > 3)
+        {
+            hudSlots.RemoveAt(hudSlots.Count - 1);
+        }
+
+        skillSlots = hudSlots.ToArray();
+
+        for (int i = 0; i < skillSlots.Length; i++)
+        {
+            if (skillSlots[i] != null) skillSlots[i].slotIndex = i;
+        }
+        
         // Tự động gọi API mỗi khi Panel này được SetActive(true)
         RefreshSkillList();
     }
@@ -43,10 +77,11 @@ public class SkillPanelManager : MonoBehaviour
         if (skillItemPrefab == null || contentArea == null) return;
 
         // 1. DỌN DẸP UI TRIỆT ĐỂ (Chống bug nhân đôi hình)
-        foreach (Transform child in contentArea)
+        for (int i = contentArea.childCount - 1; i >= 0; i--)
         {
+            Transform child = contentArea.GetChild(i);
+            child.SetParent(null); // Tách Object ra khỏi danh sách ngay lập tức để Layout group update
             Destroy(child.gameObject);
-            child.SetParent(null); // Tách Object ra khỏi danh sách ngay lập tức
         }
 
         // 2. LẤY CLASS HIỆN TẠI CỦA NGƯỜI CHƠI
@@ -54,11 +89,15 @@ public class SkillPanelManager : MonoBehaviour
 
         var sortedSkillList = new List<(SkillData visual, PlayerSkillResponse server)>();
         HashSet<int> processedSkillIds = new HashSet<int>();
+        HashSet<Sprite> processedIcons = new HashSet<Sprite>();
 
         foreach (var data in allSkillsInGame)
         {
-            if (data == null || processedSkillIds.Contains(data.skillId)) continue;
+            if (data == null || data.skillIcon == null) continue;
+            if (processedSkillIds.Contains(data.skillId) || processedIcons.Contains(data.skillIcon)) continue;
+            
             processedSkillIds.Add(data.skillId);
+            processedIcons.Add(data.skillIcon);
 
             // 3. TÍNH NĂNG LỌC: Bỏ qua các kỹ năng không thuộc Class của mình (hoặc không phải All)
             bool isAllClass = string.IsNullOrWhiteSpace(data.classRequirement) || data.classRequirement.Equals("All", System.StringComparison.OrdinalIgnoreCase);
