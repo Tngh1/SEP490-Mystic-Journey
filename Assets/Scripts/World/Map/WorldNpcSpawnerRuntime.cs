@@ -1,0 +1,116 @@
+using System.Collections.Generic;
+using MysticJourney.API.Core;
+using MysticJourney.API.Endpoints;
+using MysticJourney.API.Models.Response;
+using UnityEngine;
+
+public class WorldNpcSpawnerRuntime : MonoBehaviour
+{
+    [Header("Settings")]
+    [Tooltip("Thư mục chứa các Prefab NPC trong thư mục Resources. Ví dụ: 'NPCs/'")]
+    [SerializeField] private string resourcesFolder = "NPCs";
+    
+    [Tooltip("Nơi chứa các GameObject NPC sau khi đẻ ra (để Hierarchy gọn gàng).")]
+    [SerializeField] private Transform npcContainer;
+    
+    // Lưu danh sách NPC đã sinh ra để dọn dẹp khi đổi Map
+    private readonly List<GameObject> spawnedNpcs = new List<GameObject>();
+
+    private void Start()
+    {
+        // Nếu có sự kiện đổi map trong cùng 1 scene thì gọi lại hàm này
+        WorldRuntimeEvents.MapChanged += OnMapChanged;
+        
+        // Sinh NPC ngay khi object này được load
+        SpawnNpcsForCurrentMap();
+    }
+
+    private void OnDestroy()
+    {
+        WorldRuntimeEvents.MapChanged -= OnMapChanged;
+    }
+
+    private void OnMapChanged(string mapName)
+    {
+        SpawnNpcsForCurrentMap();
+    }
+
+    public void SpawnNpcsForCurrentMap()
+    {
+        if (!ApiClient.Instance.HasToken())
+        {
+            Debug.LogWarning("[WorldNpcSpawner] Không có token, không thể tải danh sách NPC.");
+            return;
+        }
+
+        // Gọi API lấy trạng thái World hiện tại (có chứa danh sách Npcs của Map đó)
+        WorldApi.Instance.GetState(
+            state => 
+            {
+                if (state != null && state.Npcs != null)
+                {
+                    ClearCurrentNpcs();
+                    SpawnNpcList(state.Npcs);
+                }
+            },
+            error => 
+            {
+                Debug.LogError($"[WorldNpcSpawner] Lỗi tải NPC: {error.Message}");
+            }
+        );
+    }
+
+    private void SpawnNpcList(List<NPCResponse> npcList)
+    {
+        foreach (var npc in npcList)
+        {
+            // 1. Tìm Prefab trong thư mục Resources (Ví dụ: Resources/NPCs/MageOld)
+            string prefabPath = $"{resourcesFolder}/{npc.Type}";
+            GameObject prefab = Resources.Load<GameObject>(prefabPath);
+            
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[WorldNpcSpawner] Không tìm thấy Prefab tại: Resources/{prefabPath}. Hãy kiểm tra xem file prefab đã nằm trong thư mục Resources chưa!");
+                continue;
+            }
+
+            // 2. Xác định toạ độ (Hệ thống của bạn đang dùng PositionX, PositionY)
+            Vector3 spawnPos = new Vector3((float)npc.PositionX, (float)npc.PositionY, 0f);
+            
+            // 3. Đẻ ra NPC
+            GameObject npcObj = Instantiate(prefab, spawnPos, Quaternion.identity, npcContainer != null ? npcContainer : this.transform);
+            spawnedNpcs.Add(npcObj);
+
+            // 4. Ghi đè cấu hình cho NPC bằng dữ liệu từ Backend
+            WorldInteractable interactable = npcObj.GetComponent<WorldInteractable>();
+            if (interactable != null)
+            {
+                interactable.ConfigureNpc(
+                    npc.NPCId,
+                    npc.Name,
+                    npc.Description,
+                    "Xin chào lữ khách!", // Lời chào mặc định
+                    npc.InteractionRadius > 0 ? npc.InteractionRadius : 2.5f,
+                    null // Không cần truyền LinkedQuestIds vì BE lo việc này
+                );
+            }
+            
+            Debug.Log($"[WorldNpcSpawner] Đã spawn NPC {npc.Name} (ID: {npc.NPCId}, Type: {npc.Type}) tại {spawnPos}");
+        }
+        
+        // 5. Báo cho hệ thống quét NPC của bạn biết là có NPC mới (bắt buộc)
+        WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);
+    }
+
+    private void ClearCurrentNpcs()
+    {
+        foreach (var npc in spawnedNpcs)
+        {
+            if (npc != null)
+            {
+                Destroy(npc);
+            }
+        }
+        spawnedNpcs.Clear();
+    }
+}

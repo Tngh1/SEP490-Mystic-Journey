@@ -23,6 +23,9 @@ public class WorldInteractable : MonoBehaviour
     [SerializeField] private int questId;
     [SerializeField] private int progressDelta = 1;
     [SerializeField] private int[] linkedQuestIds = new int[0];
+    
+    [Header("UI")]
+    [SerializeField] private Sprite portraitSprite;
 
     public WorldInteractableKind Kind => kind;
     public int NpcId => npcId;
@@ -35,6 +38,7 @@ public class WorldInteractable : MonoBehaviour
     public int? QuestId => questId > 0 ? questId : null;
     public int ProgressDelta => Mathf.Max(1, progressDelta);
     public IReadOnlyList<int> LinkedQuestIds => linkedQuestIds;
+    public Sprite PortraitSprite => portraitSprite;
 
     public void ConfigureNpc(int id, string npcName, string npcDescription, string greeting, float radius, IEnumerable<int> questIds)
     {
