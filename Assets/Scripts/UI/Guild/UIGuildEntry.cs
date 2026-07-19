@@ -22,7 +22,7 @@ namespace MysticJourney.UI.Guild
         private Action<int> onApplyCallback;
         private Action<int> onEntryCallback;
 
-        public void Setup(GuildResponseDto data, Action<int> entryClicked, Action<int> applyClicked)
+        public void Setup(GuildResponseDto data, Action<int> entryClicked, Action<int> applyClicked, int rank = 0)
         {
             guildId = data.guildId;
             onEntryCallback = entryClicked;
@@ -31,6 +31,9 @@ namespace MysticJourney.UI.Guild
             if (txtGuildName != null) txtGuildName.text = data.name;
             if (txtLevel != null) txtLevel.text = $"Lv. {data.level}";
             if (txtMemberCount != null) txtMemberCount.text = $"{data.memberCount}/{data.maxMembers}";
+            
+            if (txtRank != null) txtRank.text = rank > 0 ? rank.ToString() : "-";
+            if (txtFeats != null) txtFeats.text = data.totalMedals.ToString();
 
             if (btnApply != null)
             {

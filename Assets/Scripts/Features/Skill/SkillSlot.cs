@@ -6,7 +6,7 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.Core.Services;
 using MysticJourney.API.Models.Response;
 
-public class SkillSlot : MonoBehaviour, IDropHandler
+public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
 {
     public static event System.Action<int, SkillData, PlayerSkillResponse> OnSkillEquipped;
 
@@ -101,12 +101,22 @@ public class SkillSlot : MonoBehaviour, IDropHandler
 
         if (eventData == null || eventData.pointerDrag == null) return;
 
-        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
-        if (currentLevel < requiredLevel) return;
-
         SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
         if (droppedSkill != null && droppedSkill.serverData != null)
         {
+            // --- FIX: CHỐNG TRANG BỊ TRÙNG LẶP KỸ NĂNG ---
+            var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var s in allSlots)
+            {
+                if (s != this && s.equippedIcon != null && s.equippedIcon.sprite != null && droppedSkill.visualData != null)
+                {
+                    if (s.equippedIcon.sprite == droppedSkill.visualData.skillIcon)
+                    {
+                        Debug.LogWarning("Kỹ năng này đã được trang bị ở ô khác!");
+                        return; // Chặn không cho trang bị trùng
+                    }
+                }
+            }
             var playerClass = GameStateService.Instance?.PlayerClass ?? "";
             var requiredClass = droppedSkill.visualData != null ? droppedSkill.visualData.classRequirement : "";
 
@@ -148,5 +158,18 @@ public class SkillSlot : MonoBehaviour, IDropHandler
     public static void BroadcastSkillEquipped(int slotIndex, SkillData visualData, PlayerSkillResponse serverData)
     {
         OnSkillEquipped?.Invoke(slotIndex, visualData, serverData);
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        // Cho phép click vào HUD để tung chiêu
+        if (equippedIcon != null && equippedIcon.sprite != null)
+        {
+            var combat = PlayerEntity.Instance?.GetComponent<PlayerCombat>();
+            if (combat != null)
+            {
+                combat.RequestCastSkillBySlot(slotIndex);
+            }
+        }
     }
 }

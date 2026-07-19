@@ -19,6 +19,9 @@ namespace MysticJourney.Screen.Login
         [Header("Buttons")]
         [SerializeField] private Button loginButton;
 
+        [Header("Remember Me")]
+        [SerializeField] private Toggle rememberMeToggle;
+
         [Header("Scene Flow (chỉ chuyển khi login thành công)")]
         [Tooltip("Thời gian chờ (giây) trước khi chuyển scene, để user kịp đọc log.")]
         [SerializeField, Min(0f)] private float delayBeforeSceneLoad = 0.5f;
@@ -48,6 +51,9 @@ namespace MysticJourney.Screen.Login
 
             if (popupExitButton != null)
                 popupExitButton.onClick.AddListener(CloseFailedPopup);
+
+            // Load Remember Me data
+            LoadRememberMeData();
         }
 
         private void OnDestroy()
@@ -57,6 +63,9 @@ namespace MysticJourney.Screen.Login
 
             if (popupExitButton != null)
                 popupExitButton.onClick.RemoveListener(CloseFailedPopup);
+
+            if (rememberMeToggle != null)
+                rememberMeToggle.onValueChanged.RemoveListener(OnRememberMeChanged);
         }
 
         // ── Click Handler ─────────────────────────────────────────
@@ -105,6 +114,9 @@ namespace MysticJourney.Screen.Login
                     WorldState.SaveToPlayerPrefs();
 
                     OnLoginSuccess?.Invoke(response);
+
+                    // Save username if Remember Me is checked
+                    SaveRememberMeData(response.UserName);
 
                     if (string.IsNullOrEmpty(response.PlayerClass))
                     {
@@ -180,6 +192,47 @@ namespace MysticJourney.Screen.Login
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
             return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+        }
+
+        // ── Remember Me Helpers ──────────────────────────────────────
+
+        private void LoadRememberMeData()
+        {
+            if (rememberMeToggle == null)
+                return;
+
+            rememberMeToggle.onValueChanged.AddListener(OnRememberMeChanged);
+
+            bool rememberMe = PlayerPrefs.GetInt(ApiConfig.RememberMeKey, 0) == 1;
+            rememberMeToggle.isOn = rememberMe;
+
+            if (rememberMe)
+            {
+                string savedUsername = PlayerPrefs.GetString(ApiConfig.SavedUsernameKey, string.Empty);
+                if (!string.IsNullOrEmpty(savedUsername) && usernameInput != null)
+                {
+                    usernameInput.text = savedUsername;
+                }
+            }
+        }
+
+        private void OnRememberMeChanged(bool isOn)
+        {
+            PlayerPrefs.SetInt(ApiConfig.RememberMeKey, isOn ? 1 : 0);
+
+            if (!isOn && usernameInput != null)
+            {
+                PlayerPrefs.DeleteKey(ApiConfig.SavedUsernameKey);
+            }
+        }
+
+        private void SaveRememberMeData(string username)
+        {
+            if (rememberMeToggle != null && rememberMeToggle.isOn && !string.IsNullOrEmpty(username))
+            {
+                PlayerPrefs.SetString(ApiConfig.SavedUsernameKey, username);
+            }
+            PlayerPrefs.Save();
         }
     }
 }

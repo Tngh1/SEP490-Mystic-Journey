@@ -25,11 +25,19 @@ public class NetworkSkillHealing : NetworkBehaviour
         {
             ApplyHeal();
         }
-        else if (Runner.IsSinglePlayer) // Fallback for offline mode if needed
+    }
+
+    private void Start()
+    {
+        // Khi chơi offline (không qua mạng), Fusion không gọi Spawned(), 
+        // Object sẽ null nên ta dùng Start() để chạy kỹ năng.
+        if (Object == null) 
         {
             ApplyHeal();
         }
     }
+
+    private Transform _targetToFollow;
 
     private void ApplyHeal()
     {
@@ -41,40 +49,55 @@ public class NetworkSkillHealing : NetworkBehaviour
             finalHeal += Mathf.RoundToInt(casterAtk * 1.5f);
         }
 
-        // Find the target to heal.
-        // It should spawn directly AT the chosen target's position, so we check a small radius.
-        PlayerEntity targetToHeal = null;
+        // Find the targets to heal.
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, searchRadius);
+        bool healedSomeone = false;
         
-        float minDistance = float.MaxValue;
         foreach (var hit in hits)
         {
             var pEntity = hit.GetComponentInParent<PlayerEntity>();
             if (pEntity != null)
             {
-                float dist = Vector3.Distance(transform.position, pEntity.transform.position);
-                if (dist < minDistance)
+                pEntity.Heal(finalHeal);
+                var combat = pEntity.GetComponent<PlayerCombat>();
+                if (combat != null)
                 {
-                    minDistance = dist;
-                    targetToHeal = pEntity;
+                    combat.AddDebuffImmunity(3f); // Buff kháng hiệu ứng 3 giây
                 }
+                
+                // Track the healed player so the shield follows them
+                _targetToFollow = pEntity.transform;
+                healedSomeone = true;
+                Debug.Log($"[NetworkSkillHealing] Healed {pEntity.gameObject.name} for {finalHeal} HP and applied Immunity.");
+                break; // Chỉ cần bám theo 1 người
             }
         }
 
         // If no one is around, fallback to healing the caster
-        if (targetToHeal == null)
+        if (!healedSomeone && PlayerEntity.Instance != null)
         {
-            targetToHeal = PlayerEntity.Instance;
-        }
-
-        if (targetToHeal != null)
-        {
-            targetToHeal.Heal(finalHeal);
-            Debug.Log($"[NetworkSkillHealing] Healed {targetToHeal.gameObject.name} for {finalHeal} HP.");
+            PlayerEntity.Instance.Heal(finalHeal);
+            var combat = PlayerEntity.Instance.GetComponent<PlayerCombat>();
+            if (combat != null)
+            {
+                combat.AddDebuffImmunity(3f);
+            }
+            
+            _targetToFollow = PlayerEntity.Instance.transform;
+            Debug.Log($"[NetworkSkillHealing] Fallback: Healed {PlayerEntity.Instance.gameObject.name} for {finalHeal} HP and applied Immunity.");
         }
 
         // Despawn after duration
         Invoke(nameof(DespawnSelf), duration);
+    }
+
+    private void Update()
+    {
+        if (_targetToFollow != null)
+        {
+            // Bám sát vào người chơi được hồi máu
+            transform.position = _targetToFollow.position + new Vector3(0, 0.5f, 0); // Lệch lên trên 1 chút nếu cần
+        }
     }
 
     private void DespawnSelf()

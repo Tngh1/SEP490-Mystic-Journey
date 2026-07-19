@@ -117,7 +117,12 @@ namespace UI.Friend
 
         public void ShowProfile(int profileId, string token) // Token kept here for legacy signature if called from elsewhere, though unused in API
         {
+            Debug.Log("[UIFriendProfilePanel] ShowProfile called for " + profileId);
+            if (transform.parent != null) {
+                Debug.Log($"[UIFriendProfilePanel] Parent is {transform.parent.name}, activeInHierarchy: {transform.parent.gameObject.activeInHierarchy}");
+            }
             gameObject.SetActive(true);
+            transform.SetAsLastSibling(); // Ensure it renders on top of FriendPanel
             ClearAchievementList();
             SetLoadingState();
 

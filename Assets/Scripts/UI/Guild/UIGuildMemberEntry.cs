@@ -14,9 +14,14 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtStatus;
         [SerializeField] private Image avatarImage;
         [SerializeField] private Image onlineIndicator;
+        [SerializeField] private Button btnKick;
 
-        public void Setup(GuildMemberResponseDto member)
+        private bool canKick;
+
+        public void Setup(GuildMemberResponseDto member, bool canKick = false, System.Action<int> onKick = null, bool isKickMode = false)
         {
+            this.canKick = canKick;
+
             if (txtMemberName != null) txtMemberName.text = member.playerDisplayName;
             if (txtLevel != null) txtLevel.text = $"Lv. {member.playerLevel}";
 
@@ -38,23 +43,36 @@ namespace MysticJourney.UI.Guild
             if (avatarImage != null)
             {
                 avatarImage.enabled = true;
-                avatarImage.sprite = null;
-                if (!string.IsNullOrWhiteSpace(member.playerAvatarUrl))
+                string avatarUrl = string.IsNullOrWhiteSpace(member.playerAvatarUrl) ? "avatar_1" : member.playerAvatarUrl;
+                Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+                if (avatarSprite != null)
                 {
-                    var cached = RemoteSpriteCache.GetCached(member.playerAvatarUrl);
-                    if (cached != null)
-                    {
-                        avatarImage.sprite = cached;
-                    }
-                    else
-                    {
-                        RemoteSpriteCache.Load(this, member.playerAvatarUrl, (sprite) =>
-                        {
-                            if (sprite != null && avatarImage != null)
-                                avatarImage.sprite = sprite;
-                        });
-                    }
+                    avatarImage.sprite = avatarSprite;
                 }
+            }
+
+            if (btnKick != null)
+            {
+                btnKick.gameObject.SetActive(this.canKick && isKickMode);
+                btnKick.onClick.RemoveAllListeners();
+                btnKick.onClick.AddListener(() =>
+                {
+                    // Confirmation popup before kicking
+                    MysticJourney.UI.UIPopupManager.Instance.ShowConfirm(
+                        "Kick Member",
+                        $"Are you sure you want to kick {member.playerDisplayName}?",
+                        () => onKick?.Invoke(member.playerProfileId),
+                        null
+                    );
+                });
+            }
+        }
+
+        public void SetKickMode(bool isKickMode)
+        {
+            if (btnKick != null)
+            {
+                btnKick.gameObject.SetActive(this.canKick && isKickMode);
             }
         }
     }
