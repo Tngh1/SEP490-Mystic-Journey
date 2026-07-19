@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d45856de3f06f394f90c39ca16a411ea, type: 3}
+  m_Name: NpcDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::NpcDatabaseSO
+  npcMappings:
+  - npcName: Elder Rowan
+    prefab: {fileID: 8318185420361410280, guid: 893273cfa6818e044a6ea9f6026b19b5, type: 3}
+  - npcName: Lyra
+    prefab: {fileID: 4829440471592448027, guid: 3d5ba72ab4791b64fbed063cf6d33f48, type: 3}
+  - npcName: Mysterious Figure
+    prefab: {fileID: 5981320874830281310, guid: 53b8df56d23205042926a3510a0b3c25, type: 3}
+  - npcName: Elder Rowan (Pumpkin)
+    prefab: {fileID: 8318185420361410280, guid: 893273cfa6818e044a6ea9f6026b19b5, type: 3}
+  - npcName: Tristan
+    prefab: {fileID: 1659052080277715447, guid: 787f9b371ae21534ab5cd49ab11fe7b0, type: 3}
+  - npcName: Arthur
+    prefab: {fileID: 7985078186536075284, guid: 4420d8c093bbab048a9edb0a87fce320, type: 3}
+  - npcName: Roselyn Aurora Queen
+    prefab: {fileID: 9039550588364596099, guid: 5f39a3f33edbca148a864ec2d5ac60e9, type: 3}
+  - npcName: Zephyr
+    prefab: {fileID: 7831728982905936799, guid: 4062e426bccaca84eb8db16a0231edff, type: 3}
+  - npcName: Roland
+    prefab: {fileID: 1659052080277715447, guid: 787f9b371ae21534ab5cd49ab11fe7b0, type: 3}
+  - npcName: Valiant Warrior
+    prefab: {fileID: 0}
+  - npcName: Natalie
+    prefab: {fileID: 0}
+  - npcName: Elf Guard
+    prefab: {fileID: 371078782372661525, guid: c664c2268a458d345aa6b5a7ace81d74, type: 3}

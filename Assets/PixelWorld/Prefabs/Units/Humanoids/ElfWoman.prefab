@@ -52,6 +52,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -73,8 +78,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: 843591565, guid: 1ea69f203a7acd94ca51c0a4996b967d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -89,7 +95,7 @@ SpriteRenderer:
   m_SpriteSortPoint: 1
 --- !u!95 &1428994269852797891
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -103,6 +109,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -138,6 +145,7 @@ GameObject:
   - component: {fileID: 8208747720398841802}
   - component: {fileID: 6992914562981249426}
   - component: {fileID: 2072558343303386480}
+  - component: {fileID: 5503006808291730263}
   m_Layer: 0
   m_Name: ElfWoman
   m_TagString: Untagged
@@ -163,7 +171,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &4836472196182790342
 Rigidbody2D:
-  serializedVersion: 4
+  serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -174,8 +182,8 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDrag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -196,6 +204,7 @@ CapsuleCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4829440471592448027}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -219,7 +228,8 @@ CapsuleCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 0
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: -0.03270483, y: 0.5378914}
   m_Size: {x: 0.80097103, y: 1.2449493}
   m_Direction: 0
@@ -231,6 +241,7 @@ BoxCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4829440471592448027}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -254,7 +265,8 @@ BoxCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 1
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: 0.041563034, y: 0.52744865}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
@@ -265,7 +277,6 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  serializedVersion: 2
   m_Size: {x: 1.0072212, y: 1.0866966}
   m_EdgeRadius: 0
 --- !u!195 &8775751758053975400
@@ -303,6 +314,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 3
+  monsterId: 0
+  monsterSpawnId: 0
+  useApiStats: 1
 --- !u!114 &6992914562981249426
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -321,10 +335,21 @@ MonoBehaviour:
   roamingTimeMax: 10
   isChasingEnemy: 0
   isAttackingEnemy: 0
+  attackDamage: 10
   chasingDistance: 2
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+  leashDistance: 15
+  canCastSkill: 0
+  skillPrefab: {fileID: 0}
+  skillCooldown: 7
+  skillSpawnDelay: 0.5
+  skillSpawnPoint: {fileID: 0}
+  canCastSkill2: 0
+  skill2Prefab: {fileID: 0}
+  skill2Cooldown: 20
+  skill2SpawnDelay: 0.5
 --- !u!60 &2072558343303386480
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -333,6 +358,7 @@ PolygonCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4829440471592448027}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -356,7 +382,8 @@ PolygonCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 1
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
@@ -379,6 +406,30 @@ PolygonCollider2D:
       - {x: 0.6448021, y: 0.6346512}
       - {x: 0.2687688, y: 0.9409103}
   m_UseDelaunayMesh: 0
+--- !u!114 &5503006808291730263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4829440471592448027}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 599140ebe7fdbcd478997d26c19882c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldInteractable
+  kind: 0
+  npcId: 0
+  displayName: Interactable
+  description: 
+  greetingText: 
+  interactionRadius: 2.25
+  objectKey: 
+  interactionType: Interact
+  questId: 0
+  progressDelta: 1
+  linkedQuestIds: 
+  portraitSprite: {fileID: 0}
 --- !u!1 &8568838837899970440
 GameObject:
   m_ObjectHideFlags: 0
@@ -428,6 +479,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -449,8 +505,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 2
   m_Sprite: {fileID: -1869374846, guid: bfdd77a8044e6d24b9c45b0c7c5a6311, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.39215687}

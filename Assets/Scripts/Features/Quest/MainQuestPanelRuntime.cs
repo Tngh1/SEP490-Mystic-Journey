@@ -78,6 +78,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private bool popupLayerActivatedByQuest;
     private bool didWarnMissingListTemplate;
     private bool didBind;
+    private TMP_Dropdown filterDropdown;
+    private bool didBindDropdown;
 
     private void Awake()
     {
@@ -266,6 +268,17 @@ public class MainQuestPanelRuntime : MonoBehaviour
             popupText = popupText.IsValid ? popupText : FindTextSlot(questPopup.transform, "PopupText", "MessageText", "TitleText", "Text (TMP)");
             if (!didBind)
                 questPopup.SetActive(false);
+        }
+
+        filterDropdown = filterDropdown != null ? filterDropdown : questPanel.GetComponentInChildren<TMP_Dropdown>(true);
+        if (filterDropdown != null && !didBindDropdown)
+        {
+            didBindDropdown = true;
+            filterDropdown.ClearOptions();
+            filterDropdown.AddOptions(new System.Collections.Generic.List<string> { "All Regions", "Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4" });
+            
+            filterDropdown.onValueChanged.RemoveAllListeners();
+            filterDropdown.onValueChanged.AddListener(OnFilterDropdownChanged);
         }
 
         BindPanelButton("AllButton", () => SetFilter("All"), "All");
@@ -579,8 +592,10 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (completeQuestButton != null && quest != null)
             completeQuestButton.interactable = CanCompleteLocally(quest);
 
+        bool isMainQuest = quest != null && string.Equals(quest.QuestType, "Main", StringComparison.OrdinalIgnoreCase);
+
         if (acceptQuestButton != null)
-            acceptQuestButton.interactable = quest != null;
+            acceptQuestButton.interactable = quest != null && !isMainQuest;
         if (claimQuestButton != null)
             claimQuestButton.interactable = quest != null;
         if (declineQuestButton != null)
@@ -604,14 +619,37 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (!visible)
             return;
 
-        var label = isNotStarted ? "Accept Quest" :
-                    isInProgress ? "Complete Quest" :
-                    isCompleted ? "Claim Reward" :
-                    "Claimed";
+        string label = "Accept Quest";
+        bool isMainQuest = quest != null && string.Equals(quest.QuestType, "Main", StringComparison.OrdinalIgnoreCase);
+
+        if (isNotStarted) label = isMainQuest ? "Talk to NPC" : "Accept Quest";
+        else if (isCompleted) label = "Claim Reward";
+        else if (isClaimed) label = "Claimed";
+        else if (isInProgress)
+        {
+            if (CanCompleteLocally(quest))
+                label = "Complete Quest";
+            else
+            {
+                if (string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase))
+                    label = "Defeating...";
+                else if (string.Equals(quest.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase))
+                    label = "Gathering...";
+                else if (string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase))
+                    label = "Talk to NPC";
+                else if (string.Equals(quest.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase))
+                    label = "Exploring...";
+                else if (string.Equals(quest.ObjectiveType, "EquipSkill", StringComparison.OrdinalIgnoreCase))
+                    label = "Equip a Skill";
+                else
+                    label = "In Progress...";
+            }
+        }
+
         SetText(primaryActionButtonText, label);
 
         if (primaryActionButton != null)
-            primaryActionButton.interactable = isNotStarted || isCompleted || (isInProgress && CanCompleteLocally(quest));
+            primaryActionButton.interactable = (isNotStarted && !isMainQuest) || isCompleted || (isInProgress && CanCompleteLocally(quest));
     }
 
     private void OnPrimaryActionClicked()
@@ -784,12 +822,31 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 
+    public void OnFilterDropdownChanged(int index)
+    {
+        if (filterDropdown != null && index >= 0 && index < filterDropdown.options.Count)
+        {
+            SetFilter(filterDropdown.options[index].text);
+        }
+    }
+
     private bool MatchesFilter(PlayerQuestResponse quest)
     {
-        if (filter == "InProgress")
+        if (string.Equals(filter, "InProgress", StringComparison.OrdinalIgnoreCase))
             return QuestUtils.IsStatus(quest, "InProgress");
-        if (filter == "Completed")
+        if (string.Equals(filter, "Completed", StringComparison.OrdinalIgnoreCase))
             return QuestUtils.IsStatus(quest, "Completed") || QuestUtils.IsStatus(quest, "Claimed");
+            
+        if (!string.Equals(filter, "All", StringComparison.OrdinalIgnoreCase) && 
+            !string.Equals(filter, "All Regions", StringComparison.OrdinalIgnoreCase) && 
+            !string.IsNullOrWhiteSpace(filter))
+        {
+            if (filter.StartsWith("Chapter", StringComparison.OrdinalIgnoreCase))
+                return quest.QuestTitle != null && quest.QuestTitle.Contains($"[{filter}]", StringComparison.OrdinalIgnoreCase);
+                
+            return string.Equals(quest.MapName, filter, StringComparison.OrdinalIgnoreCase);
+        }
+        
         return true;
     }
 

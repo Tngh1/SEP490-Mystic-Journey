@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 3659516985049216973}
   - component: {fileID: 2491718017387656848}
   - component: {fileID: 3592979468509493667}
+  - component: {fileID: -6802231642820081085}
   m_Layer: 0
   m_Name: Woman_A
   m_TagString: Untagged
@@ -243,10 +244,21 @@ MonoBehaviour:
   roamingTimeMax: 1
   isChasingEnemy: 0
   isAttackingEnemy: 0
+  attackDamage: 10
   chasingDistance: 4
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+  leashDistance: 15
+  canCastSkill: 0
+  skillPrefab: {fileID: 0}
+  skillCooldown: 7
+  skillSpawnDelay: 0.5
+  skillSpawnPoint: {fileID: 0}
+  canCastSkill2: 0
+  skill2Prefab: {fileID: 0}
+  skill2Cooldown: 20
+  skill2SpawnDelay: 0.5
 --- !u!114 &3592979468509493667
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -260,6 +272,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 2
+  monsterId: 0
+  monsterSpawnId: 0
+  useApiStats: 1
+--- !u!114 &-6802231642820081085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1073296338552381648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 599140ebe7fdbcd478997d26c19882c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldInteractable
+  kind: 0
+  npcId: 0
+  displayName: Interactable
+  description: 
+  greetingText: 
+  interactionRadius: 2.25
+  objectKey: 
+  interactionType: Interact
+  questId: 0
+  progressDelta: 1
+  linkedQuestIds: 
+  portraitSprite: {fileID: 0}
 --- !u!1 &5310080660952329706
 GameObject:
   m_ObjectHideFlags: 0
@@ -315,6 +354,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -336,8 +377,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: -686599539, guid: d5d431d34d925a44d8d0d4caf9039b69, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -438,6 +480,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -459,8 +503,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 2
   m_Sprite: {fileID: -1869374846, guid: bfdd77a8044e6d24b9c45b0c7c5a6311, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.30980393}

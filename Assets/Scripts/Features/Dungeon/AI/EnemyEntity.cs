@@ -222,7 +222,8 @@ public class EnemyEntity : MonoBehaviour
                     if (QuestManager.IsStatus(quest, "InProgress") &&
                         (string.Equals(quest.ObjectiveType, "Kill", StringComparison.OrdinalIgnoreCase) || 
                          string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase)) &&
-                        string.Equals(quest.ObjectiveTarget, cleanName, StringComparison.OrdinalIgnoreCase))
+                        (string.Equals(quest.ObjectiveTarget, cleanName, StringComparison.OrdinalIgnoreCase) ||
+                         cleanName.IndexOf(quest.ObjectiveTarget, StringComparison.OrdinalIgnoreCase) >= 0))
                     {
                         Debug.Log($"[EnemyEntity] Adding progress to Quest {quest.QuestId} for killing {cleanName}");
                         QuestManager.Instance.AddProgress(quest.QuestId, 1);

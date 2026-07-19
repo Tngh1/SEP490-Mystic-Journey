@@ -172,15 +172,15 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         SetText(nameText, Safe(npc?.Name, fallback.DisplayName));
         SetText(roleText, Safe(npc?.Description, fallback.Description));
-        SetText(dialogueText, BuildIntroDialogue(dialogues, fallback));
+        SetText(dialogueText, BuildIntroDialogue(currentStoryDialogue, dialogues, fallback));
         SetText(questHintText, BuildQuestHint(linkedQuests));
         ConfigureNpcActions();
         ApplyPortrait(npc, fallback);
     }
 
-    private static string BuildIntroDialogue(List<NPCDialogueResponse> dialogues, WorldInteractable fallback)
+    private static string BuildIntroDialogue(NPCDialogueResponse currentStoryDialogue, List<NPCDialogueResponse> dialogues, WorldInteractable fallback)
     {
-        var intro = dialogues?.FirstOrDefault(d => !d.LinkedQuestId.HasValue);
+        var intro = currentStoryDialogue ?? dialogues?.FirstOrDefault(d => !d.LinkedQuestId.HasValue) ?? dialogues?.FirstOrDefault();
         return Safe(intro?.Content, Safe(fallback.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
     }
 
@@ -191,8 +191,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         if (linkedQuests != null && linkedQuests.Count > 0)
         {
-            var questIds = linkedQuests.Select(q => q.QuestId).ToHashSet();
-            var linked = dialogues.FirstOrDefault(d => d.LinkedQuestId.HasValue && questIds.Contains(d.LinkedQuestId.Value));
+            var activeQuestId = linkedQuests[0].QuestId;
+            var linked = dialogues.FirstOrDefault(d => d.LinkedQuestId == activeQuestId);
             if (linked != null)
                 return linked;
         }
