@@ -7,8 +7,8 @@ using UnityEngine;
 public class WorldNpcSpawnerRuntime : MonoBehaviour
 {
     [Header("Settings")]
-    [Tooltip("Thư mục chứa các Prefab NPC trong thư mục Resources. Ví dụ: 'NPCs/'")]
-    [SerializeField] private string resourcesFolder = "NPCs";
+    [Tooltip("Database chứa mapping giữa Type (trong DB) và Prefab")]
+    [SerializeField] private NpcDatabaseSO npcDatabase;
     
     [Tooltip("Nơi chứa các GameObject NPC sau khi đẻ ra (để Hierarchy gọn gàng).")]
     [SerializeField] private Transform npcContainer;
@@ -64,13 +64,12 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     {
         foreach (var npc in npcList)
         {
-            // 1. Tìm Prefab trong thư mục Resources (Ví dụ: Resources/NPCs/MageOld)
-            string prefabPath = $"{resourcesFolder}/{npc.Type}";
-            GameObject prefab = Resources.Load<GameObject>(prefabPath);
+            // 1. Tìm Prefab từ NpcDatabaseSO dựa vào TÊN của NPC
+            GameObject prefab = npcDatabase != null ? npcDatabase.GetPrefab(npc.Name) : null;
             
             if (prefab == null)
             {
-                Debug.LogWarning($"[WorldNpcSpawner] Không tìm thấy Prefab tại: Resources/{prefabPath}. Hãy kiểm tra xem file prefab đã nằm trong thư mục Resources chưa!");
+                Debug.LogWarning($"[WorldNpcSpawner] Không tìm thấy Prefab cho NPC Name: '{npc.Name}'. Hãy kiểm tra file NpcDatabaseSO xem đã map đúng tên chưa!");
                 continue;
             }
 

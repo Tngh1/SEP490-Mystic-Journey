@@ -58,7 +58,10 @@ public class UIQuestListItem : MonoBehaviour
         }
 
         if (lockedGroup != null)
-            lockedGroup.SetActive(false);
+        {
+            bool isLocked = data != null && string.Equals(data.Status, "NotStarted", StringComparison.OrdinalIgnoreCase);
+            lockedGroup.SetActive(isLocked);
+        }
     }
 
     private void Bind()
