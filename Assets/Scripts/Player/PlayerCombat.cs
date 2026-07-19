@@ -114,6 +114,7 @@ public class PlayerCombat : NetworkBehaviour
     private string _aimingAnimTrigger;
     private float _aimingStartTime;
     private GameObject _aimingIndicatorInstance;
+    private GameObject _rangeIndicatorInstance; // Hiển thị vòng giới hạn tầm xa
 
     // Single source of truth for input. AoE aim position + confirm/cancel are
     // read from here instead of Mouse.current directly, keeping all input reads
@@ -241,6 +242,16 @@ public class PlayerCombat : NetworkBehaviour
                 }
             }
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Multi-Input Entry (HUD Clicks)
+    // ─────────────────────────────────────────────────────────────────────────
+    public void RequestCastSkillBySlot(int slotIndex)
+    {
+        if (slotIndex == 0) TryCastSkill(skill1Prefab, 0, GetCooldown(0, skill1Cooldown), "Skill1");
+        else if (slotIndex == 1) TryCastSkill(skill2Prefab, 1, GetCooldown(1, skill2Cooldown), "Skill2");
+        else if (slotIndex == 2) TryCastSkill(skill3Prefab, 2, GetCooldown(2, skill3Cooldown), "Skill3");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -491,8 +502,18 @@ public class PlayerCombat : NetworkBehaviour
         }
         else // Knight
         {
-            return baseDamage + (basicAttackDamage * 1.0f);
+            // Sát thương Đấu sĩ: Cộng dồn cả baseDamage, ATK và 5% Máu tối đa
+            float hpBonus = maxHp * 0.05f;
+            return baseDamage + (basicAttackDamage * 1.0f) + hpBonus;
         }
+    }
+
+    private bool IsTargetedAoESkill(GameObject prefab)
+    {
+        if (prefab == null) return false;
+        return prefab.GetComponent<SkillAoE>() != null || 
+               prefab.name.Contains("Lightsaber") || 
+               prefab.GetComponent<NetworkSkillHealing>() != null;
     }
 
     private void TryCastSkill(GameObject prefab, int slotIndex, float cooldown, string animTrigger)
@@ -502,7 +523,13 @@ public class PlayerCombat : NetworkBehaviour
         float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
         if (IsBusy() || Time.time < nextTime) return;
 
-        bool isAoE = prefab.GetComponent<SkillAoE>() != null;
+        // Chỉ cho phép 1 kỹ năng ngắm 1 lúc, huỷ kỹ năng cũ nếu có
+        if (_isAimingAoE)
+        {
+            CancelAimingMode();
+        }
+
+        bool isAoE = IsTargetedAoESkill(prefab);
         if (isAoE) EnterAimingMode(prefab, slotIndex, cooldown, animTrigger);
         else ExecuteSkillConfirmed(prefab, slotIndex, cooldown, animTrigger);
     }
@@ -558,12 +585,48 @@ public class PlayerCombat : NetworkBehaviour
             _aimingIndicatorInstance = Instantiate(aoeIndicatorPrefab);
         }
         if (_aimingIndicatorInstance != null) _aimingIndicatorInstance.SetActive(true);
+
+        // Tạo vòng tròn giới hạn tầm xa bằng LineRenderer
+        if (_rangeIndicatorInstance == null)
+        {
+            _rangeIndicatorInstance = new GameObject("AimingRangeIndicator");
+            _rangeIndicatorInstance.transform.SetParent(transform);
+            _rangeIndicatorInstance.transform.localPosition = Vector3.zero;
+
+            var line = _rangeIndicatorInstance.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.startWidth = 0.05f;
+            line.endWidth = 0.05f;
+            line.positionCount = 51;
+            line.loop = true;
+            line.sortingOrder = 10;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Lit-Default");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            if (shader != null)
+            {
+                line.material = new Material(shader);
+                line.startColor = new Color(0f, 1f, 1f, 0.4f); // Cyan mờ
+                line.endColor = new Color(0f, 1f, 1f, 0.4f);
+            }
+
+            float angle = 0f;
+            for (int i = 0; i < 51; i++)
+            {
+                float x = Mathf.Cos(Mathf.Deg2Rad * angle) * maxCastRange;
+                float y = Mathf.Sin(Mathf.Deg2Rad * angle) * maxCastRange;
+                line.SetPosition(i, new Vector3(x, y, 0f));
+                angle += (360f / 50f);
+            }
+        }
+        _rangeIndicatorInstance.SetActive(true);
     }
 
     private void CancelAimingMode()
     {
         _isAimingAoE = false;
         if (_aimingIndicatorInstance != null) _aimingIndicatorInstance.SetActive(false);
+        if (_rangeIndicatorInstance != null) _rangeIndicatorInstance.SetActive(false);
     }
 
     private void Update()
@@ -596,12 +659,20 @@ public class PlayerCombat : NetworkBehaviour
                 Vector3 mouseWorldPosition = aimWorld.Value;
                 mouseWorldPosition.z = 0f;
 
+                // GIỚI HẠN (CLAMP) VỊ TRÍ CHỌN TRONG BÁN KÍNH maxCastRange
+                Vector3 directionToMouse = mouseWorldPosition - transform.position;
+                if (directionToMouse.magnitude > maxCastRange)
+                {
+                    mouseWorldPosition = transform.position + directionToMouse.normalized * maxCastRange;
+                }
+
+                // Cập nhật vị trí trực tiếp để mượt mà theo thời gian thực (1:1 với chuột)
                 _aimingIndicatorInstance.transform.position = mouseWorldPosition;
 
                 // Targeted Aiming Logic
                 if (_aimingPrefab != null)
                 {
-                    bool isTargetedSkill = _aimingPrefab.name.Contains("Lightsaber") || _aimingPrefab.GetComponent<NetworkSkillHealing>() != null;
+                    bool isTargetedSkill = _aimingPrefab.GetComponent<NetworkSkillHealing>() != null;
                     bool isHealingSkill = _aimingPrefab.GetComponent<NetworkSkillHealing>() != null;
 
                     if (isTargetedSkill)
@@ -642,7 +713,7 @@ public class PlayerCombat : NetworkBehaviour
 
                 Vector3? targetPos = _aimingIndicatorInstance != null ? _aimingIndicatorInstance.transform.position : (Vector3?)null;
 
-                bool isTargetedSkill = _aimingPrefab != null && (_aimingPrefab.name.Contains("Lightsaber") || _aimingPrefab.GetComponent<NetworkSkillHealing>() != null);
+                bool isTargetedSkill = _aimingPrefab != null && _aimingPrefab.GetComponent<NetworkSkillHealing>() != null;
 
                 if (isTargetedSkill)
                 {
@@ -696,14 +767,12 @@ public class PlayerCombat : NetworkBehaviour
             }
             else if (_input != null && _input.PointerCancelPressed)
             {
-                if (_aimingPrefab != null && _aimingPrefab.name.Contains("Lightsaber"))
+                foreach (var sr in _highlightedMonsters)
                 {
-                    foreach (var sr in _highlightedMonsters)
-                    {
-                        if (sr != null) sr.color = Color.white;
-                    }
-                    _highlightedMonsters.Clear();
+                    if (sr != null) sr.color = Color.white;
                 }
+                _highlightedMonsters.Clear();
+                
                 CancelAimingMode();
             }
         }
@@ -760,7 +829,7 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (skillPrefab == null || firePoint == null) return;
 
-        bool isAoE = skillPrefab.GetComponent<SkillAoE>() != null;
+        bool isAoE = IsTargetedAoESkill(skillPrefab);
         Vector3 spawnPosition;
         Quaternion spawnRotation;
 
@@ -832,18 +901,34 @@ public class PlayerCombat : NetworkBehaviour
         if (_skillDamages.ContainsKey(slotIndex))
         {
             float damage = GetClassScaledDamage(_skillDamages[slotIndex]);
-            if (isAoE)
+            
+            var aoe = skillObj.GetComponent<SkillAoE>();
+            if (aoe != null) 
             {
-                skillObj.GetComponent<SkillAoE>().Setup(damage);
+                aoe.Setup(damage);
             }
-            else
+            else 
             {
-                var projectile = skillObj.GetComponent<SkillProjectile>();
-                if (projectile != null)
+                var lightsaber = skillObj.GetComponent<LightsaberSkill>();
+                if (lightsaber != null)
                 {
-                    projectile.Setup(damage);
+                    lightsaber.Setup(damage);
+                }
+                else
+                {
+                    var projectile = skillObj.GetComponent<SkillProjectile>();
+                    if (projectile != null)
+                    {
+                        projectile.Setup(damage);
+                    }
                 }
             }
+        }
+        
+        // Fallback destruction for skills that don't destroy themselves (like Holymagic offline)
+        if (skillObj.GetComponent<LightsaberSkill>() == null && skillObj.GetComponent<SkillAoE>() == null && skillObj.GetComponent<SkillProjectile>() == null)
+        {
+            Destroy(skillObj, 2f);
         }
     }
 

@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6289723310731444108}
   - component: {fileID: 5529956457631393104}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Shadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 2062319002310427473}
   - component: {fileID: 7278630338864837053}
   - component: {fileID: 6754884942181479997}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Graphics
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -229,7 +229,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6847991577217080703}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SkillSpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -270,9 +270,9 @@ GameObject:
   - component: {fileID: 2079123894385625579}
   - component: {fileID: 812771187336805946}
   - component: {fileID: 8697202761294584760}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: GolemBoss
-  m_TagString: Untagged
+  m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -528,7 +528,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 250
-  monsterId: 0
+  monsterId: 10
   monsterSpawnId: 0
   useApiStats: 1
 --- !u!114 &2079123894385625579
@@ -672,6 +672,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 404137727594308298, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 1108877142618216818, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
       propertyPath: m_SizeDelta.x
       value: 8
@@ -700,9 +704,33 @@ PrefabInstance:
       propertyPath: m_Name
       value: HealthBarCanvas
       objectReference: {fileID: 0}
+    - target: {fileID: 5602279566479521163, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 10.421
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 2.032
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -0.06
+      objectReference: {fileID: 0}
     - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0.45
+      value: 0.83293
+      objectReference: {fileID: 0}
+    - target: {fileID: 7349995437148314853, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7611251520422214324, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -714,3 +742,4 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 1956782189932407778}
   m_PrefabAsset: {fileID: 0}
+

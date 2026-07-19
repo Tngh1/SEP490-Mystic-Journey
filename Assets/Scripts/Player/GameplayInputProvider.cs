@@ -172,6 +172,7 @@ public class GameplayInputProvider : MonoBehaviour
     {
         get
         {
+            if (Mouse.current != null) return Mouse.current.position.ReadValue();
             return Input.mousePosition;
         }
     }
@@ -190,7 +191,9 @@ public class GameplayInputProvider : MonoBehaviour
             if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
             if (cam == null) return null;
             
-            Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.Value.x, screen.Value.y, 0f));
+            // Pass the distance from the camera to the Z=0 plane (where gameplay happens)
+            float depth = Mathf.Abs(cam.transform.position.z);
+            Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.Value.x, screen.Value.y, depth));
             return new Vector2(world.x, world.y);
         }
     }

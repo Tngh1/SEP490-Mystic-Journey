@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8811195220468484048}
   - component: {fileID: 1353166839476159406}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Shadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -109,9 +109,9 @@ GameObject:
   - component: {fileID: 999967075074289483}
   - component: {fileID: 8246263903770094857}
   - component: {fileID: 9077029042141816017}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SwampDemon
-  m_TagString: Untagged
+  m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -256,7 +256,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
-  monsterId: 0
+  monsterId: 2
   monsterSpawnId: 0
   useApiStats: 1
 --- !u!114 &477872665402230798
@@ -433,7 +433,7 @@ GameObject:
   - component: {fileID: 6165402873989673483}
   - component: {fileID: 1330879243357865912}
   - component: {fileID: 8189105428625538090}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Graphics
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -638,6 +638,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 404137727594308298, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 1108877142618216818, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
       propertyPath: m_SizeDelta.x
       value: 8
@@ -666,9 +670,33 @@ PrefabInstance:
       propertyPath: m_Name
       value: HealthBarCanvas
       objectReference: {fileID: 0}
+    - target: {fileID: 5602279566479521163, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 9.941
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 1.201
+      objectReference: {fileID: 0}
+    - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -0.177
+      objectReference: {fileID: 0}
     - target: {fileID: 6198811597882206141, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0.45
+      value: 0.625
+      objectReference: {fileID: 0}
+    - target: {fileID: 7349995437148314853, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7611251520422214324, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -680,3 +708,4 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 9169554154545386963}
   m_PrefabAsset: {fileID: 0}
+
