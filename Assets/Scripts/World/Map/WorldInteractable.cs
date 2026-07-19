@@ -23,7 +23,7 @@ public class WorldInteractable : MonoBehaviour
     [SerializeField] private int questId;
     [SerializeField] private int progressDelta = 1;
     [SerializeField] private int[] linkedQuestIds = new int[0];
-    
+
     [Header("UI")]
     [SerializeField] private Sprite portraitSprite;
 
@@ -98,7 +98,26 @@ public class WorldInteractable : MonoBehaviour
         if (kind == WorldInteractableKind.QuestItem)
             return $"{DisplayName}\nPress E to collect";
 
+
         return $"{DisplayName}\nPress E to {InteractionType}";
+    }
+
+    public void OnSuccessfulInteraction()
+    {
+        if (kind == WorldInteractableKind.QuestItem || kind == WorldInteractableKind.Object)
+        {
+            // Báo cho script hồi sinh biết (nếu có)
+            var respawner = GetComponent<WorldRespawnable>();
+            if (respawner != null)
+            {
+                respawner.ConsumeAndRespawn();
+            }
+            else
+            {
+                // Nếu không có script hồi sinh thì tắt luôn cái này đi (đã thu thập xong)
+                gameObject.SetActive(false);
+            }
+        }
     }
 }
 

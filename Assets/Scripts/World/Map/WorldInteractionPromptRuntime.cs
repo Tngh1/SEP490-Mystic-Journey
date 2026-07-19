@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+using TMPro;
+
 public class WorldInteractionPromptRuntime : MonoBehaviour
 {
     private static WorldInteractionPromptRuntime instance;
     private Text promptText;
+    private TMP_Text promptTMP;
 
     private static Font font;
 
@@ -19,13 +22,28 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         }
     }
 
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+            promptText = GetComponentInChildren<Text>(true);
+            promptTMP = GetComponentInChildren<TMP_Text>(true);
+            gameObject.SetActive(false);
+        }
+    }
+
     public static void Show(string message)
     {
         var prompt = EnsureInstance();
         if (prompt == null)
             return;
 
-        prompt.promptText.text = message ?? string.Empty;
+        if (prompt.promptTMP != null)
+            prompt.promptTMP.text = message ?? string.Empty;
+        else if (prompt.promptText != null)
+            prompt.promptText.text = message ?? string.Empty;
+            
         prompt.gameObject.SetActive(true);
     }
 
@@ -40,6 +58,19 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         if (instance != null)
             return instance;
 
+        // Try to find an existing InteractionPrompt in the scene (e.g. from the user's Prefab)
+        var existing = FindMainSceneObject("InteractionPrompt");
+        if (existing != null)
+        {
+            instance = existing.GetComponent<WorldInteractionPromptRuntime>();
+            if (instance == null)
+                instance = existing.AddComponent<WorldInteractionPromptRuntime>();
+            
+            instance.promptText = existing.GetComponentInChildren<Text>(true);
+            instance.promptTMP = existing.GetComponentInChildren<TMP_Text>(true);
+            return instance;
+        }
+
         var canvas = FindCanvas();
         if (canvas == null)
             return null;
@@ -47,14 +78,14 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         var go = new GameObject("InteractionPrompt", typeof(RectTransform), typeof(Image));
         go.transform.SetParent(canvas.transform, false);
         var image = go.GetComponent<Image>();
-        image.color = new Color(1f, 1f, 1f, 0.92f);
+        image.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
 
         var rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.18f);
-        rect.anchorMax = new Vector2(0.5f, 0.18f);
+        rect.anchorMin = new Vector2(0.5f, 0.15f);
+        rect.anchorMax = new Vector2(0.5f, 0.15f);
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = new Vector2(280f, 58f);
+        rect.sizeDelta = new Vector2(240f, 65f);
 
         instance = go.AddComponent<WorldInteractionPromptRuntime>();
         instance.promptText = CreateText(go.transform);
@@ -74,12 +105,18 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
 
         var text = textObject.GetComponent<Text>();
         text.font = RuntimeFont;
-        text.fontSize = 16;
+        text.fontSize = 18; // Tăng cỡ chữ lên xíu
         text.fontStyle = FontStyle.Bold;
         text.alignment = TextAnchor.MiddleCenter;
-        text.color = Color.black;
+        text.color = new Color(1f, 0.95f, 0.8f); // Trắng hơi ngả vàng cho hợp style RPG
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
+
+        // Thêm viền đen cho chữ dễ đọc
+        var outline = textObject.AddComponent<Outline>();
+        outline.effectColor = Color.black;
+        outline.effectDistance = new Vector2(1, -1);
+        
         return text;
     }
 
