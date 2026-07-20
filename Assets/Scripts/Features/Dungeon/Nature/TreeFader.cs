@@ -1,40 +1,61 @@
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class TreeFader3 : MonoBehaviour
 {
-    
     const float VISIBLE_ALPHA = 1f;
     const float TRANSPARENT_ALPHA = 0.3f;
 
     private SpriteRenderer[] m_SpriteRenderers;
+    private Tilemap[] m_Tilemaps;
     private bool m_FadeOutEnabled = false;
 
-    private Character3 m_Interactor;
     private int m_InitialSortOrder;
+    private SpriteRenderer m_InteractorRenderer;
 
-    private SpriteRenderer BackgroundObject => m_SpriteRenderers[0];
-    private float BackgroundObjectAlpha => BackgroundObject.color.a;
+    private float BackgroundObjectAlpha
+    {
+        get
+        {
+            if (m_SpriteRenderers != null && m_SpriteRenderers.Length > 0 && m_SpriteRenderers[0] != null)
+                return m_SpriteRenderers[0].color.a;
+            if (m_Tilemaps != null && m_Tilemaps.Length > 0 && m_Tilemaps[0] != null)
+                return m_Tilemaps[0].color.a;
+            return 1f;
+        }
+    }
 
     void Start()
     {
         m_SpriteRenderers = GetComponentsInChildren<SpriteRenderer>();
+        m_Tilemaps = GetComponentsInChildren<Tilemap>();
     }
 
     void Update()
     {
+        bool hasGraphics = (m_SpriteRenderers != null && m_SpriteRenderers.Length > 0) || 
+                           (m_Tilemaps != null && m_Tilemaps.Length > 0);
+        if (!hasGraphics) return;
+
         if (m_FadeOutEnabled && BackgroundObjectAlpha > TRANSPARENT_ALPHA)
         {
             FadeOut();
 
-            if (BackgroundObjectAlpha == TRANSPARENT_ALPHA)
+            if (BackgroundObjectAlpha <= TRANSPARENT_ALPHA)
             {
-                m_Interactor.SpriteRenderer.sortingOrder = BackgroundObject.sortingOrder - 1;
+                if (m_InteractorRenderer != null) 
+                {
+                    // Optionally adjust sorting order here
+                }
             }
         }
         else if (!m_FadeOutEnabled && BackgroundObjectAlpha < VISIBLE_ALPHA)
         {
             FadeIn();
-            m_Interactor.SpriteRenderer.sortingOrder = m_InitialSortOrder;
+            if (m_InteractorRenderer != null) 
+            {
+                m_InteractorRenderer.sortingOrder = m_InitialSortOrder;
+            }
         }
     }
 
@@ -42,11 +63,14 @@ public class TreeFader3 : MonoBehaviour
     {
         if (m_FadeOutEnabled) return;
 
-        if (collision.TryGetComponent<Character3>(out var character))
+        if (collision.CompareTag("Player"))
         {
-            m_Interactor = character;
-            m_InitialSortOrder = character.SpriteRenderer.sortingOrder;
-            m_FadeOutEnabled = true;
+            m_InteractorRenderer = collision.GetComponentInChildren<SpriteRenderer>();
+            if (m_InteractorRenderer != null)
+            {
+                m_InitialSortOrder = m_InteractorRenderer.sortingOrder;
+                m_FadeOutEnabled = true;
+            }
         }
     }
 
@@ -54,7 +78,7 @@ public class TreeFader3 : MonoBehaviour
     {
         if (!m_FadeOutEnabled) return;
 
-        if (collision.TryGetComponent<Character3>(out var character))
+        if (collision.CompareTag("Player"))
         {
             m_FadeOutEnabled = false;
         }
@@ -62,26 +86,41 @@ public class TreeFader3 : MonoBehaviour
 
     private void FadeOut()
     {
-        foreach (var renderer in m_SpriteRenderers)
+        if (m_SpriteRenderers != null)
         {
-            ChangeOpacity(renderer, TRANSPARENT_ALPHA);
+            foreach (var renderer in m_SpriteRenderers)
+                ChangeSpriteOpacity(renderer, TRANSPARENT_ALPHA);
+        }
+        if (m_Tilemaps != null)
+        {
+            foreach (var map in m_Tilemaps)
+                ChangeTilemapOpacity(map, TRANSPARENT_ALPHA);
         }
     }
 
     private void FadeIn()
     {
-        foreach (var renderer in m_SpriteRenderers)
+        if (m_SpriteRenderers != null)
         {
-            ChangeOpacity(renderer, VISIBLE_ALPHA);
+            foreach (var renderer in m_SpriteRenderers)
+                ChangeSpriteOpacity(renderer, VISIBLE_ALPHA);
+        }
+        if (m_Tilemaps != null)
+        {
+            foreach (var map in m_Tilemaps)
+                ChangeTilemapOpacity(map, VISIBLE_ALPHA);
         }
     }
 
-    private void ChangeOpacity(SpriteRenderer renderer, float targetAlpha)
+    private void ChangeSpriteOpacity(SpriteRenderer renderer, float targetAlpha)
     {
         Color color = renderer.color;
-        Color smoothColor = new(color.r, color.g, color.b,
-            Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * 2)
-        );
-        renderer.color = smoothColor;
+        renderer.color = new Color(color.r, color.g, color.b, Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * 4));
+    }
+
+    private void ChangeTilemapOpacity(Tilemap map, float targetAlpha)
+    {
+        Color color = map.color;
+        map.color = new Color(color.r, color.g, color.b, Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * 4));
     }
 }
