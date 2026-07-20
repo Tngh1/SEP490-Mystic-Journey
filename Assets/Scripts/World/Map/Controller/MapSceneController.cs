@@ -10,7 +10,7 @@ public class MapSceneController : MonoBehaviour
     [SerializeField]
     private List<MapSceneConfig> mapConfigs;
 
-    public void EnterMap(MapData mapData)
+    public void EnterMap(MapData mapData, bool useCache = true)
     {
         MapSceneConfig config =
             mapConfigs.Find(
@@ -24,11 +24,11 @@ public class MapSceneController : MonoBehaviour
         }
 
         StartCoroutine(
-            ChangeMap(config.sceneName));
+            ChangeMap(config.sceneName, useCache));
     }
 
     private IEnumerator ChangeMap(
-        string targetScene)
+        string targetScene, bool useCache = true)
     {
         if (targetScene ==
             WorldState.CurrentMapName)
@@ -51,7 +51,7 @@ public class MapSceneController : MonoBehaviour
         Vector3 spawnPosition = Vector3.zero;
         bool positionFound = false;
 
-        if (MapPositionCache.TryGet(targetScene, out var cachedPos) && cachedPos != Vector3.zero)
+        if (useCache && MapPositionCache.TryGet(targetScene, out var cachedPos) && cachedPos != Vector3.zero)
         {
             spawnPosition = cachedPos;
             positionFound = true;
@@ -100,6 +100,7 @@ public class MapSceneController : MonoBehaviour
         if (player != null)
         {
             player.transform.position = spawnPosition;
+            Physics2D.SyncTransforms();
         }
 
         if (ApiClient.Instance.HasToken())

@@ -36,6 +36,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private int currentNpcId;
     private Coroutine imageRoutine;
     private bool didBind;
+    private int storyDialogueIndex = 0;
+    
+    private Coroutine typewriterRoutine;
+    private bool isTyping;
+    private string fullDialogueText;
+    private static readonly string[] NextPhrases = { "Tell me more...", "I'm listening...", "Go on...", "What happened next?", "I see..." };
 
     public bool IsOpen => npcPanel != null && npcPanel.activeInHierarchy;
 
@@ -58,8 +64,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (imageRoutine != null)
-            StopCoroutine(imageRoutine);
+        if (imageRoutine != null) StopCoroutine(imageRoutine);
+        if (typewriterRoutine != null) StopCoroutine(typewriterRoutine);
 
         if (Instance == this)
             Instance = null;
@@ -92,7 +98,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
             response => RenderApiResponse(response, interactable),
             error =>
             {
-                SetText(dialogueText, string.IsNullOrWhiteSpace(interactable.GreetingText) ? error : interactable.GreetingText);
+                StartTypewriter(dialogueText, string.IsNullOrWhiteSpace(interactable.GreetingText) ? error : interactable.GreetingText);
                 Debug.LogWarning($"[MainNpcPanelRuntime] TalkToNpc failed: {error}");
             }
         );
@@ -142,7 +148,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         SetText(nameText, Safe(interactable.DisplayName, "Elder Rowan"));
         SetText(roleText, Safe(interactable.Description, "Tutorial elder and main quest giver."));
-        SetText(dialogueText, Safe(interactable.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
+        StartTypewriter(dialogueText, Safe(interactable.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
         SetText(questHintText, firstQuestId > 0 ? "Quest available" : string.Empty);
         ConfigureDefaultActions();
     }
@@ -166,13 +172,14 @@ public class MainNpcPanelRuntime : MonoBehaviour
         currentDialogues.AddRange(dialogues);
         currentLinkedQuests.Clear();
         currentLinkedQuests.AddRange(linkedQuests);
-        currentStoryDialogue = PickQuestDialogue(dialogues, linkedQuests) ?? dialogues.FirstOrDefault();
+        storyDialogueIndex = 0;
+        currentStoryDialogue = PickQuestDialogue(dialogues, linkedQuests, storyDialogueIndex) ?? dialogues.FirstOrDefault();
         firstQuestId = currentStoryDialogue?.LinkedQuestId ?? linkedQuests.FirstOrDefault()?.QuestId ?? 0;
         currentNpcId = npc?.NPCId ?? fallback.NpcId;
 
         SetText(nameText, Safe(npc?.Name, fallback.DisplayName));
         SetText(roleText, Safe(npc?.Description, fallback.Description));
-        SetText(dialogueText, BuildIntroDialogue(currentStoryDialogue, dialogues, fallback));
+        StartTypewriter(dialogueText, BuildIntroDialogue(currentStoryDialogue, dialogues, fallback));
         SetText(questHintText, BuildQuestHint(linkedQuests));
         ConfigureNpcActions();
         ApplyPortrait(npc, fallback);
@@ -184,7 +191,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return Safe(intro?.Content, Safe(fallback.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
     }
 
-    private static NPCDialogueResponse PickQuestDialogue(List<NPCDialogueResponse> dialogues, List<PlayerQuestResponse> linkedQuests)
+    private static NPCDialogueResponse PickQuestDialogue(List<NPCDialogueResponse> dialogues, List<PlayerQuestResponse> linkedQuests, int index = 0)
     {
         if (dialogues == null || dialogues.Count == 0)
             return null;
@@ -192,9 +199,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
         if (linkedQuests != null && linkedQuests.Count > 0)
         {
             var activeQuestId = linkedQuests[0].QuestId;
-            var linked = dialogues.FirstOrDefault(d => d.LinkedQuestId == activeQuestId);
-            if (linked != null)
-                return linked;
+            var linked = dialogues.Where(d => d.LinkedQuestId == activeQuestId).ToList();
+            if (linked.Count > 0)
+            {
+                if (index >= 0 && index < linked.Count)
+                    return linked[index];
+                return linked.LastOrDefault();
+            }
         }
 
         return dialogues.FirstOrDefault(d => d.LinkedQuestId.HasValue);
@@ -244,7 +255,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var hasQuestion = HasDialogueType("Question") || HasDialogueType("Help");
         var hasGiftOrHint = currentLinkedQuests.Count > 0 || HasDialogueType("Gift") || HasDialogueType("Hint");
 
-        SetActionButton(0, BuildStoryActionLabel(currentStoryDialogue, FindLinkedQuest(currentStoryDialogue?.LinkedQuestId)), true, OnStoryDialogueAction);
+        var activeQuestId = currentLinkedQuests.Count > 0 ? currentLinkedQuests[0].QuestId : (currentStoryDialogue?.LinkedQuestId ?? 0);
+        var questDialogues = currentDialogues.Where(d => d.LinkedQuestId == activeQuestId).ToList();
+        var isMultiLine = questDialogues.Count > 1 && storyDialogueIndex < questDialogues.Count - 1;
+        var storyLabel = isMultiLine ? NextPhrases[storyDialogueIndex % NextPhrases.Length] : BuildStoryActionLabel(currentStoryDialogue, FindLinkedQuest(currentStoryDialogue?.LinkedQuestId));
+
+        SetActionButton(0, storyLabel, true, OnStoryDialogueAction);
         SetActionButton(1, "I need some guidance.", hasQuestion, OnQuestionAction);
         SetActionButton(2, BuildGiftHintActionLabel(), hasGiftOrHint, OnGiftHintAction);
         SetActionButton(3, "Farewell.", true, ClosePanel);
@@ -320,15 +336,35 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void OnStoryDialogueAction()
     {
+        if (isTyping)
+        {
+            if (typewriterRoutine != null) StopCoroutine(typewriterRoutine);
+            dialogueText.Set(fullDialogueText);
+            isTyping = false;
+            return;
+        }
+
+        var activeQuestId = currentLinkedQuests.Count > 0 ? currentLinkedQuests[0].QuestId : (currentStoryDialogue?.LinkedQuestId ?? 0);
+        var questDialogues = currentDialogues.Where(d => d.LinkedQuestId == activeQuestId).ToList();
+
+        if (questDialogues.Count > 0 && storyDialogueIndex < questDialogues.Count - 1)
+        {
+            storyDialogueIndex++;
+            currentStoryDialogue = questDialogues[storyDialogueIndex];
+            StartTypewriter(dialogueText, Safe(currentStoryDialogue.Content, "Listen closely. Your path begins here."));
+            ConfigureNpcActions();
+            return;
+        }
+
         var dialogue = currentStoryDialogue ?? currentDialogues.FirstOrDefault();
         if (dialogue == null)
         {
-            SetText(dialogueText, "I have no tale for you right now.");
+            StartTypewriter(dialogueText, "I have no tale for you right now.");
             return;
         }
 
         firstQuestId = dialogue.LinkedQuestId ?? firstQuestId;
-        SetText(dialogueText, Safe(dialogue.Content, "Listen closely. Your path begins here."));
+        StartTypewriter(dialogueText, Safe(dialogue.Content, "Listen closely. Your path begins here."));
 
         var linkedQuest = FindLinkedQuest(dialogue.LinkedQuestId);
         if (linkedQuest != null)
@@ -1073,6 +1109,29 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private static string Safe(string value, string fallback)
     {
         return string.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
+    private void StartTypewriter(TextSlot slot, string text, float speed = 0.03f)
+    {
+        if (typewriterRoutine != null)
+            StopCoroutine(typewriterRoutine);
+        
+        fullDialogueText = text ?? string.Empty;
+        if (!slot.IsValid) return;
+        
+        typewriterRoutine = StartCoroutine(TypewriterCoroutine(slot, fullDialogueText, speed));
+    }
+
+    private IEnumerator TypewriterCoroutine(TextSlot slot, string text, float speed)
+    {
+        isTyping = true;
+        slot.Set("");
+        for (int i = 0; i < text.Length; i++)
+        {
+            slot.Set(text.Substring(0, i + 1));
+            yield return new WaitForSeconds(speed);
+        }
+        isTyping = false;
     }
 
     private readonly struct TextSlot : IEquatable<TextSlot>

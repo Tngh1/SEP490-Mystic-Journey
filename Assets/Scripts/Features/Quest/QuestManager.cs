@@ -116,9 +116,9 @@ public class QuestManager : MonoBehaviour
 
     public bool CanEnterMap(MapData map)
     {
-        if (map.unlockQuestId <= 0) return true;
+        if (map == null || map.unlockQuestId <= 0) return true;
         var state = GetQuestState(map.unlockQuestId);
-        return state != null && state.status == "Claimed";
+        return state != null && (state.status == "Claimed" || state.status == "Completed");
     }
 
     public void LoadMyQuests()
@@ -214,7 +214,14 @@ public class QuestManager : MonoBehaviour
         state.isDirty = true;
 
         if (state.progress >= targetAmount)
+        {
             state.status = "Completed";
+            if (_responses.TryGetValue(questId, out var response) && 
+                string.Equals(response.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase))
+            {
+                ClaimReward(questId);
+            }
+        }
 
         _pendingBatch[questId] = state.progress;
         OnQuestProgressChanged?.Invoke(questId);
