@@ -96,8 +96,8 @@ public class MapTeleportPortal : MonoBehaviour
 
         Debug.Log($"MapTeleportPortal: Đang dịch chuyển người chơi tới map {targetMapData.mapName}...");
         
-        // Gọi hàm EnterMap để tiến hành load map
-        mapSceneController.EnterMap(targetMapData);
+        // Gọi hàm EnterMap để tiến hành load map (không dùng cache vì qua cổng phải ra đúng cổng)
+        mapSceneController.EnterMap(targetMapData, false);
         // Do not reset isTeleporting to false here because the scene is about to unload.
         // If we reset it, another collision could trigger it again before the unload finishes.
     }
