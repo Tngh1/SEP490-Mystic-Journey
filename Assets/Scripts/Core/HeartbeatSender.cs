@@ -15,7 +15,7 @@ namespace MysticJourney.Core
 
         private void SendHeartbeat()
         {
-            string url = $"{ApiConfig.BaseUrl}/api/presence/heartbeat";
+            string url = $"{ApiConfig.BaseUrl}/api/player/heartbeat";
             
             ApiClient.Instance.PostEmpty<object>(url, (res) => 
             {

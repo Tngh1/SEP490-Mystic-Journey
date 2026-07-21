@@ -1,6 +1,25 @@
 using System;
 using UnityEngine;
 
+/// <summary>
+/// Extension method để kiểm tra parameter có tồn tại trong Animator Controller không
+/// </summary>
+public static class AnimatorExtensions
+{
+    public static bool HasParameter(this Animator animator, string paramName)
+    {
+        if (animator == null || string.IsNullOrEmpty(paramName))
+            return false;
+
+        foreach (var param in animator.parameters)
+        {
+            if (param.name == paramName)
+                return true;
+        }
+        return false;
+    }
+}
+
 public class EnemyAnimations : MonoBehaviour
 {
     [SerializeField] private EnemyBehaviour enemyBehaviour;
@@ -70,7 +89,16 @@ public class EnemyAnimations : MonoBehaviour
                 anim.SetBool(IS_RUNNING, false);
         }
 
-        anim.SetFloat(CHASING_SPEED_MULTIPLIIER, enemyBehaviour.GetRoamingAnimationSpeed());
+        // Chỉ set speed parameter nếu nó tồn tại trong Animator Controller
+        float roamingSpeed = enemyBehaviour.GetRoamingAnimationSpeed();
+        if (roamingSpeed > 0f)
+        {
+            // Kiểm tra parameter tồn tại trước khi set để tránh warning mỗi frame
+            if (anim.HasParameter(CHASING_SPEED_MULTIPLIIER))
+            {
+                anim.SetFloat(CHASING_SPEED_MULTIPLIIER, roamingSpeed);
+            }
+        }
     }
 
     private void enemyBehaviour_OnEnemyAttack(object sender, System.EventArgs e)

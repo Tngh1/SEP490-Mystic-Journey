@@ -151,6 +151,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         StartTypewriter(dialogueText, Safe(interactable.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
         SetText(questHintText, firstQuestId > 0 ? "Quest available" : string.Empty);
         ConfigureDefaultActions();
+        ApplyPortrait(null, interactable);
     }
 
     private void RenderApiResponse(TalkToNpcResponse response, WorldInteractable fallback)
@@ -890,13 +891,20 @@ public class MainNpcPanelRuntime : MonoBehaviour
     }
     private void ApplyPortrait(NPCResponse npc, WorldInteractable fallback)
     {
-        if (portraitImage == null || npc == null)
+        if (portraitImage == null)
             return;
 
         if (fallback != null && fallback.PortraitSprite != null)
         {
             portraitImage.sprite = fallback.PortraitSprite;
             portraitImage.enabled = true;
+            portraitImage.gameObject.SetActive(true);
+            return;
+        }
+
+        if (npc == null)
+        {
+            portraitImage.gameObject.SetActive(false);
             return;
         }
 
@@ -905,6 +913,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
         {
             portraitImage.sprite = local;
             portraitImage.enabled = true;
+            portraitImage.gameObject.SetActive(true);
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(npc.IconUrl))
@@ -925,6 +935,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         {
             target.sprite = cached;
             target.enabled = true;
+            target.gameObject.SetActive(true);
             yield break;
         }
 
@@ -948,6 +959,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         {
             target.sprite = sprite;
             target.enabled = true;
+            target.gameObject.SetActive(true);
         }
     }
 

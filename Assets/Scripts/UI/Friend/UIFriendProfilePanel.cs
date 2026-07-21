@@ -18,6 +18,7 @@ namespace UI.Friend
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private UnityEngine.UI.Image avatarImage;
         [SerializeField] private TMP_Text levelText;
+        [SerializeField] private TMP_Text classText;
         [SerializeField] private TMP_Text guildText;
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text friendsCountText;
@@ -65,10 +66,19 @@ namespace UI.Friend
         private PlayerAchievementResponse _selectedAchievement;
         private bool _isCurrentPlayerProfile;
         
+        private void Awake()
+        {
+            if (classText == null)
+                classText = transform.Find("LeftPanel/Bg_Class/classText")?.GetComponent<TMP_Text>();
+
+            BindCloseButtons();
+            AddHoverEffects();
+        }
+
         private void Start()
         {
-            if (closeButton != null)
-                closeButton.onClick.AddListener(() => gameObject.SetActive(false));
+            BindCloseButtons();
+            AddHoverEffects();
 
             if (viewAchievementListButton != null)
                 viewAchievementListButton.onClick.AddListener(ShowAchievementListView);
@@ -155,6 +165,7 @@ namespace UI.Friend
         {
             if (nameText != null) nameText.text = "Loading...";
             if (levelText != null) levelText.text = string.Empty;
+            if (classText != null) classText.text = string.Empty;
             if (guildText != null) guildText.text = string.Empty;
             if (titleText != null) titleText.text = string.Empty;
             if (friendsCountText != null) friendsCountText.text = string.Empty;
@@ -169,6 +180,7 @@ namespace UI.Friend
         {
             if (nameText != null) nameText.text = profile.CharacterName;
             if (levelText != null) levelText.text = $"Level {profile.Level}";
+            if (classText != null) classText.text = string.IsNullOrEmpty(profile.Class) ? "Warrior" : profile.Class;
             if (guildText != null) guildText.text = $"Guild: {profile.Guild}";
             if (titleText != null) titleText.text = $"Title: {profile.Title}";
 
@@ -179,6 +191,10 @@ namespace UI.Friend
 
             if (editNameButton != null)
                 editNameButton.gameObject.SetActive(_isCurrentPlayerProfile);
+
+            // Level 6 unlock: Achievement List button (only for own profile)
+            if (viewAchievementListButton != null)
+                viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile && WorldState.PlayerLevel >= 6);
         }
 
         private void OpenNameChangePanel()
@@ -673,6 +689,44 @@ namespace UI.Friend
             }
 
             _achievementItemInstances.Clear();
+        }
+
+        private void BindCloseButtons()
+        {
+            if (closeButton != null)
+            {
+                closeButton.onClick.RemoveListener(ClosePanel);
+                closeButton.onClick.AddListener(ClosePanel);
+            }
+
+            var headerExitBtn = transform.Find("Header/ExitButton")?.GetComponent<Button>()
+                             ?? transform.Find("ExitButton")?.GetComponent<Button>();
+            if (headerExitBtn != null && headerExitBtn != closeButton)
+            {
+                headerExitBtn.onClick.RemoveListener(ClosePanel);
+                headerExitBtn.onClick.AddListener(ClosePanel);
+            }
+        }
+
+        public void ClosePanel()
+        {
+            if (UIManager.Instance != null)
+                UIManager.Instance.ClosePanel(gameObject);
+            else
+                gameObject.SetActive(false);
+        }
+
+        private void AddHoverEffects()
+        {
+            var buttons = GetComponentsInChildren<Button>(true);
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                var btn = buttons[i];
+                if (btn != null && btn.GetComponent<UIHoverScaleEffect>() == null)
+                {
+                    btn.gameObject.AddComponent<UIHoverScaleEffect>();
+                }
+            }
         }
     }
 }

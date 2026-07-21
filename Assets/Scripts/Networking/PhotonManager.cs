@@ -511,7 +511,7 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        Debug.Log($"[PhotonManager] OnShutdown: {shutdownReason}");
+        Debug.LogError($"[PhotonManager] OnShutdown: {shutdownReason}");
         _spawnedPlayers.Clear();
     }
 
@@ -556,17 +556,23 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        Debug.Log("[Fusion] OnInput");
+        // Debug: Log mỗi 120 frame thay vì mỗi tick
+        if (Time.frameCount % 120 == 0)
+        {
+            Debug.Log($"[Fusion] OnInput called - frame={Time.frameCount}");
+        }
 
         var data = _inputCollector.Collect();
-        Debug.Log($"[Fusion] Move={data.Move}");
-
         input.Set(data);
     }
 
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
     {
-        Debug.Log("[Fusion] OnInputMissing");
+        // Debug: Log mỗi 120 frame thay vì mỗi tick
+        if (Time.frameCount % 120 == 0)
+        {
+            Debug.Log($"[Fusion] OnInputMissing - frame={Time.frameCount}");
+        }
         input.Set(default(NetworkInputData));
     }
 

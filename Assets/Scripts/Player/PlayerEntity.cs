@@ -23,7 +23,7 @@ using System;
 /// </summary>
 public class PlayerEntity : MonoBehaviour
 {
-    [SerializeField] private int maxHealth = 200;
+    [SerializeField] private int maxHealth = 500;
     private int currentHealth;
 
     public static PlayerEntity Instance { get; internal set; }
@@ -161,6 +161,8 @@ public class PlayerEntity : MonoBehaviour
             return;
         }
 
+        if (currentHealth <= 0) return; // Prevent multiple death triggers in single-player
+
         bool isCrit = UnityEngine.Random.Range(0f, 100f) <= 10f;
         int initialDamage = isCrit ? Mathf.RoundToInt(damage * 1.5f) : damage;
 
@@ -227,6 +229,23 @@ public class PlayerEntity : MonoBehaviour
     {
         Debug.Log("[PlayerEntity] Player died.");
         OnDeath?.Invoke(this, EventArgs.Empty);
+
+        if (_networkPlayer == null && PlayerHUDController.Instance != null)
+        {
+            PlayerHUDController.Instance.ShowDeathPopup();
+        }
+    }
+
+    public void WorldRespawn(Vector3 pos)
+    {
+        currentHealth = Mathf.Max(1, maxHealth / 10);
+        transform.position = pos;
+        Debug.Log($"[PlayerEntity] Player respawned in world at {pos} with 10% HP.");
+        
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        if (syncHpCoroutine != null) StopCoroutine(syncHpCoroutine);
+        syncHpCoroutine = StartCoroutine(SyncHpRoutine());
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ public class MapSceneController : MonoBehaviour
     [SerializeField]
     private List<MapSceneConfig> mapConfigs;
 
-    public void EnterMap(MapData mapData, bool useCache = true)
+    public void EnterMap(MapData mapData, bool useCache = true, Vector3? specificSpawnPos = null)
     {
         MapSceneConfig config =
             mapConfigs.Find(
@@ -24,11 +24,11 @@ public class MapSceneController : MonoBehaviour
         }
 
         StartCoroutine(
-            ChangeMap(config.sceneName, useCache));
+            ChangeMap(config.sceneName, useCache, specificSpawnPos));
     }
 
     private IEnumerator ChangeMap(
-        string targetScene, bool useCache = true)
+        string targetScene, bool useCache = true, Vector3? specificSpawnPos = null)
     {
         if (targetScene ==
             WorldState.CurrentMapName)
@@ -51,7 +51,13 @@ public class MapSceneController : MonoBehaviour
         Vector3 spawnPosition = Vector3.zero;
         bool positionFound = false;
 
-        if (useCache && MapPositionCache.TryGet(targetScene, out var cachedPos) && cachedPos != Vector3.zero)
+        if (specificSpawnPos.HasValue)
+        {
+            spawnPosition = specificSpawnPos.Value;
+            positionFound = true;
+            Debug.Log($"[MapSceneController] Using specific spawn pos {spawnPosition}");
+        }
+        else if (useCache && MapPositionCache.TryGet(targetScene, out var cachedPos) && cachedPos != Vector3.zero)
         {
             spawnPosition = cachedPos;
             positionFound = true;

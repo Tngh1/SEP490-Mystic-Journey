@@ -874,31 +874,54 @@ public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPoint
 {
     private Vector3 originalScale;
     private Vector3 targetScale;
+    private bool _initialized;
+
+    private void Awake()
+    {
+        InitScale();
+    }
 
     private void Start()
     {
-        originalScale = transform.localScale;
-        targetScale = originalScale;
+        InitScale();
+    }
+
+    private void InitScale()
+    {
+        if (!_initialized || originalScale == Vector3.zero)
+        {
+            originalScale = transform.localScale != Vector3.zero ? transform.localScale : Vector3.one;
+            targetScale = originalScale;
+            _initialized = true;
+        }
     }
 
     private void Update()
     {
-        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * 12f);
+        if (transform.localScale != targetScale)
+        {
+            transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * 15f);
+        }
     }
 
     public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData)
     {
-        targetScale = originalScale * 1.05f;
+        InitScale();
+        targetScale = originalScale * 1.08f;
     }
 
     public void OnPointerExit(UnityEngine.EventSystems.PointerEventData eventData)
     {
+        InitScale();
         targetScale = originalScale;
     }
 
     private void OnDisable()
     {
-        transform.localScale = originalScale;
-        targetScale = originalScale;
+        if (_initialized && originalScale != Vector3.zero)
+        {
+            transform.localScale = originalScale;
+            targetScale = originalScale;
+        }
     }
 }

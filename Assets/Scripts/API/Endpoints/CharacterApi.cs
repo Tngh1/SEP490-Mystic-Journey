@@ -54,8 +54,11 @@ namespace MysticJourney.API.Endpoints
                 ApiConfig.CharacterStats,
                 response =>
                 {
-                    SafeDebugLog($"GetMyStats OK | HP={response.MaxHp} | ATK={response.Atk} | SKP={response.SkillPoints}");
-                    onSuccess?.Invoke(response);
+                    if (response != null)
+                    {
+                        SafeDebugLog($"GetMyStats OK | HP={response.MaxHp} | ATK={response.Atk} | SKP={response.SkillPoints} | ASPD={response.AttackSpeed}");
+                        onSuccess?.Invoke(response);
+                    }
                 },
                 error =>
                 {
