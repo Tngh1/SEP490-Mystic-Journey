@@ -33,10 +33,10 @@ public class DungeonChest : MonoBehaviour
     {
         if (hasOpened) return;
 
-        // Find Player properly (including Clones)
-        var pm = FindFirstObjectByType<PlayerMovement>();
-        GameObject player = pm != null ? pm.gameObject : (GameObject.FindWithTag("Player") ?? GameObject.Find("Knight(Clone)") ?? GameObject.Find("Knight"));
-        if (player == null) return;
+        // Find Local Player properly
+        var localPlayer = NetworkPlayer.Local;
+        if (localPlayer == null || localPlayer.gameObject == null) return;
+        GameObject player = localPlayer.gameObject;
 
         // Check distance to player
         float dist = Vector3.Distance(transform.position, player.transform.position);

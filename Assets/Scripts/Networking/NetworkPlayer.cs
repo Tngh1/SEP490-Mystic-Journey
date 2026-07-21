@@ -100,13 +100,21 @@ public class NetworkPlayer : NetworkBehaviour
 
     private void OnAliveChanged()
     {
-        // When revived (e.g. dungeon restart), ensure death UI is hidden on the client
-        if (IsAlive && Object.HasInputAuthority)
+        if (Object.HasInputAuthority)
         {
-            var hud = FindFirstObjectByType<PlayerHUDController>();
-            if (hud != null)
+            if (IsAlive)
             {
-                hud.HideDeathPopup();
+                // When revived (e.g. dungeon restart), ensure death UI is hidden on the client
+                var hud = FindFirstObjectByType<PlayerHUDController>();
+                if (hud != null)
+                {
+                    hud.HideDeathPopup();
+                }
+            }
+            else
+            {
+                // Trigger death popup for the local player when IsAlive becomes false
+                OnDied?.Invoke();
             }
         }
     }
@@ -117,17 +125,29 @@ public class NetworkPlayer : NetworkBehaviour
     {
         OnAnyReadyStateChanged?.Invoke();
 
-        if (All.Count > 0 && All.TrueForAll(p => p.IsReadyToRestart))
+        // Only the Host (StateAuthority) should evaluate if everyone is ready to prevent race conditions
+        if (Object.HasStateAuthority)
         {
-            if (Object.HasStateAuthority)
+            if (All.Count > 0 && All.TrueForAll(p => p.IsReadyToRestart))
             {
-                // Unsubscribe to avoid multiple triggers if scene doesn't unload instantly
-                IsReadyToRestart = false; 
-            }
+                // Reset all states immediately to avoid multiple triggers
+                foreach (var p in All)
+                {
+                    if (p.Object != null && p.Object.HasStateAuthority)
+                        p.IsReadyToRestart = false; 
+                }
 
-            Debug.Log("[NetworkPlayer] All players ready, triggering RestartDungeon locally on all clients!");
-            DungeonManager.Instance?.RestartDungeon();
+                Debug.Log("[NetworkPlayer] Host detects all players ready, sending RPC_TriggerRestartDungeon!");
+                RPC_TriggerRestartDungeon();
+            }
         }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_TriggerRestartDungeon()
+    {
+        Debug.Log("[NetworkPlayer] Received RPC to RestartDungeon!");
+        DungeonManager.Instance?.RestartDungeon();
     }
 
     // Replicated movement vector. The input-authority client writes it each tick
@@ -637,21 +657,41 @@ public class NetworkPlayer : NetworkBehaviour
         IsAlive = false;
         Debug.Log($"[NetworkPlayer] {PlayerName} died.");
 
-        // Raise death event for UI (only for local player with input authority)
-        if (Object.HasInputAuthority)
-        {
-            OnDied?.Invoke();
-        }
+        // Death UI event is now triggered in OnAliveChanged() to ensure it runs
+        // on the correct client (this Die method only executes on StateAuthority).
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_SetReadyToRestart()
     {
         if (!Object.HasStateAuthority) return;
-        if (IsAlive) return;
 
         IsReadyToRestart = true;
         Debug.Log($"[NetworkPlayer] {PlayerName} is ready to restart.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_BossSpawning()
+    {
+        // Host already executes the sequence locally in DungeonManager, avoid double execution
+        if (Object.HasStateAuthority) return;
+        
+        if (DungeonManager.Instance != null)
+        {
+            DungeonManager.Instance.ClientReceiveBossSpawning();
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_BossDied(Vector3 chestPosition)
+    {
+        // Host already executes the sequence locally in DungeonManager, avoid double execution
+        if (Object.HasStateAuthority) return;
+
+        if (DungeonManager.Instance != null)
+        {
+            DungeonManager.Instance.ClientReceiveBossDeath(chestPosition);
+        }
     }
 
     public void ResetForRestart(Vector3 spawnPos)
@@ -661,7 +701,22 @@ public class NetworkPlayer : NetworkBehaviour
         CurrentHp = MaxHp;
         IsAlive = true;
         IsReadyToRestart = false;
-        transform.position = spawnPos;
+        var nt = GetComponent<NetworkTransform>();
+        if (nt != null)
+        {
+            nt.Teleport(spawnPos);
+        }
+        else
+        {
+            transform.position = spawnPos;
+        }
+
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.position = spawnPos;
+        }
         Debug.Log($"[NetworkPlayer] {PlayerName} reset for restart at {spawnPos}.");
     }
 
@@ -674,7 +729,22 @@ public class NetworkPlayer : NetworkBehaviour
         CurrentHp = Mathf.Max(1, MaxHp / 10); // 10% HP
         IsAlive = true;
         IsReadyToRestart = false;
-        transform.position = position;
+        var nt = GetComponent<NetworkTransform>();
+        if (nt != null)
+        {
+            nt.Teleport(position);
+        }
+        else
+        {
+            transform.position = position;
+        }
+
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.position = position;
+        }
         Debug.Log($"[NetworkPlayer] {PlayerName} respawned in world at {position} with 10% HP.");
     }
 
