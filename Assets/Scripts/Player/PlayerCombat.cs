@@ -49,9 +49,10 @@ public class PlayerCombat : NetworkBehaviour
     [SerializeField] private GameObject aoeIndicatorPrefab;
 
     [Header("Basic Attack Settings")]
-    [SerializeField] private float baseAttackCooldown = 1.0f;
+    [SerializeField] private float baseAttackCooldown = 0.4f;
     private float currentAttackCooldown;
     [SerializeField] private float basicAttackDelay = 0.2f;
+    private float currentAttackDelay;
     [SerializeField] private float basicAttackDamage = 25f;
     [SerializeField, Range(0f, 100f)] private float critRate = 20f;
     [SerializeField] private float critDamageMultiplier = 1.5f;
@@ -130,6 +131,7 @@ public class PlayerCombat : NetworkBehaviour
         if (animator == null) animator = GetComponent<Animator>();
         if (animation == null) animation = GetComponent<PlayerAnimation>();
         currentAttackCooldown = baseAttackCooldown;
+        currentAttackDelay = basicAttackDelay;
 
         // Resolve (or add) the shared input provider on this GameObject.
         _input = GetComponent<GameplayInputProvider>();
@@ -186,7 +188,9 @@ public class PlayerCombat : NetworkBehaviour
 
                         if (response.AttackSpeed > 0)
                         {
-                            currentAttackCooldown = (100f / response.AttackSpeed) * baseAttackCooldown;
+                            float speedMultiplier = 100f / response.AttackSpeed;
+                            currentAttackCooldown = speedMultiplier * baseAttackCooldown;
+                            currentAttackDelay = speedMultiplier * basicAttackDelay;
                         }
                         
                         var buffMgr = GetComponent<BuffManager>();
@@ -315,7 +319,7 @@ public class PlayerCombat : NetworkBehaviour
 
         // Execute the actual attack. In Phase 12 this will route through
         // a server-side damage pipeline with deterministic Random.
-        StartCoroutine(ExecuteBasicAttackWithDelay(basicAttackDelay));
+        StartCoroutine(ExecuteBasicAttackWithDelay(currentAttackDelay));
     }
 
 
@@ -373,11 +377,14 @@ public class PlayerCombat : NetworkBehaviour
     private void Attack()
     {
         if (IsBusy() || Time.time < nextAttackTime) return;
+        Debug.Log($"[PlayerCombat] Attack triggered. Cooldown: {currentAttackCooldown}, Delay: {currentAttackDelay}");
         nextAttackTime = Time.time + currentAttackCooldown;
+
         if (animation != null) animation.TriggerAttack();
         else if (animator != null) animator.SetTrigger("Attack");
-        StartCoroutine(ExecuteBasicAttackWithDelay(basicAttackDelay));
+        StartCoroutine(ExecuteBasicAttackWithDelay(currentAttackDelay));
     }
+
 
     private IEnumerator ExecuteBasicAttackWithDelay(float delay)
     {
@@ -631,6 +638,19 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
+        if (animator != null && attackSpeedStat > 0)
+        {
+            var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            if (stateInfo.IsName("BasicAttack") || stateInfo.IsName("Attack"))
+            {
+                animator.speed = attackSpeedStat / 100f;
+            }
+            else
+            {
+                animator.speed = 1f;
+            }
+        }
+
         // Update Buff Timers
         if (defBuffTimer > 0)
         {

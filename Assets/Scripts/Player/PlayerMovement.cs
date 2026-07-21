@@ -146,6 +146,15 @@ public class PlayerMovement : NetworkBehaviour
 
     private void Update()
     {
+        // Debug: Log input state mỗi 60 frame để xem có nhận input không
+        if (Time.frameCount % 60 == 0)
+        {
+            // var inputMove = ReadMoveFallback();
+            // Debug.Log($"[PlayerMovement.Update] frame={Time.frameCount} move={inputMove} " +
+            //           $"rb={_rb != null} bodyType={_rb?.bodyType} " +
+            //           $"HasAuth={(Object != null ? HasInputAuthority.ToString() : "N/A")}");
+        }
+
         // Only the fallback path needs to run in Update. When Fusion is driving
         // movement (Object != null), NetworkPlayer.FixedUpdateNetwork handles input.
         if (!fallbackLocalInput) return;
@@ -165,19 +174,32 @@ public class PlayerMovement : NetworkBehaviour
         // NetworkPlayer.Render() drives animation from the network state, but that
         // component doesn't exist yet in this mode, so we drive it directly here —
         // otherwise the offline player moves with no walk animation.
+        bool isAlive = true;
+        if (PlayerEntity.Instance != null && PlayerEntity.Instance.CurrentHealth <= 0)
+        {
+            isAlive = false;
+        }
+
         var input = ReadMoveFallback();
+        if (!isAlive) input = Vector2.zero;
+
         if (input == Vector2.zero && _moveInput != Vector2.zero)
         {
-            // Player released keys — commit zero so animation settles.
+            // Player released keys or died — commit zero so animation settles.
             _moveInput = Vector2.zero;
             ApplyRaw(Vector2.zero, Time.deltaTime);
-            if (_animation != null) _animation.SetMovement(Vector2.zero, true);
+            if (_animation != null) _animation.SetMovement(Vector2.zero, isAlive);
             return;
         }
 
-        if (input == Vector2.zero) return;
+        if (input == Vector2.zero) 
+        {
+            if (_animation != null) _animation.SetMovement(Vector2.zero, isAlive);
+            return;
+        }
+        
         ApplyRaw(input, Time.deltaTime);
-        if (_animation != null) _animation.SetMovement(input, true);
+        if (_animation != null) _animation.SetMovement(input, isAlive);
     }
 
     private Vector2 ReadMoveFallback()
@@ -243,6 +265,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (input.sqrMagnitude > 0.01f)
         {
+            Vector3 oldPos = transform.position;
             // Assign position directly rather than Rigidbody2D.MovePosition(). MovePosition
             // queues the move for Unity's next physics step, which runs on its own FixedUpdate
             // cadence — out of step with Fusion's FixedUpdateNetwork tick. NetworkTransform reads
@@ -260,6 +283,14 @@ public class PlayerMovement : NetworkBehaviour
             // both instantly every call.
             transform.position += (Vector3)(_moveInput * _currentMoveSpeed * deltaTime);
             Physics2D.SyncTransforms();
+
+            // Debug: Log movement mỗi 60 frame
+            if (Time.frameCount % 60 == 0)
+            {
+                // Debug.Log($"[PlayerMovement.ApplyRaw] frame={Time.frameCount} " +
+                //           $"pos: {oldPos} -> {transform.position} " +
+                //           $"speed={_currentMoveSpeed} dt={deltaTime}");
+            }
         }
     }
 

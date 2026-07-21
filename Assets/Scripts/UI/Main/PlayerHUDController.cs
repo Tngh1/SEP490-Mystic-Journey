@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -42,6 +44,16 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private GameObject guildButtonObj;
     [SerializeField] private GameObject bestiaryButtonObj;
 
+    [Header("Death Popup")]
+    [SerializeField] private GameObject deathPopupPanel;
+    [SerializeField] private Button btnAgain;
+    [SerializeField] private Button btnQuit;
+
+    [Header("Colors")]
+    [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f); // Light Sky Blue
+    [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
+    [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);       // #FFEB3B
+    [SerializeField] private Color lowHealthColor = new Color(0.956f, 0.263f, 0.212f);    // #F44336
 
 
     private Coroutine _updateLoopCoroutine;
@@ -73,6 +85,14 @@ public class PlayerHUDController : MonoBehaviour
         PlayerEntity.OnHealthChanged += HandleHealthChanged;
         WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
         WorldRuntimeEvents.QuestsChanged += UpdateQuestPointers;
+
+        // Subscribe to NetworkPlayer death event
+        if (NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.OnDied += ShowDeathPopup;
+        }
+        NetworkPlayer.OnAnyReadyStateChanged += UpdateDeathPopupState;
+
     }
 
     private void OnDisable()
@@ -84,6 +104,14 @@ public class PlayerHUDController : MonoBehaviour
         }
         PlayerEntity.OnHealthChanged -= HandleHealthChanged;
         WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
+
+        // Unsubscribe from NetworkPlayer death event
+        if (NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.OnDied -= ShowDeathPopup;
+        }
+        NetworkPlayer.OnAnyReadyStateChanged -= UpdateDeathPopupState;
+
     }
 
     private void OnLevelUpButtonClicked()
@@ -565,5 +593,362 @@ public class PlayerHUDController : MonoBehaviour
         EnsureQuestPointer(guildButtonObj, false);
         EnsureQuestPointer(shopButtonObj, false);
         EnsureQuestPointer(dailyButtonObj, false);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // NetworkPlayer Local Subscription
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Call this from NetworkPlayer.Spawned() when Local is set.
+    /// Ensures the HUD subscribes to the local player's death event.
+    /// </summary>
+    public void SubscribeToLocalPlayer(NetworkPlayer localPlayer)
+    {
+        if (localPlayer == null) return;
+
+        // Unsubscribe from old player if any
+        if (NetworkPlayer.Local != null && NetworkPlayer.Local != localPlayer)
+        {
+            NetworkPlayer.Local.OnDied -= ShowDeathPopup;
+        }
+
+        // Subscribe to new player
+        localPlayer.OnDied += ShowDeathPopup;
+    }
+
+    /// <summary>
+    /// Call this when leaving a dungeon / disconnecting.
+    /// </summary>
+    public void UnsubscribeFromLocalPlayer()
+    {
+        if (NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.OnDied -= ShowDeathPopup;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Death Popup
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Show the death popup with Again (respawn) and Quit options.
+    /// </summary>
+    public void ShowDeathPopup()
+    {
+        StartCoroutine(ShowDeathPopupCoroutine());
+    }
+
+    private GameObject _deathRedOverlay;
+    private GameObject _worldDeathContent;
+
+    private IEnumerator ShowDeathPopupCoroutine()
+    {
+        Debug.Log("[PlayerHUDController] Player died. Waiting for animation and fading red overlay...");
+
+        // Create red overlay
+        if (_deathRedOverlay == null)
+        {
+            _deathRedOverlay = new GameObject("DeathRedOverlay");
+            _deathRedOverlay.transform.SetParent(transform, false);
+            var img = _deathRedOverlay.AddComponent<Image>();
+            img.color = new Color(1f, 0f, 0f, 0f);
+            
+            var rect = _deathRedOverlay.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            // --- World Death Content (Text & Button) ---
+            _worldDeathContent = new GameObject("WorldDeathContent");
+            _worldDeathContent.transform.SetParent(_deathRedOverlay.transform, false);
+            var contentRect = _worldDeathContent.AddComponent<RectTransform>();
+            contentRect.anchorMin = Vector2.zero;
+            contentRect.anchorMax = Vector2.one;
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
+
+            // Title
+            var titleObj = new GameObject("Title");
+            titleObj.transform.SetParent(_worldDeathContent.transform, false);
+            var titleText = titleObj.AddComponent<TextMeshProUGUI>();
+            titleText.text = "THE LIGHT FADES...";
+            titleText.color = new Color(1f, 0.2f, 0.2f, 1f);
+            titleText.fontSize = 72;
+            titleText.alignment = TextAlignmentOptions.Center;
+            titleText.fontStyle = FontStyles.Bold;
+            if (playerNameText != null) titleText.font = playerNameText.font;
+            var titleRect = titleObj.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0, 0.5f);
+            titleRect.anchorMax = new Vector2(1, 0.5f);
+            titleRect.anchoredPosition = new Vector2(0, 100);
+            titleRect.sizeDelta = new Vector2(0, 100);
+
+            // Subtitle
+            var subObj = new GameObject("Subtitle");
+            subObj.transform.SetParent(_worldDeathContent.transform, false);
+            var subText = subObj.AddComponent<TextMeshProUGUI>();
+            subText.text = "Your journey is not over yet.";
+            subText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
+            subText.fontSize = 36;
+            subText.alignment = TextAlignmentOptions.Center;
+            if (playerNameText != null) subText.font = playerNameText.font;
+            var subRect = subObj.GetComponent<RectTransform>();
+            subRect.anchorMin = new Vector2(0, 0.5f);
+            subRect.anchorMax = new Vector2(1, 0.5f);
+            subRect.anchoredPosition = new Vector2(0, 30);
+            subRect.sizeDelta = new Vector2(0, 50);
+
+            // Respawn Button
+            var btnObj = new GameObject("RespawnButton");
+            btnObj.transform.SetParent(_worldDeathContent.transform, false);
+            var btnImage = btnObj.AddComponent<Image>();
+            btnImage.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+            var btn = btnObj.AddComponent<Button>();
+            btn.onClick.AddListener(OnWorldRespawnClicked);
+            var btnRect = btnObj.GetComponent<RectTransform>();
+            btnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRect.anchoredPosition = new Vector2(0, -60);
+            btnRect.sizeDelta = new Vector2(250, 70);
+
+            var btnTextObj = new GameObject("Text");
+            btnTextObj.transform.SetParent(btnObj.transform, false);
+            var btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
+            btnText.text = "Respawn";
+            btnText.color = Color.white;
+            btnText.fontSize = 32;
+            btnText.alignment = TextAlignmentOptions.Center;
+            if (playerNameText != null) btnText.font = playerNameText.font;
+            var btnTextRect = btnTextObj.GetComponent<RectTransform>();
+            btnTextRect.anchorMin = Vector2.zero;
+            btnTextRect.anchorMax = Vector2.one;
+            btnTextRect.offsetMin = Vector2.zero;
+            btnTextRect.offsetMax = Vector2.zero;
+        }
+        
+        if (_worldDeathContent != null) _worldDeathContent.SetActive(false);
+        _deathRedOverlay.SetActive(true);
+        _deathRedOverlay.transform.SetAsLastSibling();
+
+        // Fade in over 2 seconds
+        float t = 0;
+        var image = _deathRedOverlay.GetComponent<Image>();
+        while (t < 2f)
+        {
+            t += Time.deltaTime;
+            image.color = new Color(0.7f, 0f, 0f, (t / 2f) * 0.6f); // Semi-transparent red
+            yield return null;
+        }
+
+        // Wait 1 more second before showing the popup
+        yield return new WaitForSeconds(1f);
+
+        bool inDungeon = DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon;
+
+        if (inDungeon)
+        {
+            ShowDungeonDeathPopup();
+        }
+        else
+        {
+            ShowWorldDeathPopup();
+        }
+    }
+
+    private void ShowWorldDeathPopup()
+    {
+        Debug.Log("[PlayerHUDController] Showing WORLD death popup...");
+
+        if (_worldDeathContent != null)
+        {
+            _worldDeathContent.SetActive(true);
+        }
+    }
+
+    private void OnWorldRespawnClicked()
+    {
+        Debug.Log("[PlayerHUDController] OnWorldRespawnClicked - respawning at map spawn point...");
+
+        if (_deathRedOverlay != null)
+        {
+            _deathRedOverlay.SetActive(false);
+        }
+
+        Vector3 spawnPos = WorldState.LastPosition;
+        
+        var spawner = UnityEngine.Object.FindFirstObjectByType<PlayerSpawner>();
+        if (spawner != null && spawner.SpawnPoint != null)
+        {
+            spawnPos = spawner.SpawnPoint.position;
+        }
+        else
+        {
+            GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
+            if (targetSpawnPoint != null) spawnPos = targetSpawnPoint.transform.position;
+        }
+
+        if (NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.RPC_WorldRespawn(spawnPos);
+        }
+        else if (PlayerEntity.Instance != null)
+        {
+            PlayerEntity.Instance.WorldRespawn(spawnPos);
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerHUDController] Cannot respawn. Player not found.");
+        }
+    }
+
+    public void HideDeathPopup()
+    {
+        if (deathPopupPanel != null)
+        {
+            deathPopupPanel.SetActive(false);
+        }
+        if (_deathRedOverlay != null)
+        {
+            _deathRedOverlay.SetActive(false);
+        }
+    }
+
+    private void ShowDungeonDeathPopup()
+    {
+        Debug.Log("[PlayerHUDController] Showing DUNGEON death popup...");
+
+        // Try to auto-find the death popup panel if not assigned
+        if (deathPopupPanel == null)
+        {
+            deathPopupPanel = transform.Find("DeathPopup")?.gameObject;
+            if (deathPopupPanel == null)
+            {
+                deathPopupPanel = GameObject.Find("DeathPopup");
+            }
+        }
+
+        if (deathPopupPanel != null)
+        {
+            deathPopupPanel.SetActive(true);
+            deathPopupPanel.transform.SetAsLastSibling();
+
+            // Auto-wire buttons if not assigned
+            if (btnAgain == null)
+            {
+                var btn = deathPopupPanel.transform.Find("AgainButton");
+                if (btn != null) btnAgain = btn.GetComponent<Button>();
+            }
+            if (btnQuit == null)
+            {
+                var btn = deathPopupPanel.transform.Find("QuitButton");
+                if (btn != null) btnQuit = btn.GetComponent<Button>();
+            }
+
+            if (btnAgain != null)
+            {
+                btnAgain.interactable = true;
+                var txt = btnAgain.GetComponentInChildren<TMP_Text>();
+                if (txt != null) txt.text = "Again";
+
+                btnAgain.onClick.RemoveAllListeners();
+                btnAgain.onClick.AddListener(OnAgainClicked);
+            }
+            if (btnQuit != null)
+            {
+                btnQuit.onClick.RemoveAllListeners();
+                btnQuit.onClick.AddListener(OnQuitClicked);
+            }
+            
+            UpdateDeathPopupState();
+        }
+        else
+        {
+            // Fallback to UIPopupManager if no custom death panel exists
+            Debug.Log("[PlayerHUDController] No DeathPopup found, using UIPopupManager fallback.");
+            MysticJourney.UI.UIPopupManager.Instance.ShowConfirm(
+                "YOU DIED",
+                "You have been defeated in battle.",
+                onConfirm: OnAgainClicked,
+                onCancel: OnQuitClicked,
+                confirmText: "Again",
+                cancelText: "Quit"
+            );
+        }
+    }
+
+    /// <summary>
+    /// Update the death popup "Again" button text based on ready states.
+    /// </summary>
+    private void UpdateDeathPopupState()
+    {
+        if (deathPopupPanel == null || !deathPopupPanel.activeInHierarchy) return;
+        if (btnAgain == null) return;
+
+        int readyCount = NetworkPlayer.All.Count(p => p.IsReadyToRestart);
+        int totalCount = NetworkPlayer.All.Count;
+
+        if (readyCount > 0)
+        {
+            var txt = btnAgain.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = $"Waiting... ({readyCount}/{totalCount})";
+        }
+    }
+
+    /// <summary>
+    /// Handle "Again" button click - respawn the player.
+    /// </summary>
+    private void OnAgainClicked()
+    {
+        Debug.Log("[PlayerHUDController] OnAgainClicked - requesting respawn...");
+
+        // Disable button to prevent spam
+        if (btnAgain != null)
+        {
+            btnAgain.interactable = false;
+        }
+
+        // Request ready to restart via NetworkPlayer
+        if (NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.RPC_SetReadyToRestart();
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerHUDController] NetworkPlayer.Local is null, cannot respawn.");
+        }
+    }
+
+    /// <summary>
+    /// Handle "Quit" button click - leave dungeon and return to world.
+    /// </summary>
+    private void OnQuitClicked()
+    {
+        Debug.Log("[PlayerHUDController] OnQuitClicked - leaving dungeon...");
+
+        // Hide death popup
+        if (deathPopupPanel != null)
+        {
+            deathPopupPanel.SetActive(false);
+        }
+        if (_deathRedOverlay != null)
+        {
+            _deathRedOverlay.SetActive(false);
+        }
+
+        // Disconnect and return to world
+        var photon = PhotonManager.Instance;
+        if (photon != null && photon.IsConnected)
+        {
+            photon.Shutdown(notify: true);
+        }
+
+        // Return to previous map via DungeonManager if in dungeon
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+        {
+            DungeonManager.Instance.ReturnToWorldMap();
+        }
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Fusion;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,6 +11,7 @@ using UnityEngine.InputSystem;
 public class NetworkPlayer : NetworkBehaviour
 {
     public static NetworkPlayer Local { get; private set; }
+    public static List<NetworkPlayer> All { get; private set; } = new List<NetworkPlayer>();
 
     // ─────────────────────────────────────────────────────────────────────────
     // Inspector — character config
@@ -90,7 +93,42 @@ public class NetworkPlayer : NetworkBehaviour
 
     [Networked] public int CurrentHp { get; set; }
     [Networked] public int MaxHp { get; set; }
-    [Networked] public NetworkBool IsAlive { get; set; }
+    [Networked, OnChangedRender(nameof(OnAliveChanged))] public NetworkBool IsAlive { get; set; }
+
+    [Networked, OnChangedRender(nameof(OnReadyStateChanged))] 
+    public NetworkBool IsReadyToRestart { get; set; }
+
+    private void OnAliveChanged()
+    {
+        // When revived (e.g. dungeon restart), ensure death UI is hidden on the client
+        if (IsAlive && Object.HasInputAuthority)
+        {
+            var hud = FindFirstObjectByType<PlayerHUDController>();
+            if (hud != null)
+            {
+                hud.HideDeathPopup();
+            }
+        }
+    }
+
+    public static event Action OnAnyReadyStateChanged;
+
+    private void OnReadyStateChanged()
+    {
+        OnAnyReadyStateChanged?.Invoke();
+
+        if (All.Count > 0 && All.TrueForAll(p => p.IsReadyToRestart))
+        {
+            if (Object.HasStateAuthority)
+            {
+                // Unsubscribe to avoid multiple triggers if scene doesn't unload instantly
+                IsReadyToRestart = false; 
+            }
+
+            Debug.Log("[NetworkPlayer] All players ready, triggering RestartDungeon locally on all clients!");
+            DungeonManager.Instance?.RestartDungeon();
+        }
+    }
 
     // Replicated movement vector. The input-authority client writes it each tick
     // from its input; every OTHER client reads it in Render() to drive the walk
@@ -117,6 +155,9 @@ public class NetworkPlayer : NetworkBehaviour
 
     /// <summary>Raised on every client after Spawned completes (visual is ready).</summary>
     public event Action<NetworkPlayer> OnPlayerReady;
+
+    /// <summary>Raised when this player dies (only on the client that owns input authority).</summary>
+    public event Action OnDied;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -158,6 +199,11 @@ public class NetworkPlayer : NetworkBehaviour
 
     private void OnDestroy()
     {
+        if (All.Contains(this))
+        {
+            All.Remove(this);
+        }
+
         if (Local == this) Local = null;
 
         if (_spawnedVisual != null)
@@ -259,6 +305,14 @@ public class NetworkPlayer : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             Local = this;
+            name = "NetworkPlayer_Local";
+
+            var hud = FindFirstObjectByType<PlayerHUDController>(FindObjectsInactive.Include);
+            if (hud != null)
+            {
+                hud.SubscribeToLocalPlayer(this);
+            }
+
             var pEntityLocal = GetComponent<PlayerEntity>();
             if (pEntityLocal != null)
             {
@@ -273,6 +327,15 @@ public class NetworkPlayer : NetworkBehaviour
             RemoveLegacyLocalPlayers();
             AttachLocalCamera();
             EnsureLocalInputComponents();
+        }
+        else
+        {
+            name = $"NetworkPlayer_{Object.InputAuthority.PlayerId}";
+        }
+
+        if (!All.Contains(this))
+        {
+            All.Add(this);
         }
 
         OnPlayerReady?.Invoke(this);
@@ -397,6 +460,13 @@ public class NetworkPlayer : NetworkBehaviour
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        if (All.Contains(this))
+        {
+            All.Remove(this);
+        }
+        
+        if (Local == this) Local = null;
+
         if (_spawnedVisual != null)
         {
             Destroy(_spawnedVisual);
@@ -422,8 +492,8 @@ public class NetworkPlayer : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // [DEBUG-MOVE] tick heartbeat
-        if (Time.frameCount % 30 == 0)
+        // [DEBUG-MOVE] tick heartbeat - log mỗi 120 frame
+        if (Time.frameCount % 120 == 0)
             Debug.Log($"[NetPlayer/FixedUpdateNet] tick frame={Time.frameCount} " +
                       $"HasInputAuth={HasInputAuthority} IsAlive={IsAlive} Runner={Runner?.Stage} " +
                       $"Object={(Object != null ? "valid" : "NULL")}");
@@ -446,9 +516,9 @@ public class NetworkPlayer : NetworkBehaviour
         var input = GetInput<NetworkInputData>();
         if (!input.HasValue)
         {
-            if (Time.frameCount % 60 == 0)
-                Debug.LogWarning($"[NetPlayer/FixedUpdateNet] GetInput<NetworkInputData> returned null " +
-                                 $"Runner.Stage={Runner?.Stage} Runner.IsRunning={Runner?.IsRunning}");
+            Debug.LogWarning($"[NetPlayer/FixedUpdateNet] GetInput FAILED! " +
+                           $"Runner.Stage={Runner?.Stage} Runner.IsRunning={Runner?.IsRunning} " +
+                           $"HasAuth={HasInputAuthority} frame={Time.frameCount}");
             return;
         }
         var inputData = input.Value;
@@ -497,10 +567,12 @@ public class NetworkPlayer : NetworkBehaviour
 
     public void ApplyDamage(int amount)
     {
+        Debug.Log($"[NetworkPlayer.ApplyDamage] amount={amount} IsAlive={IsAlive} HasAuth={Object.HasStateAuthority}");
         if (!Object.HasStateAuthority) return;
         if (!IsAlive) return;
 
         CurrentHp = Mathf.Max(0, CurrentHp - amount);
+        Debug.Log($"[NetworkPlayer.ApplyDamage] After: HP={CurrentHp}/{MaxHp}");
         if (CurrentHp <= 0)
         {
             Die();
@@ -515,6 +587,7 @@ public class NetworkPlayer : NetworkBehaviour
     /// </summary>
     public void RequestDamage(int amount)
     {
+        Debug.Log($"[NetworkPlayer.RequestDamage] amount={amount} SA={Object.HasStateAuthority}");
         if (amount <= 0) return;
 
         if (Object.HasStateAuthority)
@@ -563,18 +636,46 @@ public class NetworkPlayer : NetworkBehaviour
     {
         IsAlive = false;
         Debug.Log($"[NetworkPlayer] {PlayerName} died.");
+
+        // Raise death event for UI (only for local player with input authority)
+        if (Object.HasInputAuthority)
+        {
+            OnDied?.Invoke();
+        }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_RequestRespawn()
+    public void RPC_SetReadyToRestart()
     {
         if (!Object.HasStateAuthority) return;
         if (IsAlive) return;
 
+        IsReadyToRestart = true;
+        Debug.Log($"[NetworkPlayer] {PlayerName} is ready to restart.");
+    }
+
+    public void ResetForRestart(Vector3 spawnPos)
+    {
+        if (!Object.HasStateAuthority) return;
+        
         CurrentHp = MaxHp;
         IsAlive = true;
-        transform.position = defaultSpawnPosition;
-        Debug.Log($"[NetworkPlayer] {PlayerName} respawned at {defaultSpawnPosition}.");
+        IsReadyToRestart = false;
+        transform.position = spawnPos;
+        Debug.Log($"[NetworkPlayer] {PlayerName} reset for restart at {spawnPos}.");
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_WorldRespawn(Vector3 position)
+    {
+        if (!Object.HasStateAuthority) return;
+        if (IsAlive) return;
+
+        CurrentHp = Mathf.Max(1, MaxHp / 10); // 10% HP
+        IsAlive = true;
+        IsReadyToRestart = false;
+        transform.position = position;
+        Debug.Log($"[NetworkPlayer] {PlayerName} respawned in world at {position} with 10% HP.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

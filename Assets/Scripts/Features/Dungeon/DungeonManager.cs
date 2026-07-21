@@ -500,18 +500,21 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         Debug.Log($"[DungeonManager] Normal enemy killed. Remaining: {remaining}. Progress: {percentage}%");
 
-        // Fire-and-forget progress update
-        DungeonApi.Instance.UpdateProgress(
-            CurrentSessionId,
-            new UpdateDungeonProgressRequest
-            {
-                MonstersKilled       = EnemiesKilledCount,
-                BossKilled           = false,
-                CompletionPercentage = percentage
-            },
-            _ => { },
-            err => Debug.LogWarning($"[DungeonManager] UpdateProgress (normal) failed: {err.Message}")
-        );
+        // Fire-and-forget progress update (only host should call backend API)
+        if (PhotonManager.Instance?.IsHost == true)
+        {
+            DungeonApi.Instance.UpdateProgress(
+                CurrentSessionId,
+                new UpdateDungeonProgressRequest
+                {
+                    MonstersKilled       = EnemiesKilledCount,
+                    BossKilled           = false,
+                    CompletionPercentage = percentage
+                },
+                _ => { },
+                err => Debug.LogWarning($"[DungeonManager] UpdateProgress (normal) failed: {err.Message}")
+            );
+        }
 
         if (remaining == 0 && _currentPhase == DungeonPhase.Normal)
             StartCoroutine(TriggerBossSequence());
@@ -579,44 +582,53 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     private IEnumerator BossDeathSequence(Vector3 chestPosition)
     {
         bool updateDone = false;
-
-        // Report final progress FIRST and wait for it
-        DungeonApi.Instance.UpdateProgress(
-            CurrentSessionId,
-            new UpdateDungeonProgressRequest
-            {
-                MonstersKilled       = EnemiesKilledCount,
-                BossKilled           = bossKilled,
-                CompletionPercentage = 100
-            },
-            _ => { updateDone = true; },
-            err => 
-            { 
-                Debug.LogWarning($"[DungeonManager] Final UpdateProgress failed: {err.Message}");
-                updateDone = true; 
-            }
-        );
-
-        // Wait for the backend to acknowledge the boss kill
-        yield return new WaitUntil(() => updateDone);
-
-        // NOW mark session complete on backend
         bool completeDone = false;
-        DungeonApi.Instance.Complete(
-            CurrentSessionId,
-            response =>
-            {
-                Debug.Log("[DungeonManager] Session marked complete on backend.");
-                completeDone = true;
-            },
-            error =>
-            {
-                Debug.LogWarning($"[DungeonManager] Complete API failed: {error.Message}. Spawning chest anyway.");
-                completeDone = true;
-            }
-        );
 
-        yield return new WaitUntil(() => completeDone);
+        // Report final progress FIRST and wait for it (only host should call backend API)
+        if (PhotonManager.Instance?.IsHost == true)
+        {
+            DungeonApi.Instance.UpdateProgress(
+                CurrentSessionId,
+                new UpdateDungeonProgressRequest
+                {
+                    MonstersKilled       = EnemiesKilledCount,
+                    BossKilled           = bossKilled,
+                    CompletionPercentage = 100
+                },
+                _ => { updateDone = true; },
+                err => 
+                { 
+                    Debug.LogWarning($"[DungeonManager] Final UpdateProgress failed: {err.Message}");
+                    updateDone = true; 
+                }
+            );
+
+            // Wait for the backend to acknowledge the boss kill
+            yield return new WaitUntil(() => updateDone);
+
+            // NOW mark session complete on backend
+            DungeonApi.Instance.Complete(
+                CurrentSessionId,
+                response =>
+                {
+                    Debug.Log("[DungeonManager] Session marked complete on backend.");
+                    completeDone = true;
+                },
+                error =>
+                {
+                    Debug.LogWarning($"[DungeonManager] Complete API failed: {error.Message}. Spawning chest anyway.");
+                    completeDone = true;
+                }
+            );
+
+            yield return new WaitUntil(() => completeDone);
+        }
+        else
+        {
+            // Non-host: mark done immediately
+            updateDone = true;
+            completeDone = true;
+        }
 
         // Wait for boss death animation
         yield return new WaitForSeconds(1.5f);
@@ -837,29 +849,42 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         // Note: PreviousMapSceneName and PreviousPlayerPosition are preserved from the FIRST time they entered!
 
-        DungeonApi.Instance.Enter(CurrentDungeonConfigId, _currentPartyMembers,
-            onSuccess: response =>
-            {
-                if (response != null)
+        // Only host should call Enter API for restart
+        if (PhotonManager.Instance?.IsHost == true)
+        {
+            DungeonApi.Instance.Enter(CurrentDungeonConfigId, _currentPartyMembers,
+                onSuccess: response =>
                 {
-                    CurrentSessionId = response.DungeonSessionId;
-                    IsInDungeon = true;
-                    Debug.Log($"[DungeonManager] Session created for Restart: {CurrentSessionId}");
-                    
-                    // Close the Dungeon Complete panel since it lives in Main scene
-                    var p = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
-                    if (p != null) p.gameObject.SetActive(false);
+                    if (response != null)
+                    {
+                        CurrentSessionId = response.DungeonSessionId;
+                        IsInDungeon = true;
+                        Debug.Log($"[DungeonManager] Session created for Restart: {CurrentSessionId}");
+                        
+                        // Close the Dungeon Complete panel since it lives in Main scene
+                        var p = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
+                        if (p != null) p.gameObject.SetActive(false);
 
-                    string sceneToLoad = _currentDungeonSceneName;
-                    StartCoroutine(TransitionToRestart(sceneToLoad));
+                        string sceneToLoad = _currentDungeonSceneName;
+                        StartCoroutine(TransitionToRestart(sceneToLoad));
+                    }
+                },
+                onError: error =>
+                {
+                    Debug.LogWarning($"[DungeonManager] Restart API failed: {error.Message}.");
+                    WorldRuntimeEvents.RaiseMessage($"Cannot Restart: {error.Message}");
                 }
-            },
-            onError: error =>
-            {
-                Debug.LogWarning($"[DungeonManager] Restart API failed: {error.Message}.");
-                WorldRuntimeEvents.RaiseMessage($"Cannot Restart: {error.Message}");
-            }
-        );
+            );
+        }
+        else
+        {
+            // Non-host: just restart scene locally, don't create new session
+            Debug.Log("[DungeonManager] Non-host restarting dungeon scene locally.");
+            IsInDungeon = true;
+            var p = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
+            if (p != null) p.gameObject.SetActive(false);
+            StartCoroutine(TransitionToRestart(_currentDungeonSceneName));
+        }
     }
 
     private IEnumerator TransitionToRestart(string dungeonSceneName)
@@ -926,6 +951,34 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         else
         {
             Debug.LogError("[DungeonManager] Restart failed to locate Player! Camera not bound.");
+        }
+
+        // Reset all NetworkPlayers for restart (restore HP, IsAlive, IsReadyToRestart)
+        Vector3 finalSpawnPos = Vector3.zero;
+        GameObject sp = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
+        if (sp == null)
+        {
+            var allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+            foreach (var t in allTransforms)
+            {
+                if (t != null && (t.gameObject.name == "PlayerSpawn" || t.gameObject.name == "SceneTransitionGoblinMine") && t.gameObject.scene.name == dungeonSceneName)
+                {
+                    sp = t.gameObject;
+                    break;
+                }
+            }
+        }
+        if (sp != null) finalSpawnPos = sp.transform.position;
+
+        if (NetworkPlayer.All != null)
+        {
+            foreach (var p in NetworkPlayer.All)
+            {
+                if (p != null)
+                {
+                    p.ResetForRestart(finalSpawnPos);
+                }
+            }
         }
 
         // Keep Main active

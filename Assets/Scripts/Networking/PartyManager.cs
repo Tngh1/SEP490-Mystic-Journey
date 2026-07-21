@@ -291,6 +291,7 @@ public class PartyManager : MonoBehaviour
         if (photon != null)
         {
             Debug.Log($"[PartyEntry] Migrating into '{dungeonRoom}' (isHost={isHost})...");
+            Debug.Log($"[PartyEntry] Before migrate - IsDungeonSession={photon.IsDungeonSession} Phase={photon.Phase}");
             var task = photon.MigrateToDungeonAsync(dungeonRoom);
             while (!task.IsCompleted) yield return null;
 
@@ -300,7 +301,7 @@ public class PartyManager : MonoBehaviour
                 _dungeonEntryStarted = false;
                 yield break;
             }
-            Debug.Log($"[PartyEntry] Migration complete. IsConnected={photon.IsConnected} Phase={photon.Phase} IsHost={photon.IsHost}");
+            Debug.Log($"[PartyEntry] Migration complete. IsConnected={photon.IsConnected} Phase={photon.Phase} IsHost={photon.IsHost} IsDungeonSession={photon.IsDungeonSession}");
         }
         else
         {
@@ -311,12 +312,13 @@ public class PartyManager : MonoBehaviour
         //    PhotonManager on migration (or a short timeout as a safety net so we never
         //    hang on the loading state).
         float timeout = 10f;
+        Debug.Log($"[PartyEntry] Waiting for NetworkPlayer.Local - current={NetworkPlayer.Local != null}");
         while (timeout > 0f && NetworkPlayer.Local == null)
         {
             timeout -= Time.deltaTime;
             yield return null;
         }
-        Debug.Log($"[PartyEntry] Avatar wait done. NetworkPlayer.Local={(NetworkPlayer.Local != null ? "OK" : "NULL(timeout)")}");
+        Debug.Log($"[PartyEntry] Avatar wait done. NetworkPlayer.Local={(NetworkPlayer.Local != null ? "OK" : "NULL(timeout)")} remaining timeout={timeout:F2}");
 
         // 3. Perform the scene transition using the shared session id (no Enter API here).
         if (DungeonManager.Instance != null)
