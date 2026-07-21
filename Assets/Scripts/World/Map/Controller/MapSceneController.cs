@@ -103,10 +103,36 @@ public class MapSceneController : MonoBehaviour
         QuestManager.Instance?.LoadMyQuests();
 
         var player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
+        {
+            var pm = Object.FindFirstObjectByType<PlayerMovement>();
+            if (pm != null) player = pm.gameObject;
+        }
+
         if (player != null)
         {
+            var rb = player.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.position = spawnPosition;
+            }
             player.transform.position = spawnPosition;
             Physics2D.SyncTransforms();
+
+            // Set camera follow target for the newly loaded map scene
+            var vcam = Object.FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
+            if (vcam != null)
+            {
+                vcam.Follow = player.transform;
+            }
+
+            // Re-initialize minimap for the newly loaded map scene
+            var minimapCam = Object.FindFirstObjectByType<MinimapCameraController>();
+            if (minimapCam != null)
+            {
+                minimapCam.InitializeMinimap(player.transform);
+            }
         }
 
         if (ApiClient.Instance.HasToken())

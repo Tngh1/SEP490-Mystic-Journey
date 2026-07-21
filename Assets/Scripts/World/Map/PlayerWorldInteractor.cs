@@ -152,31 +152,57 @@ public class PlayerWorldInteractor : MonoBehaviour
             return;
         }
 
-        if (!target.QuestId.HasValue && target.Kind != WorldInteractableKind.QuestItem)
+        int? questIdToSend = target.QuestId;
+        if (!questIdToSend.HasValue && QuestManager.Instance != null)
         {
-            WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);
-            Debug.LogWarning($"[PlayerWorldInteractor] {target.DisplayName} is not linked to an active quest yet.");
-            return;
+            var quests = QuestManager.Instance.GetMainQuests();
+            if (quests != null)
+            {
+                foreach (var q in quests)
+                {
+                    if (QuestManager.IsStatus(q, "InProgress"))
+                    {
+                        string targetStr = q.ObjectiveTarget ?? "";
+                        if (targetStr.IndexOf(target.ObjectKey, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            targetStr.IndexOf(target.DisplayName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            target.ObjectKey.IndexOf(targetStr.Split(' ')[0], System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            questIdToSend = q.QuestId;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         WorldApi.Instance.InteractObject(
             target.ObjectKey,
             target.InteractionType,
-            target.QuestId,
+            questIdToSend,
             target.ProgressDelta,
             response =>
             {
                 Debug.Log($"[PlayerWorldInteractor] {target.DisplayName}: {response?.Message ?? "interacted"}");
                 WorldRuntimeEvents.RaiseMessage(response?.Message ?? $"{target.DisplayName} interacted.");
-                WorldRuntimeEvents.RaiseQuestsChanged();
-                
-                // Báo cho vật thể biết tương tác đã thành công (để nó ẩn đi hoặc hồi sinh)
-                if (response != null && response.Success)
+
+                if (QuestManager.Instance != null && questIdToSend.HasValue)
                 {
-                    target.OnSuccessfulInteraction();
+                    QuestManager.Instance.AddProgress(questIdToSend.Value, target.ProgressDelta);
                 }
+                WorldRuntimeEvents.RaiseQuestsChanged();
+
+                target.OnSuccessfulInteraction();
             },
-            error => Debug.LogWarning($"[PlayerWorldInteractor] InteractObject failed: {error.Message}")
+            error =>
+            {
+                Debug.LogWarning($"[PlayerWorldInteractor] InteractObject API response/fallback: {error.Message}");
+                if (QuestManager.Instance != null && questIdToSend.HasValue)
+                {
+                    QuestManager.Instance.AddProgress(questIdToSend.Value, target.ProgressDelta);
+                    WorldRuntimeEvents.RaiseQuestsChanged();
+                }
+                target.OnSuccessfulInteraction();
+            }
         );
     }
 

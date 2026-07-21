@@ -1,4 +1,5 @@
 using UnityEngine;
+using MysticJourney.Core.Services;
 
 public class SettingsService
 {
@@ -64,6 +65,7 @@ public class SettingsService
     public void SetSfxVolume(float value)
     {
         SfxVolume = Mathf.Clamp01(value);
+        ApplyVolume();
     }
 
     public void SetMuted(bool muted)
@@ -89,8 +91,10 @@ public class SettingsService
 
     private void ApplyVolume()
     {
-        float effective = IsMuted ? 0f : MasterVolume;
-        AudioListener.volume = effective;
+        // Route qua AudioManager (điều khiển volume TỪNG source: music/sfx) thay vì
+        // AudioListener.volume — biến global đó tắt cả nhạc map lẫn mọi âm thanh, và
+        // là nguyên nhân "mất nhạc khi mở Settings" (master slider serialize = 0).
+        AudioManager.Instance.ApplyVolumesFromSettings();
     }
 
     public float GetEffectiveMasterVolume() => IsMuted ? 0f : MasterVolume;
