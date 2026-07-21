@@ -16,6 +16,12 @@ namespace MysticJourney.UI.Effects
         {
             target = targetTransform;
             player = playerTransform;
+
+            // Clear() tắt GameObject; nếu không bật lại ở đây thì LateUpdate sẽ không bao
+            // giờ chạy lại và mũi tên mất vĩnh viễn sau lần Clear đầu tiên. LateUpdate tự
+            // ẩn lại nếu target/player null hoặc đã tới đủ gần.
+            if (target != null && !gameObject.activeSelf)
+                gameObject.SetActive(true);
         }
 
         public void Clear()

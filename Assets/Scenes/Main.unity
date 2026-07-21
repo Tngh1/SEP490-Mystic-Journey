@@ -1622,6 +1622,13 @@ MonoBehaviour:
   shopButtonObj: {fileID: 1513345173}
   guildButtonObj: {fileID: 1000455088}
   bestiaryButtonObj: {fileID: 275948982}
+  deathPopupPanel: {fileID: 0}
+  btnAgain: {fileID: 0}
+  btnQuit: {fileID: 0}
+  expBarColor: {r: 0.35, g: 0.78, b: 0.98, a: 1}
+  highHealthColor: {r: 0.298, g: 0.686, b: 0.314, a: 1}
+  mediumHealthColor: {r: 1, g: 0.92, b: 0.23, a: 1}
+  lowHealthColor: {r: 0.956, g: 0.263, b: 0.212, a: 1}
 --- !u!1 &21037299
 GameObject:
   m_ObjectHideFlags: 0
@@ -15753,7 +15760,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -16282,7 +16289,7 @@ RectTransform:
   m_Father: {fileID: 1281666997}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
@@ -20470,7 +20477,7 @@ RectTransform:
   m_Father: {fileID: 1796891629}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -33098,6 +33105,7 @@ MonoBehaviour:
   volumeSlider: {fileID: 1233544193}
   unmuteIcon: {fileID: 1083189797}
   muteIcon: {fileID: 2024612831}
+  volumeType: 1
 --- !u!114 &510338118
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34651,7 +34659,7 @@ RectTransform:
   m_Father: {fileID: 962509583}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -56232,6 +56240,7 @@ MonoBehaviour:
   volumeSlider: {fileID: 1941889783}
   unmuteIcon: {fileID: 1593031773}
   muteIcon: {fileID: 314176463}
+  volumeType: 2
 --- !u!114 &870883038
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71575,7 +71584,7 @@ RectTransform:
   m_Father: {fileID: 1445147198}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
@@ -81363,7 +81372,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -86573,6 +86582,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1314168559}
   m_CullTransparentMesh: 1
+--- !u!1 &1318344384
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1318344385}
+  - component: {fileID: 1318344386}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1318344385
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318344384}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2007973300}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1318344386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318344384}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e22c8e8bfc996fa4e8ac86b0dd416297, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MysticJourney.Core.Services.AudioManager
 --- !u!1 &1322732016
 GameObject:
   m_ObjectHideFlags: 0
@@ -90066,6 +90119,7 @@ MonoBehaviour:
   volumeSlider: {fileID: 241048220}
   unmuteIcon: {fileID: 1414927079}
   muteIcon: {fileID: 1458880590}
+  volumeType: 0
 --- !u!1 &1386154038
 GameObject:
   m_ObjectHideFlags: 0
@@ -126818,7 +126872,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -131484,6 +131538,7 @@ Transform:
   - {fileID: 1422995127}
   - {fileID: 1930084508}
   - {fileID: 2021893344}
+  - {fileID: 1318344385}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2007973302

@@ -146,12 +146,24 @@ public class MainNpcPanelRuntime : MonoBehaviour
         currentDialogues.Clear();
         currentLinkedQuests.Clear();
 
-        SetText(nameText, Safe(interactable.DisplayName, "Elder Rowan"));
+        SetText(nameText, CleanName(Safe(interactable.DisplayName, "Elder Rowan")));
         SetText(roleText, Safe(interactable.Description, "Tutorial elder and main quest giver."));
         StartTypewriter(dialogueText, Safe(interactable.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
         SetText(questHintText, firstQuestId > 0 ? "Quest available" : string.Empty);
         ConfigureDefaultActions();
         ApplyPortrait(null, interactable);
+    }
+
+    private static string CleanName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Elder Rowan";
+        string clean = name.Trim();
+        int parenIdx = clean.IndexOf('(');
+        if (parenIdx > 0)
+        {
+            clean = clean.Substring(0, parenIdx).Trim();
+        }
+        return clean;
     }
 
     private void RenderApiResponse(TalkToNpcResponse response, WorldInteractable fallback)
@@ -178,7 +190,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         firstQuestId = currentStoryDialogue?.LinkedQuestId ?? linkedQuests.FirstOrDefault()?.QuestId ?? 0;
         currentNpcId = npc?.NPCId ?? fallback.NpcId;
 
-        SetText(nameText, Safe(npc?.Name, fallback.DisplayName));
+        SetText(nameText, CleanName(Safe(npc?.Name, fallback.DisplayName)));
         SetText(roleText, Safe(npc?.Description, fallback.Description));
         StartTypewriter(dialogueText, BuildIntroDialogue(currentStoryDialogue, dialogues, fallback));
         SetText(questHintText, BuildQuestHint(linkedQuests));
