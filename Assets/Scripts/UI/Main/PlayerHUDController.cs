@@ -32,11 +32,17 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text levelUpPointsText;
     [SerializeField] private UILevelUpPanel levelUpPanel;
 
-    [Header("Colors")]
-    [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f); // Light Sky Blue
-    [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
-    [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);       // #FFEB3B
-    [SerializeField] private Color lowHealthColor = new Color(0.956f, 0.263f, 0.212f);    // #F44336
+    [Header("Level-Gated Buttons")]
+    [SerializeField] private GameObject chatButtonObj;
+    [SerializeField] private GameObject friendButtonObj;
+    [SerializeField] private GameObject dailyButtonObj;
+    [SerializeField] private GameObject mailButtonObj;
+    [SerializeField] private GameObject gachaButtonObj;
+    [SerializeField] private GameObject shopButtonObj;
+    [SerializeField] private GameObject guildButtonObj;
+    [SerializeField] private GameObject bestiaryButtonObj;
+
+
 
     private Coroutine _updateLoopCoroutine;
     private bool _isRefreshing;
@@ -65,6 +71,8 @@ public class PlayerHUDController : MonoBehaviour
             levelUpButton.onClick.AddListener(OnLevelUpButtonClicked);
         }
         PlayerEntity.OnHealthChanged += HandleHealthChanged;
+        WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
+        WorldRuntimeEvents.QuestsChanged += UpdateQuestPointers;
     }
 
     private void OnDisable()
@@ -75,6 +83,7 @@ public class PlayerHUDController : MonoBehaviour
             levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
         }
         PlayerEntity.OnHealthChanged -= HandleHealthChanged;
+        WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
     }
 
     private void OnLevelUpButtonClicked()
@@ -105,7 +114,19 @@ public class PlayerHUDController : MonoBehaviour
         }
         if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
         if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
-        if (corruptionText == null) corruptionText = transform.Find("TopBar/Center_Resources/CorruptionBox/CorruptionText")?.GetComponent<TMP_Text>();
+        if (corruptionText == null)
+        {
+            corruptionText = transform.Find("Corruption/CorruptionNumber")?.GetComponent<TMP_Text>()
+                          ?? transform.Find("TopBar/Center_Resources/CorruptionBox/CorruptionText")?.GetComponent<TMP_Text>();
+        }
+
+        if (corruptionBarImage == null)
+        {
+            corruptionBarImage = transform.Find("Corruption/CorruptionBar/CorruptionFill")?.GetComponent<Image>()
+                              ?? transform.Find("TopBar/Center_Resources/CorruptionBox/CorruptionFill")?.GetComponent<Image>();
+        }
+
+        MakeHorizontalFill(corruptionBarImage);
 
         if (settingsButtonObj == null)
         {
@@ -117,6 +138,47 @@ public class PlayerHUDController : MonoBehaviour
         {
             var btn = transform.Find("TopBar/Right_Buttons/PauseButton");
             if (btn != null) pauseButtonObj = btn.gameObject;
+        }
+
+        if (chatButtonObj == null)
+        {
+            var btn = transform.Find("ChatButton");
+            if (btn != null) chatButtonObj = btn.gameObject;
+        }
+        if (friendButtonObj == null)
+        {
+            var btn = transform.Find("Left/FriendButton");
+            if (btn != null) friendButtonObj = btn.gameObject;
+        }
+        if (dailyButtonObj == null)
+        {
+            var btn = transform.Find("Left/DailyButton");
+            if (btn != null) dailyButtonObj = btn.gameObject;
+        }
+        if (mailButtonObj == null)
+        {
+            var btn = transform.Find("TopBar/Right_Buttons/MailButton");
+            if (btn != null) mailButtonObj = btn.gameObject;
+        }
+        if (gachaButtonObj == null)
+        {
+            var btn = transform.Find("Left/GachaButton");
+            if (btn != null) gachaButtonObj = btn.gameObject;
+        }
+        if (shopButtonObj == null)
+        {
+            var btn = transform.Find("Left/ShopButton");
+            if (btn != null) shopButtonObj = btn.gameObject;
+        }
+        if (guildButtonObj == null)
+        {
+            var btn = transform.Find("Left/GuildButton");
+            if (btn != null) guildButtonObj = btn.gameObject;
+        }
+        if (bestiaryButtonObj == null)
+        {
+            var btn = transform.Find("Left/BestiaryButton");
+            if (btn != null) bestiaryButtonObj = btn.gameObject;
         }
 
         // Same hover-scale transition the party panel uses on its Start/Ready buttons.
@@ -263,6 +325,9 @@ public class PlayerHUDController : MonoBehaviour
             levelText.text = "Lv " + profile.Level;
         }
 
+        // Apply level-gating for buttons
+        ApplyLevelGating(profile.Level);
+
         if (levelUpButton != null)
         {
             levelUpButton.gameObject.SetActive(profile.AvailableStatPoints > 0);
@@ -301,8 +366,6 @@ public class PlayerHUDController : MonoBehaviour
 
         if (expBarImage != null)
         {
-            expBarImage.color = expBarColor;
-            
             // Experience required formula: (Level - 1) * 100
             int level = profile.Level;
             int totalExp = profile.ExperiencePoints;
@@ -338,23 +401,6 @@ public class PlayerHUDController : MonoBehaviour
         if (hpBarImage != null)
         {
             hpBarImage.fillAmount = Mathf.Clamp01(hpRatio);
-
-            // Update HP Bar Color based on current HP percentage:
-            // >= 50%: Green
-            // >= 20% and < 50%: Yellow
-            // < 20%: Red
-            if (hpRatio >= 0.5f)
-            {
-                hpBarImage.color = highHealthColor;
-            }
-            else if (hpRatio >= 0.2f)
-            {
-                hpBarImage.color = mediumHealthColor;
-            }
-            else
-            {
-                hpBarImage.color = lowHealthColor;
-            }
         }
 
         if (hpText != null)
@@ -393,6 +439,31 @@ public class PlayerHUDController : MonoBehaviour
         img.fillOrigin = (int)Image.OriginHorizontal.Left;
     }
 
+    private void ApplyLevelGating(int playerLevel)
+    {
+        bool level10 = playerLevel >= 10;
+
+        // Always unlock: Mail
+        if (mailButtonObj != null) mailButtonObj.SetActive(true);
+
+        // Level 10 unlock: Daily (Achievement), Chat, Friend, Gacha, Shop, Guild, Bestiary
+        if (dailyButtonObj != null) dailyButtonObj.SetActive(level10);
+        if (chatButtonObj != null) chatButtonObj.SetActive(level10);
+        if (friendButtonObj != null) friendButtonObj.SetActive(level10);
+        if (gachaButtonObj != null) gachaButtonObj.SetActive(level10);
+        if (shopButtonObj != null) shopButtonObj.SetActive(level10);
+        if (guildButtonObj != null) guildButtonObj.SetActive(level10);
+        if (bestiaryButtonObj != null) bestiaryButtonObj.SetActive(level10);
+
+        EnsureUnlockHighlight(dailyButtonObj, level10);
+        EnsureUnlockHighlight(chatButtonObj, level10);
+        EnsureUnlockHighlight(friendButtonObj, level10);
+        EnsureUnlockHighlight(gachaButtonObj, level10);
+        EnsureUnlockHighlight(shopButtonObj, level10);
+        EnsureUnlockHighlight(guildButtonObj, level10);
+        EnsureUnlockHighlight(bestiaryButtonObj, level10);
+    }
+
     private static void AddHoverEffect(Transform t)
     {
         if (t == null) return;
@@ -403,5 +474,96 @@ public class PlayerHUDController : MonoBehaviour
     private static string FormatCurrencyAmount(decimal amount)
     {
         return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
+    }
+
+    private void EnsureUnlockHighlight(GameObject obj, bool unlocked)
+    {
+        if (obj == null || !unlocked) return;
+        
+        string key = $"Feature_Clicked_{obj.name}";
+        if (PlayerPrefs.GetInt(key, 0) == 1) return;
+
+        var highlight = obj.GetComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+        if (highlight == null) highlight = obj.AddComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+
+        var btn = obj.GetComponent<Button>();
+        if (btn != null)
+        {
+            btn.onClick.AddListener(() => 
+            {
+                PlayerPrefs.SetInt(key, 1);
+                PlayerPrefs.Save();
+                var h = obj.GetComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+                if (h != null) Destroy(h);
+            });
+        }
+    }
+
+    private void EnsureQuestPointer(GameObject obj, bool add)
+    {
+        if (obj == null) return;
+        var pointer = obj.GetComponentInChildren<MysticJourney.UI.Effects.UIQuestPointer>();
+        if (add)
+        {
+            if (pointer == null) 
+            {
+                var go = new GameObject("QuestPointer");
+                go.transform.SetParent(obj.transform, false);
+                var text = go.AddComponent<TMP_Text>();
+                text.text = "!";
+                text.color = Color.yellow;
+                text.fontSize = 40;
+                text.alignment = TextAlignmentOptions.Center;
+                
+                var rect = go.GetComponent<RectTransform>();
+                rect.anchorMin = new Vector2(1, 1);
+                rect.anchorMax = new Vector2(1, 1);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(-10, -10);
+
+                var effect = go.AddComponent<MysticJourney.UI.Effects.UIQuestPointer>();
+                effect.moveAmount = 5f;
+            }
+        }
+        else
+        {
+            if (pointer != null) Destroy(pointer.gameObject);
+        }
+    }
+
+    private void UpdateQuestPointers()
+    {
+        var manager = QuestManager.Instance;
+        if (manager == null) return;
+        var quests = manager.GetMainQuests();
+        if (quests == null) return;
+
+        var active = MysticJourney.Core.Utilities.QuestUtils.PickPreferredQuest(quests);
+        if (active == null) 
+        {
+            ClearAllQuestPointers();
+            return;
+        }
+
+        bool gacha = false, guild = false, shop = false, daily = false;
+        var objType = active.ObjectiveType?.ToLower();
+        
+        if (objType == "gacha") gacha = true;
+        if (objType == "guild") guild = true;
+        if (objType == "shop" || objType == "buy") shop = true;
+        if (objType == "achievement" || objType == "daily") daily = true;
+
+        EnsureQuestPointer(gachaButtonObj, gacha);
+        EnsureQuestPointer(guildButtonObj, guild);
+        EnsureQuestPointer(shopButtonObj, shop);
+        EnsureQuestPointer(dailyButtonObj, daily);
+    }
+    
+    private void ClearAllQuestPointers()
+    {
+        EnsureQuestPointer(gachaButtonObj, false);
+        EnsureQuestPointer(guildButtonObj, false);
+        EnsureQuestPointer(shopButtonObj, false);
+        EnsureQuestPointer(dailyButtonObj, false);
     }
 }

@@ -12,7 +12,7 @@ namespace MysticJourney.Screen.Mail
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text expireText;
         [SerializeField] private GameObject rewardAvailableObj; // Khớp với GameObject RewardAvailable
-        [SerializeField] private Button itemButton;
+        [SerializeField] private Toggle itemToggle;
 
         private MailSummaryResponse _mailData;
         private Action<MailItemUI> _onClickAction;
@@ -55,10 +55,17 @@ namespace MysticJourney.Screen.Mail
 
             UpdateUIState();
 
-            if (itemButton != null)
+            if (itemToggle == null) itemToggle = GetComponent<Toggle>();
+
+            if (itemToggle != null)
             {
-                itemButton.onClick.RemoveAllListeners();
-                itemButton.onClick.AddListener(() => _onClickAction?.Invoke(this));
+                itemToggle.group = GetComponentInParent<ToggleGroup>();
+                itemToggle.onValueChanged.RemoveAllListeners();
+                itemToggle.SetIsOnWithoutNotify(false);
+                itemToggle.onValueChanged.AddListener(isOn =>
+                {
+                    if (isOn) _onClickAction?.Invoke(this);
+                });
             }
         }
 

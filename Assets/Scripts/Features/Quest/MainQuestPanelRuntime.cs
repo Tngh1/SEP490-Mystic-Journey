@@ -47,6 +47,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private Button declineQuestButton;
     private Button claimQuestButton;
     private Button claimedButton;
+    private Button trackToggleButton;
+    private TextSlot trackToggleText;
 
     private GameObject primaryActionButtonObject;
     private Button primaryActionButton;
@@ -90,6 +92,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
 
         Instance = this;
+
+        if (GetComponent<MysticJourney.Features.Quest.QuestWaypointManager>() == null)
+            gameObject.AddComponent<MysticJourney.Features.Quest.QuestWaypointManager>();
     }
 
     private IEnumerator Start()
@@ -293,6 +298,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             BindPanelButton("CloseButton", CloseQuestPanel);
 
         BindQuestActionButtons();
+        BindTrackToggleButton();
 
         didBind = true;
     }
@@ -362,6 +368,80 @@ public class MainQuestPanelRuntime : MonoBehaviour
             claimedButton.interactable = false;
     }
 
+    private void BindTrackToggleButton()
+    {
+        GameObject btnObj = null;
+        if (questPanelView != null && questPanelView.TrackToggleButton != null)
+        {
+            btnObj = questPanelView.TrackToggleButton.gameObject;
+        }
+        else
+        {
+            btnObj = FindDescendant(questPanel != null ? questPanel.transform : transform, "TrackToggleButton")
+                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "TrackButton")
+                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "WaypointButton")
+                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "ToggleTrackButton")
+                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "GuideButton")
+                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "TrackToggle");
+        }
+
+        if (btnObj == null && questPanel != null)
+        {
+            var existing = FindDescendant(questPanel.transform, "AutoTrackToggleButton");
+            if (existing != null)
+            {
+                btnObj = existing;
+            }
+            else
+            {
+                btnObj = new GameObject("AutoTrackToggleButton");
+                btnObj.transform.SetParent(questPanel.transform, false);
+                var rect = btnObj.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(1, 1);
+                rect.anchorMax = new Vector2(1, 1);
+                rect.pivot = new Vector2(1, 1);
+                rect.anchoredPosition = new Vector2(-20, -20);
+                rect.sizeDelta = new Vector2(120, 36);
+
+                var img = btnObj.AddComponent<Image>();
+                img.color = new Color(0.2f, 0.2f, 0.2f, 0.9f);
+
+                var txtGo = new GameObject("Text (TMP)");
+                txtGo.transform.SetParent(btnObj.transform, false);
+                var txtRect = txtGo.AddComponent<RectTransform>();
+                txtRect.anchorMin = Vector2.zero;
+                txtRect.anchorMax = Vector2.one;
+                txtRect.sizeDelta = Vector2.zero;
+
+                var tmp = txtGo.AddComponent<TextMeshProUGUI>();
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.fontSize = 16;
+                tmp.fontStyle = FontStyles.Bold;
+                tmp.color = Color.yellow;
+            }
+        }
+
+        if (btnObj != null)
+        {
+            trackToggleButton = BindButton(btnObj, OnToggleTrackClicked);
+            trackToggleText = FindButtonLabel(btnObj);
+            UpdateTrackToggleUI();
+        }
+    }
+
+    private void OnToggleTrackClicked()
+    {
+        MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = !MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
+        UpdateTrackToggleUI();
+    }
+
+    private void UpdateTrackToggleUI()
+    {
+        if (!trackToggleText.IsValid) return;
+        bool enabled = MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
+        trackToggleText.Set(enabled ? "Track: ON" : "Track: OFF");
+    }
+
 
 
     private void SetFilter(string nextFilter)
@@ -408,10 +488,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return;
         }
 
-        // QuestNumber: "Quest {id}:" hoặc chỉ số thứ tự trong danh sách
-        var questIndex = quests.IndexOf(active);
-        var numberLabel = questIndex >= 0 ? $"Quest {questIndex + 1}:" : $"Quest {active.QuestId}:";
-        SetText(trackerNumber, numberLabel);
+        // QuestNumber: Hiển thị đúng QuestId để không bị nhảy số khi list thay đổi
+        SetText(trackerNumber, $"Quest {active.QuestId}:");
 
         // QuestName: chỉ tên quest, không kèm status hay số đếm
         SetText(trackerTitle, active.QuestTitle ?? string.Empty);

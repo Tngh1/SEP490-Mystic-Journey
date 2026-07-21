@@ -32,6 +32,7 @@ public class UIQuestPanelView : MonoBehaviour
     [SerializeField] private Button declineQuestButton;
     [SerializeField] private Button claimQuestButton;
     [SerializeField] private Button claimedButton;
+    [SerializeField] private Button trackToggleButton;
     [SerializeField] private Button primaryActionButton;
     [SerializeField] private Button closeButton;
 
@@ -60,6 +61,7 @@ public class UIQuestPanelView : MonoBehaviour
     public Button DeclineQuestButton => declineQuestButton;
     public Button ClaimQuestButton => claimQuestButton;
     public Button ClaimedButton => claimedButton;
+    public Button TrackToggleButton => trackToggleButton;
     public Button PrimaryActionButton => primaryActionButton;
     public Button CloseButton => closeButton;
 

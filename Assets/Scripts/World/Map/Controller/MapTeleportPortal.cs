@@ -6,6 +6,10 @@ public class MapTeleportPortal : MonoBehaviour
     [Tooltip("Dữ liệu của Map muốn dịch chuyển tới khi chạm vào cổng này")]
     public MapData targetMapData;
     
+    [Tooltip("Sử dụng vị trí spawn cụ thể (tránh bị lỗi 50 50 hoặc dùng điểm spawn mặc định)")]
+    public bool useSpecificSpawn = false;
+    public Vector3 specificSpawnPosition;
+    
     [Tooltip("Reference tới MapSceneController (nếu để trống sẽ tự tìm trong scene)")]
     public MapSceneController mapSceneController;
 
@@ -97,7 +101,11 @@ public class MapTeleportPortal : MonoBehaviour
         Debug.Log($"MapTeleportPortal: Đang dịch chuyển người chơi tới map {targetMapData.mapName}...");
         
         // Gọi hàm EnterMap để tiến hành load map (không dùng cache vì qua cổng phải ra đúng cổng)
-        mapSceneController.EnterMap(targetMapData, false);
+        if (useSpecificSpawn)
+            mapSceneController.EnterMap(targetMapData, false, specificSpawnPosition);
+        else
+            mapSceneController.EnterMap(targetMapData, false);
+            
         // Do not reset isTeleporting to false here because the scene is about to unload.
         // If we reset it, another collision could trigger it again before the unload finishes.
     }

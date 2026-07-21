@@ -17,7 +17,23 @@ public class HUDSkillManager : MonoBehaviour
 
     private void Start()
     {
-        // 1. Ẩn tất cả icon lúc mới vào game (tránh bị nền trắng)
+        EnsureMasterData();
+        RefreshHUDSkills();
+    }
+
+    private void EnsureMasterData()
+    {
+        if (allSkillsInGame == null || allSkillsInGame.Length == 0)
+        {
+            allSkillsInGame = Resources.LoadAll<SkillData>("");
+        }
+    }
+
+    public void RefreshHUDSkills()
+    {
+        EnsureMasterData();
+
+        // 1. Reset tất cả ô icon HUD về trạng thái ẩn ban đầu
         if (hudSkillIcons != null)
         {
             foreach (var icon in hudSkillIcons)
@@ -42,17 +58,20 @@ public class HUDSkillManager : MonoBehaviour
                 {
                     if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < hudSkillIcons.Length)
                     {
-                        var visual = System.Array.Find(allSkillsInGame, d => d.skillId == ps.SkillId);
+                        var visual = System.Array.Find(allSkillsInGame, d => d != null && d.skillId == ps.SkillId);
                         if (visual != null && visual.skillIcon != null)
                         {
                             var icon = hudSkillIcons[ps.EquippedSlot.Value];
                             if (icon != null)
                             {
-                                Debug.Log($"[HUDSkillManager] Loaded equipped skill {visual.name} at slot {ps.EquippedSlot.Value}");
+                                Debug.Log($"[HUDSkillManager] Loaded equipped skill {visual.name} (id={visual.skillId}) at slot {ps.EquippedSlot.Value}");
                                 icon.gameObject.SetActive(true);
                                 icon.enabled = true;
                                 icon.sprite = visual.skillIcon;
                                 icon.color = Color.white; // Hiện rõ ảnh lên
+
+                                // Broadcast to PlayerCombat and HUD SkillSlots immediately on game load
+                                SkillSlot.BroadcastSkillEquipped(ps.EquippedSlot.Value, visual, ps);
                             }
                         }
                     }

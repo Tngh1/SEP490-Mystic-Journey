@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Serialization;
@@ -27,7 +28,6 @@ namespace MysticJourney.Screen.Mail
 
         [Header("Right Panel - General")]
         [SerializeField] private GameObject rightPanel;
-        [SerializeField] private TMP_Text emptyRightText;
 
         [Header("Right Panel - Header & Body")]
         [SerializeField] private GameObject bodyContainer;
@@ -37,12 +37,6 @@ namespace MysticJourney.Screen.Mail
 
         [Header("Right Panel - Footer (Rewards)")]
         [SerializeField] private GameObject rewardsContainer;
-        [SerializeField] private GameObject goldSlot;
-        [SerializeField] private TMP_Text goldAmountText;
-        [SerializeField] private GameObject gemSlot;
-        [SerializeField] private TMP_Text gemAmountText;
-
-        [Header("Right Panel - Reward Items")]
         [SerializeField] private Transform itemsContainer;
         [SerializeField] private GameObject itemSlotPrefab;
 
@@ -66,6 +60,7 @@ namespace MysticJourney.Screen.Mail
         private int _currentPage = 1;
         private int _totalPages = 1;
         private readonly int _itemsPerPage = 5;
+        private bool _isLoading;
 
         private void Start()
         {
@@ -109,6 +104,9 @@ namespace MysticJourney.Screen.Mail
 
         private void LoadMailsFromBackend()
         {
+            _isLoading = true;
+            SetPaginationInteractable(false);
+
             if (paginationContainer != null) paginationContainer.SetActive(false);
             if (emptyListText != null) emptyListText.gameObject.SetActive(false);
             if (contentContainer != null)
@@ -125,15 +123,35 @@ namespace MysticJourney.Screen.Mail
                 response => PopulateMailList(response),
                 onError: error =>
                 {
+                    _isLoading = false;
+                    SetPaginationInteractable(true);
                     Debug.LogError($"[MailboxUI] Lỗi tải thư: {error.Message}");
                 }
             );
+        }
+
+        private void SetPaginationInteractable(bool on)
+        {
+            // Khi bật lại, để UpdatePaginationUI quyết định enable theo trang hiện tại.
+            if (!on)
+            {
+                if (previousButton != null) previousButton.interactable = false;
+                if (nextButton != null) nextButton.interactable = false;
+            }
         }
 
         private void PopulateMailList(MailListPagedResponse response)
         {
             if (response == null || response.Items == null || response.Items.Length == 0)
             {
+                // Xóa thư cuối cùng của trang > 1 làm trang này rỗng -> lùi về trang trước
+                if (_currentPage > 1)
+                {
+                    _currentPage--;
+                    LoadMailsFromBackend();
+                    return;
+                }
+
                 if (emptyListText != null)
                 {
                     emptyListText.gameObject.SetActive(true);
@@ -150,14 +168,12 @@ namespace MysticJourney.Screen.Mail
 
                 if (paginationContainer != null) paginationContainer.SetActive(false);
                 HideRightPanelContent();
-                if (emptyRightText != null) emptyRightText.gameObject.SetActive(true);
 
                 UpdatePaginationUI(1, 0);
                 return;
             }
 
             if (emptyListText != null) emptyListText.gameObject.SetActive(false);
-            if (emptyRightText != null) emptyRightText.gameObject.SetActive(false);
             if (paginationContainer != null) paginationContainer.SetActive(true);
 
             _totalPages = response.TotalPages;
@@ -192,6 +208,7 @@ namespace MysticJourney.Screen.Mail
 
         private void UpdatePaginationUI(int currentPage, int totalPages)
         {
+            _isLoading = false;
             _currentPage = currentPage;
             _totalPages = totalPages;
 
@@ -206,6 +223,7 @@ namespace MysticJourney.Screen.Mail
 
         private void GoToPage(int page)
         {
+            if (_isLoading) return;
             if (page < 1 || page > _totalPages || page == _currentPage) return;
             _currentPage = page;
 
@@ -230,21 +248,18 @@ namespace MysticJourney.Screen.Mail
         {
             if (rightPanel != null) rightPanel.SetActive(true);
 
-            if (emptyRightText != null) emptyRightText.gameObject.SetActive(false);
             ShowRightPanelContent();
 
             if (titleText != null) titleText.text = mailData.Title;
-            if (typeText != null) typeText.text = mailData.Type;
+            if (typeText != null) 
+            {
+                typeText.text = mailData.Type;
+                typeText.color = GetMailTypeColor(mailData.Type);
+            }
             if (bodyText != null) bodyText.text = mailData.Content;
 
-            // ponytail: Rewards section intentionally left blank — to be built later.
-            // Keep the whole reward area (gold/gem/items) and the claim button/stamp
-            // hidden so the right panel shows only title/type/body for now. Re-enable by
-            // restoring the reward-rendering block below (git history) once the reward UI
-            // is finalized.
-            if (rewardsContainer != null) rewardsContainer.SetActive(false);
-            if (claimButton != null) claimButton.gameObject.SetActive(false);
-            if (claimedStamp != null) claimedStamp.SetActive(false);
+            // Display rewards section
+            DisplayRewards(mailData);
 
             if (!mailData.IsRead)
             {
@@ -254,6 +269,159 @@ namespace MysticJourney.Screen.Mail
                     err => { }
                 );
             }
+        }
+
+        private void DisplayRewards(MailDetailResponse mailData)
+        {
+            bool hasGold = mailData.AttachedGold > 0;
+            bool hasGems = mailData.AttachedGems > 0;
+            bool hasItems = mailData.AttachedItems != null && mailData.AttachedItems.Length > 0;
+            bool hasRewards = hasGold || hasGems || hasItems;
+
+            if (rewardsContainer != null)
+                rewardsContainer.SetActive(hasRewards);
+
+            // Build combined list: gold + gems + items
+            var allRewards = new List<UIItemDisplayData>();
+
+            // Gold
+            if (hasGold)
+            {
+                var goldDisplayData = new UIItemDisplayData
+                {
+                    itemId = -1,
+                    itemName = "Gold",
+                    icon = GetIconFromDatabase("Gold", "Currency"),
+                    quantity = (int)mailData.AttachedGold,
+                    rarity = "Common",
+                    rawData = new MailRewardItemResponse { ItemId = -1, ItemName = "Gold", Quantity = (int)mailData.AttachedGold }
+                };
+                allRewards.Add(goldDisplayData);
+            }
+
+            // Gems
+            if (hasGems)
+            {
+                var gemDisplayData = new UIItemDisplayData
+                {
+                    itemId = -2,
+                    itemName = "Gem",
+                    icon = GetIconFromDatabase("Gem", "Currency"),
+                    quantity = (int)mailData.AttachedGems,
+                    rarity = "Rare",
+                    rawData = new MailRewardItemResponse { ItemId = -2, ItemName = "Gem", Quantity = (int)mailData.AttachedGems }
+                };
+                allRewards.Add(gemDisplayData);
+            }
+
+            // Items
+            if (hasItems)
+            {
+                foreach (var item in mailData.AttachedItems)
+                {
+                    allRewards.Add(CreateItemDisplayData(item));
+                }
+            }
+
+            // Setup all reward slots
+            SetupRewardSlots(allRewards);
+
+            // Claim button / claimed stamp
+            if (mailData.IsClaimed)
+            {
+                if (claimButton != null) claimButton.gameObject.SetActive(false);
+                if (claimedStamp != null) claimedStamp.SetActive(true);
+            }
+            else if (IsExpired(mailData.ExpiredAt))
+            {
+                // Hết hạn mà chưa nhận -> BE sẽ từ chối claim, nên ẩn cả nút lẫn stamp.
+                if (claimButton != null) claimButton.gameObject.SetActive(false);
+                if (claimedStamp != null) claimedStamp.SetActive(false);
+            }
+            else
+            {
+                if (claimButton != null) claimButton.gameObject.SetActive(hasRewards);
+                if (claimedStamp != null) claimedStamp.SetActive(false);
+            }
+        }
+
+        private static bool IsExpired(string expiredAt)
+        {
+            return !string.IsNullOrEmpty(expiredAt)
+                && DateTime.TryParse(expiredAt, out DateTime expiry)
+                && expiry <= DateTime.UtcNow;
+        }
+
+        private void SetupRewardSlots(List<UIItemDisplayData> rewards)
+        {
+            if (itemsContainer == null)
+                return;
+
+            // Clear existing items
+            foreach (Transform child in itemsContainer)
+            {
+                Destroy(child.gameObject);
+            }
+
+            if (rewards == null || rewards.Count == 0)
+                return;
+
+            foreach (var displayData in rewards)
+            {
+                GameObject slotObj;
+                if (itemSlotPrefab != null)
+                {
+                    slotObj = Instantiate(itemSlotPrefab, itemsContainer);
+                }
+                else
+                {
+                    slotObj = new GameObject("RewardItem");
+                    slotObj.transform.SetParent(itemsContainer);
+                    slotObj.AddComponent<RectTransform>().sizeDelta = new Vector2(80, 80);
+                }
+
+                var slot = slotObj.GetComponent<UIBaseItemSlot>();
+                if (slot != null)
+                {
+                    slot.SetupCore(displayData);
+                }
+            }
+        }
+
+        private Sprite GetIconFromDatabase(string itemName, string itemType)
+        {
+            if (ItemIconDatabase.Instance != null)
+            {
+                var icon = ItemIconDatabase.Instance.GetIcon(itemName, itemType);
+                if (icon != null)
+                    return icon;
+            }
+            return null;
+        }
+
+        private UIItemDisplayData CreateItemDisplayData(MailRewardItemResponse item)
+        {
+            var displayData = new UIItemDisplayData
+            {
+                itemId = item.ItemId,
+                itemName = item.ItemName,
+                quantity = item.Quantity,
+                rarity = "Common",
+                rawData = item
+            };
+
+            // Get icon from ItemIconDatabase
+            displayData.icon = GetIconFromDatabase(item.ItemName, null);
+
+            // Try remote cache if no local icon
+            if (displayData.icon == null && !string.IsNullOrWhiteSpace(item.IconUrl))
+            {
+                var cached = RemoteSpriteCache.GetCached(item.IconUrl);
+                if (cached != null)
+                    displayData.icon = cached;
+            }
+
+            return displayData;
         }
 
         private void OnClaimClicked()
@@ -271,6 +439,11 @@ namespace MysticJourney.Screen.Mail
                     if (claimedStamp != null) claimedStamp.SetActive(true);
                     _currentSelectedMailUI?.MarkAsClaimedLocally();
 
+                    // Cập nhật HUD ngay để Gold/Gem/Level phản ánh phần thưởng vừa nhận,
+                    // thay vì chờ vòng lặp refresh 3s của PlayerHUDController.
+                    if (PlayerHUDController.Instance != null)
+                        PlayerHUDController.Instance.RefreshHUD();
+
                     // Nếu bạn có popup hiển thị tổng kết quà vừa nhận, bạn có thể gọi API/Popup Manager ở đây
                 },
                 onError: error =>
@@ -285,8 +458,10 @@ namespace MysticJourney.Screen.Mail
         {
             if (_currentSelectedMailSummary == null || deleteButton == null) return;
 
-            // Nếu thư còn quà chưa nhận -> bắt buộc mở popup xác nhận
-            if (_currentSelectedMailSummary.HasClaimableReward && !_currentSelectedMailSummary.IsClaimed)
+            // Thư hết hạn thì quà không claim được nữa -> xóa thẳng, khỏi cảnh báo.
+            // Còn quà chưa nhận (và chưa hết hạn) -> bắt buộc mở popup xác nhận.
+            if (_currentSelectedMailSummary.HasClaimableReward && !_currentSelectedMailSummary.IsClaimed
+                && !IsExpired(_currentSelectedMailSummary.ExpiredAt))
             {
                 ShowConfirmPopup("This mail still has unclaimed rewards. Are you sure you want to delete it?");
             }
@@ -336,11 +511,33 @@ namespace MysticJourney.Screen.Mail
                         _currentSelectedMailUI = null;
                     }
                     HideRightPanelContent();
-                    if (emptyRightText != null) emptyRightText.gameObject.SetActive(true);
                     LoadMailsFromBackend();
                 },
                 onError: err => Debug.LogError("[MailboxUI] Xóa thư thất bại")
             );
+        }
+
+        private Color GetMailTypeColor(string type)
+        {
+            if (string.IsNullOrEmpty(type)) return Color.white;
+            
+            // Theo FE design, chỉnh mã màu phù hợp với từng loại mail
+            switch (type.ToLower())
+            {
+                case "gift":
+                    if (ColorUtility.TryParseHtmlString("#A1D06C", out Color giftColor)) return giftColor;
+                    return Color.green;
+                case "system":
+                    if (ColorUtility.TryParseHtmlString("#FF6B6B", out Color sysColor)) return sysColor;
+                    return Color.red;
+                case "notice":
+                case "warning":
+                    if (ColorUtility.TryParseHtmlString("#FFC453", out Color warnColor)) return warnColor;
+                    return Color.yellow;
+                default:
+                    if (ColorUtility.TryParseHtmlString("#E6E6E6", out Color defaultColor)) return defaultColor;
+                    return Color.white; 
+            }
         }
     }
 }
