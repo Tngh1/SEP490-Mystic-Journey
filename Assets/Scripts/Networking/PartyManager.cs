@@ -168,7 +168,7 @@ public class PartyManager : MonoBehaviour
         int cost = 0; // energy already validated in the panel; party members share the run
 
         DungeonManager.Instance.CreatePartySession(
-            configId, sceneName, cost, dungeonName, BuildPartyMemberNames(party),
+            configId, sceneName, cost, dungeonName, BuildPartyMemberIds(party),
             sessionId =>
             {
                 if (sessionId <= 0)
@@ -357,14 +357,14 @@ public class PartyManager : MonoBehaviour
     /// must NOT be included here or it gets double-counted and Enter is rejected for
     /// exceeding MaxMembers.
     /// </summary>
-    private static System.Collections.Generic.List<string> BuildPartyMemberNames(PartyLobby party)
+    private static System.Collections.Generic.List<string> BuildPartyMemberIds(PartyLobby party)
     {
-        var names = new System.Collections.Generic.List<string>();
+        var ids = new System.Collections.Generic.List<string>();
         for (int i = 0; i < PartyLobby.MaxMembers; i++)
         {
             var m = party.Members[i];
-            if (m.IsOccupied && m.Player != party.HostPlayer) names.Add(m.Name.Value);
+            if (m.IsOccupied && m.Player != party.HostPlayer) ids.Add(m.ProfileId.ToString());
         }
-        return names;
+        return ids;
     }
 }

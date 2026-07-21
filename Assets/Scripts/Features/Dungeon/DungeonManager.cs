@@ -7,6 +7,7 @@ using Unity.Cinemachine;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
+using Fusion;
 
 public class DungeonManager : MonoBehaviour
 {
@@ -528,6 +529,11 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _currentPhase = DungeonPhase.BossSpawning;
         Debug.Log("[DungeonManager] All normals defeated. Starting boss sequence (shake → spawn).");
 
+        if (PhotonManager.Instance?.IsHost == true && NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.RPC_BossSpawning();
+        }
+
         // Screen shake to signal the incoming boss
         DungeonScreenShake.Shake(duration: 0.9f, magnitude: 0.28f);
         yield return new WaitForSeconds(1.2f);
@@ -571,8 +577,38 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _bossDeathPosition   = boss.transform.position;
         _currentPhase        = DungeonPhase.Complete;
 
+        if (PhotonManager.Instance?.IsHost == true && NetworkPlayer.Local != null)
+        {
+            NetworkPlayer.Local.RPC_BossDied(_bossDeathPosition);
+        }
+
         Debug.Log($"[DungeonManager] Boss defeated at {_bossDeathPosition}. Starting completion sequence.");
         StartCoroutine(BossDeathSequence(_bossDeathPosition));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CLIENT EVENT RECEIVERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public void ClientReceiveBossSpawning()
+    {
+        StartCoroutine(ClientBossSequence());
+    }
+
+    private IEnumerator ClientBossSequence()
+    {
+        _currentPhase = DungeonPhase.BossSpawning;
+        Debug.Log("[DungeonManager] Client received boss spawning event. Shaking screen...");
+        DungeonScreenShake.Shake(duration: 0.9f, magnitude: 0.28f);
+        yield return new WaitForSeconds(1.2f);
+        _currentPhase = DungeonPhase.Boss;
+    }
+
+    public void ClientReceiveBossDeath(Vector3 chestPosition)
+    {
+        _currentPhase = DungeonPhase.Complete;
+        Debug.Log($"[DungeonManager] Client received boss death event at {chestPosition}. Starting completion sequence.");
+        StartCoroutine(BossDeathSequence(chestPosition));
     }
 
     /// <summary>
@@ -930,7 +966,17 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 if (targetSpawnPoint != null)
                 {
                     Vector3 spawnPos = targetSpawnPoint.transform.position;
-                    player.transform.position = spawnPos;
+                    
+                    var nt = player.GetComponent<NetworkTransform>();
+                    if (nt != null)
+                    {
+                        nt.Teleport(spawnPos);
+                    }
+                    else
+                    {
+                        player.transform.position = spawnPos;
+                    }
+
                     var rb = player.GetComponent<Rigidbody2D>();
                     if (rb != null)
                     {
@@ -941,7 +987,15 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 }
                 else
                 {
-                    player.transform.position = Vector3.zero;
+                    var nt = player.GetComponent<NetworkTransform>();
+                    if (nt != null)
+                    {
+                        nt.Teleport(Vector3.zero);
+                    }
+                    else
+                    {
+                        player.transform.position = Vector3.zero;
+                    }
                     WorldState.LastPosition = Vector3.zero;
                 }
                 
