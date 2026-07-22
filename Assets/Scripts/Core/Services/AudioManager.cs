@@ -32,6 +32,10 @@ namespace MysticJourney.Core.Services
             }
         }
 
+        [Header("UI SFX")]
+        [Tooltip("Tiếng phát khi mở panel UI. Kéo clip OpenPanel vào đây.")]
+        [SerializeField] private AudioClip openPanelSfx;
+
         // Nguồn phát nhạc nền (loop). Một bài tại một thời điểm.
         private AudioSource _musicSource;
         // Nguồn phát SFX (one-shot). Dùng PlayOneShot nên 1 source là đủ cho phần lớn nhu cầu.
@@ -113,6 +117,9 @@ namespace MysticJourney.Core.Services
             // PlayOneShot nhân với _sfxSource.volume (đã set theo Master*SFX).
             _sfxSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale));
         }
+
+        /// <summary>Tiếng mở panel UI. Đi qua kênh SFX nên slider SFX điều khiển được.</summary>
+        public void PlayOpenPanel() => PlaySfx(openPanelSfx);
 
         // ─── Âm lượng ─────────────────────────────────────────────────────────
 

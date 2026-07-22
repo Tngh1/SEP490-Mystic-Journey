@@ -85,6 +85,8 @@ public class UIManager : MonoBehaviour
         panel.transform.SetAsLastSibling(); // Vẫn giữ lại để Panel nổi lên trên các Panel khác
         currentPanel = panel;
         KeepQuestTrackerVisible();
+
+        MysticJourney.Core.Services.AudioManager.Instance.PlayOpenPanel();
     }
 
     public void CloseCurrentPanel()
