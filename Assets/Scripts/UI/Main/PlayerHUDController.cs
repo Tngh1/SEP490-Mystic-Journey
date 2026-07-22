@@ -43,6 +43,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private GameObject shopButtonObj;
     [SerializeField] private GameObject guildButtonObj;
     [SerializeField] private GameObject bestiaryButtonObj;
+    [SerializeField] private GameObject skillsButtonObj;
 
     [Header("Death Popup")]
     [SerializeField] private GameObject deathPopupPanel;
@@ -83,8 +84,10 @@ public class PlayerHUDController : MonoBehaviour
             levelUpButton.onClick.AddListener(OnLevelUpButtonClicked);
         }
         PlayerEntity.OnHealthChanged += HandleHealthChanged;
-        WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
-        WorldRuntimeEvents.QuestsChanged += UpdateQuestPointers;
+        WorldRuntimeEvents.QuestsChanged -= OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.QuestsChanged += OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged -= OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged += OnQuestsOrCurrencyChanged;
 
         // Subscribe to NetworkPlayer death event
         if (NetworkPlayer.Local != null)
@@ -103,7 +106,8 @@ public class PlayerHUDController : MonoBehaviour
             levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
         }
         PlayerEntity.OnHealthChanged -= HandleHealthChanged;
-        WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
+        WorldRuntimeEvents.QuestsChanged -= OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged -= OnQuestsOrCurrencyChanged;
 
         // Unsubscribe from NetworkPlayer death event
         if (NetworkPlayer.Local != null)
@@ -112,6 +116,13 @@ public class PlayerHUDController : MonoBehaviour
         }
         NetworkPlayer.OnAnyReadyStateChanged -= UpdateDeathPopupState;
 
+    }
+
+    private void OnQuestsOrCurrencyChanged()
+    {
+        UpdateQuestPointers();
+        RefreshHUD();
+        RefreshCurrencyBalance();
     }
 
     private void OnLevelUpButtonClicked()
@@ -140,8 +151,25 @@ public class PlayerHUDController : MonoBehaviour
         {
             energyText = transform.Find("TopBar/Center_Resources/EnergyBox/EnergyText")?.GetComponent<TMP_Text>();
         }
-        if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
-        if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
+        if (goldText == null)
+        {
+            goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>()
+                    ?? transform.Find("TopBar/Center_Resources/GoldBox")?.GetComponentInChildren<TMP_Text>()
+                    ?? transform.Find("TopBar/Center_Resources/CoinBox/CoinText")?.GetComponent<TMP_Text>()
+                    ?? transform.Find("TopBar/Center_Resources/CoinBox")?.GetComponentInChildren<TMP_Text>();
+        }
+
+        if (gemText == null)
+        {
+            gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/GemBox")?.GetComponentInChildren<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/GemsBox/GemsText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/GemsBox")?.GetComponentInChildren<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/DiamondBox/DiamondText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/DiamondBox")?.GetComponentInChildren<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/Gem/GemText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/Gem")?.GetComponentInChildren<TMP_Text>();
+        }
         if (corruptionText == null)
         {
             corruptionText = transform.Find("Corruption/CorruptionNumber")?.GetComponent<TMP_Text>()
@@ -207,6 +235,13 @@ public class PlayerHUDController : MonoBehaviour
         {
             var btn = transform.Find("Left/BestiaryButton");
             if (btn != null) bestiaryButtonObj = btn.gameObject;
+        }
+        if (skillsButtonObj == null)
+        {
+            var btn = transform.Find("BottomCenter/Skills/SkillButton")
+                   ?? transform.Find("BottomCenter/Skills")
+                   ?? transform.Find("Skills");
+            if (btn != null) skillsButtonObj = btn.gameObject;
         }
 
         // Same hover-scale transition the party panel uses on its Start/Ready buttons.
@@ -439,6 +474,11 @@ public class PlayerHUDController : MonoBehaviour
 
     private void UpdateCurrencyUI(decimal gold, decimal gems)
     {
+        if (goldText == null || gemText == null)
+        {
+            FindHUDReferences();
+        }
+
         if (goldText != null)
         {
             goldText.text = FormatCurrencyAmount(gold);
@@ -537,7 +577,7 @@ public class PlayerHUDController : MonoBehaviour
             {
                 var go = new GameObject("QuestPointer");
                 go.transform.SetParent(obj.transform, false);
-                var text = go.AddComponent<TMP_Text>();
+                var text = go.AddComponent<TMPro.TextMeshProUGUI>();
                 text.text = "!";
                 text.color = Color.yellow;
                 text.fontSize = 40;
@@ -567,32 +607,59 @@ public class PlayerHUDController : MonoBehaviour
         if (quests == null) return;
 
         var active = MysticJourney.Core.Utilities.QuestUtils.PickPreferredQuest(quests);
-        if (active == null) 
+        if (active == null || MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed")) 
         {
             ClearAllQuestPointers();
             return;
         }
 
-        bool gacha = false, guild = false, shop = false, daily = false;
-        var objType = active.ObjectiveType?.ToLower();
+        bool gacha = false, guild = false, shop = false, daily = false, skill = false;
+        var objType = active.ObjectiveType?.ToLower() ?? "";
         
         if (objType == "gacha") gacha = true;
         if (objType == "guild") guild = true;
         if (objType == "shop" || objType == "buy") shop = true;
         if (objType == "achievement" || objType == "daily") daily = true;
+        if (objType == "equipskill" || objType == "skill") skill = true;
+
+        if (skillsButtonObj == null)
+        {
+            var btn = transform.Find("BottomCenter/Skills/SkillButton")
+                   ?? transform.Find("BottomCenter/Skills")
+                   ?? transform.Find("Skills");
+            if (btn != null) skillsButtonObj = btn.gameObject;
+        }
 
         EnsureQuestPointer(gachaButtonObj, gacha);
         EnsureQuestPointer(guildButtonObj, guild);
         EnsureQuestPointer(shopButtonObj, shop);
         EnsureQuestPointer(dailyButtonObj, daily);
+        EnsureQuestPointer(skillsButtonObj, skill);
+        EnsureHighlightPulse(skillsButtonObj, skill);
     }
     
+    private void EnsureHighlightPulse(GameObject obj, bool add)
+    {
+        if (obj == null) return;
+        var pulse = obj.GetComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+        if (add)
+        {
+            if (pulse == null) obj.AddComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+        }
+        else
+        {
+            if (pulse != null) Destroy(pulse);
+        }
+    }
+
     private void ClearAllQuestPointers()
     {
         EnsureQuestPointer(gachaButtonObj, false);
         EnsureQuestPointer(guildButtonObj, false);
         EnsureQuestPointer(shopButtonObj, false);
         EnsureQuestPointer(dailyButtonObj, false);
+        EnsureQuestPointer(skillsButtonObj, false);
+        EnsureHighlightPulse(skillsButtonObj, false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

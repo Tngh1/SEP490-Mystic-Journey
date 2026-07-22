@@ -81,17 +81,13 @@ namespace MysticJourney.Features.Quest
                 return;
             }
 
-            if (playerTransform == null)
-            {
-                var p = GameObject.FindGameObjectWithTag("Player");
-                if (p != null) playerTransform = p.transform;
-            }
+            playerTransform = GetPlayerTransform();
 
             Transform target = FindTargetForQuest(active);
 
-            if (target != null)
+            if (target != null && playerTransform != null)
             {
-                Debug.Log($"[QuestWaypointManager] Found target for quest {active.QuestId}: {target.name} at {target.position}");
+                Debug.Log($"[QuestWaypointManager] Found target for quest {active.QuestId}: {target.name} at {target.position}, player at {playerTransform.position}");
                 EnsurePointerExists();
                 waypointPointer.Setup(target, playerTransform);
             }
@@ -100,6 +96,26 @@ namespace MysticJourney.Features.Quest
                 Debug.Log($"[QuestWaypointManager] Target not found for quest {active.QuestId} with objective {active.ObjectiveType} and target {active.ObjectiveTarget}");
                 if (waypointPointer != null) waypointPointer.Clear();
             }
+        }
+
+        private Transform GetPlayerTransform()
+        {
+            if (NetworkPlayer.Local != null)
+                return NetworkPlayer.Local.transform;
+
+            var localPe = PlayerEntity.Instance;
+            if (localPe != null)
+                return localPe.transform;
+
+            var p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null)
+                return p.transform;
+
+            var pe = FindObjectOfType<PlayerEntity>();
+            if (pe != null)
+                return pe.transform;
+
+            return null;
         }
 
         private void EnsurePointerExists()
@@ -140,58 +156,159 @@ namespace MysticJourney.Features.Quest
             waypointPointer.distanceLabel = tm;
         }
 
-        // Tìm NPC giao nhiệm vụ theo tên, khớp "khoan dung": bỏ qua hoa/thường + khoảng trắng,
-        // thử cả DisplayName lẫn tên GameObject. Nếu quest không ghi tên người giao thì dùng
-        // hằng FallbackQuestGiver ("Elder Rowan"). Nếu vẫn không có tên nào -> NPC đầu tiên trong map.
-        private Transform FindQuestGiverNpc(string questGiver)
+        // Tìm NPC giao/nhận nhiệm vụ theo questId, tên questGiver hoặc objectiveTarget (vd Mysterious Figure, Lyra, Tristan, Arthur).
+        private Transform FindQuestGiverNpc(int questId, string questGiver, string objectiveTarget = null)
         {
             var interactables = FindObjectsOfType<WorldInteractable>();
+            string wantedGiver = (questGiver ?? "").Trim();
+            string wantedTarget = (objectiveTarget ?? "").Trim();
+
+            // 1. First Priority: Try matching specified quest giver NPC by name (e.g., "Elder Rowan", "Fa", "Tristan", "Arthur")
+            if (!string.IsNullOrWhiteSpace(wantedGiver))
+            {
+                var npc = FindMatchingNpc(interactables, wantedGiver);
+                if (npc != null) return npc;
+            }
+
+            // 2. Second Priority: Try matching objective target NPC name (e.g., "Elder Rowan", "Tristan", "Arthur")
+            if (!string.IsNullOrWhiteSpace(wantedTarget))
+            {
+                var npc = FindMatchingNpc(interactables, wantedTarget);
+                if (npc != null) return npc;
+            }
+
+            // 3. Fallback: Check if any NPC contains questId in LinkedQuestIds
+            if (questId > 0)
+            {
+                foreach (var i in interactables)
+                {
+                    if (i.Kind != WorldInteractableKind.Npc) continue;
+                    if (i.LinkedQuestIds != null && System.Linq.Enumerable.Contains(i.LinkedQuestIds, questId))
+                        return i.transform;
+                }
+            }
+
+            return null;
+        }
+
+        private static string CleanNpcName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "";
+            string cleaned = name.Trim();
+            int idx = cleaned.IndexOf('(');
+            if (idx >= 0) cleaned = cleaned.Substring(0, idx);
+            return cleaned.Trim();
+        }
+
+        private Transform FindMatchingNpc(WorldInteractable[] interactables, string nameToMatch)
+        {
+            if (string.IsNullOrWhiteSpace(nameToMatch)) return null;
+            string cleanTarget = CleanNpcName(nameToMatch);
+
+            WorldInteractable bestMatch = null;
+            float minDistance = float.MaxValue;
             Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
 
-            string wanted = (questGiver ?? "").Trim();
-            
-            // 1. Try matching specified quest giver name
-            if (!string.IsNullOrWhiteSpace(wanted))
-            {
-                foreach (var i in interactables)
-                {
-                    if (i.Kind != WorldInteractableKind.Npc) continue;
-                    if (Matches(i.DisplayName, wanted) || Matches(i.ObjectKey, wanted) || Matches(i.gameObject.name, wanted) ||
-                        (!string.IsNullOrWhiteSpace(i.DisplayName) && i.DisplayName.IndexOf(wanted, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                        (!string.IsNullOrWhiteSpace(i.gameObject.name) && i.gameObject.name.IndexOf(wanted, System.StringComparison.OrdinalIgnoreCase) >= 0))
-                        return i.transform;
-                }
-            }
-
-            // 2. Try known fallback quest givers: "Migra", "Elder Rowan", "Rowan", "MageOld"
-            string[] knownGivers = new string[] { "Migra", "Elder Rowan", "Rowan", "MageOld", "Elder" };
-            foreach (var g in knownGivers)
-            {
-                foreach (var i in interactables)
-                {
-                    if (i.Kind != WorldInteractableKind.Npc) continue;
-                    if ((!string.IsNullOrWhiteSpace(i.DisplayName) && i.DisplayName.IndexOf(g, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                        (!string.IsNullOrWhiteSpace(i.gameObject.name) && i.gameObject.name.IndexOf(g, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                        (!string.IsNullOrWhiteSpace(i.ObjectKey) && i.ObjectKey.IndexOf(g, System.StringComparison.OrdinalIgnoreCase) >= 0))
-                        return i.transform;
-                }
-            }
-
-            // 3. Fallback: find the NPC closest to player / spawn point
-            WorldInteractable closestNpc = null;
-            float minDist = float.MaxValue;
             foreach (var i in interactables)
             {
                 if (i.Kind != WorldInteractableKind.Npc) continue;
-                float dist = Vector3.Distance(playerPos, i.transform.position);
-                if (dist < minDist)
+
+                string cleanDisplay = CleanNpcName(i.DisplayName);
+                string cleanKey = CleanNpcName(i.ObjectKey);
+                string cleanGoName = CleanNpcName(i.gameObject.name);
+
+                bool isMatch = Matches(cleanDisplay, cleanTarget) || Matches(cleanKey, cleanTarget) || Matches(cleanGoName, cleanTarget);
+
+                if (!isMatch && !string.IsNullOrWhiteSpace(cleanDisplay) && !string.IsNullOrWhiteSpace(cleanTarget))
                 {
-                    minDist = dist;
-                    closestNpc = i;
+                    if (cleanDisplay.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cleanTarget.IndexOf(cleanDisplay, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        isMatch = true;
+                }
+
+                if (!isMatch && !string.IsNullOrWhiteSpace(cleanGoName) && !string.IsNullOrWhiteSpace(cleanTarget))
+                {
+                    if (cleanGoName.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cleanTarget.IndexOf(cleanGoName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        isMatch = true;
+                }
+
+                if (isMatch)
+                {
+                    if (playerTransform != null)
+                    {
+                        float dist = Vector3.Distance(playerPos, i.transform.position);
+                        if (dist < minDistance)
+                        {
+                            minDistance = dist;
+                            bestMatch = i;
+                        }
+                    }
+                    else
+                    {
+                        return i.transform;
+                    }
                 }
             }
 
-            return closestNpc != null ? closestNpc.transform : null;
+            if (bestMatch != null) return bestMatch.transform;
+
+            // --- FALLBACK: Nếu không có WorldInteractable nào khớp, tìm tất cả GameObject trong scene khớp MageOld / Elder Rowan ---
+            var allGo = FindObjectsOfType<GameObject>();
+            GameObject bestGo = null;
+            float minGoDist = float.MaxValue;
+
+            foreach (var go in allGo)
+            {
+                if (!go.activeInHierarchy) continue;
+                string gName = go.name;
+
+                bool isGoMatch = false;
+                if (!string.IsNullOrWhiteSpace(cleanTarget))
+                {
+                    if (gName.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        cleanTarget.IndexOf(gName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        isGoMatch = true;
+                    }
+                    else if (cleanTarget.IndexOf("Elder Rowan", System.StringComparison.OrdinalIgnoreCase) >= 0 &&
+                             (gName.IndexOf("MageOld", System.StringComparison.OrdinalIgnoreCase) >= 0 || gName.IndexOf("Elder", System.StringComparison.OrdinalIgnoreCase) >= 0 || gName.IndexOf("Rowan", System.StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        isGoMatch = true;
+                    }
+                }
+
+                if (isGoMatch)
+                {
+                    if (playerTransform != null)
+                    {
+                        float dist = Vector3.Distance(playerPos, go.transform.position);
+                        if (dist < minGoDist)
+                        {
+                            minGoDist = dist;
+                            bestGo = go;
+                        }
+                    }
+                    else
+                    {
+                        bestGo = go;
+                        break;
+                    }
+                }
+            }
+
+            if (bestGo != null)
+            {
+                var interactable = bestGo.GetComponent<WorldInteractable>();
+                if (interactable == null)
+                {
+                    interactable = bestGo.AddComponent<WorldInteractable>();
+                    interactable.ConfigureNpc(0, nameToMatch, "Quest NPC", "Xin chào lữ khách!", 2.5f, null);
+                }
+                return bestGo.transform;
+            }
+
+            return null;
         }
 
         private static bool Matches(string a, string b)
@@ -206,12 +323,24 @@ namespace MysticJourney.Features.Quest
             string targetName = quest.ObjectiveTarget ?? "";
             string questGiver = quest.QuestGiverName ?? "";
 
-            // Nếu nhiệm vụ chưa nhận (NotStarted) hoặc đã xong chờ trả (Completed), CHỈ chỉ
-            // đường đến NPC giao nhiệm vụ. return luôn (kể cả null) để không rơi xuống logic
-            // objective bên dưới — nếu không, quest "Defeat" chưa nhận sẽ chỉ thẳng tới quái.
-            if (QuestUtils.IsStatus(quest, "NotStarted") || QuestUtils.IsStatus(quest, "Completed"))
+            // UI-only objectives (EquipSkill / Skill) do not require world navigation arrow.
+            if (objType.Equals("EquipSkill", System.StringComparison.OrdinalIgnoreCase) ||
+                objType.Equals("Skill", System.StringComparison.OrdinalIgnoreCase))
             {
-                return FindQuestGiverNpc(questGiver);
+                return null;
+            }
+
+            // 1. Nếu nhiệm vụ chưa nhận (NotStarted): chỉ đường tới NPC giao quest (Quest Giver). Không tìm targetName để tránh nhảy sang bước sau.
+            if (QuestUtils.IsStatus(quest, "NotStarted"))
+            {
+                return FindQuestGiverNpc(quest.QuestId, questGiver, objectiveTarget: null);
+            }
+
+            // 2. Nếu nhiệm vụ đã xong chờ trả (Completed): chỉ đường tới NPC trả quest.
+            if (QuestUtils.IsStatus(quest, "Completed"))
+            {
+                // Gọi đúng thứ tự: (questId, questGiver, objectiveTarget)
+                return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
             }
 
             // Quest đang InProgress: thử resolve target cụ thể theo ObjectiveType.
@@ -220,12 +349,8 @@ namespace MysticJourney.Features.Quest
             // 1. Talk to NPC
             if (objType.Equals("Talk", System.StringComparison.OrdinalIgnoreCase))
             {
-                foreach (var i in interactables)
-                {
-                    if (i.Kind != WorldInteractableKind.Npc) continue;
-                    if (i.NpcId.ToString() == targetName || Matches(i.DisplayName, targetName))
-                        return i.transform;
-                }
+                var talkNpc = FindMatchingNpc(interactables, targetName);
+                if (talkNpc != null) return talkNpc;
             }
 
             // 2. Collect Item
@@ -233,6 +358,12 @@ namespace MysticJourney.Features.Quest
                 objType.Equals("Gather", System.StringComparison.OrdinalIgnoreCase) ||
                 objType.Equals("Fetch", System.StringComparison.OrdinalIgnoreCase))
             {
+                // Nếu đã thu thập đủ, mũi tên chuyển sang chỉ tới NPC trả quest
+                if (quest.Progress >= Mathf.Max(1, quest.TargetAmount))
+                {
+                    return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
+                }
+
                 WorldInteractable bestItem = null;
                 float minDistance = float.MaxValue;
                 Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
@@ -327,8 +458,8 @@ namespace MysticJourney.Features.Quest
             var locPortal = FindPortalToMap(quest.ObjectiveLocation);
             if (locPortal != null) return locPortal;
 
-            // 4c. Cuối cùng: NPC giao quest (đích an toàn, luôn có trên map gốc).
-            return FindQuestGiverNpc(questGiver);
+            // 4c. Cuối cùng: NPC giao/nhận quest.
+            return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
         }
 
         private Transform FindDungeonEntrance(WorldInteractable[] interactables)

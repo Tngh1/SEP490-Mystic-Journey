@@ -32,6 +32,15 @@ namespace MysticJourney.UI.Effects
 
         private void LateUpdate()
         {
+            if (NetworkPlayer.Local != null)
+            {
+                player = NetworkPlayer.Local.transform;
+            }
+            else if (PlayerEntity.Instance != null)
+            {
+                player = PlayerEntity.Instance.transform;
+            }
+
             if (target == null || player == null)
             {
                 if (gameObject.activeSelf) gameObject.SetActive(false);
