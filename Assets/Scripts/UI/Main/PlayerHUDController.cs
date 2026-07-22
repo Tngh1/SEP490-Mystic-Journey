@@ -61,6 +61,18 @@ public class PlayerHUDController : MonoBehaviour
     private bool _isRefreshing;
     private bool _isCurrencyRefreshing;
 
+    // MenuButton (Toggle) trong Left: bấm để hiện/ẩn các nút còn lại cho gọn màn hình.
+    // Dùng CanvasGroup trên Left để bật/tắt cả cụm — KHÔNG đụng SetActive của các nút, vì
+    // visibility từng nút do 2 hệ level-gate độc lập quản (ApplyLevelGating +
+    // MainFeatureUnlockRuntime). CanvasGroup là lớp phủ riêng: menu đóng ẩn cả cụm, menu
+    // mở hiện đúng những nút đã đủ level. MenuButton có CanvasGroup ignoreParentGroups
+    // riêng nên luôn hiện/bấm được.
+    private bool _menuOpen;
+    private bool _menuWired;
+    private CanvasGroup _leftGroup;
+    private GameObject _menuOpenIcon;  // Icon (menu) — hiện khi menu ĐANG đóng
+    private GameObject _menuCloseIcon; // CloseIcon (X) — hiện khi menu ĐANG mở
+
     private void Awake()
     {
         if (Instance == null)
@@ -256,6 +268,8 @@ public class PlayerHUDController : MonoBehaviour
         AddHoverEffect(transform.Find("BottomCenter/Skills/SkillButton"));
         AddHoverEffect(transform.Find("TopBar/Right_Buttons/MailButton"));
         AddHoverEffect(transform.Find("TopBar/Right_Buttons/SettingButton"));
+
+        WireMenuButton();
 
         ConfigureResourceText(energyText);
         ConfigureResourceText(goldText);
@@ -537,6 +551,64 @@ public class PlayerHUDController : MonoBehaviour
         if (t == null) return;
         if (t.GetComponent<UIHoverScaleEffect>() == null)
             t.gameObject.AddComponent<UIHoverScaleEffect>();
+    }
+
+    private void WireMenuButton()
+    {
+        var menuTr = transform.Find("Left/MenuButton");
+        if (menuTr == null) return;
+
+        AddHoverEffect(menuTr);
+
+        // MenuButton phải luôn hiện & bấm được dù CanvasGroup của Left tắt cụm nút.
+        var menuGroup = menuTr.GetComponent<CanvasGroup>();
+        if (menuGroup == null) menuGroup = menuTr.gameObject.AddComponent<CanvasGroup>();
+        menuGroup.ignoreParentGroups = true;
+        menuGroup.alpha = 1f;
+        menuGroup.interactable = true;
+        menuGroup.blocksRaycasts = true;
+
+        // Idempotent: FindHUDReferences có thể chạy lại, chỉ gắn listener 1 lần.
+        if (_menuWired) return;
+        _menuWired = true;
+
+        var openIcon = menuTr.Find("Icon");
+        if (openIcon != null) _menuOpenIcon = openIcon.gameObject;
+        var closeIcon = menuTr.Find("CloseIcon");
+        if (closeIcon != null) _menuCloseIcon = closeIcon.gameObject;
+
+        var leftTr = menuTr.parent;
+        _leftGroup = leftTr.GetComponent<CanvasGroup>();
+        if (_leftGroup == null) _leftGroup = leftTr.gameObject.AddComponent<CanvasGroup>();
+
+        var toggle = menuTr.GetComponent<Toggle>();
+        if (toggle != null)
+        {
+            toggle.isOn = _menuOpen;
+            toggle.onValueChanged.AddListener(SetMenuOpen);
+        }
+
+        ApplyMenuVisibility();
+    }
+
+    private void SetMenuOpen(bool open)
+    {
+        _menuOpen = open;
+        ApplyMenuVisibility();
+    }
+
+    private void ApplyMenuVisibility()
+    {
+        if (_leftGroup != null)
+        {
+            _leftGroup.alpha = _menuOpen ? 1f : 0f;
+            _leftGroup.interactable = _menuOpen;
+            _leftGroup.blocksRaycasts = _menuOpen;
+        }
+
+        // Đổi icon MenuButton: đóng -> icon menu, mở -> icon X (đóng).
+        if (_menuOpenIcon != null) _menuOpenIcon.SetActive(!_menuOpen);
+        if (_menuCloseIcon != null) _menuCloseIcon.SetActive(_menuOpen);
     }
 
     private static string FormatCurrencyAmount(decimal amount)

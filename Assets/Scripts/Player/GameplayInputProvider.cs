@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Unity.Cinemachine;
 
 /// <summary>
 /// Single source of truth for reading gameplay input.
@@ -46,8 +47,19 @@ public class GameplayInputProvider : MonoBehaviour
     {
         get
         {
-            var localPlayer = PlayerMovement.Instance;
-            return localPlayer != null ? localPlayer.GetComponent<GameplayInputProvider>() : null;
+            // PlayerMovement.Instance chỉ set trong Spawned() — callback Fusion; offline
+            // (không có NetworkObject) nó KHÔNG chạy nên Instance null, khiến mọi phím
+            // client-local (Inventory/Map/skill) chết dù WASD vẫn chạy. PlayerEntity.Instance
+            // set vô điều kiện trong Awake (cùng GameObject) nên là anchor bền cho cả 2 chế độ.
+            var mv = PlayerMovement.Instance;
+            if (mv != null)
+            {
+                var p = mv.GetComponent<GameplayInputProvider>();
+                if (p != null) return p;
+            }
+
+            var pe = PlayerEntity.Instance;
+            return pe != null ? pe.GetComponent<GameplayInputProvider>() : null;
         }
     }
 
@@ -187,14 +199,42 @@ public class GameplayInputProvider : MonoBehaviour
         {
             var screen = PointerScreenPosition;
             if (screen == null) return null;
-            var cam = Camera.main;
-            if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
+            var cam = GameplayCamera;
             if (cam == null) return null;
-            
+
             // Pass the distance from the camera to the Z=0 plane (where gameplay happens)
             float depth = Mathf.Abs(cam.transform.position.z);
             Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.Value.x, screen.Value.y, depth));
             return new Vector2(world.x, world.y);
+        }
+    }
+
+    /// <summary>
+    /// The camera the player actually sees through — NOT necessarily Camera.main.
+    ///
+    /// The persistent Main scene and each additively-loaded world/dungeon scene BOTH
+    /// ship a "Main Camera" tagged MainCamera. With two objects sharing that tag,
+    /// Camera.main is undefined and often returns the persistent one sitting at the
+    /// origin (no CinemachineBrain, not following the player). ScreenToWorldPoint
+    /// through that camera maps the cursor around (0,0) — tens of units from the
+    /// player — so aim indicators land far away and get clamped to the range edge.
+    ///
+    /// The real gameplay view is whichever camera has an ENABLED CinemachineBrain
+    /// (that's the one Cinemachine drives to follow the player). Prefer it; fall
+    /// back to Camera.main only if no brain exists.
+    /// </summary>
+    private static Camera GameplayCamera
+    {
+        get
+        {
+            var brains = Object.FindObjectsByType<CinemachineBrain>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var b in brains)
+            {
+                if (b == null || !b.isActiveAndEnabled) continue;
+                var cam = b.GetComponent<Camera>();
+                if (cam != null && cam.isActiveAndEnabled) return cam;
+            }
+            return Camera.main != null ? Camera.main : Object.FindFirstObjectByType<Camera>();
         }
     }
 
