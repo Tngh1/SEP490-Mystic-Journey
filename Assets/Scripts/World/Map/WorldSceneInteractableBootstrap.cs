@@ -69,10 +69,10 @@ public static class WorldSceneInteractableBootstrap
             return;
 
         var elder = state.Npcs?
-            .Where(n => n != null && n.IsActive && string.Equals(n.MapName, "ElfForest", StringComparison.OrdinalIgnoreCase))
+            .Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase))
             .OrderBy(n => n.NPCId)
-            .FirstOrDefault(n => string.Equals(n.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase))
-            ?? state.Npcs?.FirstOrDefault(n => n != null && n.IsActive && string.Equals(n.MapName, "ElfForest", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(n => string.Equals(n.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase) || string.Equals(n.Name, "Elder Rowan (Pumpkin)", StringComparison.OrdinalIgnoreCase))
+            ?? state.Npcs?.FirstOrDefault(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase));
 
         var elderPosition = elder != null
             ? new Vector3((float)elder.PositionX, (float)elder.PositionY, 0f)
@@ -113,19 +113,53 @@ public static class WorldSceneInteractableBootstrap
 
     private static GameObject FindOrCreateElderObject(Scene scene, Vector3 position)
     {
-        var elder = FindSceneObject(scene, "MageOld");
-        if (elder != null)
-            return elder;
+        // Phá hủy tất cả các bản sao vô thừa nhận của MageOld hoặc ElderRowanInteractable
+        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        GameObject primaryElder = null;
 
-        elder = FindSceneObject(scene, "ElderRowanInteractable");
-        if (elder == null)
+        foreach (var obj in objects)
         {
-            elder = new GameObject("ElderRowanInteractable");
-            SceneManager.MoveGameObjectToScene(elder, scene);
-            var parent = FindSceneObject(scene, "NPC");
-            if (parent != null)
-                elder.transform.SetParent(parent.transform, true);
+            if (obj.scene != scene) continue;
+
+            if (obj.name.Contains("MageOld") || obj.name.Contains("ElderRowanInteractable"))
+            {
+                if (primaryElder == null && obj.name.StartsWith("MageOld"))
+                {
+                    primaryElder = obj;
+                }
+                else
+                {
+                    // Nếu đã tìm thấy NPC thật rồi mà còn dư đứa nào khác thì tiêu diệt hết!
+                    UnityEngine.Object.Destroy(obj);
+                }
+            }
         }
+        
+        // Quét toàn bộ text trong scene để diệt chữ ảo (phòng hờ kẹt trong UI rác)
+        var allTexts = Resources.FindObjectsOfTypeAll<TMPro.TextMeshProUGUI>();
+        foreach (var t in allTexts)
+        {
+            if (t.gameObject.scene == scene && t.text != null && (t.text.Contains("Elder Rowan") || t.text.Contains("nawoR")))
+            {
+                if (primaryElder != null && !t.transform.IsChildOf(primaryElder.transform))
+                {
+                    var parentCanvas = t.GetComponentInParent<Canvas>();
+                    if (parentCanvas != null) UnityEngine.Object.Destroy(parentCanvas.gameObject);
+                    else UnityEngine.Object.Destroy(t.gameObject);
+                }
+            }
+        }
+
+        if (primaryElder != null)
+        {
+            return primaryElder;
+        }
+
+        var elder = new GameObject("ElderRowanInteractable");
+        SceneManager.MoveGameObjectToScene(elder, scene);
+        var parent = FindSceneObject(scene, "NPC");
+        if (parent != null)
+            elder.transform.SetParent(parent.transform, true);
 
         elder.transform.position = position;
         return elder;

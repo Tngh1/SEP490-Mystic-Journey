@@ -339,6 +339,11 @@ namespace MysticJourney.Features.Quest
             // 2. Nếu nhiệm vụ đã xong chờ trả (Completed): chỉ đường tới NPC trả quest.
             if (QuestUtils.IsStatus(quest, "Completed"))
             {
+                // [HARDCODE HACK]: Nếu là quest tìm xác, ép chỉ đường về Tristan thay vì Arthur (do Database có thể set nhầm Giver)
+                if (targetName != null && (targetName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 || targetName.IndexOf("Xác", System.StringComparison.OrdinalIgnoreCase) >= 0 || quest.QuestId == 13))
+                {
+                    questGiver = "Tristan";
+                }
                 // Gọi đúng thứ tự: (questId, questGiver, objectiveTarget)
                 return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
             }
@@ -353,14 +358,20 @@ namespace MysticJourney.Features.Quest
                 if (talkNpc != null) return talkNpc;
             }
 
-            // 2. Collect Item
+            // 2. Collect Item or Interact Object
             if (objType.Equals("Collect", System.StringComparison.OrdinalIgnoreCase) ||
                 objType.Equals("Gather", System.StringComparison.OrdinalIgnoreCase) ||
-                objType.Equals("Fetch", System.StringComparison.OrdinalIgnoreCase))
+                objType.Equals("Fetch", System.StringComparison.OrdinalIgnoreCase) ||
+                objType.Equals("Interact", System.StringComparison.OrdinalIgnoreCase))
             {
                 // Nếu đã thu thập đủ, mũi tên chuyển sang chỉ tới NPC trả quest
                 if (quest.Progress >= Mathf.Max(1, quest.TargetAmount))
                 {
+                    // [HARDCODE HACK]: Nếu là quest tìm xác, ép chỉ đường về Tristan thay vì Arthur (do Database có thể set nhầm Giver)
+                    if (targetName != null && (targetName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 || targetName.IndexOf("Xác", System.StringComparison.OrdinalIgnoreCase) >= 0 || quest.QuestId == 13))
+                    {
+                        questGiver = "Tristan";
+                    }
                     return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
                 }
 
@@ -378,6 +389,12 @@ namespace MysticJourney.Features.Quest
                 {
                     bool isCollectable = (i.Kind == WorldInteractableKind.QuestItem || i.Kind == WorldInteractableKind.Object);
                     if (!isCollectable) continue;
+
+                    // Bỏ qua các object đã bị tắt Collider (nghĩa là đã tương tác xong)
+                    var col2D = i.GetComponent<UnityEngine.Collider2D>();
+                    var col = i.GetComponent<UnityEngine.Collider>();
+                    if ((col2D != null && !col2D.enabled) || (col != null && !col.enabled))
+                        continue;
 
                     bool isMatch = false;
                     if (i.QuestId.HasValue && i.QuestId.Value == quest.QuestId && quest.QuestId > 0)

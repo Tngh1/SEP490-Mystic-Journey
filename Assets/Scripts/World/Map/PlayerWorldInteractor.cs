@@ -246,6 +246,12 @@ public class PlayerWorldInteractor : MonoBehaviour
             if (item.Kind != WorldInteractableKind.Object && item.Kind != WorldInteractableKind.QuestItem)
                 continue;
 
+            // Bỏ qua nếu collider đã bị tắt (đã tương tác xong)
+            var col2D = item.GetComponent<UnityEngine.Collider2D>();
+            var col = item.GetComponent<UnityEngine.Collider>();
+            if ((col2D != null && !col2D.enabled) || (col != null && !col.enabled))
+                continue;
+
             var distance = Vector2.Distance(position, item.transform.position);
             if (distance > item.InteractionRadius || distance >= bestDistance)
                 continue;
