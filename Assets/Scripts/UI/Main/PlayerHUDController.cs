@@ -774,8 +774,12 @@ public class PlayerHUDController : MonoBehaviour
     /// <summary>
     /// Show the death popup with Again (respawn) and Quit options.
     /// </summary>
+    private bool _isDeathPopupShowing = false;
+    
     public void ShowDeathPopup()
     {
+        if (_isDeathPopupShowing) return;
+        _isDeathPopupShowing = true;
         StartCoroutine(ShowDeathPopupCoroutine());
     }
 
@@ -910,6 +914,7 @@ public class PlayerHUDController : MonoBehaviour
     private void OnWorldRespawnClicked()
     {
         Debug.Log("[PlayerHUDController] OnWorldRespawnClicked - respawning at map spawn point...");
+        _isDeathPopupShowing = false;
 
         if (_deathRedOverlay != null)
         {
@@ -945,6 +950,7 @@ public class PlayerHUDController : MonoBehaviour
 
     public void HideDeathPopup()
     {
+        _isDeathPopupShowing = false;
         if (deathPopupPanel != null)
         {
             deathPopupPanel.SetActive(false);
