@@ -907,8 +907,17 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 },
                 onError: error =>
                 {
-                    Debug.LogWarning($"[DungeonManager] Restart API failed: {error.Message}.");
-                    WorldRuntimeEvents.RaiseMessage($"Cannot Restart: {error.Message}");
+                    Debug.LogWarning($"[DungeonManager] Restart API failed: {error.Message}. Proceeding to restart anyway for testing.");
+                    WorldRuntimeEvents.RaiseMessage($"Cannot Restart API: {error.Message}");
+                    
+                    CurrentSessionId = -1;
+                    IsInDungeon = true;
+                    // Close the Dungeon Complete panel since it lives in Main scene
+                    var p = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
+                    if (p != null) p.gameObject.SetActive(false);
+
+                    string sceneToLoad = _currentDungeonSceneName;
+                    StartCoroutine(TransitionToRestart(sceneToLoad));
                 }
             );
         }

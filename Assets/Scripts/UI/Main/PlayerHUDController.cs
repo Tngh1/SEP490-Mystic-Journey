@@ -390,8 +390,19 @@ public class PlayerHUDController : MonoBehaviour
         UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
+    private int _lastKnownLevel = -1;
+
     private void UpdateProfileUI(PlayerProfileResponse profile)
     {
+        if (_lastKnownLevel != -1 && profile.Level > _lastKnownLevel)
+        {
+            if (levelUpPanel != null && !levelUpPanel.gameObject.activeInHierarchy)
+            {
+                levelUpPanel.gameObject.SetActive(true);
+            }
+        }
+        _lastKnownLevel = profile.Level;
+
         if (playerNameText != null)
         {
             playerNameText.text = profile.DisplayName ?? profile.AccountEmail;
@@ -774,8 +785,12 @@ public class PlayerHUDController : MonoBehaviour
     /// <summary>
     /// Show the death popup with Again (respawn) and Quit options.
     /// </summary>
+    private bool _isDeathPopupShowing = false;
+    
     public void ShowDeathPopup()
     {
+        if (_isDeathPopupShowing) return;
+        _isDeathPopupShowing = true;
         StartCoroutine(ShowDeathPopupCoroutine());
     }
 
@@ -910,6 +925,7 @@ public class PlayerHUDController : MonoBehaviour
     private void OnWorldRespawnClicked()
     {
         Debug.Log("[PlayerHUDController] OnWorldRespawnClicked - respawning at map spawn point...");
+        _isDeathPopupShowing = false;
 
         if (_deathRedOverlay != null)
         {
@@ -954,6 +970,7 @@ public class PlayerHUDController : MonoBehaviour
 
     public void HideDeathPopup()
     {
+        _isDeathPopupShowing = false;
         if (deathPopupPanel != null)
         {
             deathPopupPanel.SetActive(false);

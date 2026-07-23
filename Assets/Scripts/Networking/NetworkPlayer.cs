@@ -308,8 +308,6 @@ public class NetworkPlayer : NetworkBehaviour
             Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * 2.5f;
             transform.position = spawnBase + offset;
 
-            IsAlive = true;
-            
             // Read initial stats from PlayerEntity if available (loaded from DB), else fallback
             var pEntity = GetComponent<PlayerEntity>();
             if (MaxHp <= 0)
@@ -317,6 +315,8 @@ public class NetworkPlayer : NetworkBehaviour
                 MaxHp = (pEntity != null && pEntity.MaxHealth > 0) ? pEntity.MaxHealth : 100;
                 CurrentHp = (pEntity != null) ? pEntity.CurrentHealth : MaxHp;
             }
+
+            IsAlive = CurrentHp > 0;
         }
 
         // Force an initial visual creation since OnChangedRender might not fire for default/initial values
@@ -331,6 +331,11 @@ public class NetworkPlayer : NetworkBehaviour
             if (hud != null)
             {
                 hud.SubscribeToLocalPlayer(this);
+                if (!IsAlive)
+                {
+                    // Force death UI if they spawned dead, as OnChanged might not fire or fired early
+                    hud.ShowDeathPopup();
+                }
             }
 
             var pEntityLocal = GetComponent<PlayerEntity>();
@@ -652,13 +657,17 @@ public class NetworkPlayer : NetworkBehaviour
         ApplyHeal(amount);
     }
 
-    private void Die()
+    public void Die()
     {
         IsAlive = false;
         Debug.Log($"[NetworkPlayer] {PlayerName} died.");
 
         // Death UI event is now triggered in OnAliveChanged() to ensure it runs
-        // on the correct client (this Die method only executes on StateAuthority).
+        // on the correct client, but for safety (e.g. initial spawn) we also invoke it directly if local.
+        if (Object.HasInputAuthority)
+        {
+            OnDied?.Invoke();
+        }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
