@@ -14,7 +14,7 @@ public static class WorldSceneInteractableBootstrap
 
     public static void EnsureForScene(Scene scene)
     {
-        if (!scene.IsValid() || !string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase))
+        if (!scene.IsValid() || (!string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase) && !string.Equals(scene.name, "AutumnPumpkin", StringComparison.OrdinalIgnoreCase)))
             return;
 
         ConfigureFallback(scene);
@@ -28,7 +28,7 @@ public static class WorldSceneInteractableBootstrap
 
     public static void RefreshFromApi(Scene scene)
     {
-        if (!scene.IsValid() || !string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase))
+        if (!scene.IsValid() || (!string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase) && !string.Equals(scene.name, "AutumnPumpkin", StringComparison.OrdinalIgnoreCase)))
             return;
 
         if (!ApiClient.Instance.HasToken())

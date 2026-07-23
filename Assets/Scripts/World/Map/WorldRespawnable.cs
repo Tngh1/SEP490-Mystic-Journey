@@ -44,6 +44,10 @@ public class WorldRespawnable : MonoBehaviour
             if (sprite != null) sprite.enabled = false;
         }
         
+        // Tự động tìm Collider nếu chưa gán
+        if (interactCollider == null) interactCollider = GetComponent<Collider>();
+        if (interactCollider2D == null) interactCollider2D = GetComponent<Collider2D>();
+
         if (interactCollider != null) interactCollider.enabled = false;
         if (interactCollider2D != null) interactCollider2D.enabled = false;
 

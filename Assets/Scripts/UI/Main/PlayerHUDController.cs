@@ -43,6 +43,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private GameObject shopButtonObj;
     [SerializeField] private GameObject guildButtonObj;
     [SerializeField] private GameObject bestiaryButtonObj;
+    [SerializeField] private GameObject skillsButtonObj;
 
     [Header("Death Popup")]
     [SerializeField] private GameObject deathPopupPanel;
@@ -59,6 +60,18 @@ public class PlayerHUDController : MonoBehaviour
     private Coroutine _updateLoopCoroutine;
     private bool _isRefreshing;
     private bool _isCurrencyRefreshing;
+
+    // MenuButton (Toggle) trong Left: bấm để hiện/ẩn các nút còn lại cho gọn màn hình.
+    // Dùng CanvasGroup trên Left để bật/tắt cả cụm — KHÔNG đụng SetActive của các nút, vì
+    // visibility từng nút do 2 hệ level-gate độc lập quản (ApplyLevelGating +
+    // MainFeatureUnlockRuntime). CanvasGroup là lớp phủ riêng: menu đóng ẩn cả cụm, menu
+    // mở hiện đúng những nút đã đủ level. MenuButton có CanvasGroup ignoreParentGroups
+    // riêng nên luôn hiện/bấm được.
+    private bool _menuOpen;
+    private bool _menuWired;
+    private CanvasGroup _leftGroup;
+    private GameObject _menuOpenIcon;  // Icon (menu) — hiện khi menu ĐANG đóng
+    private GameObject _menuCloseIcon; // CloseIcon (X) — hiện khi menu ĐANG mở
 
     private void Awake()
     {
@@ -83,8 +96,10 @@ public class PlayerHUDController : MonoBehaviour
             levelUpButton.onClick.AddListener(OnLevelUpButtonClicked);
         }
         PlayerEntity.OnHealthChanged += HandleHealthChanged;
-        WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
-        WorldRuntimeEvents.QuestsChanged += UpdateQuestPointers;
+        WorldRuntimeEvents.QuestsChanged -= OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.QuestsChanged += OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged -= OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged += OnQuestsOrCurrencyChanged;
 
         // Subscribe to NetworkPlayer death event
         if (NetworkPlayer.Local != null)
@@ -103,7 +118,8 @@ public class PlayerHUDController : MonoBehaviour
             levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
         }
         PlayerEntity.OnHealthChanged -= HandleHealthChanged;
-        WorldRuntimeEvents.QuestsChanged -= UpdateQuestPointers;
+        WorldRuntimeEvents.QuestsChanged -= OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged -= OnQuestsOrCurrencyChanged;
 
         // Unsubscribe from NetworkPlayer death event
         if (NetworkPlayer.Local != null)
@@ -112,6 +128,13 @@ public class PlayerHUDController : MonoBehaviour
         }
         NetworkPlayer.OnAnyReadyStateChanged -= UpdateDeathPopupState;
 
+    }
+
+    private void OnQuestsOrCurrencyChanged()
+    {
+        UpdateQuestPointers();
+        RefreshHUD();
+        RefreshCurrencyBalance();
     }
 
     private void OnLevelUpButtonClicked()
@@ -140,8 +163,25 @@ public class PlayerHUDController : MonoBehaviour
         {
             energyText = transform.Find("TopBar/Center_Resources/EnergyBox/EnergyText")?.GetComponent<TMP_Text>();
         }
-        if (goldText == null) goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>();
-        if (gemText == null) gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>();
+        if (goldText == null)
+        {
+            goldText = transform.Find("TopBar/Center_Resources/GoldBox/GoldText")?.GetComponent<TMP_Text>()
+                    ?? transform.Find("TopBar/Center_Resources/GoldBox")?.GetComponentInChildren<TMP_Text>()
+                    ?? transform.Find("TopBar/Center_Resources/CoinBox/CoinText")?.GetComponent<TMP_Text>()
+                    ?? transform.Find("TopBar/Center_Resources/CoinBox")?.GetComponentInChildren<TMP_Text>();
+        }
+
+        if (gemText == null)
+        {
+            gemText = transform.Find("TopBar/Center_Resources/GemBox/GemText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/GemBox")?.GetComponentInChildren<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/GemsBox/GemsText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/GemsBox")?.GetComponentInChildren<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/DiamondBox/DiamondText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/DiamondBox")?.GetComponentInChildren<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/Gem/GemText")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Center_Resources/Gem")?.GetComponentInChildren<TMP_Text>();
+        }
         if (corruptionText == null)
         {
             corruptionText = transform.Find("Corruption/CorruptionNumber")?.GetComponent<TMP_Text>()
@@ -208,6 +248,13 @@ public class PlayerHUDController : MonoBehaviour
             var btn = transform.Find("Left/BestiaryButton");
             if (btn != null) bestiaryButtonObj = btn.gameObject;
         }
+        if (skillsButtonObj == null)
+        {
+            var btn = transform.Find("BottomCenter/Skills/SkillButton")
+                   ?? transform.Find("BottomCenter/Skills")
+                   ?? transform.Find("Skills");
+            if (btn != null) skillsButtonObj = btn.gameObject;
+        }
 
         // Same hover-scale transition the party panel uses on its Start/Ready buttons.
         AddHoverEffect(transform.Find("Left/DailyButton"));
@@ -221,6 +268,8 @@ public class PlayerHUDController : MonoBehaviour
         AddHoverEffect(transform.Find("BottomCenter/Skills/SkillButton"));
         AddHoverEffect(transform.Find("TopBar/Right_Buttons/MailButton"));
         AddHoverEffect(transform.Find("TopBar/Right_Buttons/SettingButton"));
+
+        WireMenuButton();
 
         ConfigureResourceText(energyText);
         ConfigureResourceText(goldText);
@@ -439,6 +488,11 @@ public class PlayerHUDController : MonoBehaviour
 
     private void UpdateCurrencyUI(decimal gold, decimal gems)
     {
+        if (goldText == null || gemText == null)
+        {
+            FindHUDReferences();
+        }
+
         if (goldText != null)
         {
             goldText.text = FormatCurrencyAmount(gold);
@@ -499,6 +553,64 @@ public class PlayerHUDController : MonoBehaviour
             t.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
+    private void WireMenuButton()
+    {
+        var menuTr = transform.Find("Left/MenuButton");
+        if (menuTr == null) return;
+
+        AddHoverEffect(menuTr);
+
+        // MenuButton phải luôn hiện & bấm được dù CanvasGroup của Left tắt cụm nút.
+        var menuGroup = menuTr.GetComponent<CanvasGroup>();
+        if (menuGroup == null) menuGroup = menuTr.gameObject.AddComponent<CanvasGroup>();
+        menuGroup.ignoreParentGroups = true;
+        menuGroup.alpha = 1f;
+        menuGroup.interactable = true;
+        menuGroup.blocksRaycasts = true;
+
+        // Idempotent: FindHUDReferences có thể chạy lại, chỉ gắn listener 1 lần.
+        if (_menuWired) return;
+        _menuWired = true;
+
+        var openIcon = menuTr.Find("Icon");
+        if (openIcon != null) _menuOpenIcon = openIcon.gameObject;
+        var closeIcon = menuTr.Find("CloseIcon");
+        if (closeIcon != null) _menuCloseIcon = closeIcon.gameObject;
+
+        var leftTr = menuTr.parent;
+        _leftGroup = leftTr.GetComponent<CanvasGroup>();
+        if (_leftGroup == null) _leftGroup = leftTr.gameObject.AddComponent<CanvasGroup>();
+
+        var toggle = menuTr.GetComponent<Toggle>();
+        if (toggle != null)
+        {
+            toggle.isOn = _menuOpen;
+            toggle.onValueChanged.AddListener(SetMenuOpen);
+        }
+
+        ApplyMenuVisibility();
+    }
+
+    private void SetMenuOpen(bool open)
+    {
+        _menuOpen = open;
+        ApplyMenuVisibility();
+    }
+
+    private void ApplyMenuVisibility()
+    {
+        if (_leftGroup != null)
+        {
+            _leftGroup.alpha = _menuOpen ? 1f : 0f;
+            _leftGroup.interactable = _menuOpen;
+            _leftGroup.blocksRaycasts = _menuOpen;
+        }
+
+        // Đổi icon MenuButton: đóng -> icon menu, mở -> icon X (đóng).
+        if (_menuOpenIcon != null) _menuOpenIcon.SetActive(!_menuOpen);
+        if (_menuCloseIcon != null) _menuCloseIcon.SetActive(_menuOpen);
+    }
+
     private static string FormatCurrencyAmount(decimal amount)
     {
         return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
@@ -537,7 +649,7 @@ public class PlayerHUDController : MonoBehaviour
             {
                 var go = new GameObject("QuestPointer");
                 go.transform.SetParent(obj.transform, false);
-                var text = go.AddComponent<TMP_Text>();
+                var text = go.AddComponent<TMPro.TextMeshProUGUI>();
                 text.text = "!";
                 text.color = Color.yellow;
                 text.fontSize = 40;
@@ -567,32 +679,59 @@ public class PlayerHUDController : MonoBehaviour
         if (quests == null) return;
 
         var active = MysticJourney.Core.Utilities.QuestUtils.PickPreferredQuest(quests);
-        if (active == null) 
+        if (active == null || MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed")) 
         {
             ClearAllQuestPointers();
             return;
         }
 
-        bool gacha = false, guild = false, shop = false, daily = false;
-        var objType = active.ObjectiveType?.ToLower();
+        bool gacha = false, guild = false, shop = false, daily = false, skill = false;
+        var objType = active.ObjectiveType?.ToLower() ?? "";
         
         if (objType == "gacha") gacha = true;
         if (objType == "guild") guild = true;
         if (objType == "shop" || objType == "buy") shop = true;
         if (objType == "achievement" || objType == "daily") daily = true;
+        if (objType == "equipskill" || objType == "skill") skill = true;
+
+        if (skillsButtonObj == null)
+        {
+            var btn = transform.Find("BottomCenter/Skills/SkillButton")
+                   ?? transform.Find("BottomCenter/Skills")
+                   ?? transform.Find("Skills");
+            if (btn != null) skillsButtonObj = btn.gameObject;
+        }
 
         EnsureQuestPointer(gachaButtonObj, gacha);
         EnsureQuestPointer(guildButtonObj, guild);
         EnsureQuestPointer(shopButtonObj, shop);
         EnsureQuestPointer(dailyButtonObj, daily);
+        EnsureQuestPointer(skillsButtonObj, skill);
+        EnsureHighlightPulse(skillsButtonObj, skill);
     }
     
+    private void EnsureHighlightPulse(GameObject obj, bool add)
+    {
+        if (obj == null) return;
+        var pulse = obj.GetComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+        if (add)
+        {
+            if (pulse == null) obj.AddComponent<MysticJourney.UI.Effects.UIHighlightPulse>();
+        }
+        else
+        {
+            if (pulse != null) Destroy(pulse);
+        }
+    }
+
     private void ClearAllQuestPointers()
     {
         EnsureQuestPointer(gachaButtonObj, false);
         EnsureQuestPointer(guildButtonObj, false);
         EnsureQuestPointer(shopButtonObj, false);
         EnsureQuestPointer(dailyButtonObj, false);
+        EnsureQuestPointer(skillsButtonObj, false);
+        EnsureHighlightPulse(skillsButtonObj, false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -635,8 +774,12 @@ public class PlayerHUDController : MonoBehaviour
     /// <summary>
     /// Show the death popup with Again (respawn) and Quit options.
     /// </summary>
+    private bool _isDeathPopupShowing = false;
+    
     public void ShowDeathPopup()
     {
+        if (_isDeathPopupShowing) return;
+        _isDeathPopupShowing = true;
         StartCoroutine(ShowDeathPopupCoroutine());
     }
 
@@ -771,6 +914,7 @@ public class PlayerHUDController : MonoBehaviour
     private void OnWorldRespawnClicked()
     {
         Debug.Log("[PlayerHUDController] OnWorldRespawnClicked - respawning at map spawn point...");
+        _isDeathPopupShowing = false;
 
         if (_deathRedOverlay != null)
         {
@@ -806,6 +950,7 @@ public class PlayerHUDController : MonoBehaviour
 
     public void HideDeathPopup()
     {
+        _isDeathPopupShowing = false;
         if (deathPopupPanel != null)
         {
             deathPopupPanel.SetActive(false);

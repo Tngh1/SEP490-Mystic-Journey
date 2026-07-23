@@ -415,7 +415,11 @@ public class EnemyBehaviour : MonoBehaviour
             if (p == null || !p.activeInHierarchy) continue;
             
             var networkPlayer = p.GetComponent<NetworkPlayer>();
-            if (networkPlayer != null && !networkPlayer.IsAlive) continue;
+            if (networkPlayer != null)
+            {
+                if (networkPlayer.Object == null || !networkPlayer.Object.IsValid) continue;
+                if (!networkPlayer.IsAlive) continue;
+            }
 
             float sqr = (p.transform.position - from).sqrMagnitude;
             if (sqr < bestSqr)

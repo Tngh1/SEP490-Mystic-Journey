@@ -30,8 +30,45 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
     private float _cooldownTimer = 0f;
     private float _cooldownDuration = 1f;
 
-    private void OnEnable() => PlayerCombat.OnSkillCast += HandleSkillCast;
-    private void OnDisable() => PlayerCombat.OnSkillCast -= HandleSkillCast;
+    private void OnEnable()
+    {
+        PlayerCombat.OnSkillCast += HandleSkillCast;
+        OnSkillEquipped += HandleSkillEquipped;
+    }
+    private void OnDisable()
+    {
+        PlayerCombat.OnSkillCast -= HandleSkillCast;
+        OnSkillEquipped -= HandleSkillEquipped;
+    }
+
+    // Khôi phục cooldown ngay từ broadcast trang bị skill (kể cả lúc mới vào game).
+    // Trước đây chỉ PlayerCombat làm việc này, nhưng nó spawn ở world scene nên
+    // thường CHƯA subscribe khi HUDSkillManager broadcast lúc load → cooldown bị miss
+    // dù icon đã hiện. SkillSlot luôn tồn tại (HUD persistent) nên không dính race đó.
+    private void HandleSkillEquipped(int equippedSlotIndex, SkillData vData, PlayerSkillResponse sData)
+    {
+        if (equippedSlotIndex != this.slotIndex) return;
+
+        if (sData != null && !string.IsNullOrEmpty(sData.NextAvailableTime) &&
+            System.DateTime.TryParse(sData.NextAvailableTime,
+                                     System.Globalization.CultureInfo.InvariantCulture,
+                                     System.Globalization.DateTimeStyles.AdjustToUniversal,
+                                     out System.DateTime nextTime))
+        {
+            float remaining = (float)(nextTime - System.DateTime.UtcNow).TotalSeconds;
+            if (remaining > 0f)
+            {
+                StartCooldown(remaining);
+                return;
+            }
+        }
+
+        // Skill mới không còn cooldown → xoá overlay (trường hợp đổi sang skill đã hồi xong).
+        _isCooldown = false;
+        _cooldownTimer = 0f;
+        if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
+        if (cooldownText != null) cooldownText.text = "";
+    }
 
     void Start()
     {
@@ -95,7 +132,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         if (_isCooldown)
         {
             Debug.LogWarning("Cannot equip: skill slot is currently on cooldown.");
-            // OPTIONAL: Could show an ingame UI alert here
             return;
         }
 

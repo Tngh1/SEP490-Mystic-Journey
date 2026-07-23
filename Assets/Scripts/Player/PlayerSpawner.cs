@@ -150,7 +150,15 @@ public class PlayerSpawner : MonoBehaviour
             : fallbackSpawn;
 
         GameObject player = Instantiate(prefab, spawnPosition, Quaternion.identity);
-        SceneManager.MoveGameObjectToScene(player, gameObject.scene);
+        var mainScene = SceneManager.GetSceneByName("Main");
+        if (mainScene.isLoaded)
+        {
+            SceneManager.MoveGameObjectToScene(player, mainScene);
+        }
+        else
+        {
+            SceneManager.MoveGameObjectToScene(player, gameObject.scene);
+        }
         ActivatePlayerInput(player);
         EnsurePositionSync(player);
         EnsureWorldInteractor(player);

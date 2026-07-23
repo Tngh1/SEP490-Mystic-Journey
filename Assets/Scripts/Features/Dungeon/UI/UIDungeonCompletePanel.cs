@@ -4,7 +4,7 @@ using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 using System.Collections.Generic;
-
+using System.Linq;
 namespace MysticJourney.Features.Dungeon.UI
 {
     public class UIDungeonCompletePanel : MonoBehaviour
@@ -34,6 +34,16 @@ namespace MysticJourney.Features.Dungeon.UI
             if (againButton != null) againButton.onClick.AddListener(OnAgainClicked);
         }
 
+        private void OnEnable()
+        {
+            NetworkPlayer.OnAnyReadyStateChanged += UpdateReadyState;
+        }
+
+        private void OnDisable()
+        {
+            NetworkPlayer.OnAnyReadyStateChanged -= UpdateReadyState;
+        }
+
         /// <summary>
         /// Gọi hàm này khi Boss chết hoặc màn chơi kết thúc
         /// </summary>
@@ -41,6 +51,14 @@ namespace MysticJourney.Features.Dungeon.UI
         {
             currentSessionId = sessionId;
             gameObject.SetActive(true);
+
+            // Reset Again button
+            if (againButton != null)
+            {
+                againButton.interactable = true;
+                var txt = againButton.GetComponentInChildren<TMP_Text>();
+                if (txt != null) txt.text = "Again";
+            }
             
             // Xóa các item cũ (nếu có) trước khi hiển thị mới
             if (rewardContainer != null)
@@ -50,6 +68,10 @@ namespace MysticJourney.Features.Dungeon.UI
                     Destroy(child.gameObject);
                 }
             }
+
+            // Clear placeholder texts
+            if (goldText != null) goldText.text = "...";
+            if (expText != null) expText.text = "...";
 
             // Gọi API ClaimReward đã làm hôm qua
             DungeonApi.Instance.ClaimReward(sessionId, OnClaimSuccess, OnClaimError);
@@ -111,11 +133,28 @@ namespace MysticJourney.Features.Dungeon.UI
 
         private void OnAgainClicked()
         {
-            if (DungeonManager.Instance != null)
+            if (againButton != null)
             {
-                // Let DungeonManager handle it. The panel will be closed if restart succeeds (scene reload),
-                // but if it fails (e.g. not enough energy), the panel stays open so they can buy energy or exit.
-                DungeonManager.Instance.RestartDungeon();
+                againButton.interactable = false;
+            }
+
+            if (NetworkPlayer.Local != null)
+            {
+                NetworkPlayer.Local.RPC_SetReadyToRestart();
+            }
+        }
+
+        private void UpdateReadyState()
+        {
+            if (!gameObject.activeInHierarchy || againButton == null) return;
+
+            int readyCount = NetworkPlayer.All.Count(p => p.IsReadyToRestart);
+            int totalCount = NetworkPlayer.All.Count;
+
+            if (readyCount > 0)
+            {
+                var txt = againButton.GetComponentInChildren<TMP_Text>();
+                if (txt != null) txt.text = $"Waiting... ({readyCount}/{totalCount})";
             }
         }
     }
