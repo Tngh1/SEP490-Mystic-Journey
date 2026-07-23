@@ -131,8 +131,8 @@ namespace MysticJourney.Features.Quest
             sr.sortingOrder = 9999; // Hiện lên trên tất cả
             sr.sortingLayerName = "Default";
 
-            // Scale vừa vặn gọn gàng (0.35f)
-            go.transform.localScale = new Vector3(0.35f, 0.35f, 1f);
+            // Mũi tên to, dễ thấy (0.7f)
+            go.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
 
             // --- Chữ khoảng cách (TextMesh) ---
             var textGo = new GameObject("DistanceText");
