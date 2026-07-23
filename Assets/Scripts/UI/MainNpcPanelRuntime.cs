@@ -388,16 +388,33 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void HandleLinkedQuestFromStory(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
-        var questId = dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
-        if (questId <= 0 || processingQuestIds.Contains(questId))
-            return;
-
         var manager = GetQuestManager();
         if (manager == null)
         {
             SetText(questHintText, "Quest system is not ready.");
             return;
         }
+
+        // [FIX] Ưu tiên xử lý Quest đang InProgress (Giao nhiệm vụ, báo cáo) trước khi xem xét Quest từ Dialogue
+        var inProgressQuest = currentLinkedQuests.FirstOrDefault(q => QuestManager.IsStatus(q, "InProgress"));
+        if (inProgressQuest != null)
+        {
+            if (IsCollectQuest(inProgressQuest) && HasEnoughQuestProgress(inProgressQuest))
+            {
+                TurnInQuestItemAndRoute(inProgressQuest);
+                return;
+            }
+
+            if (ShouldAutoCompleteNpcTalkQuest(inProgressQuest))
+            {
+                CompleteTalkQuestAndRouteToReward(manager, inProgressQuest.QuestId, inProgressQuest);
+                return;
+            }
+        }
+
+        var questId = dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
+        if (questId <= 0 || processingQuestIds.Contains(questId))
+            return;
 
         var quest = ResolveQuest(questId, linkedQuest, manager);
         if (QuestManager.IsStatus(quest, "Claimed"))

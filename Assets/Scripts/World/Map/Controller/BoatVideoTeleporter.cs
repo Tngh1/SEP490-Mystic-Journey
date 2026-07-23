@@ -103,12 +103,26 @@ public class BoatVideoTeleporter : MapTeleportPortal
 
     private void OnVideoFinished(UnityEngine.Video.VideoPlayer vp)
     {
+        PlayerPrefs.SetInt("JustUsedBoat", 1);
+        PlayerPrefs.Save();
         Debug.Log("[Boat] Chiếu video xong. Chuẩn bị dịch chuyển...");
         DoTeleport();
     }
 
     private void DoTeleport()
     {
+        PlayerPrefs.SetInt("JustUsedBoat", 1);
+        PlayerPrefs.Save();
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            var playerSprites = player.GetComponentsInChildren<SpriteRenderer>(true);
+            foreach (var sp in playerSprites)
+            {
+                sp.enabled = true;
+            }
+        }
         if (mapSceneController == null)
         {
             mapSceneController = FindObjectOfType<MapSceneController>();

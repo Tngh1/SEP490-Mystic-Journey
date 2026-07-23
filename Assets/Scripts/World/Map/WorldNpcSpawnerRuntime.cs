@@ -62,6 +62,8 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
 
     private void SpawnNpcList(List<NPCResponse> npcList)
     {
+        Transform parentTransform = npcContainer != null ? npcContainer : this.transform;
+
         foreach (var npc in npcList)
         {
             // 1. Tìm Prefab từ NpcDatabaseSO
@@ -73,39 +75,40 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
                 continue;
             }
 
-            // 2. Xác định toạ độ
-            Vector3 spawnPos = new Vector3((float)npc.PositionX, (float)npc.PositionY, 0f);
+            // 2. Tọa độ (PositionX, PositionY) trong DB là localPosition tương đối so với NPC Container/Map
+            Vector3 localPos = new Vector3((float)npc.PositionX, (float)npc.PositionY, 0f);
 
-            // 3. Đẻ ra NPC mới (Khởi tạo không truyền toạ độ World)
-            GameObject npcObj = Instantiate(prefab, npcContainer != null ? npcContainer : this.transform);
-            
-            // Set toạ độ Local (Tương đối so với container)
-            npcObj.transform.localPosition = spawnPos;
+            // 3. Đẻ ra NPC và gán localPosition chuẩn xác
+            GameObject npcObj = Instantiate(prefab, parentTransform);
+            npcObj.transform.localPosition = localPos;
             npcObj.transform.localRotation = Quaternion.identity;
-            
+            npcObj.transform.localScale = Vector3.one;
+
             spawnedNpcs.Add(npcObj);
 
             // 4. Ghi đè cấu hình cho NPC bằng dữ liệu từ Backend
             WorldInteractable interactable = npcObj.GetComponent<WorldInteractable>();
-            if (interactable != null)
+            if (interactable == null)
             {
-                var linkedQuests = npc.Dialogues != null 
-                    ? System.Linq.Enumerable.Select(
-                        System.Linq.Enumerable.Where(npc.Dialogues, d => d != null && d.LinkedQuestId.HasValue), 
-                        d => d.LinkedQuestId.Value)
-                    : null;
-
-                interactable.ConfigureNpc(
-                    npc.NPCId,
-                    npc.Name,
-                    npc.Description,
-                    "Xin chào lữ khách!",
-                    npc.InteractionRadius > 0 ? npc.InteractionRadius : 2.5f,
-                    linkedQuests
-                );
+                interactable = npcObj.AddComponent<WorldInteractable>();
             }
+
+            var linkedQuests = npc.Dialogues != null 
+                ? System.Linq.Enumerable.Select(
+                    System.Linq.Enumerable.Where(npc.Dialogues, d => d != null && d.LinkedQuestId.HasValue), 
+                    d => d.LinkedQuestId.Value)
+                : null;
+
+            interactable.ConfigureNpc(
+                npc.NPCId,
+                npc.Name,
+                npc.Description,
+                "Xin chào lữ khách!",
+                npc.InteractionRadius > 0 ? npc.InteractionRadius : 2.5f,
+                linkedQuests
+            );
             
-            Debug.Log($"[WorldNpcSpawner] Đã spawn NPC {npc.Name} (ID: {npc.NPCId}) tại {spawnPos}");
+            Debug.Log($"[WorldNpcSpawner] Đã spawn NPC {npc.Name} (ID: {npc.NPCId}) tại localPosition {localPos}");
         }
         
         // 5. Báo cho hệ thống quét NPC của bạn biết là có NPC mới (bắt buộc)

@@ -34,7 +34,7 @@ public class WorldInteractable : MonoBehaviour
 
     public WorldInteractableKind Kind => kind;
     public int NpcId => npcId;
-    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
+    public string DisplayName => (string.IsNullOrWhiteSpace(displayName) || displayName.Equals("Interactable", System.StringComparison.OrdinalIgnoreCase)) ? gameObject.name : displayName;
     public string Description => description;
     public string GreetingText => greetingText;
     public float InteractionRadius => Mathf.Max(0.5f, interactionRadius);

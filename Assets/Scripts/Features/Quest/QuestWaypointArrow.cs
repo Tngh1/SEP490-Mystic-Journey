@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Linq;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Features.Quest;
+using MysticJourney.Core.Utilities;
 
 public class QuestWaypointArrow : MonoBehaviour
 {
@@ -35,6 +37,12 @@ public class QuestWaypointArrow : MonoBehaviour
             return;
         }
 
+        if (!QuestWaypointManager.IsTrackingEnabled)
+        {
+            spriteRenderer.enabled = false;
+            return;
+        }
+
         var qm = QuestManager.Instance;
         if (qm == null)
         {
@@ -42,29 +50,33 @@ public class QuestWaypointArrow : MonoBehaviour
             return;
         }
 
-        var responses = qm.GetAllResponses();
-        if (responses == null)
+        // Delegate target finding to QuestWaypointManager which has robust target lookup
+        if (QuestWaypointManager.Instance != null)
         {
-            spriteRenderer.enabled = false;
-            return;
+            currentTarget = QuestWaypointManager.Instance.GetTargetForActiveQuest();
         }
-
-        var activeQuest = responses.Values
-            .FirstOrDefault(q => QuestManager.IsStatus(q, "InProgress"));
-
-        // Hide if no quest or if the quest doesn't require navigation (like equipping skill)
-        if (activeQuest == null || string.Equals(activeQuest.ObjectiveType, "EquipSkill", System.StringComparison.OrdinalIgnoreCase))
+        else
         {
-            spriteRenderer.enabled = false;
-            return;
-        }
+            var responses = qm.GetAllResponses();
+            if (responses == null)
+            {
+                spriteRenderer.enabled = false;
+                return;
+            }
 
-        // Search for target periodically or if target is lost
-        if (activeQuest.QuestId != currentQuestId || Time.time >= nextSearchTime || currentTarget == null || !currentTarget.gameObject.activeInHierarchy)
-        {
-            currentQuestId = activeQuest.QuestId;
-            currentTarget = FindTarget(activeQuest, player.transform.position);
-            nextSearchTime = Time.time + 1.0f; // search every 1s
+            var activeQuest = QuestUtils.PickPreferredQuest(responses.Values);
+            if (activeQuest == null || string.Equals(activeQuest.ObjectiveType, "EquipSkill", System.StringComparison.OrdinalIgnoreCase))
+            {
+                spriteRenderer.enabled = false;
+                return;
+            }
+
+            if (activeQuest.QuestId != currentQuestId || Time.time >= nextSearchTime || currentTarget == null || !currentTarget.gameObject.activeInHierarchy)
+            {
+                currentQuestId = activeQuest.QuestId;
+                currentTarget = FindTargetFallback(activeQuest, player.transform.position);
+                nextSearchTime = Time.time + 1.0f;
+            }
         }
 
         if (currentTarget == null)
@@ -94,55 +106,49 @@ public class QuestWaypointArrow : MonoBehaviour
         transform.position += (Vector3)dir * bounce;
     }
 
-    private Transform FindTarget(PlayerQuestResponse quest, Vector3 playerPos)
+    private Transform FindTargetFallback(PlayerQuestResponse quest, Vector3 playerPos)
     {
-        // 1. Try to find WorldInteractable with matching QuestId
-        var interactables = FindObjectsByType<WorldInteractable>(FindObjectsSortMode.None);
-        WorldInteractable bestInteractable = null;
-        float bestDist = float.MaxValue;
+        string targetName = quest.ObjectiveTarget ?? "";
+        string questGiver = quest.QuestGiverName ?? "";
 
-        foreach (var interactable in interactables)
+        // 1. Match NPC by name or LinkedQuestIds
+        var interactables = FindObjectsByType<WorldInteractable>(FindObjectsSortMode.None);
+        foreach (var i in interactables)
         {
-            if (interactable.gameObject.activeInHierarchy && interactable.QuestId == quest.QuestId)
+            if (!i.gameObject.activeInHierarchy) continue;
+
+            if (i.Kind == WorldInteractableKind.Npc)
             {
-                float dist = Vector2.Distance(playerPos, interactable.transform.position);
-                if (dist < bestDist)
+                if ((!string.IsNullOrWhiteSpace(targetName) && i.DisplayName.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                    (!string.IsNullOrWhiteSpace(questGiver) && i.DisplayName.IndexOf(questGiver, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                    (i.LinkedQuestIds != null && i.LinkedQuestIds.Contains(quest.QuestId)))
                 {
-                    bestDist = dist;
-                    bestInteractable = interactable;
+                    return i.transform;
                 }
+            }
+            else if (i.QuestId.HasValue && i.QuestId.Value == quest.QuestId)
+            {
+                return i.transform;
             }
         }
 
-        if (bestInteractable != null)
-            return bestInteractable.transform;
-
-        // 2. If it's a Defeat quest, find the nearest active EnemyBehaviour
-        if (string.Equals(quest.ObjectiveType, "Defeat", System.StringComparison.OrdinalIgnoreCase))
+        // 2. Match specific Enemy by targetName for Defeat quest
+        if (string.Equals(quest.ObjectiveType, "Defeat", System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(targetName))
         {
-            var enemies = FindObjectsByType<EnemyBehaviour>(FindObjectsSortMode.None);
-            EnemyBehaviour bestEnemy = null;
-            float bestEnemyDist = float.MaxValue;
+            var enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
             foreach (var enemy in enemies)
             {
-                if (enemy.gameObject.activeInHierarchy && enemy.enabled)
+                if (enemy.gameObject.activeInHierarchy && enemy.name.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    float dist = Vector2.Distance(playerPos, enemy.transform.position);
-                    if (dist < bestEnemyDist)
-                    {
-                        bestEnemyDist = dist;
-                        bestEnemy = enemy;
-                    }
+                    return enemy.transform;
                 }
             }
-            if (bestEnemy != null)
-                return bestEnemy.transform;
         }
 
         return null;
     }
 
-    // Generates a nice 32x32 pixel art arrow pointing right (0 degrees)
+    // Generates a 32x32 pixel art arrow pointing right (0 degrees)
     private Sprite GenerateArrowSprite()
     {
         int size = 32;
