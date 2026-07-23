@@ -6,15 +6,24 @@ using UnityEngine.SceneManagement;
 
 public class GameBootstrap : MonoBehaviour
 {
+    private const string LoadingSceneName = "Loading";
+
     private IEnumerator Start()
     {
         Debug.Log("=== GAME BOOTSTRAP START ===");
+
+        LoadingProgress.Reset();
+        LoadingProgress.Report(0.05f, "Connecting...");
 
         var bootstrapScene = gameObject.scene;
         if (transform.parent != null)
             transform.SetParent(null);
 
         DontDestroyOnLoad(gameObject);
+
+        // Overlay loading UI (Canvas ScreenSpaceOverlay) phủ kín trong suốt quá trình
+        // fetch API + additive load Main/map. Unload ở cuối -> world hiện ra đúng lúc.
+        yield return EnsureSceneLoaded(LoadingSceneName, 0.05f, 0.05f, "Connecting...");
 
         yield return LoadWorldSession();
 
@@ -24,8 +33,9 @@ public class GameBootstrap : MonoBehaviour
             WorldState.LastPosition = new Vector3(11.9f, 17.8f, 0f);
         }
 
-        yield return EnsureSceneLoaded("Main");
-        yield return EnsureSceneLoaded(WorldState.CurrentMapName);
+        yield return EnsureSceneLoaded("Main", 0.5f, 0.75f, "Loading interface...");
+        yield return EnsureSceneLoaded(WorldState.CurrentMapName, 0.75f, 0.98f, "Loading map...");
+        LoadingProgress.Report(1f, "Ready");
 
         var mainScene = SceneManager.GetSceneByName("Main");
         if (mainScene.IsValid())
@@ -35,6 +45,11 @@ public class GameBootstrap : MonoBehaviour
 
         // Apply saved settings (volume, graphics, etc.) when game starts
         SettingsService.Instance.Load();
+
+        // World sẵn sàng -> gỡ overlay loading để lộ thế giới.
+        var loadingScene = SceneManager.GetSceneByName(LoadingSceneName);
+        if (loadingScene.IsValid() && loadingScene.isLoaded)
+            yield return SceneManager.UnloadSceneAsync(loadingScene);
 
         if (bootstrapScene.IsValid() && bootstrapScene.isLoaded && bootstrapScene.name != "Main" && bootstrapScene.name != WorldState.CurrentMapName)
             yield return SceneManager.UnloadSceneAsync(bootstrapScene);
@@ -81,13 +96,23 @@ public class GameBootstrap : MonoBehaviour
         }
     }
 
-    private static IEnumerator EnsureSceneLoaded(string sceneName)
+    private static IEnumerator EnsureSceneLoaded(string sceneName, float progressFrom, float progressTo, string status)
     {
         var scene = SceneManager.GetSceneByName(sceneName);
         if (scene.IsValid() && scene.isLoaded)
+        {
+            LoadingProgress.Report(progressTo, status);
             yield break;
+        }
 
-        yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        LoadingProgress.Report(progressFrom, status);
+        var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        while (op != null && !op.isDone)
+        {
+            LoadingProgress.Report(Mathf.Lerp(progressFrom, progressTo, op.progress), status);
+            yield return null;
+        }
+        LoadingProgress.Report(progressTo, status);
     }
 
     private IEnumerator LoadWorldSession()
@@ -96,30 +121,22 @@ public class GameBootstrap : MonoBehaviour
 
         if (ApiClient.Instance.HasToken())
         {
+            LoadingProgress.Report(0.15f, "Authenticating...");
             AuthApi.Instance.GetMe(
                 _ =>
                 {
-                    WorldApi.Instance.GetState(
-                        state =>
-                        {
-                            if (state != null)
-                                WorldState.PlayerProfileId = state.PlayerProfileId;
-
-                            LoadLocalWorldSession();
-                            done = true;
-                        },
-                        error =>
-                        {
-                            Debug.LogWarning($"[GameBootstrap] GetWorldState failed, using local world session. {error.Message}");
-                            LoadLocalWorldSession();
-                            done = true;
-                        }
-                    );
+                    // GetMe đã lưu profileId/map/position vào prefs; PlayerSpawner sẽ tự
+                    // hydrate GetState + inventory trước khi spawn. Bỏ GetState ở đây để
+                    // cắt 1 round-trip API khỏi critical path loading.
+                    LoadLocalWorldSession();
+                    LoadingProgress.Report(0.5f, "Loading world data...");
+                    done = true;
                 },
                 error =>
                 {
                     Debug.LogWarning($"[GameBootstrap] GetMe failed, using local world session. {error.Message}");
                     LoadLocalWorldSession();
+                    LoadingProgress.Report(0.5f, "Loading world data...");
                     done = true;
                 }
             );
@@ -129,6 +146,7 @@ public class GameBootstrap : MonoBehaviour
         }
 
         LoadLocalWorldSession();
+        LoadingProgress.Report(0.5f, "Loading world data...");
         yield return null;
     }
 

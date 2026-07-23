@@ -192,9 +192,9 @@ namespace UI.Friend
             if (editNameButton != null)
                 editNameButton.gameObject.SetActive(_isCurrentPlayerProfile);
 
-            // Level 6 unlock: Achievement List button (only for own profile)
+            // Achievement List button: hiện khi đang xem profile của chính mình.
             if (viewAchievementListButton != null)
-                viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile && WorldState.PlayerLevel >= 6);
+                viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile);
         }
 
         private void OpenNameChangePanel()

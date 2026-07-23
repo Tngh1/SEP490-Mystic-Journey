@@ -25,6 +25,35 @@ public class PlayerUIHotkeys : MonoBehaviour
 
         if (input.MapPressed)
             ToggleMap();
+
+        // Skill 1/2/3 CHỈ đọc ở đây khi OFFLINE. Online, phím skill đi qua Fusion
+        // (LocalInputCollector -> NetworkPlayer.RequestSkill) nên đọc thêm ở đây sẽ
+        // gây double-fire (cast 2 lần). RequestCastSkillBySlot là đúng đường HUD click.
+        if (!IsNetworked)
+        {
+            for (int slot = 0; slot < 3; slot++)
+            {
+                if (input.SkillPressed(slot))
+                    CastSkill(slot);
+            }
+        }
+    }
+
+    private static bool IsNetworked
+    {
+        get
+        {
+            var runner = Fusion.NetworkRunner.Instances != null && Fusion.NetworkRunner.Instances.Count > 0
+                ? Fusion.NetworkRunner.Instances[0] : null;
+            return runner != null && runner.IsRunning;
+        }
+    }
+
+    private void CastSkill(int slotIndex)
+    {
+        var combat = PlayerEntity.Instance != null ? PlayerEntity.Instance.GetComponent<PlayerCombat>() : null;
+        if (combat != null)
+            combat.RequestCastSkillBySlot(slotIndex);
     }
 
     private void ToggleInventory()

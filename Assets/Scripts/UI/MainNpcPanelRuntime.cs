@@ -146,12 +146,24 @@ public class MainNpcPanelRuntime : MonoBehaviour
         currentDialogues.Clear();
         currentLinkedQuests.Clear();
 
-        SetText(nameText, Safe(interactable.DisplayName, "Elder Rowan"));
+        SetText(nameText, CleanName(Safe(interactable.DisplayName, "Elder Rowan")));
         SetText(roleText, Safe(interactable.Description, "Tutorial elder and main quest giver."));
         StartTypewriter(dialogueText, Safe(interactable.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
         SetText(questHintText, firstQuestId > 0 ? "Quest available" : string.Empty);
         ConfigureDefaultActions();
         ApplyPortrait(null, interactable);
+    }
+
+    private static string CleanName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Elder Rowan";
+        string clean = name.Trim();
+        int parenIdx = clean.IndexOf('(');
+        if (parenIdx > 0)
+        {
+            clean = clean.Substring(0, parenIdx).Trim();
+        }
+        return clean;
     }
 
     private void RenderApiResponse(TalkToNpcResponse response, WorldInteractable fallback)
@@ -178,7 +190,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         firstQuestId = currentStoryDialogue?.LinkedQuestId ?? linkedQuests.FirstOrDefault()?.QuestId ?? 0;
         currentNpcId = npc?.NPCId ?? fallback.NpcId;
 
-        SetText(nameText, Safe(npc?.Name, fallback.DisplayName));
+        SetText(nameText, CleanName(Safe(npc?.Name, fallback.DisplayName)));
         SetText(roleText, Safe(npc?.Description, fallback.Description));
         StartTypewriter(dialogueText, BuildIntroDialogue(currentStoryDialogue, dialogues, fallback));
         SetText(questHintText, BuildQuestHint(linkedQuests));
@@ -402,6 +414,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         if (QuestManager.IsStatus(quest, "InProgress"))
         {
+            if (IsCollectQuest(quest) && HasEnoughQuestProgress(quest))
+            {
+                TurnInQuestItemAndRoute(quest);
+                return;
+            }
+
             if (ShouldAutoCompleteNpcTalkQuest(quest))
             {
                 CompleteTalkQuestAndRouteToReward(manager, questId, quest);
@@ -429,6 +447,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     acceptedQuest.Status = string.IsNullOrWhiteSpace(acceptedQuest.Status) ? "InProgress" : acceptedQuest.Status;
                     acceptedQuest.Progress = Mathf.Max(acceptedQuest.Progress, 0);
                     SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { acceptedQuest }));
+                }
+
+                if (IsCollectQuest(acceptedQuest) && HasEnoughQuestProgress(acceptedQuest))
+                {
+                    TurnInQuestItemAndRoute(acceptedQuest);
+                    return;
                 }
 
                 if (ShouldAutoCompleteNpcTalkQuest(acceptedQuest))
@@ -527,9 +551,17 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return manager?.GetQuestResponse(questId) ?? fallback;
     }
 
-    private static bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
+    private bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
     {
-        return quest != null && string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase);
+        if (quest == null || !string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase))
+            return false;
+            
+        string target = quest.ObjectiveTarget;
+        if (string.IsNullOrWhiteSpace(target)) return true; // auto-complete if no target specified
+        
+        string currentNpc = CleanName(nameText.Text);
+        return target.IndexOf(currentNpc, StringComparison.OrdinalIgnoreCase) >= 0 || 
+               currentNpc.IndexOf(target, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
 
@@ -809,7 +841,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return currentLinkedQuests.FirstOrDefault(q => q != null && q.QuestId == questId.Value);
     }
 
-    private static string BuildStoryActionLabel(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
+    private string BuildStoryActionLabel(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
         if (linkedQuest != null)
             return BuildPlayerQuestActionLabel(linkedQuest);
@@ -820,7 +852,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return "Tell me about the story.";
     }
 
-    private static string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
+    private string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
     {
         if (QuestManager.IsStatus(quest, "Claimed"))
             return "Thank you for your guidance.";
@@ -1158,6 +1190,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
 
         public bool IsValid => tmp != null || text != null;
+        public string Text => tmp != null ? tmp.text : (text != null ? text.text : string.Empty);
 
         public static TextSlot From(GameObject target)
         {

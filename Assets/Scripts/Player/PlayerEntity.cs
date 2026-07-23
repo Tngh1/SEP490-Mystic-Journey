@@ -145,6 +145,24 @@ public class PlayerEntity : MonoBehaviour
         {
             _networkPlayer.MaxHp = maxHealth;
             _networkPlayer.CurrentHp = currentHealth;
+            
+            // Sync alive state if HP was loaded as 0 (e.g. logging back in after death)
+            if (currentHealth <= 0 && _networkPlayer.IsAlive)
+            {
+                _networkPlayer.Die();
+            }
+            else if (currentHealth > 0 && !_networkPlayer.IsAlive)
+            {
+                _networkPlayer.IsAlive = true;
+            }
+        }
+        else
+        {
+            // SINGLE-PLAYER FALLBACK / NETWORK NOT READY
+            if (currentHealth <= 0)
+            {
+                Die();
+            }
         }
     }
 
@@ -230,7 +248,7 @@ public class PlayerEntity : MonoBehaviour
         Debug.Log("[PlayerEntity] Player died.");
         OnDeath?.Invoke(this, EventArgs.Empty);
 
-        if (_networkPlayer == null && PlayerHUDController.Instance != null)
+        if (PlayerHUDController.Instance != null)
         {
             PlayerHUDController.Instance.ShowDeathPopup();
         }

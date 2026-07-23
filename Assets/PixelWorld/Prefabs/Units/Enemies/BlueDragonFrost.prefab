@@ -237,7 +237,7 @@ GameObject:
   - component: {fileID: 3394091982593777892}
   m_Layer: 0
   m_Name: BlueDragonFrost
-  m_TagString: Untagged
+  m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -414,6 +414,10 @@ MonoBehaviour:
   skillCooldown: 7
   skillSpawnDelay: 0.5
   skillSpawnPoint: {fileID: 0}
+  canCastSkill2: 0
+  skill2Prefab: {fileID: 0}
+  skill2Cooldown: 20
+  skill2SpawnDelay: 0.5
 --- !u!195 &5182849495963751966
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -592,4 +596,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 1269618284972710846}
   m_PrefabAsset: {fileID: 0}
-

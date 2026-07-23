@@ -7,7 +7,7 @@ namespace MysticJourney.UI.Effects
     {
         public SpriteRenderer arrowRenderer;
         public TextMesh distanceLabel;
-        public float radius = 1.5f;
+        public float radius = 2.5f;
 
         private Transform target;
         private Transform player;
@@ -16,6 +16,12 @@ namespace MysticJourney.UI.Effects
         {
             target = targetTransform;
             player = playerTransform;
+
+            // Clear() tắt GameObject; nếu không bật lại ở đây thì LateUpdate sẽ không bao
+            // giờ chạy lại và mũi tên mất vĩnh viễn sau lần Clear đầu tiên. LateUpdate tự
+            // ẩn lại nếu target/player null hoặc đã tới đủ gần.
+            if (target != null && !gameObject.activeSelf)
+                gameObject.SetActive(true);
         }
 
         public void Clear()
@@ -26,6 +32,15 @@ namespace MysticJourney.UI.Effects
 
         private void LateUpdate()
         {
+            if (NetworkPlayer.Local != null)
+            {
+                player = NetworkPlayer.Local.transform;
+            }
+            else if (PlayerEntity.Instance != null)
+            {
+                player = PlayerEntity.Instance.transform;
+            }
+
             if (target == null || player == null)
             {
                 if (gameObject.activeSelf) gameObject.SetActive(false);
@@ -45,8 +60,10 @@ namespace MysticJourney.UI.Effects
             // Hướng từ người chơi đến mục tiêu
             Vector3 worldDir = (target.position - player.position).normalized;
 
-            // Đặt mũi tên quanh người chơi theo khoảng cách radius
-            transform.position = player.position + worldDir * radius;
+            // Đặt mũi tên quanh người chơi theo khoảng cách radius, cộng bounce dao động
+            // dọc theo hướng chỉ để mũi tên "nảy" thu hút mắt.
+            float bounce = Mathf.Sin(Time.time * 6f) * 0.2f;
+            transform.position = player.position + worldDir * (radius + bounce);
 
             // Xoay mũi tên hướng đến mục tiêu (sprite mặc định hướng lên - up)
             float angle = Mathf.Atan2(worldDir.y, worldDir.x) * Mathf.Rad2Deg - 90f;
@@ -66,7 +83,7 @@ namespace MysticJourney.UI.Effects
         /// </summary>
         public static Sprite CreateArrowSprite()
         {
-            int w = 64, h = 64;
+            int w = 32, h = 32;
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
 
@@ -78,18 +95,35 @@ namespace MysticJourney.UI.Effects
                 for (int y = 0; y < h; y++)
                     tex.SetPixel(x, y, clear);
 
-            // Vẽ tam giác thon nhọn hướng lên trên (y = h là đỉnh, y = 0 là đáy)
+            // Vẽ hình mũi tên đầy đủ (thân + đầu tam giác) hướng LÊN trên để khớp logic
+            // xoay (-90°). Đầu chiếm ~40% trên, thân là dải chữ nhật ở dưới.
+            int cx = w / 2;
+            int headBaseY = Mathf.RoundToInt(h * 0.42f); // ranh giới giữa thân (dưới) và đầu (trên)
+            float shaftHalf = w * 0.16f;                 // nửa bề rộng thân
+            float headHalf = w * 0.34f;                  // nửa bề rộng đáy đầu mũi tên
+
             for (int y = 0; y < h; y++)
             {
-                float norm = 1.0f - ((float)y / (h - 1)); // y = h-1 -> norm = 0 (đỉnh), y = 0 -> norm = 1 (đáy)
-                float halfWidth = norm * (w * 0.25f); // Bề ngang thon gọn
-                int cx = w / 2;
-                int left = Mathf.RoundToInt(cx - halfWidth);
-                int right = Mathf.RoundToInt(cx + halfWidth);
+                int left, right;
+                if (y <= headBaseY)
+                {
+                    // Thân: dải chữ nhật
+                    left = Mathf.RoundToInt(cx - shaftHalf);
+                    right = Mathf.RoundToInt(cx + shaftHalf);
+                }
+                else
+                {
+                    // Đầu: tam giác thu nhỏ dần tới đỉnh (y = h-1)
+                    float t = 1f - ((float)(y - headBaseY) / (h - 1 - headBaseY)); // 1 tại đáy đầu -> 0 tại đỉnh
+                    float halfWidth = headHalf * t;
+                    left = Mathf.RoundToInt(cx - halfWidth);
+                    right = Mathf.RoundToInt(cx + halfWidth);
+                }
+
                 for (int x = left; x <= right; x++)
                 {
                     if (x < 0 || x >= w) continue;
-                    bool isEdge = x == left || x == right || y == 0 || y == 1 || y == h - 1 || y == h - 2;
+                    bool isEdge = x == left || x == right || y == 0 || y == 1 || y == h - 1;
                     tex.SetPixel(x, y, isEdge ? outline : yellow);
                 }
             }

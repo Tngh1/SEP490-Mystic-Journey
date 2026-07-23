@@ -511,7 +511,11 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        Debug.LogError($"[PhotonManager] OnShutdown: {shutdownReason}");
+        if (shutdownReason == ShutdownReason.Ok || shutdownReason == ShutdownReason.GameClosed)
+            Debug.Log($"[PhotonManager] OnShutdown: {shutdownReason} (intentional)");
+        else
+            Debug.LogError($"[PhotonManager] OnShutdown: {shutdownReason}");
+
         _spawnedPlayers.Clear();
     }
 
