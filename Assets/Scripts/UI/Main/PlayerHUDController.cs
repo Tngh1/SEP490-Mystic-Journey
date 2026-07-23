@@ -390,8 +390,19 @@ public class PlayerHUDController : MonoBehaviour
         UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
+    private int _lastKnownLevel = -1;
+
     private void UpdateProfileUI(PlayerProfileResponse profile)
     {
+        if (_lastKnownLevel != -1 && profile.Level > _lastKnownLevel)
+        {
+            if (levelUpPanel != null && !levelUpPanel.gameObject.activeInHierarchy)
+            {
+                levelUpPanel.gameObject.SetActive(true);
+            }
+        }
+        _lastKnownLevel = profile.Level;
+
         if (playerNameText != null)
         {
             playerNameText.text = profile.DisplayName ?? profile.AccountEmail;
