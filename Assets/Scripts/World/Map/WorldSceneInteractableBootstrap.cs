@@ -14,7 +14,7 @@ public static class WorldSceneInteractableBootstrap
 
     public static void EnsureForScene(Scene scene)
     {
-        if (!scene.IsValid() || (!string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase) && !string.Equals(scene.name, "AutumnPumpkin", StringComparison.OrdinalIgnoreCase)))
+        if (!scene.IsValid())
             return;
 
         ConfigureFallback(scene);
@@ -28,7 +28,7 @@ public static class WorldSceneInteractableBootstrap
 
     public static void RefreshFromApi(Scene scene)
     {
-        if (!scene.IsValid() || (!string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase) && !string.Equals(scene.name, "AutumnPumpkin", StringComparison.OrdinalIgnoreCase)))
+        if (!scene.IsValid())
             return;
 
         if (!ApiClient.Instance.HasToken())
@@ -68,30 +68,50 @@ public static class WorldSceneInteractableBootstrap
         if (state == null)
             return;
 
-        var elder = state.Npcs?
-            .Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(n => n.NPCId)
-            .FirstOrDefault(n => string.Equals(n.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase) || string.Equals(n.Name, "Elder Rowan (Pumpkin)", StringComparison.OrdinalIgnoreCase))
-            ?? state.Npcs?.FirstOrDefault(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase));
+        var allInteractables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
+        var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
 
-        var elderPosition = elder != null
-            ? new Vector3((float)elder.PositionX, (float)elder.PositionY, 0f)
-            : ElderFallbackPosition;
-        var elderObject = FindOrCreateElderObject(scene, elderPosition);
-
-        if (elderObject != null && elder != null)
+        // 1. Cập nhật tất cả các NPC đã được đặt sẵn hoặc sinh tự động trong Map dựa theo DisplayName
+        foreach (var apiNpc in mapNpcs)
         {
-            var interactable = elderObject.GetComponent<WorldInteractable>();
-            if (interactable == null)
-                interactable = elderObject.AddComponent<WorldInteractable>();
-            interactable.ConfigureNpc(
-                elder.NPCId,
-                elder.Name,
-                elder.Description,
-                FirstDialogue(elder),
-                elder.InteractionRadius > 0f ? elder.InteractionRadius : 2.75f,
-                elder.Dialogues?.Where(d => d.LinkedQuestId.HasValue).Select(d => d.LinkedQuestId.Value)
-            );
+            var matches = allInteractables.Where(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc && string.Equals(i.DisplayName.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+            foreach (var match in matches)
+            {
+                match.ConfigureNpc(
+                    apiNpc.NPCId,
+                    apiNpc.Name,
+                    apiNpc.Description,
+                    FirstDialogue(apiNpc),
+                    apiNpc.InteractionRadius > 0f ? apiNpc.InteractionRadius : match.InteractionRadius,
+                    apiNpc.Dialogues?.Where(d => d.LinkedQuestId.HasValue).Select(d => d.LinkedQuestId.Value)
+                );
+            }
+        }
+
+        // 2. Fallback riêng cho Elder Rowan ở Map 1 & 2 (bảo toàn logic cũ của ElfForest/AutumnPumpkin)
+        if (string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase) || string.Equals(scene.name, "AutumnPumpkin", StringComparison.OrdinalIgnoreCase))
+        {
+            var elder = mapNpcs.OrderBy(n => n.NPCId).FirstOrDefault(n => string.Equals(n.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase) || string.Equals(n.Name, "Elder Rowan (Pumpkin)", StringComparison.OrdinalIgnoreCase)) ?? mapNpcs.FirstOrDefault();
+            
+            var elderPosition = elder != null
+                ? new Vector3((float)elder.PositionX, (float)elder.PositionY, 0f)
+                : ElderFallbackPosition;
+            var elderObject = FindOrCreateElderObject(scene, elderPosition);
+
+            if (elderObject != null && elder != null)
+            {
+                var interactable = elderObject.GetComponent<WorldInteractable>();
+                if (interactable == null)
+                    interactable = elderObject.AddComponent<WorldInteractable>();
+                interactable.ConfigureNpc(
+                    elder.NPCId,
+                    elder.Name,
+                    elder.Description,
+                    FirstDialogue(elder),
+                    elder.InteractionRadius > 0f ? elder.InteractionRadius : 2.75f,
+                    elder.Dialogues?.Where(d => d.LinkedQuestId.HasValue).Select(d => d.LinkedQuestId.Value)
+                );
+            }
         }
 
         var flowerQuest = state.Quests?.FirstOrDefault(q =>

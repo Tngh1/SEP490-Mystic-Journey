@@ -334,7 +334,13 @@ public class QuestManager : MonoBehaviour
                             string.Equals(objectiveType, "EquipSkill",StringComparison.OrdinalIgnoreCase);
 
                         if (!isAutoComplete) continue;
-                        if (!string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase)) continue;
+                        
+                        // [FIX] Kiểm tra Progress >= TargetAmount thay vì chỉ check Status == "Completed"
+                        // vì server BatchUpdateProgress không tự động chuyển Status sang Completed.
+                        bool isFinished = string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase) || 
+                                          (r.Progress >= Mathf.Max(1, r.TargetAmount));
+                                          
+                        if (!isFinished) continue;
 
                         var qid = r.QuestId;
                         Debug.Log($"[QuestManager] Auto-completing questId={qid} ({objectiveType})");
@@ -455,17 +461,36 @@ public class QuestManager : MonoBehaviour
                 string.Equals(objectiveType, "Talk",     StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(objectiveType, "EquipSkill",StringComparison.OrdinalIgnoreCase);
 
-            if (isAutoComplete && string.Equals(response.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            if (isAutoComplete)
             {
                 var qid = response.QuestId;
-                ClaimReward(qid,
-                    onSuccess: () =>
-                    {
-                        var qp = MainQuestPanelRuntime.Instance;
-                        if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
-                        WorldRuntimeEvents.RaiseQuestsChanged();
-                    },
-                    onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={qid}: {err}"));
+                bool isFinished = string.Equals(response.Status, "Completed", StringComparison.OrdinalIgnoreCase);
+                bool canComplete = string.Equals(response.Status, "InProgress", StringComparison.OrdinalIgnoreCase) && 
+                                   response.Progress >= Mathf.Max(1, response.TargetAmount);
+
+                if (canComplete)
+                {
+                    Debug.Log($"[QuestManager] Auto-completing loaded questId={qid}");
+                    CompleteQuest(qid,
+                        onSuccess: () =>
+                        {
+                            ClaimReward(qid,
+                                onSuccess: () => WorldRuntimeEvents.RaiseQuestsChanged(),
+                                onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={qid}: {err}"));
+                        },
+                        onError: err => Debug.LogWarning($"[QuestManager] Auto-complete on load fail questId={qid}: {err}"));
+                }
+                else if (isFinished)
+                {
+                    ClaimReward(qid,
+                        onSuccess: () =>
+                        {
+                            var qp = MainQuestPanelRuntime.Instance;
+                            if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                            WorldRuntimeEvents.RaiseQuestsChanged();
+                        },
+                        onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={qid}: {err}"));
+                }
             }
         }
 

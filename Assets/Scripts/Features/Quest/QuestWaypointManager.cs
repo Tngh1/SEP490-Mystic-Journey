@@ -63,6 +63,26 @@ namespace MysticJourney.Features.Quest
             }
         }
 
+        public Transform GetTargetForActiveQuest()
+        {
+            if (!IsTrackingEnabled) return null;
+            if (QuestManager.Instance == null) return null;
+            var quests = QuestManager.Instance.GetMainQuests();
+            var active = MysticJourney.Core.Utilities.QuestUtils.PickPreferredQuest(quests);
+
+            if (active == null) return null;
+
+            if (MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed"))
+            {
+                var boat = FindBoatTransform();
+                if (boat != null) return boat;
+                return null;
+            }
+
+            playerTransform = GetPlayerTransform();
+            return FindTargetForQuest(active);
+        }
+
         public void RefreshWaypoint()
         {
             if (!IsTrackingEnabled)
@@ -75,15 +95,23 @@ namespace MysticJourney.Features.Quest
             var quests = QuestManager.Instance.GetMainQuests();
             var active = QuestUtils.PickPreferredQuest(quests);
 
-            if (active == null || QuestUtils.IsStatus(active, "Claimed"))
+            if (active == null)
             {
                 if (waypointPointer != null) waypointPointer.Clear();
                 return;
             }
 
             playerTransform = GetPlayerTransform();
+            Transform target = null;
 
-            Transform target = FindTargetForQuest(active);
+            if (QuestUtils.IsStatus(active, "Claimed"))
+            {
+                target = FindBoatTransform();
+            }
+            else
+            {
+                target = FindTargetForQuest(active);
+            }
 
             if (target != null && playerTransform != null)
             {
@@ -93,7 +121,7 @@ namespace MysticJourney.Features.Quest
             }
             else
             {
-                Debug.Log($"[QuestWaypointManager] Target not found for quest {active.QuestId} with objective {active.ObjectiveType} and target {active.ObjectiveTarget}");
+                Debug.Log($"[QuestWaypointManager] Target not found for quest {active.QuestId}");
                 if (waypointPointer != null) waypointPointer.Clear();
             }
         }
@@ -223,7 +251,28 @@ namespace MysticJourney.Features.Quest
                 {
                     if (cleanDisplay.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                         cleanTarget.IndexOf(cleanDisplay, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
                         isMatch = true;
+                    }
+                    else
+                    {
+                        var targetTokens = cleanTarget.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+                        var displayTokens = cleanDisplay.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var tt in targetTokens)
+                        {
+                            if (tt.Length < 3) continue;
+                            foreach (var dt in displayTokens)
+                            {
+                                if (dt.Length < 3) continue;
+                                if (string.Equals(tt, dt, System.StringComparison.OrdinalIgnoreCase))
+                                {
+                                    isMatch = true;
+                                    break;
+                                }
+                            }
+                            if (isMatch) break;
+                        }
+                    }
                 }
 
                 if (!isMatch && !string.IsNullOrWhiteSpace(cleanGoName) && !string.IsNullOrWhiteSpace(cleanTarget))
@@ -330,10 +379,25 @@ namespace MysticJourney.Features.Quest
                 return null;
             }
 
-            // 1. Nếu nhiệm vụ chưa nhận (NotStarted): chỉ đường tới NPC giao quest (Quest Giver). Không tìm targetName để tránh nhảy sang bước sau.
+            // 0. Xử lý đặc biệt cho Quest 17 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
+            // CHỈ dẫn ra Thuyền SAU KHI lữ khách đã nói chuyện xong với Arthur (Completed/Claimed hoặc Progress >= 1)
+            if (quest.QuestId == 17 ||
+                (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Frozen Threat", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                bool isFinishedWithArthur = QuestUtils.IsStatus(quest, "Completed") ||
+                                            QuestUtils.IsStatus(quest, "Claimed") ||
+                                            quest.Progress >= Mathf.Max(1, quest.TargetAmount);
+                if (isFinishedWithArthur)
+                {
+                    var boat = FindBoatTransform();
+                    if (boat != null) return boat;
+                }
+            }
+
+            // 1. Nếu nhiệm vụ chưa nhận (NotStarted): chỉ đường tới NPC giao quest (Quest Giver).
             if (QuestUtils.IsStatus(quest, "NotStarted"))
             {
-                return FindQuestGiverNpc(quest.QuestId, questGiver, objectiveTarget: null);
+                return FindQuestGiverNpc(quest.QuestId, questGiver, objectiveTarget: targetName);
             }
 
             // 2. Nếu nhiệm vụ đã xong chờ trả (Completed): chỉ đường tới NPC trả quest.
@@ -447,15 +511,41 @@ namespace MysticJourney.Features.Quest
             }
 
             // 3. Defeat Monster — boss có thể nằm TRONG dungeon nên không có mặt ở world scene.
-            //    Nếu không tìm thấy enemy khớp -> rơi xuống fallback (cổng dungeon), không clear.
             if (objType.Equals("Defeat", System.StringComparison.OrdinalIgnoreCase))
             {
                 var allEnemies = FindObjectsOfType<EnemyEntity>();
+                EnemyEntity bestEnemy = null;
+                float minEnemyDist = float.MaxValue;
+                Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
+
                 foreach (var e in allEnemies)
                 {
-                    if (e.name.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                        return e.transform;
+                    if (e == null || !e.gameObject.activeInHierarchy) continue;
+                    if (IsEnemyMatch(e.name, targetName))
+                    {
+                        float d = Vector3.Distance(playerPos, e.transform.position);
+                        if (d < minEnemyDist)
+                        {
+                            minEnemyDist = d;
+                            bestEnemy = e;
+                        }
+                    }
                 }
+
+                if (bestEnemy != null) return bestEnemy.transform;
+
+                // Fallback: Nếu không khớp tên chính xác, chỉ tới quái vật bất kỳ gần nhất trong scene
+                foreach (var e in allEnemies)
+                {
+                    if (e == null || !e.gameObject.activeInHierarchy) continue;
+                    float d = Vector3.Distance(playerPos, e.transform.position);
+                    if (d < minEnemyDist)
+                    {
+                        minEnemyDist = d;
+                        bestEnemy = e;
+                    }
+                }
+                if (bestEnemy != null) return bestEnemy.transform;
             }
 
             // 4. Go to Map/Region -> portal tới map đích.
@@ -498,6 +588,65 @@ namespace MysticJourney.Features.Quest
                 if (p.targetMapData != null && p.targetMapData.mapName.IndexOf(mapName, System.StringComparison.OrdinalIgnoreCase) >= 0)
                     return p.transform;
             }
+            return null;
+        }
+
+        private static bool IsEnemyMatch(string enemyGoName, string targetName)
+        {
+            if (string.IsNullOrWhiteSpace(enemyGoName) || string.IsNullOrWhiteSpace(targetName))
+                return false;
+
+            string cleanGoName = enemyGoName.Replace("(Clone)", "").Trim();
+
+            if (cleanGoName.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                targetName.IndexOf(cleanGoName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+
+            string normGo = cleanGoName.Replace('_', ' ').Replace('-', ' ');
+            string normTarget = targetName.Replace('_', ' ').Replace('-', ' ');
+
+            if (normGo.IndexOf(normTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                normTarget.IndexOf(normGo, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+
+            var targetTokens = normTarget.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+            var goTokens = normGo.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var tt in targetTokens)
+            {
+                if (tt.Length < 3) continue;
+                foreach (var gt in goTokens)
+                {
+                    if (gt.Length < 3) continue;
+                    if (gt.IndexOf(tt, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        tt.IndexOf(gt, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private Transform FindBoatTransform()
+        {
+            var boatTeleporter = FindObjectOfType<BoatVideoTeleporter>();
+            if (boatTeleporter != null && boatTeleporter.gameObject.activeInHierarchy)
+                return boatTeleporter.transform;
+
+            var allPortals = FindObjectsOfType<MapTeleportPortal>();
+            foreach (var p in allPortals)
+            {
+                if (p != null && p.gameObject.activeInHierarchy && p.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return p.transform;
+            }
+
+            var allObjs = FindObjectsOfType<GameObject>();
+            foreach (var go in allObjs)
+            {
+                if (go != null && go.activeInHierarchy && (go.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0 || go.name.IndexOf("Thuyen", System.StringComparison.OrdinalIgnoreCase) >= 0))
+                    return go.transform;
+            }
+
             return null;
         }
     }
