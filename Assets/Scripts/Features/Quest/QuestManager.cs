@@ -247,8 +247,10 @@ public class QuestManager : MonoBehaviour
                 _pendingBatch.Remove(questId);
 
                 var quest = questDatabase != null ? questDatabase.GetById(questId) : null;
-                if (quest != null && quest.nextQuestId > 0)
-                    AcceptQuest(quest.nextQuestId);
+                // [FIX] Ngừng tự động AcceptQuest tiếp theo để người chơi có thể chạy về NPC QuestGiver
+                // đọc cốt truyện (dialogue) và nhận nhiệm vụ một cách hợp lý.
+                // if (quest != null && quest.nextQuestId > 0)
+                //    AcceptQuest(quest.nextQuestId);
 
                 Debug.Log($"[QuestManager] Claimed questId={questId}");
                 InventoryManager.RefreshAny(refreshStats: false);
@@ -327,8 +329,9 @@ public class QuestManager : MonoBehaviour
                             string.Equals(objectiveType, "Collect",  StringComparison.OrdinalIgnoreCase) ||
                             string.Equals(objectiveType, "Defeat",   StringComparison.OrdinalIgnoreCase) ||
                             string.Equals(objectiveType, "Explore",  StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(objectiveType, "Interact", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase);
+                            string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(objectiveType, "Talk",     StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(objectiveType, "EquipSkill",StringComparison.OrdinalIgnoreCase);
 
                         if (!isAutoComplete) continue;
                         if (!string.Equals(r.Status, "Completed", StringComparison.OrdinalIgnoreCase)) continue;
@@ -448,8 +451,9 @@ public class QuestManager : MonoBehaviour
                 string.Equals(objectiveType, "Collect",  StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(objectiveType, "Defeat",   StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(objectiveType, "Explore",  StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(objectiveType, "Interact", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase);
+                string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(objectiveType, "Talk",     StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(objectiveType, "EquipSkill",StringComparison.OrdinalIgnoreCase);
 
             if (isAutoComplete && string.Equals(response.Status, "Completed", StringComparison.OrdinalIgnoreCase))
             {

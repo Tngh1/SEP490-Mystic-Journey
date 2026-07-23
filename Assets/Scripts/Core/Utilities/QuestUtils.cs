@@ -60,6 +60,17 @@ namespace MysticJourney.Core.Utilities
             return 4;
         }
 
+        public static bool IsAutoCompleteQuest(string objectiveType)
+        {
+            var t = objectiveType ?? "";
+            return string.Equals(t, "Collect",  System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(t, "Defeat",   System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(t, "Explore",  System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(t, "OpenChest",System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(t, "Talk",     System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(t, "EquipSkill",System.StringComparison.OrdinalIgnoreCase);
+        }
+
         public static string StatusLabel(PlayerQuestResponse quest)
         {
             if (quest == null) return "Unknown";
@@ -67,7 +78,7 @@ namespace MysticJourney.Core.Utilities
             {
                 "NotStarted" => "Available",
                 "InProgress" => "In Progress",
-                "Completed" => "Completed",
+                "Completed" => IsAutoCompleteQuest(quest.ObjectiveType) ? "Completed" : "<color=orange>Return to Quest Giver</color>",
                 "Claimed" => "Claimed",
                 _ => quest.Status ?? "Unknown"
             };
