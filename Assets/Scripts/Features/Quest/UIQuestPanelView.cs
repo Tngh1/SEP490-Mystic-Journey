@@ -4,66 +4,60 @@ using UnityEngine.UI;
 
 public class UIQuestPanelView : MonoBehaviour
 {
-    [Header("List Prefabs")]
+    [Header("Quest List (Left)")]
     [SerializeField] private Transform questListContent;
-    [SerializeField] private UIQuestListItem questSlotTemplate;
-    [SerializeField] private Transform rewardListContent;
-    [SerializeField] private UIQuestRewardSlot rewardSlotTemplate;
+    [SerializeField] private GameObject questSlotPrefab;
 
-    [Header("Detail Text Slots")]
+    [Header("Quest Detail (Right)")]
     [SerializeField] private TMP_Text questTitleTMP;
-    [SerializeField] private Text questTitleText;
-    [SerializeField] private TMP_Text questTypeTMP;
-    [SerializeField] private Text questTypeText;
     [SerializeField] private TMP_Text objectiveTMP;
-    [SerializeField] private Text objectiveText;
-    [SerializeField] private TMP_Text progressTMP;
-    [SerializeField] private Text progressText;
     [SerializeField] private TMP_Text descriptionTMP;
-    [SerializeField] private Text descriptionText;
-    [SerializeField] private TMP_Text questGiverTMP;
-    [SerializeField] private Text questGiverText;
-    [SerializeField] private TMP_Text rewardsTMP;
-    [SerializeField] private Text rewardsText;
+    [SerializeField] private GameObject detailCompleteIcon;
 
-    [Header("Action Buttons")]
-    [SerializeField] private Button acceptQuestButton;
-    [SerializeField] private Button completeQuestButton;
-    [SerializeField] private Button declineQuestButton;
-    [SerializeField] private Button claimQuestButton;
-    [SerializeField] private Button claimedButton;
-    [SerializeField] private Button trackToggleButton;
-    [SerializeField] private Button primaryActionButton;
+    [Header("Quest Type Icon (Right Detail)")]
+    [SerializeField] private Image questTypeImage;
+    [SerializeField] private Sprite killTypeSprite;
+    [SerializeField] private Sprite collectTypeSprite;
+    [SerializeField] private Sprite talkTypeSprite;
+    [SerializeField] private Sprite exploreTypeSprite;
+
+    [Header("Reclaim / Rewards (Right)")]
+    [SerializeField] private GameObject rewardsContainer;
+    [SerializeField] private Transform rewardItemsContainer;
+    [SerializeField] private GameObject rewardSlotPrefab;
+
+    [Header("Track Button")]
+    [SerializeField] private Button trackQuestButton;
+    [SerializeField] private Sprite trackActiveSprite;
+    [SerializeField] private Sprite trackInactiveSprite;
+
+    [Header("Main Buttons")]
     [SerializeField] private Button closeButton;
 
     public Transform QuestListContent => questListContent;
-    public UIQuestListItem QuestSlotTemplate => questSlotTemplate;
-    public Transform RewardListContent => rewardListContent;
-    public UIQuestRewardSlot RewardSlotTemplate => rewardSlotTemplate;
+    public GameObject QuestSlotPrefab => questSlotPrefab;
 
     public TMP_Text QuestTitleTMP => questTitleTMP;
-    public Text QuestTitleText => questTitleText;
-    public TMP_Text QuestTypeTMP => questTypeTMP;
-    public Text QuestTypeText => questTypeText;
     public TMP_Text ObjectiveTMP => objectiveTMP;
-    public Text ObjectiveText => objectiveText;
-    public TMP_Text ProgressTMP => progressTMP;
-    public Text ProgressText => progressText;
     public TMP_Text DescriptionTMP => descriptionTMP;
-    public Text DescriptionText => descriptionText;
-    public TMP_Text QuestGiverTMP => questGiverTMP;
-    public Text QuestGiverText => questGiverText;
-    public TMP_Text RewardsTMP => rewardsTMP;
-    public Text RewardsText => rewardsText;
 
-    public Button AcceptQuestButton => acceptQuestButton;
-    public Button CompleteQuestButton => completeQuestButton;
-    public Button DeclineQuestButton => declineQuestButton;
-    public Button ClaimQuestButton => claimQuestButton;
-    public Button ClaimedButton => claimedButton;
-    public Button TrackToggleButton => trackToggleButton;
-    public Button PrimaryActionButton => primaryActionButton;
+    public GameObject DetailCompleteIcon => detailCompleteIcon;
+
+    public Image QuestTypeImage => questTypeImage;
+    public Sprite KillTypeSprite => killTypeSprite;
+    public Sprite CollectTypeSprite => collectTypeSprite;
+    public Sprite TalkTypeSprite => talkTypeSprite;
+    public Sprite ExploreTypeSprite => exploreTypeSprite;
+
+    public GameObject RewardsContainer => rewardsContainer;
+    public Transform RewardItemsContainer => rewardItemsContainer;
+    public GameObject RewardSlotPrefab => rewardSlotPrefab;
+
+    public Button TrackQuestButton => trackQuestButton;
     public Button CloseButton => closeButton;
+
+    public Sprite TrackActiveSprite => trackActiveSprite;
+    public Sprite TrackInactiveSprite => trackInactiveSprite;
 
     private void Awake()
     {
@@ -79,11 +73,11 @@ public class UIQuestPanelView : MonoBehaviour
     {
         if (questListContent == null)
             Debug.LogError("[UIQuestPanelView] questListContent missing.", this);
-        if (questSlotTemplate == null)
-            Debug.LogError("[UIQuestPanelView] questSlotTemplate prefab missing.", this);
-        if (rewardListContent == null)
-            Debug.LogError("[UIQuestPanelView] rewardListContent missing.", this);
-        if (rewardSlotTemplate == null)
-            Debug.LogError("[UIQuestPanelView] rewardSlotTemplate prefab missing.", this);
+        if (questSlotPrefab == null)
+            Debug.LogError("[UIQuestPanelView] questSlotPrefab missing.", this);
+        if (rewardItemsContainer == null)
+            Debug.LogError("[UIQuestPanelView] rewardItemsContainer missing.", this);
+        if (rewardSlotPrefab == null)
+            Debug.LogError("[UIQuestPanelView] rewardSlotPrefab missing.", this);
     }
 }

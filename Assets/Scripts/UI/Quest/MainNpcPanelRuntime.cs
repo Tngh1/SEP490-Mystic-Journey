@@ -252,7 +252,16 @@ public class MainNpcPanelRuntime : MonoBehaviour
         {
             actionButtons.Add(buttons[i]);
             actionButtonLabels.Add(FindTextSlot(buttons[i].transform, "Text (TMP)", "Text", "Label", "TitleText"));
+            AddHoverEffect(buttons[i].transform);
         }
+    }
+
+    // Same hover-scale transition HUD/party buttons use.
+    private static void AddHoverEffect(Transform t)
+    {
+        if (t == null) return;
+        if (t.GetComponent<UIHoverScaleEffect>() == null)
+            t.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
     private void ConfigureDefaultActions()
@@ -425,7 +434,9 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         if (QuestManager.IsStatus(quest, "Completed"))
         {
-            RouteToQuestReward(questId, "Quest completed. Claim your reward.");
+            // Completed nhưng chưa Claimed: tự claim luôn thay vì route mở panel mỗi lần talk
+            // (route lặp gây popup "Quest completed" lặp vô hạn khi nói chuyện lại NPC).
+            AutoClaimCompletedQuest(manager, questId, quest);
             return;
         }
 
@@ -513,7 +524,6 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 }
 
                 var qp = MainQuestPanelRuntime.Instance;
-                if (qp != null) qp.ShowQuestPopup("Quest completed!");
 
                 // Auto-claim after completing talk quest
                 manager.ClaimReward(
@@ -521,7 +531,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     onSuccess: () =>
                     {
                         processingQuestIds.Remove(questId);
-                        if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                        if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
                         WorldRuntimeEvents.RaiseQuestsChanged();
                         ClosePanel();
                     },
@@ -539,6 +549,30 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 WorldRuntimeEvents.RaiseQuestsChanged();
             }
         );
+    }
+
+    private void AutoClaimCompletedQuest(QuestManager manager, int questId, PlayerQuestResponse quest)
+    {
+        if (manager == null || questId <= 0 || processingQuestIds.Contains(questId))
+            return;
+
+        processingQuestIds.Add(questId);
+        var qp = MainQuestPanelRuntime.Instance;
+        manager.ClaimReward(
+            questId,
+            onSuccess: () =>
+            {
+                processingQuestIds.Remove(questId);
+                if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
+                WorldRuntimeEvents.RaiseQuestsChanged();
+                ClosePanel();
+            },
+            onError: err =>
+            {
+                processingQuestIds.Remove(questId);
+                Debug.LogWarning($"[MainNpcPanelRuntime] Auto-claim completed quest failed: {err}");
+                SetText(questHintText, "Come back to claim your reward.");
+            });
     }
 
     private void RouteToQuestReward(int questId, string message)
@@ -634,13 +668,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 {
                     var completedQuestId = quest.QuestId;
                     var qp = MainQuestPanelRuntime.Instance;
-                    if (qp != null) qp.ShowQuestPopup("Quest completed! Claiming your reward...");
                     manager.ClaimReward(
                         completedQuestId,
                         onSuccess: () =>
                         {
                             Debug.Log($"[MainNpcPanelRuntime] Auto-claimed questId={completedQuestId}");
-                            if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                            if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
                             WorldRuntimeEvents.RaiseQuestsChanged();
                             ClosePanel();
                         },
@@ -761,7 +794,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         if (QuestManager.IsStatus(quest, "Completed"))
         {
-            RouteToQuestReward(quest.QuestId, "Quest completed. Claim your reward.");
+            AutoClaimCompletedQuest(GetQuestManager(), quest.QuestId, quest);
             return;
         }
 

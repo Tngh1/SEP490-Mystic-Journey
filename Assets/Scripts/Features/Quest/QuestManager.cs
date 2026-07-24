@@ -25,6 +25,12 @@ public class QuestManager : MonoBehaviour
     private readonly Dictionary<int, PlayerQuestResponse> _responses = new();
     private readonly Dictionary<int, int> _pendingBatch = new();
     private readonly Dictionary<int, PlayerQuestState> _snapshot = new();
+
+    // Chống gọi trùng: nhiều nguồn (load, batch sync, NPC panel) cùng auto-complete/claim
+    // một quest trước khi API đầu tiên trả về. Nếu không chặn sẽ gửi request thừa hoặc lỗi
+    // "đã claim". Xóa key trong cả onSuccess lẫn onError để không kẹt vĩnh viễn.
+    private readonly HashSet<int> _completing = new();
+    private readonly HashSet<int> _claiming = new();
     private int _batchVersion;
     private Coroutine _batchCoroutine;
 
@@ -185,15 +191,27 @@ public class QuestManager : MonoBehaviour
 
     public void CompleteQuest(int questId, Action onSuccess = null, Action<string> onError = null)
     {
+        if (!_completing.Add(questId))
+        {
+            Debug.Log($"[QuestManager] CompleteQuest: questId={questId} already in-flight, skipping.");
+            return;
+        }
+
         PlayerQuestApi.Instance.CompleteQuest(questId,
             onSuccess: response =>
             {
+                _completing.Remove(questId);
                 if (response != null) UpsertQuestState(response);
                 InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestProgressChanged?.Invoke(questId);
                 onSuccess?.Invoke();
             },
-            onError: err => { Debug.LogError($"[QuestManager] CompleteQuest FAIL: {err.Message}"); onError?.Invoke(err.Message); });
+            onError: err =>
+            {
+                _completing.Remove(questId);
+                Debug.LogError($"[QuestManager] CompleteQuest FAIL: {err.Message}");
+                onError?.Invoke(err.Message);
+            });
     }
 
     public void AddProgress(int questId, int amount = 1)
@@ -215,11 +233,17 @@ public class QuestManager : MonoBehaviour
 
         if (state.progress >= targetAmount)
         {
-            state.status = "Completed";
-            if (_responses.TryGetValue(questId, out var response) && 
-                string.Equals(response.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase))
+            _responses.TryGetValue(questId, out var response);
+            var objType = response?.ObjectiveType ?? string.Empty;
+
+            // Collect quests are turned in at the NPC quest giver, not in the world. Keep them
+            // InProgress so the player must return and talk; the NPC turn-in flow completes +
+            // claims. Only in-world objective types (e.g. Explore) finish here.
+            if (!string.Equals(objType, "Collect", StringComparison.OrdinalIgnoreCase))
             {
-                ClaimReward(questId);
+                state.status = "Completed";
+                if (string.Equals(objType, "Explore", StringComparison.OrdinalIgnoreCase))
+                    ClaimReward(questId);
             }
         }
 
@@ -229,12 +253,19 @@ public class QuestManager : MonoBehaviour
 
     public void ClaimReward(int questId, Action onSuccess = null, Action<string> onError = null)
     {
-        if (!_cache.TryGetValue(questId, out var state)) return;
+        if (!_cache.TryGetValue(questId, out var state)) { onError?.Invoke("Quest not found."); return; }
         if (state.status != "Completed") { onError?.Invoke("Quest chua Complete."); return; }
+
+        if (!_claiming.Add(questId))
+        {
+            Debug.Log($"[QuestManager] ClaimReward: questId={questId} already in-flight, skipping.");
+            return;
+        }
 
         PlayerQuestApi.Instance.ClaimReward(questId,
             onSuccess: response =>
             {
+                _claiming.Remove(questId);
                 if (response != null)
                     UpsertQuestState(response);
                 else
@@ -261,7 +292,12 @@ public class QuestManager : MonoBehaviour
 
                 onSuccess?.Invoke();
             },
-            onError: err => { Debug.LogError($"[QuestManager] ClaimReward FAIL: {err.Message}"); onError?.Invoke(err.Message); });
+            onError: err =>
+            {
+                _claiming.Remove(questId);
+                Debug.LogError($"[QuestManager] ClaimReward FAIL: {err.Message}");
+                onError?.Invoke(err.Message);
+            });
     }
 
     public (int completed, int total) GetMapProgress(MapData map)
@@ -325,8 +361,9 @@ public class QuestManager : MonoBehaviour
                     {
                         if (r == null) continue;
                         var objectiveType = r.ObjectiveType ?? string.Empty;
+                        // Collect is intentionally excluded: it's completed by turning items in at
+                        // the NPC quest giver, not auto-finished from world progress.
                         var isAutoComplete =
-                            string.Equals(objectiveType, "Collect",  StringComparison.OrdinalIgnoreCase) ||
                             string.Equals(objectiveType, "Defeat",   StringComparison.OrdinalIgnoreCase) ||
                             string.Equals(objectiveType, "Explore",  StringComparison.OrdinalIgnoreCase) ||
                             string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase) ||
@@ -349,12 +386,11 @@ public class QuestManager : MonoBehaviour
                             {
                                 Debug.Log($"[QuestManager] Auto-complete done questId={qid}");
                                 var qp = MainQuestPanelRuntime.Instance;
-                                if (qp != null) qp.ShowQuestPopup("Quest completed!");
 
                                 ClaimReward(qid,
                                     onSuccess: () =>
                                     {
-                                        if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                                        if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
                                         WorldRuntimeEvents.RaiseQuestsChanged();
                                     },
                                     onError: err =>
@@ -453,8 +489,8 @@ public class QuestManager : MonoBehaviour
             UpsertQuestState(response);
             
             var objectiveType = response.ObjectiveType ?? string.Empty;
+            // Collect excluded: turned in at the NPC quest giver, not auto-completed on load.
             var isAutoComplete =
-                string.Equals(objectiveType, "Collect",  StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(objectiveType, "Defeat",   StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(objectiveType, "Explore",  StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(objectiveType, "OpenChest",StringComparison.OrdinalIgnoreCase) ||
@@ -538,12 +574,11 @@ public class QuestManager : MonoBehaviour
                     onSuccess: () =>
                     {
                         var qp = MainQuestPanelRuntime.Instance;
-                        if (qp != null) qp.ShowQuestPopup("Quest completed!");
 
                         ClaimReward(q.QuestId,
                             onSuccess: () =>
                             {
-                                if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                                if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed. Your next quest is ready.");
                                 WorldRuntimeEvents.RaiseQuestsChanged();
                             },
                             onError: err => Debug.LogWarning($"[QuestManager] Auto-claim EquipSkill fail: {err}"));
