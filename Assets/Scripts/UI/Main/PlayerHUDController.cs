@@ -390,8 +390,19 @@ public class PlayerHUDController : MonoBehaviour
         UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
+    private int _lastKnownLevel = -1;
+
     private void UpdateProfileUI(PlayerProfileResponse profile)
     {
+        if (_lastKnownLevel != -1 && profile.Level > _lastKnownLevel)
+        {
+            if (levelUpPanel != null && !levelUpPanel.gameObject.activeInHierarchy)
+            {
+                levelUpPanel.gameObject.SetActive(true);
+            }
+        }
+        _lastKnownLevel = profile.Level;
+
         if (playerNameText != null)
         {
             playerNameText.text = profile.DisplayName ?? profile.AccountEmail;
@@ -923,15 +934,24 @@ public class PlayerHUDController : MonoBehaviour
 
         Vector3 spawnPos = WorldState.LastPosition;
         
-        var spawner = UnityEngine.Object.FindFirstObjectByType<PlayerSpawner>();
-        if (spawner != null && spawner.SpawnPoint != null)
+        // [FIX] Nếu Map có kịch bản Cập Bến Thuyền, ưu tiên hồi sinh người chơi ở vị trí cập bến (trên bờ)
+        var boatArrival = UnityEngine.Object.FindFirstObjectByType<BoatAutoArrival>();
+        if (boatArrival != null && boatArrival.shoreSpawnPoint != null)
         {
-            spawnPos = spawner.SpawnPoint.position;
+            spawnPos = boatArrival.shoreSpawnPoint.position;
         }
         else
         {
-            GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
-            if (targetSpawnPoint != null) spawnPos = targetSpawnPoint.transform.position;
+            var spawner = UnityEngine.Object.FindFirstObjectByType<PlayerSpawner>();
+            if (spawner != null && spawner.SpawnPoint != null)
+            {
+                spawnPos = spawner.SpawnPoint.position;
+            }
+            else
+            {
+                GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
+                if (targetSpawnPoint != null) spawnPos = targetSpawnPoint.transform.position;
+            }
         }
 
         if (NetworkPlayer.Local != null)

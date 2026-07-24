@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public enum WorldInteractableKind
 {
@@ -11,6 +12,10 @@ public enum WorldInteractableKind
 
 public class WorldInteractable : MonoBehaviour
 {
+    private Canvas overheadCanvas;
+    private TextMeshProUGUI overheadText;
+    private Coroutine overheadCoroutine;
+
     [SerializeField] private WorldInteractableKind kind = WorldInteractableKind.Object;
     [SerializeField] private int npcId;
     [SerializeField] private string displayName = "Interactable";
@@ -29,7 +34,7 @@ public class WorldInteractable : MonoBehaviour
 
     public WorldInteractableKind Kind => kind;
     public int NpcId => npcId;
-    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
+    public string DisplayName => (string.IsNullOrWhiteSpace(displayName) || displayName.Equals("Interactable", System.StringComparison.OrdinalIgnoreCase)) ? gameObject.name : displayName;
     public string Description => description;
     public string GreetingText => greetingText;
     public float InteractionRadius => Mathf.Max(0.5f, interactionRadius);
@@ -49,6 +54,8 @@ public class WorldInteractable : MonoBehaviour
         greetingText = greeting ?? string.Empty;
         interactionRadius = Mathf.Max(0.5f, radius);
         linkedQuestIds = questIds == null ? new int[0] : new List<int>(questIds).ToArray();
+        
+        UpdateOverheadUI();
     }
 
     public void ConfigureObject(string key, string objectName, string type, int linkedQuestId, int delta, float radius)
@@ -63,12 +70,18 @@ public class WorldInteractable : MonoBehaviour
         description = interactionType;
         greetingText = string.Empty;
         linkedQuestIds = linkedQuestId > 0 ? new[] { linkedQuestId } : new int[0];
+        
+        UpdateOverheadUI();
     }
 
     public void ConfigureQuestItem(string key, string itemName, int linkedQuestId, int delta, float radius)
     {
-        ConfigureObject(key, itemName, "Collect", linkedQuestId, delta, radius);
+        // Preserve the interaction type set in the Inspector, default to "Collect" if empty
+        string type = string.IsNullOrWhiteSpace(InteractionType) ? "Collect" : InteractionType;
+        ConfigureObject(key, itemName, type, linkedQuestId, delta, radius);
         kind = WorldInteractableKind.QuestItem;
+        
+        UpdateOverheadUI();
     }
 
     public void ConfigureDungeon(int configId, float radius)
@@ -78,6 +91,128 @@ public class WorldInteractable : MonoBehaviour
         interactionRadius = Mathf.Max(0.5f, radius);
         displayName = "Dungeon Entrance";
         objectKey = "dungeon_" + configId;
+        
+        UpdateOverheadUI();
+    }
+
+    private void Start()
+    {
+        CreateOverheadUI();
+    }
+
+    private void Update()
+    {
+        if (overheadCanvas != null)
+        {
+            // Counteract any flip in the parent hierarchy so text is never backwards
+            float sign = transform.lossyScale.x < 0 ? -1f : 1f;
+            if (overheadCanvas.transform.localScale.x != sign)
+            {
+                overheadCanvas.transform.localScale = new Vector3(sign, 1f, 1f);
+            }
+        }
+    }
+
+    private void CreateOverheadUI()
+    {
+        // Recursively find and destroy any existing OverheadUI or legacy text components
+        var oldTexts = GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (var t in oldTexts)
+        {
+            // If the text is inside a Canvas that is a child of the NPC, destroy the whole Canvas
+            var parentCanvas = t.GetComponentInParent<Canvas>();
+            if (parentCanvas != null && parentCanvas.gameObject != this.gameObject)
+            {
+                Destroy(parentCanvas.gameObject);
+            }
+            // Otherwise just destroy the text object itself
+            else if (t.gameObject != this.gameObject)
+            {
+                Destroy(t.gameObject);
+            }
+        }
+
+        var go = new GameObject("OverheadUI");
+        go.transform.SetParent(transform, false);
+        // Position will be set dynamically in UpdateOverheadUI
+
+        overheadCanvas = go.AddComponent<Canvas>();
+        overheadCanvas.renderMode = RenderMode.WorldSpace;
+        overheadCanvas.sortingLayerName = "Default";
+        overheadCanvas.sortingOrder = 50;
+
+        var textGo = new GameObject("Text");
+        textGo.transform.SetParent(go.transform, false);
+        
+        overheadText = textGo.AddComponent<TextMeshProUGUI>();
+        overheadText.alignment = TextAlignmentOptions.Center;
+        overheadText.enableWordWrapping = false;
+        overheadText.overflowMode = TextOverflowModes.Overflow;
+        
+        // Crisp text with TMP
+        overheadText.fontSize = 120;
+        
+        // Scale down for World Space Canvas
+        var textRect = textGo.GetComponent<RectTransform>();
+        textRect.sizeDelta = new Vector2(1200f, 250f);
+        textRect.localScale = new Vector3(0.0025f, 0.0025f, 1f);
+
+        overheadText.outlineWidth = 0.15f;
+        overheadText.outlineColor = new Color32(0, 0, 0, 255);
+
+        UpdateOverheadUI();
+    }
+
+    public void UpdateOverheadUI()
+    {
+        if (overheadText == null) return;
+
+        // Move text higher for NPCs so it doesn't overlap their sprite
+        float heightOffset = (kind == WorldInteractableKind.Npc) ? 2.3f : 1.2f;
+        overheadCanvas.transform.localPosition = new Vector3(0, heightOffset, 0);
+
+        if (kind == WorldInteractableKind.Npc)
+        {
+            overheadText.text = DisplayName;
+            overheadText.color = new Color(0.6f, 0.9f, 1f); // Light blue for NPC
+            overheadText.fontSize = 100;
+            overheadCanvas.gameObject.SetActive(true);
+        }
+        else if (IsInvestigationItem())
+        {
+            overheadText.text = "?";
+            overheadText.color = Color.yellow;
+            overheadText.fontSize = 160;
+            overheadCanvas.gameObject.SetActive(true);
+        }
+        else
+        {
+            overheadCanvas.gameObject.SetActive(false);
+        }
+    }
+
+    private bool IsInvestigationItem()
+    {
+        return kind == WorldInteractableKind.QuestItem && 
+               (DisplayName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                ObjectKey.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private System.Collections.IEnumerator ShowInvestigationText()
+    {
+        if (overheadText == null) yield break;
+
+        overheadText.text = "Why is there a corpse? What happened...";
+        overheadText.color = Color.white;
+        overheadText.fontSize = 80;
+        overheadCanvas.gameObject.SetActive(true);
+
+        yield return new WaitForSeconds(3.5f);
+        
+        if (overheadCanvas != null)
+        {
+            overheadCanvas.gameObject.SetActive(false);
+        }
     }
 
     public string GetPromptText()
@@ -96,7 +231,10 @@ public class WorldInteractable : MonoBehaviour
             return $"{DisplayName}\nPress E to {InteractionType}";
 
         if (kind == WorldInteractableKind.QuestItem)
-            return $"{DisplayName}\nPress E to collect";
+        {
+            string actionStr = string.IsNullOrWhiteSpace(InteractionType) ? "collect" : InteractionType.ToLower();
+            return $"{DisplayName}\nPress E to {actionStr}";
+        }
 
 
         return $"{DisplayName}\nPress E to {InteractionType}";
@@ -104,21 +242,52 @@ public class WorldInteractable : MonoBehaviour
 
     public void OnSuccessfulInteraction()
     {
+        Debug.Log($"[WorldInteractable] OnSuccessfulInteraction called on {gameObject.name}. Kind: {kind}, InteractionType: '{InteractionType}'");
+
         if (kind == WorldInteractableKind.QuestItem || kind == WorldInteractableKind.Object)
         {
-            // Báo cho script hồi sinh biết (nếu có)
             var respawner = GetComponent<WorldRespawnable>();
+            
             if (respawner != null)
             {
+                Debug.Log($"[WorldInteractable] Calling ConsumeAndRespawn on {gameObject.name}");
                 respawner.ConsumeAndRespawn();
+                WorldInteractionPromptRuntime.Hide();
             }
             else
             {
-                // Nếu không có script hồi sinh thì tắt luôn cái này đi (đã thu thập xong)
-                gameObject.SetActive(false);
+                bool isCollectOrGather = InteractionType.Equals("Collect", System.StringComparison.OrdinalIgnoreCase) || 
+                                         InteractionType.Equals("Gather", System.StringComparison.OrdinalIgnoreCase);
+
+                if (isCollectOrGather)
+                {
+                    Debug.Log($"[WorldInteractable] Is Collect/Gather but no respawner. Hiding object {gameObject.name}");
+                    gameObject.SetActive(false);
+                    WorldInteractionPromptRuntime.Hide();
+                }
+                else
+                {
+                    Debug.Log($"[WorldInteractable] Not Collect/Gather. Disabling colliders on {gameObject.name} instead of hiding.");
+                    
+                    var boat = GetComponent<BoatVideoTeleporter>();
+                    if (boat != null) boat.InteractWithBoat();
+
+                    var col = GetComponent<UnityEngine.Collider>();
+                    if (col != null) col.enabled = false;
+                    var col2D = GetComponent<UnityEngine.Collider2D>();
+                    if (col2D != null) col2D.enabled = false;
+                    
+                    WorldInteractionPromptRuntime.Hide();
+
+                    if (IsInvestigationItem())
+                    {
+                        if (overheadCoroutine != null) StopCoroutine(overheadCoroutine);
+                        overheadCoroutine = StartCoroutine(ShowInvestigationText());
+                    }
+                }
             }
         }
     }
+
+
 }
-
-

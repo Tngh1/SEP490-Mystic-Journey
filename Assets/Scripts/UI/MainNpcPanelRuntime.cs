@@ -388,16 +388,33 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void HandleLinkedQuestFromStory(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
-        var questId = dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
-        if (questId <= 0 || processingQuestIds.Contains(questId))
-            return;
-
         var manager = GetQuestManager();
         if (manager == null)
         {
             SetText(questHintText, "Quest system is not ready.");
             return;
         }
+
+        // [FIX] Ưu tiên xử lý Quest đang InProgress (Giao nhiệm vụ, báo cáo) trước khi xem xét Quest từ Dialogue
+        var inProgressQuest = currentLinkedQuests.FirstOrDefault(q => QuestManager.IsStatus(q, "InProgress"));
+        if (inProgressQuest != null)
+        {
+            if (IsCollectQuest(inProgressQuest) && HasEnoughQuestProgress(inProgressQuest))
+            {
+                TurnInQuestItemAndRoute(inProgressQuest);
+                return;
+            }
+
+            if (ShouldAutoCompleteNpcTalkQuest(inProgressQuest))
+            {
+                CompleteTalkQuestAndRouteToReward(manager, inProgressQuest.QuestId, inProgressQuest);
+                return;
+            }
+        }
+
+        var questId = dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
+        if (questId <= 0 || processingQuestIds.Contains(questId))
+            return;
 
         var quest = ResolveQuest(questId, linkedQuest, manager);
         if (QuestManager.IsStatus(quest, "Claimed"))
@@ -414,6 +431,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         if (QuestManager.IsStatus(quest, "InProgress"))
         {
+            if (IsCollectQuest(quest) && HasEnoughQuestProgress(quest))
+            {
+                TurnInQuestItemAndRoute(quest);
+                return;
+            }
+
             if (ShouldAutoCompleteNpcTalkQuest(quest))
             {
                 CompleteTalkQuestAndRouteToReward(manager, questId, quest);
@@ -441,6 +464,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     acceptedQuest.Status = string.IsNullOrWhiteSpace(acceptedQuest.Status) ? "InProgress" : acceptedQuest.Status;
                     acceptedQuest.Progress = Mathf.Max(acceptedQuest.Progress, 0);
                     SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { acceptedQuest }));
+                }
+
+                if (IsCollectQuest(acceptedQuest) && HasEnoughQuestProgress(acceptedQuest))
+                {
+                    TurnInQuestItemAndRoute(acceptedQuest);
+                    return;
                 }
 
                 if (ShouldAutoCompleteNpcTalkQuest(acceptedQuest))
@@ -539,9 +568,17 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return manager?.GetQuestResponse(questId) ?? fallback;
     }
 
-    private static bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
+    private bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
     {
-        return quest != null && string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase);
+        if (quest == null || !string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase))
+            return false;
+            
+        string target = quest.ObjectiveTarget;
+        if (string.IsNullOrWhiteSpace(target)) return true; // auto-complete if no target specified
+        
+        string currentNpc = CleanName(nameText.Text);
+        return target.IndexOf(currentNpc, StringComparison.OrdinalIgnoreCase) >= 0 || 
+               currentNpc.IndexOf(target, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
 
@@ -821,7 +858,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return currentLinkedQuests.FirstOrDefault(q => q != null && q.QuestId == questId.Value);
     }
 
-    private static string BuildStoryActionLabel(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
+    private string BuildStoryActionLabel(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
         if (linkedQuest != null)
             return BuildPlayerQuestActionLabel(linkedQuest);
@@ -832,7 +869,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return "Tell me about the story.";
     }
 
-    private static string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
+    private string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
     {
         if (QuestManager.IsStatus(quest, "Claimed"))
             return "Thank you for your guidance.";
@@ -1170,6 +1207,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
 
         public bool IsValid => tmp != null || text != null;
+        public string Text => tmp != null ? tmp.text : (text != null ? text.text : string.Empty);
 
         public static TextSlot From(GameObject target)
         {
