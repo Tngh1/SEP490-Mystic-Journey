@@ -47,6 +47,28 @@ namespace MysticJourney.UI.Effects
                 return;
             }
 
+            // Ẩn mũi tên khi đang mở bảng hội thoại NPC hoặc bảng Main Quest Panel
+            if (MainNpcPanelRuntime.Instance != null && MainNpcPanelRuntime.Instance.IsOpen)
+            {
+                if (gameObject.activeSelf) gameObject.SetActive(false);
+                return;
+            }
+
+            if (MainQuestPanelRuntime.Instance != null && MainQuestPanelRuntime.Instance.gameObject.activeInHierarchy)
+            {
+                // Kiểm tra xem bảng QuestPanel bên trong có đang mở không
+                var panelGo = MainQuestPanelRuntime.Instance.gameObject;
+                if (panelGo.activeSelf)
+                {
+                    var childPanel = panelGo.transform.Find("QuestPanel");
+                    if (childPanel != null && childPanel.gameObject.activeInHierarchy)
+                    {
+                        if (gameObject.activeSelf) gameObject.SetActive(false);
+                        return;
+                    }
+                }
+            }
+
             float dist = Vector2.Distance(player.position, target.position);
 
             if (dist < 1.5f)

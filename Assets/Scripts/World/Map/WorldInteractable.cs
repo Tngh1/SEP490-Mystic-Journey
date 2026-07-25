@@ -193,9 +193,16 @@ public class WorldInteractable : MonoBehaviour
 
     private bool IsInvestigationItem()
     {
-        return kind == WorldInteractableKind.QuestItem && 
-               (DisplayName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                ObjectKey.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0);
+        if (kind != WorldInteractableKind.QuestItem) return false;
+
+        // DiggingInteractable luôn hiện "?" (đào đất, khám phá v.v.)
+        if (GetComponent<DiggingInteractable>() != null) return true;
+
+        // Các vật phẩm mang tính "điều tra" theo tên: Corpse, Skull, Hộp sọ, Xác...
+        return DisplayName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+               ObjectKey.IndexOf("Corpse",  System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+               DisplayName.IndexOf("Skull",  System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+               ObjectKey.IndexOf("Skull",   System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private System.Collections.IEnumerator ShowInvestigationText()
@@ -246,6 +253,38 @@ public class WorldInteractable : MonoBehaviour
 
         if (kind == WorldInteractableKind.QuestItem || kind == WorldInteractableKind.Object)
         {
+            // Nếu là cổng/cầu khóa bằng chìa (LockedBridgeGate), ủy quyền kiểm tra cho nó.
+            var bridgeGate = GetComponent<LockedBridgeGate>();
+            if (bridgeGate != null)
+            {
+                bridgeGate.InteractWithGate();
+                return;
+            }
+
+            // Nếu là vật thể "đào" (DiggingInteractable), ủy quyền hoàn toàn cho nó.
+            var digInteractable = GetComponent<DiggingInteractable>();
+            if (digInteractable != null)
+            {
+                digInteractable.StartDig();
+                return;
+            }
+
+            // Nếu là Cây Khởi Nguyên (OriginTreeInteractable), ủy quyền hoàn toàn cho nó.
+            var treeInteractable = GetComponent<OriginTreeInteractable>();
+            if (treeInteractable != null)
+            {
+                treeInteractable.StartHeal();
+                return;
+            }
+
+            // Nếu là Cây Thường Xuân (IvyTreeInteractable), ủy quyền hoàn toàn cho nó.
+            var ivyInteractable = GetComponent<IvyTreeInteractable>();
+            if (ivyInteractable != null)
+            {
+                ivyInteractable.StartInteraction();
+                return;
+            }
+
             var respawner = GetComponent<WorldRespawnable>();
             
             if (respawner != null)

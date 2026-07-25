@@ -604,8 +604,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
     {
-        if (quest == null || !string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase))
-            return false;
+        if (quest == null) return false;
+
+        var isTalkOrExplore = string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(quest.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(quest.ObjectiveType, "Interact", StringComparison.OrdinalIgnoreCase);
+
+        if (!isTalkOrExplore) return false;
             
         string target = quest.ObjectiveTarget;
         if (string.IsNullOrWhiteSpace(target)) return true; // auto-complete if no target specified

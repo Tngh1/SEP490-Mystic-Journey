@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
@@ -63,12 +64,30 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     private void SpawnNpcList(List<NPCResponse> npcList)
     {
         Transform parentTransform = npcContainer != null ? npcContainer : this.transform;
+        var hideNatalie = ShouldHideNatalie();
 
         foreach (var npc in npcList)
         {
+            if (hideNatalie && string.Equals(npc.Name, "Natalie", System.StringComparison.OrdinalIgnoreCase))
+                continue;
+
             // 1. Tìm Prefab từ NpcDatabaseSO
             GameObject prefab = npcDatabase != null ? npcDatabase.GetPrefab(npc.Name) : null;
             
+            // Xử lý cứng cho Valiant Warrior để tránh việc nó bị nhầm thành Quái (Enemy)
+            if (prefab != null && prefab.name == "VikingRobber" && npc.Name == "Valiant Warrior")
+            {
+                var overridePrefab = Resources.Load<GameObject>("NPCs/QuestGiver");
+                if (overridePrefab == null)
+                    overridePrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(g => g.name == "Lieutenant" && g.scene.name == null); // search prefab
+                
+                if (overridePrefab != null)
+                {
+                    prefab = overridePrefab;
+                    Debug.Log("[WorldNpcSpawner] Đã ép Valiant Warrior dùng prefab NPC chuẩn thay vì VikingRobber (quái).");
+                }
+            }
+
             if (prefab == null)
             {
                 Debug.LogWarning($"[WorldNpcSpawner] Không tìm thấy Prefab cho NPC Name: '{npc.Name}'. Hãy kiểm tra file NpcDatabaseSO!");
@@ -80,6 +99,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
 
             // 3. Đẻ ra NPC và gán localPosition chuẩn xác
             GameObject npcObj = Instantiate(prefab, parentTransform);
+            npcObj.name = npc.Name;
             npcObj.transform.localPosition = localPos;
             npcObj.transform.localRotation = Quaternion.identity;
             npcObj.transform.localScale = Vector3.one;
@@ -113,6 +133,15 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
         
         // 5. Báo cho hệ thống quét NPC của bạn biết là có NPC mới (bắt buộc)
         WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);
+    }
+
+    private static bool ShouldHideNatalie()
+    {
+        var quests = QuestManager.Instance?.GetMainQuests();
+        return quests != null && quests.Any(q =>
+            q != null && q.QuestId == 24 &&
+            (string.Equals(q.Status, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(q.Status, "Claimed", System.StringComparison.OrdinalIgnoreCase)));
     }
 
     private void ClearCurrentNpcs()

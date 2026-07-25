@@ -152,6 +152,13 @@ public class PlayerWorldInteractor : MonoBehaviour
             return;
         }
 
+        var ivyTree = target.GetComponent<IvyTreeInteractable>();
+        if (ivyTree != null)
+        {
+            target.OnSuccessfulInteraction();
+            return;
+        }
+
         int? questIdToSend = target.QuestId;
         if (!questIdToSend.HasValue && QuestManager.Instance != null)
         {

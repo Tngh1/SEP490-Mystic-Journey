@@ -17,6 +17,16 @@ public static class WorldSceneInteractableBootstrap
         if (!scene.IsValid())
             return;
 
+        // Xóa sạch các Skeleton bị gán nhầm script WorldInteractable (quái không được làm NPC)
+        var interactables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
+        foreach (var i in interactables)
+        {
+            if (i.gameObject.scene == scene && (i.gameObject.name.Contains("Skeleton") || i.DisplayName == "Skeleton"))
+            {
+                UnityEngine.Object.Destroy(i); // Xóa component bị gán nhầm
+            }
+        }
+
         ConfigureFallback(scene);
 
         if (bootstrappedScenes.Contains(scene.handle))
@@ -70,11 +80,23 @@ public static class WorldSceneInteractableBootstrap
 
         var allInteractables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
         var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
+        var hideNatalie = IsQuestCompletedOrClaimed(state, 24);
 
-        // 1. Cập nhật tất cả các NPC đã được đặt sẵn hoặc sinh tự động trong Map dựa theo DisplayName
+        // 1. Cập nhật tất cả các NPC đã được đặt sẵn hoặc sinh tự động trong Map dựa theo DisplayName & NpcId
         foreach (var apiNpc in mapNpcs)
         {
-            var matches = allInteractables.Where(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc && string.Equals(i.DisplayName.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+            var matches = allInteractables.Where(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc &&
+                (i.NpcId == apiNpc.NPCId ||
+                 string.Equals(i.DisplayName.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(i.gameObject.name.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase))).ToList();
+
+            if (hideNatalie && string.Equals(apiNpc.Name, "Natalie", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var match in matches)
+                    UnityEngine.Object.Destroy(match.gameObject);
+                continue;
+            }
+
             foreach (var match in matches)
             {
                 match.ConfigureNpc(
@@ -129,6 +151,15 @@ public static class WorldSceneInteractableBootstrap
             ConfigureObject(scene, "Stone", "ElfForest.AncientStoneMarker", "Ancient Stone Marker", "Interact", stoneQuest.QuestId, 2.5f);
 
         ConfigureTaggedQuestItems(scene, state);
+        ConfigureRespawnableCollectItems(scene, state);
+    }
+
+    private static bool IsQuestCompletedOrClaimed(WorldStateResponse state, int questId)
+    {
+        return state?.Quests != null && state.Quests.Any(q =>
+            q != null && q.QuestId == questId &&
+            (string.Equals(q.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(q.Status, "Claimed", StringComparison.OrdinalIgnoreCase)));
     }
 
     private static GameObject FindOrCreateElderObject(Scene scene, Vector3 position)
@@ -208,6 +239,36 @@ public static class WorldSceneInteractableBootstrap
             var interactable = obj.GetComponent<WorldInteractable>();
             if (interactable == null)
                 interactable = obj.AddComponent<WorldInteractable>();
+
+            // Tự động thêm WorldRespawnable để item tự ẩn và mọc lại (giống Pumpkin)
+            var respawner = obj.GetComponent<WorldRespawnable>();
+            if (respawner == null)
+                respawner = obj.AddComponent<WorldRespawnable>();
+
+            interactable.ConfigureQuestItem(objectKey, itemName, questId, 1, 2.25f);
+        }
+    }
+
+    private static void ConfigureRespawnableCollectItems(Scene scene, WorldStateResponse state)
+    {
+        foreach (var respawnable in Resources.FindObjectsOfTypeAll<WorldRespawnable>())
+        {
+            if (respawnable == null || respawnable.gameObject.scene != scene)
+                continue;
+
+            var interactable = respawnable.GetComponent<WorldInteractable>();
+            if (interactable == null)
+                interactable = respawnable.gameObject.AddComponent<WorldInteractable>();
+
+            if (interactable.QuestId.HasValue && interactable.QuestId.Value > 0)
+                continue;
+
+            var itemName = ResolveQuestItemName(respawnable.gameObject.name);
+            var questId = FindCollectQuestId(state, itemName);
+            if (questId <= 0)
+                continue;
+
+            var objectKey = BuildObjectKey(itemName);
             interactable.ConfigureQuestItem(objectKey, itemName, questId, 1, 2.25f);
         }
     }

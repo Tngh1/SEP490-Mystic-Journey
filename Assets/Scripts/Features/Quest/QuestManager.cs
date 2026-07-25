@@ -238,11 +238,19 @@ public class QuestManager : MonoBehaviour
 
             // Collect quests are turned in at the NPC quest giver, not in the world. Keep them
             // InProgress so the player must return and talk; the NPC turn-in flow completes +
-            // claims. Only in-world objective types (e.g. Explore) finish here.
+            // claims. Only in-world objective types finish here.
             if (!string.Equals(objType, "Collect", StringComparison.OrdinalIgnoreCase))
             {
                 state.status = "Completed";
-                if (string.Equals(objType, "Explore", StringComparison.OrdinalIgnoreCase))
+
+                // Auto-claim objective types that resolve entirely in-world (no NPC turn-in):
+                // Explore, Defeat/Kill, plus legacy quest id 24.
+                bool isExplore = string.Equals(objType, "Explore", StringComparison.OrdinalIgnoreCase);
+                bool isDefeat  = string.Equals(objType, "Defeat",  StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(objType, "Kill",    StringComparison.OrdinalIgnoreCase);
+                bool isLegacyAutoId = questId == 24;
+
+                if (isExplore || isDefeat || isLegacyAutoId)
                     ClaimReward(questId);
             }
         }
@@ -286,6 +294,9 @@ public class QuestManager : MonoBehaviour
                 Debug.Log($"[QuestManager] Claimed questId={questId}");
                 InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestClaimed?.Invoke(questId);
+
+                // Refresh all quest-driven world links so NPC visibility updates immediately.
+                WorldRuntimeEvents.RaiseQuestsChanged();
 
                 // Notify rằng 1 quest vừa Claimed — ai đó có thể check xem map mới có mở không
                 WorldRuntimeEvents.RaiseMapCompleted(questId);
@@ -386,11 +397,12 @@ public class QuestManager : MonoBehaviour
                             {
                                 Debug.Log($"[QuestManager] Auto-complete done questId={qid}");
                                 var qp = MainQuestPanelRuntime.Instance;
+                                var qTitle = string.IsNullOrWhiteSpace(r.QuestTitle) ? "Quest" : r.QuestTitle;
 
                                 ClaimReward(qid,
                                     onSuccess: () =>
                                     {
-                                        if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
+                                        if (qp != null) qp.ShowQuestPopup(qTitle, UIQuestPopupView.QuestPopupKind.Completed);
                                         WorldRuntimeEvents.RaiseQuestsChanged();
                                     },
                                     onError: err =>
@@ -522,7 +534,7 @@ public class QuestManager : MonoBehaviour
                         onSuccess: () =>
                         {
                             var qp = MainQuestPanelRuntime.Instance;
-                            if (qp != null) qp.ShowQuestPopup("Reward claimed! Your next quest is ready.");
+                            if (qp != null) qp.ShowQuestPopup(response.QuestTitle ?? "Quest", UIQuestPopupView.QuestPopupKind.Completed);
                             WorldRuntimeEvents.RaiseQuestsChanged();
                         },
                         onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={qid}: {err}"));
@@ -578,7 +590,7 @@ public class QuestManager : MonoBehaviour
                         ClaimReward(q.QuestId,
                             onSuccess: () =>
                             {
-                                if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed. Your next quest is ready.");
+                                if (qp != null) qp.ShowQuestPopup(q.QuestTitle ?? "Quest", UIQuestPopupView.QuestPopupKind.Completed);
                                 WorldRuntimeEvents.RaiseQuestsChanged();
                             },
                             onError: err => Debug.LogWarning($"[QuestManager] Auto-claim EquipSkill fail: {err}"));
