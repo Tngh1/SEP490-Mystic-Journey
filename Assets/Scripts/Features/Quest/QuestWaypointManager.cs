@@ -74,8 +74,16 @@ namespace MysticJourney.Features.Quest
 
             if (MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed"))
             {
-                var boat = FindBoatTransform();
-                if (boat != null) return boat;
+                // Chỉ dùng boat trên AutumnPumpkin; FrozenMountain và các map khác dùng portal trực tiếp.
+                string currentSceneGet = WorldState.CurrentMapName ?? string.Empty;
+                bool isOnBoatMapGet = currentSceneGet.IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                if (isOnBoatMapGet)
+                {
+                    var boat = FindBoatTransform();
+                    if (boat != null) return boat;
+                }
+                var portal = FindAnyMapPortal();
+                if (portal != null) return portal;
                 return null;
             }
 
@@ -106,11 +114,35 @@ namespace MysticJourney.Features.Quest
 
             if (QuestUtils.IsStatus(active, "Claimed"))
             {
-                target = FindBoatTransform();
+                // Boat chỉ là exit hợp lệ khi player đang ở AutumnPumpkin (map có thuyền đi Frozen).
+                // Ở FrozenMountain và các map khác, BoatA là thuyền đến (arrival) — không phải exit.
+                // Chỉ dùng boat trên AutumnPumpkin; map khác dùng portal/gate trực tiếp.
+                string currentSceneClaimed = WorldState.CurrentMapName ?? string.Empty;
+                bool isOnBoatMap = currentSceneClaimed.IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                   currentSceneClaimed.IndexOf("AutumnPumpkin", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                if (isOnBoatMap)
+                    target = FindBoatTransform() ?? FindAnyMapPortal();
+                else
+                    target = FindAnyMapPortal();
             }
             else
             {
                 target = FindTargetForQuest(active);
+
+                // Nếu target không tìm được và quest thuộc map khác (player cần di chuyển sang map mới),
+                // chỉ đến portal/gate gần nhất để dẫn đường thay vì để mũi tên biến mất.
+                if (target == null && !string.IsNullOrWhiteSpace(active.MapName))
+                {
+                    string currentScene = WorldState.CurrentMapName ?? string.Empty;
+                    bool isQuestOnDifferentMap = currentScene.Length > 0 &&
+                        active.MapName.IndexOf(currentScene, System.StringComparison.OrdinalIgnoreCase) < 0 &&
+                        currentScene.IndexOf(active.MapName, System.StringComparison.OrdinalIgnoreCase) < 0;
+                    if (isQuestOnDifferentMap)
+                    {
+                        Debug.Log($"[QuestWaypointManager] Quest {active.QuestId} belongs to map '{active.MapName}' but player is on '{currentScene}'. Pointing to portal.");
+                        target = FindPortalToMap(active.MapName) ?? FindAnyMapPortal();
+                    }
+                }
             }
 
             if (target != null && playerTransform != null)
@@ -348,12 +380,8 @@ namespace MysticJourney.Features.Quest
 
             if (bestGo != null)
             {
-                var interactable = bestGo.GetComponent<WorldInteractable>();
-                if (interactable == null)
-                {
-                    interactable = bestGo.AddComponent<WorldInteractable>();
-                    interactable.ConfigureNpc(0, nameToMatch, "Quest NPC", "Xin chào lữ khách!", 2.5f, null);
-                }
+                // KHÔNG TỰ Ý THÊM WorldInteractable VÀO QUÁI HOẶC VẬT THỂ BẤT KỲ!
+                // Chỉ cần trả về transform để trỏ mũi tên là đủ.
                 return bestGo.transform;
             }
 
@@ -379,7 +407,7 @@ namespace MysticJourney.Features.Quest
                 return null;
             }
 
-            // 0. Xử lý đặc biệt cho Quest 17 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
+            // 0a. Xử lý đặc biệt cho Quest 17 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
             // CHỈ dẫn ra Thuyền SAU KHI lữ khách đã nói chuyện xong với Arthur (Completed/Claimed hoặc Progress >= 1)
             if (quest.QuestId == 17 ||
                 (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Frozen Threat", System.StringComparison.OrdinalIgnoreCase) >= 0))
@@ -394,7 +422,41 @@ namespace MysticJourney.Features.Quest
                 }
             }
 
-            // 1. Nếu nhiệm vụ chưa nhận (NotStarted): chỉ đường tới NPC giao quest (Quest Giver).
+            // 0b. Xử lý đặc biệt cho Quest 22 (Quest cuối map FrozenMountain — đánh GolemBoss):
+            // Sau khi GolemBoss bị giết (Completed/Claimed), chỉ đến portal/gate để thoát FrozenMountain.
+            if (quest.QuestId == 22 ||
+                (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Truth of the Codex", System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                (quest.ObjectiveTarget != null && quest.ObjectiveTarget.IndexOf("GolemBoss", System.StringComparison.OrdinalIgnoreCase) >= 0 && quest.MapName != null && quest.MapName.IndexOf("Frozen", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                bool isFinishedWithGolem = QuestUtils.IsStatus(quest, "Completed") ||
+                                           QuestUtils.IsStatus(quest, "Claimed") ||
+                                           quest.Progress >= Mathf.Max(1, quest.TargetAmount);
+                if (isFinishedWithGolem)
+                {
+                    var portal = FindAnyMapPortal();
+                    if (portal != null) return portal;
+                }
+            }
+
+            // 0c. Xử lý đặc biệt cho Quest 27 (UnderKing boss) và Quest 28 (Return to Elf Forest)
+            // — hai quest cuối map AbandonedCastle.
+            // Quest 27 (Defeat UnderKing): khi Completed/Claimed → chỉ đến Elf Guard để nhận Quest 28.
+            // Quest 28 (Talk to Elf Guard): khi Completed/Claimed → Elf Guard mở portal, chỉ đến portal về ElfForest.
+            if (quest.QuestId == 28 ||
+                (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Return to Elf Forest", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                bool isFinishedWithElfGuard = QuestUtils.IsStatus(quest, "Completed") ||
+                                              QuestUtils.IsStatus(quest, "Claimed") ||
+                                              quest.Progress >= Mathf.Max(1, quest.TargetAmount);
+                if (isFinishedWithElfGuard)
+                {
+                    // Elf Guard đã mở portal về ElfForest — chỉ đến portal đó.
+                    var elfPortal = FindPortalToMap("ElfForest") ?? FindAnyMapPortal();
+                    if (elfPortal != null) return elfPortal;
+                }
+            }
+
+            // 1. Nếu nhiệm vụ chưa nhận (NotStarted): chỉ đường tới NPC giao quest (Quest Giver) để bấm nhận nhiệm vụ.
             if (QuestUtils.IsStatus(quest, "NotStarted"))
             {
                 return FindQuestGiverNpc(quest.QuestId, questGiver, objectiveTarget: targetName);
@@ -408,6 +470,13 @@ namespace MysticJourney.Features.Quest
                 {
                     questGiver = "Tristan";
                 }
+                
+                // [HARDCODE HACK]: Quest 24 (The Abandoned Village) is given by Valiant Warrior but handed in to Natalie
+                if (quest.QuestId == 24)
+                {
+                    questGiver = "Natalie";
+                }
+                
                 // Gọi đúng thứ tự: (questId, questGiver, objectiveTarget)
                 return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
             }
@@ -436,6 +505,13 @@ namespace MysticJourney.Features.Quest
                     {
                         questGiver = "Tristan";
                     }
+                    
+                    // [HARDCODE HACK]: Quest 24 is given by Valiant Warrior but handed in to Natalie
+                    if (quest.QuestId == 24)
+                    {
+                        questGiver = "Natalie";
+                    }
+                    
                     return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
                 }
 
@@ -534,18 +610,24 @@ namespace MysticJourney.Features.Quest
 
                 if (bestEnemy != null) return bestEnemy.transform;
 
-                // Fallback: Nếu không khớp tên chính xác, chỉ tới quái vật bất kỳ gần nhất trong scene
-                foreach (var e in allEnemies)
+                // Fallback: Tìm Spawner hoặc GameObject trong scene khớp tên quái (vd DragonIceSpawner_Zone1)
+                var allSceneObjs = FindObjectsOfType<GameObject>();
+                GameObject bestSpawner = null;
+                float minSpawnerDist = float.MaxValue;
+                foreach (var go in allSceneObjs)
                 {
-                    if (e == null || !e.gameObject.activeInHierarchy) continue;
-                    float d = Vector3.Distance(playerPos, e.transform.position);
-                    if (d < minEnemyDist)
+                    if (go == null || !go.activeInHierarchy) continue;
+                    if (IsEnemyMatch(go.name, targetName))
                     {
-                        minEnemyDist = d;
-                        bestEnemy = e;
+                        float d = Vector3.Distance(playerPos, go.transform.position);
+                        if (d < minSpawnerDist)
+                        {
+                            minSpawnerDist = d;
+                            bestSpawner = go;
+                        }
                     }
                 }
-                if (bestEnemy != null) return bestEnemy.transform;
+                if (bestSpawner != null) return bestSpawner.transform;
             }
 
             // 4. Go to Map/Region -> portal tới map đích.
@@ -612,19 +694,54 @@ namespace MysticJourney.Features.Quest
             var targetTokens = normTarget.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
             var goTokens = normGo.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
 
-            foreach (var tt in targetTokens)
+            var adjectives = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
             {
-                if (tt.Length < 3) continue;
-                foreach (var gt in goTokens)
+                "ice", "fire", "dark", "light", "snow", "poison", "super", "mini", "boss", "spawner", "zone1", "zone2", "zone3"
+            };
+
+            var targetNouns = System.Array.FindAll(targetTokens, t => t.Length >= 3 && !adjectives.Contains(t));
+            if (targetNouns.Length == 0) targetNouns = System.Array.FindAll(targetTokens, t => t.Length >= 3);
+
+            var goNouns = System.Array.FindAll(goTokens, t => t.Length >= 3 && !adjectives.Contains(t));
+            if (goNouns.Length == 0) goNouns = System.Array.FindAll(goTokens, t => t.Length >= 3);
+
+            foreach (var tn in targetNouns)
+            {
+                foreach (var gn in goNouns)
                 {
-                    if (gt.Length < 3) continue;
-                    if (gt.IndexOf(tt, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        tt.IndexOf(gt, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (gn.IndexOf(tn, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        tn.IndexOf(gn, System.StringComparison.OrdinalIgnoreCase) >= 0)
                         return true;
                 }
             }
 
             return false;
+        }
+
+        private Transform FindMatchingSceneObject(string targetName)
+        {
+            if (string.IsNullOrWhiteSpace(targetName)) return null;
+
+            var allSceneObjs = FindObjectsOfType<GameObject>();
+            GameObject bestGo = null;
+            float minDist = float.MaxValue;
+            Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
+
+            foreach (var go in allSceneObjs)
+            {
+                if (go == null || !go.activeInHierarchy) continue;
+                if (IsEnemyMatch(go.name, targetName))
+                {
+                    float d = Vector3.Distance(playerPos, go.transform.position);
+                    if (d < minDist)
+                    {
+                        minDist = d;
+                        bestGo = go;
+                    }
+                }
+            }
+
+            return bestGo != null ? bestGo.transform : null;
         }
 
         private Transform FindBoatTransform()
@@ -645,6 +762,31 @@ namespace MysticJourney.Features.Quest
             {
                 if (go != null && go.activeInHierarchy && (go.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0 || go.name.IndexOf("Thuyen", System.StringComparison.OrdinalIgnoreCase) >= 0))
                     return go.transform;
+            }
+
+            return null;
+        }
+
+        private Transform FindAnyMapPortal()
+        {
+            var portals = FindObjectsOfType<MapTeleportPortal>();
+            foreach (var p in portals)
+            {
+                if (p != null && p.gameObject.activeInHierarchy)
+                    return p.transform;
+            }
+
+            var interactables = FindObjectsOfType<WorldInteractable>();
+            foreach (var i in interactables)
+            {
+                if (i != null && i.gameObject.activeInHierarchy)
+                {
+                    var goName = i.gameObject.name;
+                    if (goName.IndexOf("Portal", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        goName.IndexOf("Gate", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        goName.IndexOf("Door", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        return i.transform;
+                }
             }
 
             return null;

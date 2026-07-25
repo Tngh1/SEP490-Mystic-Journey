@@ -14,12 +14,20 @@ public class BoatAutoArrival : MonoBehaviour
 
     private IEnumerator Start()
     {
+        // CHỈ thực hiện tự động đưa lên bờ nếu lữ khách vừa mới đi thuyền sang map này!
+        int justUsedBoat = PlayerPrefs.GetInt("JustUsedBoat", 0);
+        if (justUsedBoat != 1)
+        {
+            yield break;
+        }
+
+        // Reset lại cờ sau khi đã ghi nhận
+        PlayerPrefs.SetInt("JustUsedBoat", 0);
+        PlayerPrefs.Save();
+
         // Chờ delaySeconds sau khi load scene xong
         yield return new WaitForSeconds(delaySeconds);
 
-        // Đánh dấu đã dùng thuyền và tự động đưa lữ khách lên bờ
-        PlayerPrefs.SetInt("JustUsedBoat", 0);
-        PlayerPrefs.Save();
         LeaveBoat();
     }
 

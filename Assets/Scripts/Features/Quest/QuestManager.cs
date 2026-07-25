@@ -216,10 +216,17 @@ public class QuestManager : MonoBehaviour
         if (state.progress >= targetAmount)
         {
             state.status = "Completed";
-            if (_responses.TryGetValue(questId, out var response) && 
-                string.Equals(response.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase))
+            if (_responses.TryGetValue(questId, out var response))
             {
-                ClaimReward(questId);
+                bool isExplore = string.Equals(response.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase);
+                bool isDefeat  = string.Equals(response.ObjectiveType, "Defeat",  StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(response.ObjectiveType, "Kill",    StringComparison.OrdinalIgnoreCase);
+                bool isLegacyAutoId = questId == 24;
+
+                if (isExplore || isDefeat || isLegacyAutoId)
+                {
+                    ClaimReward(questId);
+                }
             }
         }
 
@@ -255,6 +262,9 @@ public class QuestManager : MonoBehaviour
                 Debug.Log($"[QuestManager] Claimed questId={questId}");
                 InventoryManager.RefreshAny(refreshStats: false);
                 OnQuestClaimed?.Invoke(questId);
+
+                // Refresh all quest-driven world links so NPC visibility updates immediately.
+                WorldRuntimeEvents.RaiseQuestsChanged();
 
                 // Notify rằng 1 quest vừa Claimed — ai đó có thể check xem map mới có mở không
                 WorldRuntimeEvents.RaiseMapCompleted(questId);

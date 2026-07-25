@@ -59,7 +59,8 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
         if (go.transform.parent != null)
             go.transform.SetParent(null);
 
-        DontDestroyOnLoad(go);
+        if (Application.isPlaying)
+            DontDestroyOnLoad(go);
     }
 
     protected virtual void OnDestroy()

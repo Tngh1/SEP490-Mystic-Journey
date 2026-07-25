@@ -39,9 +39,12 @@ public class WorldRespawnable : MonoBehaviour
         }
         else
         {
-            // Tự động tắt ảnh (SpriteRenderer) nếu để trống
-            var sprite = GetComponent<SpriteRenderer>();
-            if (sprite != null) sprite.enabled = false;
+            // Tự động tắt toàn bộ renderer trong hierarchy nếu để trống
+            var renderers = GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
+            {
+                if (renderer != null) renderer.enabled = false;
+            }
         }
         
         // Tự động tìm Collider nếu chưa gán
@@ -67,8 +70,11 @@ public class WorldRespawnable : MonoBehaviour
         }
         else
         {
-            var sprite = GetComponent<SpriteRenderer>();
-            if (sprite != null) sprite.enabled = true;
+            var renderers = GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
+            {
+                if (renderer != null) renderer.enabled = true;
+            }
         }
 
         if (interactCollider != null) interactCollider.enabled = true;

@@ -49,7 +49,8 @@ namespace MysticJourney.API.Core
             if (go.transform.parent != null)
                 go.transform.SetParent(null);
 
-            DontDestroyOnLoad(go);
+            if (Application.isPlaying)
+                DontDestroyOnLoad(go);
         }
 
         // ── Token Management ──────────────────────────────────────
