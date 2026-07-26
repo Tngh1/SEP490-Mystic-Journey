@@ -7,19 +7,8 @@ namespace MysticJourney.API.Endpoints
 {
     public class ChatApi : BaseApiService<ChatApi>
     {
-        private const int DefaultWorldPage = 1;
-        private const int DefaultWorldPageSize = 50;
         private const int MaxWorldPageSize = 100;
-        private const int DefaultFriendPage = 1;
-        private const int DefaultFriendPageSize = 50;
         private const int MaxFriendPageSize = 100;
-
-        public void GetWorldMessages(
-            Action<PagedResultResponse<WorldChatMessageResponse>> onSuccess,
-            Action<ApiException> onError)
-        {
-            GetWorldMessages(DefaultWorldPage, DefaultWorldPageSize, onSuccess, onError);
-        }
 
         public void GetWorldMessages(
             int page,
@@ -72,14 +61,6 @@ namespace MysticJourney.API.Endpoints
                     onError?.Invoke(error);
                 },
                 requiresAuth: true);
-        }
-
-        public void GetFriendMessages(
-            int friendProfileId,
-            Action<PagedResultResponse<FriendChatMessageResponse>> onSuccess,
-            Action<ApiException> onError)
-        {
-            GetFriendMessages(friendProfileId, DefaultFriendPage, DefaultFriendPageSize, onSuccess, onError);
         }
 
         public void GetFriendMessages(

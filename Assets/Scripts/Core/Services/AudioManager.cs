@@ -26,7 +26,7 @@ namespace MysticJourney.Core.Services
                 {
                     var go = new GameObject("[AudioManager]");
                     _instance = go.AddComponent<AudioManager>();
-                    DontDestroyOnLoad(go);
+                    if (Application.isPlaying) DontDestroyOnLoad(go);
                 }
                 return _instance;
             }
@@ -53,7 +53,7 @@ namespace MysticJourney.Core.Services
             }
 
             _instance = this;
-            DontDestroyOnLoad(gameObject);
+            if (Application.isPlaying) DontDestroyOnLoad(gameObject);
             EnsureSources();
 
             // Áp volume đã lưu ngay khi khởi tạo.

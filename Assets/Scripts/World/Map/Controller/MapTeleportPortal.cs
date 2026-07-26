@@ -75,8 +75,9 @@ public class MapTeleportPortal : MonoBehaviour
                     {
                         QuestManager.Instance.AddProgress(q.QuestId, 1);
                         justExplored = true;
-                        if (MainQuestPanelRuntime.Instance != null)
-                            MainQuestPanelRuntime.Instance.ShowQuestPopup($"Explored: {q.ObjectiveTarget}");
+                        // KHÔNG popup ở đây: "Explored: X" không chứa từ khoá nào nên InferKind trả None
+                        // -> UIQuestPopupView hiện title "Quest not complete" dù vừa hoàn thành mục tiêu.
+                        // BatchSyncLoop sẽ Complete + Claim và bắn popup "Reward Claimed!" duy nhất.
                     }
                 }
             }
@@ -91,15 +92,23 @@ public class MapTeleportPortal : MonoBehaviour
             string msg = $"You have not completed the required quest to enter {mapTitle}.";
             Debug.Log($"MapTeleportPortal: {msg}");
             
+            // Kind None tường minh: msg chứa chữ "completed" nên InferKind sẽ đoán sai thành
+            // "Quest Completed!" + stamp xanh, dù đây là thông báo CHẶN không cho vào map.
             if (MainQuestPanelRuntime.Instance != null)
-                MainQuestPanelRuntime.Instance.ShowQuestPopup(msg);
+                MainQuestPanelRuntime.Instance.ShowQuestPopup(msg, UIQuestPopupView.QuestPopupKind.None);
                 
             isTeleporting = false;
             return;
         }
 
         Debug.Log($"MapTeleportPortal: Đang dịch chuyển người chơi tới map {targetMapData.mapName}...");
-        
+
+        // Đẩy progress Explore lên server NGAY, trước khi scene unload. BatchSyncLoop chỉ
+        // tick mỗi 1s; nếu chưa kịp tick thì LoadMyQuests của map mới sẽ xoá _pendingBatch
+        // và quest "đi qua cổng" mắc kẹt ở InProgress mãi.
+        if (justExplored && QuestManager.Instance != null)
+            QuestManager.Instance.FlushPendingProgressNow();
+
         // Gọi hàm EnterMap để tiến hành load map (không dùng cache vì qua cổng phải ra đúng cổng)
         if (useSpecificSpawn)
             mapSceneController.EnterMap(targetMapData, false, specificSpawnPosition);

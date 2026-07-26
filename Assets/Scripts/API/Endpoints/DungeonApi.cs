@@ -164,49 +164,5 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
-        // ── Hủy dungeon session ──────────────────────────────
-        public void Abandon(
-            int sessionId,
-            Action<object> onSuccess,
-            Action<ApiException> onError)
-        {
-            string endpoint = string.Format(ApiConfig.DungeonSessionAbandon, sessionId);
-            SafeDebugLog($"Abandon → sessionId={sessionId}");
-            ApiClient.Instance.PostEmpty<object>(
-                endpoint,
-                response =>
-                {
-                    SafeDebugLog($"Abandon OK | sessionId={sessionId}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"Abandon FAIL | sessionId={sessionId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
-        // ── Lấy active dungeon session ──────────────────────────────
-        public void GetActiveSession(
-            Action<EnterDungeonResponse> onSuccess,
-            Action<ApiException> onError)
-        {
-            string endpoint = ApiConfig.DungeonSessionActive;
-            SafeDebugLog($"GetActiveSession → checking...");
-            ApiClient.Instance.Get<EnterDungeonResponse>(
-                endpoint,
-                response =>
-                {
-                    SafeDebugLog($"GetActiveSession OK");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetActiveSession FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
     }
 }

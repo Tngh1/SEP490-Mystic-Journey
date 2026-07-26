@@ -216,17 +216,23 @@ public class EnemyEntity : MonoBehaviour
                 int spaceIndex = cleanName.IndexOf(" (");
                 if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex);
 
-                var quests = QuestManager.Instance.GetMainQuests();
-                foreach (var quest in quests)
+                foreach (var quest in QuestManager.Instance.GetMainQuests())
                 {
-                    if (QuestManager.IsStatus(quest, "InProgress") &&
-                        (string.Equals(quest.ObjectiveType, "Kill", StringComparison.OrdinalIgnoreCase) || 
-                         string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase)) &&
-                        (string.Equals(quest.ObjectiveTarget, cleanName, StringComparison.OrdinalIgnoreCase) ||
-                         cleanName.IndexOf(quest.ObjectiveTarget, StringComparison.OrdinalIgnoreCase) >= 0))
+                    if (!QuestManager.IsStatus(quest, "InProgress")) continue;
+                    if (!string.Equals(quest.ObjectiveType, "Kill", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (string.IsNullOrWhiteSpace(quest.ObjectiveTarget)) continue;
+
+                    // ObjectiveTarget có thể liệt kê nhiều loại quái, phân tách bằng '/'
+                    foreach (var target in quest.ObjectiveTarget.Split('/'))
                     {
+                        string t = target.Trim();
+                        if (t.Length == 0) continue;
+                        if (cleanName.IndexOf(t, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
                         Debug.Log($"[EnemyEntity] Adding progress to Quest {quest.QuestId} for killing {cleanName}");
                         QuestManager.Instance.AddProgress(quest.QuestId, 1);
+                        break;
                     }
                 }
             }

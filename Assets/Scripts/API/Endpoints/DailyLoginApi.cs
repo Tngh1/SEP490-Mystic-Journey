@@ -13,25 +13,6 @@ namespace MysticJourney.API.Endpoints
         // GAME APIs (Người chơi)
         // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách rewards ────────────────────
-        public void GetAll(int page, int pageSize, Action<PagedResultResponse<DailyLoginRewardResponse>> onSuccess, Action<ApiException> onError)
-        {
-            var endpoint = $"{ApiConfig.DailyLoginRewardAll}?page={page}&pageSize={pageSize}";
-            ApiClient.Instance.Get<PagedResultResponse<DailyLoginRewardResponse>>(
-                endpoint,
-                response =>
-                {
-                    SafeDebugLog($"GetAll OK | TotalCount={response.TotalCount}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: false);
-        }
-
         // ── Lấy rewards tháng hiện tại ──────────────
         public void GetCurrentMonth(Action<System.Collections.Generic.List<DailyLoginRewardResponse>> onSuccess, Action<ApiException> onError)
         {
@@ -48,18 +29,6 @@ namespace MysticJourney.API.Endpoints
                     onError?.Invoke(error);
                 },
                 requiresAuth: false);
-        }
-
-        // ── Lấy trạng thái đăng nhập ──────────────
-        public void GetStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog("GetStatus skipped (BE does not expose daily-login/status endpoint).");
-            onError?.Invoke(new ApiException
-            {
-                StatusCode = 0,
-                ErrorCode = "NOT_IMPLEMENTED",
-                Message = "Daily-login status endpoint is not implemented on the backend."
-            });
         }
 
         // ── Nhận thưởng đăng nhập ────────────────

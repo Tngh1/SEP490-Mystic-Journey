@@ -53,7 +53,7 @@ namespace MysticJourney.API.Endpoints
         public void UpdateProfile(int profileId, UpdatePlayerProfileRequest body, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"UpdateProfile → profileId={profileId} | DisplayName={body?.DisplayName}");
-            string endpoint = string.Format(ApiConfig.PlayerProfileUpdate, profileId);
+            string endpoint = string.Format(ApiConfig.PlayerProfileById, profileId);
             ApiClient.Instance.Put<UpdatePlayerProfileRequest, PlayerProfileResponse>(
                 endpoint, body,
                 response =>
@@ -88,85 +88,6 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy inventory ────────────────────────────────────────────────
-        public void GetMyInventory(Action<InventorySummaryResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog("GetMyInventory...");
-            ApiClient.Instance.Get<InventorySummaryResponse>(
-                ApiConfig.InventoryMe,
-                response =>
-                {
-                    SafeDebugLog($"GetMyInventory OK | TotalItems={response.TotalItems} | TotalSkins={response.TotalSkins} | BagCapacity={response.BagCapacity}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetMyInventory FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
-        // ── Trang bị item ───────────────────────────────────────────────
-        public void EquipItem(int inventoryItemId, Action<InventoryActionResultResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog($"EquipItem → inventoryItemId={inventoryItemId}");
-            var body = new EquipItemRequest { InventoryItemId = inventoryItemId };
-            ApiClient.Instance.Post<EquipItemRequest, InventoryActionResultResponse>(
-                ApiConfig.InventoryEquip, body,
-                response =>
-                {
-                    SafeDebugLog($"EquipItem OK | ItemName={response.Item?.ItemName} | Slot={response.Item?.EquippedSlot}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"EquipItem FAIL | inventoryItemId={inventoryItemId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
-        // ── Gỡ trang bị item ───────────────────────────────────────────
-        public void UnequipItem(int inventoryItemId, Action<InventoryActionResultResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog($"UnequipItem → inventoryItemId={inventoryItemId}");
-            var body = new UnequipItemRequest { InventoryItemId = inventoryItemId };
-            ApiClient.Instance.Post<UnequipItemRequest, InventoryActionResultResponse>(
-                ApiConfig.InventoryUnequip, body,
-                response =>
-                {
-                    SafeDebugLog($"UnequipItem OK | ItemName={response.Item?.ItemName}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"UnequipItem FAIL | inventoryItemId={inventoryItemId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
-        // ── Tiêu thụ item ───────────────────────────────────────────────
-        public void ConsumeItem(int inventoryItemId, int quantity, Action<SimpleResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog($"ConsumeItem → inventoryItemId={inventoryItemId} | quantity={quantity}");
-            var body = new ConsumeItemRequest { InventoryItemId = inventoryItemId, Quantity = quantity };
-            ApiClient.Instance.Post<ConsumeItemRequest, SimpleResponse>(
-                ApiConfig.InventoryConsume, body,
-                response =>
-                {
-                    SafeDebugLog($"ConsumeItem OK | message={response.message}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"ConsumeItem FAIL | inventoryItemId={inventoryItemId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
         // ── Lấy danh sách bạn bè ────────────────────────────────────────
         public void GetFriends(Action<PlayerProfileResponse[]> onSuccess, Action<ApiException> onError)
         {
@@ -186,30 +107,11 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy danh sách mail ──────────────────────────────────────────
-        public void GetMyMails(Action<MailListPagedResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog("GetMyMails...");
-            ApiClient.Instance.Get<MailListPagedResponse>(
-                ApiConfig.MailMe,
-                response =>
-                {
-                    SafeDebugLog($"GetMyMails OK | TotalMails={response.TotalMails}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetMyMails FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
         // ── Gửi Heartbeat ───────────────────────────────────────────────
         public void SendHeartbeat(Action<SimpleResponse> onSuccess = null, Action<ApiException> onError = null)
         {
-            ApiClient.Instance.Post<object, SimpleResponse>(
-                "/api/player/heartbeat", new { },
+            ApiClient.Instance.PostEmpty<SimpleResponse>(
+                ApiConfig.PlayerHeartbeat,
                 response =>
                 {
                     onSuccess?.Invoke(response);

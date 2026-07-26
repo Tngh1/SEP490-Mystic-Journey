@@ -121,24 +121,6 @@ namespace MysticJourney.API.Models.Response
         public int RewardItemQuantity { get; set; }
     }
 
-    [Serializable]
-    public class OpenChestResponse
-    {
-        public bool Success { get; set; }
-        public int GoldEarned { get; set; }
-        public int ExperienceEarned { get; set; }
-        public List<ChestOpenedItemResponse> Items { get; set; }
-    }
-
-    [Serializable]
-    public class ChestOpenedItemResponse
-    {
-        public int ItemId { get; set; }
-        public string ItemName { get; set; }
-        public string ItemIconUrl { get; set; }
-        public string Rarity { get; set; }
-        public int Quantity { get; set; }
-    }
 }
 
 namespace MysticJourney.API.Models.Request
@@ -172,11 +154,5 @@ namespace MysticJourney.API.Models.Request
     {
         public int NPCId { get; set; }
         public int QuestId { get; set; }
-    }
-    [Serializable]
-    public class OpenWorldChestRequest
-    {
-        public int? ChestId { get; set; }
-        public int? PlayerChestId { get; set; }
     }
 }

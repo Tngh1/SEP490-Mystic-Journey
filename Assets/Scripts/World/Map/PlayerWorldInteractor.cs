@@ -152,24 +152,41 @@ public class PlayerWorldInteractor : MonoBehaviour
             return;
         }
 
-        int? questIdToSend = target.QuestId;
-        if (!questIdToSend.HasValue && QuestManager.Instance != null)
+        // Ủy quyền hoàn toàn cho các controller tự quản lý tương tác / video / mở khóa
+        if (target.GetComponent<IvyTreeInteractable>() != null ||
+            target.GetComponent<LockedBridgeGate>() != null ||
+            target.GetComponent<DiggingInteractable>() != null ||
+            target.GetComponent<OriginTreeInteractable>() != null ||
+            target.GetComponent<BoatVideoTeleporter>() != null)
         {
-            var quests = QuestManager.Instance.GetMainQuests();
-            if (quests != null)
+            target.OnSuccessfulInteraction();
+            return;
+        }
+
+        int? questIdToSend = null;
+        if (QuestManager.Instance != null)
+        {
+            var inProgressQuests = QuestManager.Instance.GetMainQuests()
+                .Where(q => QuestManager.IsStatus(q, "InProgress"))
+                .ToList();
+
+            // Chỉ gửi questId nếu quest đó ĐANG ở trạng thái InProgress của người chơi
+            if (target.QuestId.HasValue && inProgressQuests.Any(q => q.QuestId == target.QuestId.Value))
             {
-                foreach (var q in quests)
+                questIdToSend = target.QuestId;
+            }
+            else
+            {
+                // Tìm quest InProgress phù hợp với objectKey / displayName
+                foreach (var q in inProgressQuests)
                 {
-                    if (QuestManager.IsStatus(q, "InProgress"))
+                    string targetStr = q.ObjectiveTarget ?? "";
+                    if (targetStr.IndexOf(target.ObjectKey, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        targetStr.IndexOf(target.DisplayName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        target.ObjectKey.IndexOf(targetStr.Split(' ')[0], System.StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        string targetStr = q.ObjectiveTarget ?? "";
-                        if (targetStr.IndexOf(target.ObjectKey, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            targetStr.IndexOf(target.DisplayName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            target.ObjectKey.IndexOf(targetStr.Split(' ')[0], System.StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            questIdToSend = q.QuestId;
-                            break;
-                        }
+                        questIdToSend = q.QuestId;
+                        break;
                     }
                 }
             }
@@ -182,25 +199,23 @@ public class PlayerWorldInteractor : MonoBehaviour
             target.ProgressDelta,
             response =>
             {
-                Debug.Log($"[PlayerWorldInteractor] {target.DisplayName}: {response?.Message ?? "interacted"}");
-                WorldRuntimeEvents.RaiseMessage(response?.Message ?? $"{target.DisplayName} interacted.");
+                Debug.Log($"[PlayerWorldInteractor] Interacted with '{target.DisplayName}'. QuestId: {questIdToSend}. Response: {response?.Message}");
 
-                if (QuestManager.Instance != null && questIdToSend.HasValue)
-                {
-                    QuestManager.Instance.AddProgress(questIdToSend.Value, target.ProgressDelta);
-                }
+                // Server là nguồn sự thật cho progress: áp Quest đã cộng progress vào cache
+                // (nếu không UI vẫn hiện 0/3 dù server đã ghi nhận).
+                if (response?.Quest != null && QuestManager.Instance != null)
+                    QuestManager.Instance.ApplyServerQuestState(response.Quest);
+
+                // Server đã thêm item vào túi (CollectedItemId) → refresh inventory để hoa hiện ra.
+                if (response != null && response.CollectedItemId.HasValue && response.CollectedItemId.Value > 0)
+                    InventoryManager.RefreshAny(refreshStats: false);
+
                 WorldRuntimeEvents.RaiseQuestsChanged();
-
                 target.OnSuccessfulInteraction();
             },
             error =>
             {
-                Debug.LogWarning($"[PlayerWorldInteractor] InteractObject API response/fallback: {error.Message}");
-                if (QuestManager.Instance != null && questIdToSend.HasValue)
-                {
-                    QuestManager.Instance.AddProgress(questIdToSend.Value, target.ProgressDelta);
-                    WorldRuntimeEvents.RaiseQuestsChanged();
-                }
+                Debug.LogWarning($"[PlayerWorldInteractor] InteractObject failed: {error.Message}");
                 target.OnSuccessfulInteraction();
             }
         );

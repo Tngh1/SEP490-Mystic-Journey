@@ -1,11 +1,22 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class UIQuestPopupView : MonoBehaviour
 {
+    public enum QuestPopupKind { None, Accepted, Completed, Claimed }
+
+    [Header("Texts")]
+    // TileText = dòng trạng thái động (Quest Accepted! / Quest Completed! / Reward Claimed!)
+    [SerializeField] private TMP_Text titleTMP;
+    // AnnounceText = nội dung lấy từ quest (tên nhiệm vụ)
     [SerializeField] private TMP_Text messageTMP;
     [SerializeField] private Text messageText;
+
+    [Header("Status Icons")]
+    [SerializeField] private GameObject claimedIcon;
+    [SerializeField] private GameObject questCompletedIcon;
+    [SerializeField] private Animator stampAnimator;
 
     private void Awake()
     {
@@ -19,13 +30,65 @@ public class UIQuestPopupView : MonoBehaviour
 
     public void Show(string message)
     {
+        Show(message, InferKind(message));
+    }
+
+    public void Show(string message, QuestPopupKind kind)
+    {
         SetMessage(message);
+        ApplyKind(kind);
         gameObject.SetActive(true);
         transform.SetAsLastSibling();
     }
 
+    private void ApplyKind(QuestPopupKind kind)
+    {
+        Bind();
+
+        if (titleTMP != null)
+        {
+            titleTMP.text = kind switch
+            {
+                QuestPopupKind.Accepted => "Quest Accepted!",
+                QuestPopupKind.Completed => "Quest Completed!",
+                QuestPopupKind.Claimed => "Reward Claimed!",
+                _ => "Quest not complete",
+            };
+        }
+
+        if (claimedIcon != null) claimedIcon.SetActive(kind == QuestPopupKind.Accepted || kind == QuestPopupKind.Claimed);
+        if (questCompletedIcon != null) questCompletedIcon.SetActive(kind == QuestPopupKind.Completed);
+
+        if (stampAnimator != null)
+        {
+            if (kind == QuestPopupKind.None)
+            {
+                stampAnimator.gameObject.SetActive(false);
+            }
+            else
+            {
+                stampAnimator.gameObject.SetActive(true);
+                stampAnimator.Rebind();
+                stampAnimator.Update(0f);
+            }
+        }
+    }
+
+    private static QuestPopupKind InferKind(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return QuestPopupKind.None;
+        var lower = message.ToLowerInvariant();
+        if (lower.Contains("accept")) return QuestPopupKind.Accepted;
+        if (lower.Contains("complete")) return QuestPopupKind.Completed;
+        if (lower.Contains("claim") || lower.Contains("reward")) return QuestPopupKind.Claimed;
+        return QuestPopupKind.None;
+    }
+
+
     public void Hide()
     {
+        if (claimedIcon != null) claimedIcon.SetActive(false);
+        if (questCompletedIcon != null) questCompletedIcon.SetActive(false);
         gameObject.SetActive(false);
     }
 
@@ -45,11 +108,36 @@ public class UIQuestPopupView : MonoBehaviour
 
     private void Bind()
     {
+        // TileText = dòng trạng thái (title). Bind trước để fallback của messageTMP không chộp nhầm nó.
+        if (titleTMP == null)
+            titleTMP = FindTextMesh("TileText") ?? FindTextMesh("TitleText");
+
         if (messageTMP == null)
-            messageTMP = FindTextMesh("PopupText") ?? FindTextMesh("MessageText") ?? GetComponentInChildren<TMP_Text>(true);
+        {
+            messageTMP = FindTextMesh("AnnounceText") ?? FindTextMesh("PopupText") ?? FindTextMesh("MessageText");
+            // Fallback cuối: TMP con bất kỳ NHƯNG không phải TileText (tránh gộp title vào message).
+            if (messageTMP == null)
+            {
+                foreach (var tmp in GetComponentsInChildren<TMP_Text>(true))
+                {
+                    if (tmp != null && tmp != titleTMP) { messageTMP = tmp; break; }
+                }
+            }
+        }
+
+        if (stampAnimator == null)
+        {
+            var stamp = FindDescendant(transform, "Stamp");
+            if (stamp != null) stampAnimator = stamp.GetComponent<Animator>();
+        }
 
         if (messageText == null)
             messageText = FindText("PopupText") ?? FindText("MessageText") ?? GetComponentInChildren<Text>(true);
+
+        if (claimedIcon == null)
+            claimedIcon = FindDescendant(transform, "Claimed");
+        if (questCompletedIcon == null)
+            questCompletedIcon = FindDescendant(transform, "QuestCompleted");
     }
 
     private TMP_Text FindTextMesh(string objectName)

@@ -60,11 +60,31 @@ public class PlayerSpawner : MonoBehaviour
         if (!ApiClient.Instance.HasToken())
             yield break;
 
-        var needsWorldState = string.IsNullOrWhiteSpace(WorldState.CurrentMapName) || !ShouldUseSavedPosition(WorldState.LastPosition);
-        if (needsWorldState)
-            yield return HydrateWorldPositionBeforeSpawn();
-
+        yield return HydrateCharacterProfileBeforeSpawn();
+        yield return HydrateWorldPositionBeforeSpawn();
         yield return HydrateEquippedSkinBeforeSpawn();
+    }
+
+    private IEnumerator HydrateCharacterProfileBeforeSpawn()
+    {
+        var done = false;
+        PlayerApi.Instance.GetMyProfile(
+            profile =>
+            {
+                if (profile != null && !string.IsNullOrWhiteSpace(profile.PlayerClass))
+                {
+                    WorldState.PlayerClass = profile.PlayerClass;
+                    WorldState.SaveToPlayerPrefs();
+                }
+                done = true;
+            },
+            error =>
+            {
+                Debug.LogWarning($"[PlayerSpawner] GetMyProfile failed: {error.Message}");
+                done = true;
+            }
+        );
+        yield return new WaitUntil(() => done);
     }
 
     private IEnumerator HydrateWorldPositionBeforeSpawn()
@@ -74,7 +94,23 @@ public class PlayerSpawner : MonoBehaviour
             state =>
             {
                 if (state != null)
+                {
                     WorldState.PlayerProfileId = state.PlayerProfileId;
+                    if (state.Position != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(state.Position.MapName))
+                        {
+                            WorldState.CurrentMapName = state.Position.MapName;
+                        }
+
+                        Vector3 dbPos = new Vector3((float)state.Position.PositionX, (float)state.Position.PositionY, 0f);
+                        if (ShouldUseSavedPosition(dbPos))
+                        {
+                            WorldState.LastPosition = dbPos;
+                            MapPositionCache.Save(WorldState.CurrentMapName, dbPos);
+                        }
+                    }
+                }
                 done = true;
             },
             error =>
