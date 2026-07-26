@@ -53,6 +53,9 @@ public class EnemyBehaviour : MonoBehaviour
     private float checkDirectionDuration = 0.1f;
     private Vector3 lastPosition;
 
+    // Resolve một lần mỗi frame trong Update, dùng chung cho mọi bước xử lý của frame đó.
+    private Transform currentTarget;
+
     private enum State
     {
         Idle,
@@ -101,6 +104,8 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void Update()
     {
+        currentTarget = FindNearestPlayer();
+
         StateController();
         MovementDirection();
         CheckSkillCasting();
@@ -146,11 +151,10 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void ChasingTarget()
     {
-        var target = GetPlayerTarget();
-        if (target == null || !CanUseNavMeshAgent())
+        if (currentTarget == null || !CanUseNavMeshAgent())
             return;
 
-        navMeshAgent.SetDestination(target.position);
+        navMeshAgent.SetDestination(currentTarget.position);
     }
 
     public float GetRoamingAnimationSpeed()
@@ -199,11 +203,10 @@ public class EnemyBehaviour : MonoBehaviour
         }
 
         // 2. CHECK ĐUỔI VÀ ĐÁNH (Như cũ)
-        var target = GetPlayerTarget();
-        if (target == null)
+        if (currentTarget == null)
             return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, target.position);
+        float distanceToPlayer = Vector3.Distance(transform.position, currentTarget.position);
         State newState = startingState;
 
         if (isChasingEnemy)
@@ -273,17 +276,16 @@ public class EnemyBehaviour : MonoBehaviour
             // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
 
-            var target = GetPlayerTarget();
-            if (target != null)
+            if (currentTarget != null)
             {
-                var networkPlayer = target.GetComponent<NetworkPlayer>();
+                var networkPlayer = currentTarget.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null)
                 {
                     networkPlayer.RequestDamage(attackDamage);
                 }
                 else
                 {
-                    var playerEntity = target.GetComponent<PlayerEntity>();
+                    var playerEntity = currentTarget.GetComponent<PlayerEntity>();
                     if (playerEntity != null)
                     {
                         playerEntity.TakeDamage(attackDamage);
@@ -307,15 +309,13 @@ public class EnemyBehaviour : MonoBehaviour
     {
         if (Time.time > nextCheckDirectionTime)
         {
-            var target = GetPlayerTarget();
-
             if (IsRunning)
             {
                 ChangeFaceDir(lastPosition, transform.position);
             }
-            else if (currentState == State.Attack && target != null)
+            else if (currentState == State.Attack && currentTarget != null)
             {
-                ChangeFaceDir(transform.position, target.position);
+                ChangeFaceDir(transform.position, currentTarget.position);
             }
 
             lastPosition = transform.position;
@@ -325,17 +325,16 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void CheckSkillCasting()
     {
-        var target = GetPlayerTarget();
-        if (target == null) return;
+        if (currentTarget == null) return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, target.position);
-        
-        if (distanceToPlayer <= chasingDistance * 2f) 
+        float distanceToPlayer = Vector3.Distance(transform.position, currentTarget.position);
+
+        if (distanceToPlayer <= chasingDistance * 2f)
         {
             // Kiểm tra Skill 2 trước (ưu tiên)
             if (canCastSkill2 && skill2Prefab != null && Time.time >= nextSkill2Time)
             {
-                CastSkill(target, skill2Prefab, skill2SpawnDelay);
+                CastSkill(currentTarget, skill2Prefab, skill2SpawnDelay);
                 nextSkill2Time = Time.time + skill2Cooldown;
                 return; // Cast xong skill 2 thì dừng, không cast skill 1 cùng lúc
             }
@@ -343,7 +342,7 @@ public class EnemyBehaviour : MonoBehaviour
             // Nếu không dùng skill 2, kiểm tra skill 1
             if (canCastSkill && skillPrefab != null && Time.time >= nextSkillTime)
             {
-                CastSkill(target, skillPrefab, skillSpawnDelay);
+                CastSkill(currentTarget, skillPrefab, skillSpawnDelay);
                 nextSkillTime = Time.time + skillCooldown;
             }
         }
@@ -401,7 +400,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
-    private Transform GetPlayerTarget()
+    private Transform FindNearestPlayer()
     {
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
         if (players == null || players.Length == 0) return null;
