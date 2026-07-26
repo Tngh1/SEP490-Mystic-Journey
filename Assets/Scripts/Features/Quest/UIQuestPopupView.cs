@@ -1,11 +1,15 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class UIQuestPopupView : MonoBehaviour
 {
-    public enum QuestPopupKind { None, Claimed, Completed }
+    public enum QuestPopupKind { None, Accepted, Completed, Claimed }
 
+    [Header("Texts")]
+    // TileText = dòng trạng thái động (Quest Accepted! / Quest Completed! / Reward Claimed!)
+    [SerializeField] private TMP_Text titleTMP;
+    // AnnounceText = nội dung lấy từ quest (tên nhiệm vụ)
     [SerializeField] private TMP_Text messageTMP;
     [SerializeField] private Text messageText;
 
@@ -40,28 +44,46 @@ public class UIQuestPopupView : MonoBehaviour
     private void ApplyKind(QuestPopupKind kind)
     {
         Bind();
-        if (claimedIcon != null) claimedIcon.SetActive(kind == QuestPopupKind.Claimed);
+
+        if (titleTMP != null)
+        {
+            titleTMP.text = kind switch
+            {
+                QuestPopupKind.Accepted => "Quest Accepted!",
+                QuestPopupKind.Completed => "Quest Completed!",
+                QuestPopupKind.Claimed => "Reward Claimed!",
+                _ => "Quest not complete",
+            };
+        }
+
+        if (claimedIcon != null) claimedIcon.SetActive(kind == QuestPopupKind.Accepted || kind == QuestPopupKind.Claimed);
         if (questCompletedIcon != null) questCompletedIcon.SetActive(kind == QuestPopupKind.Completed);
 
-        if (kind != QuestPopupKind.None && stampAnimator != null)
+        if (stampAnimator != null)
         {
-            stampAnimator.gameObject.SetActive(true);
-            stampAnimator.Rebind();
-            stampAnimator.Update(0f);
+            if (kind == QuestPopupKind.None)
+            {
+                stampAnimator.gameObject.SetActive(false);
+            }
+            else
+            {
+                stampAnimator.gameObject.SetActive(true);
+                stampAnimator.Rebind();
+                stampAnimator.Update(0f);
+            }
         }
     }
 
-    // ponytail: infer icon from message text so existing string-only call sites keep working.
-    // Upgrade path: pass QuestPopupKind explicitly from callers if messages get localized.
-    // Claimed icon = accept quest ("Quest Accepted!"); Completed icon = finish ("Quest completed!").
     private static QuestPopupKind InferKind(string message)
     {
         if (string.IsNullOrWhiteSpace(message)) return QuestPopupKind.None;
         var lower = message.ToLowerInvariant();
-        if (lower.Contains("accept")) return QuestPopupKind.Claimed;
+        if (lower.Contains("accept")) return QuestPopupKind.Accepted;
         if (lower.Contains("complete")) return QuestPopupKind.Completed;
+        if (lower.Contains("claim") || lower.Contains("reward")) return QuestPopupKind.Claimed;
         return QuestPopupKind.None;
     }
+
 
     public void Hide()
     {
@@ -86,8 +108,22 @@ public class UIQuestPopupView : MonoBehaviour
 
     private void Bind()
     {
+        // TileText = dòng trạng thái (title). Bind trước để fallback của messageTMP không chộp nhầm nó.
+        if (titleTMP == null)
+            titleTMP = FindTextMesh("TileText") ?? FindTextMesh("TitleText");
+
         if (messageTMP == null)
-            messageTMP = FindTextMesh("AnnounceText") ?? FindTextMesh("PopupText") ?? FindTextMesh("MessageText") ?? GetComponentInChildren<TMP_Text>(true);
+        {
+            messageTMP = FindTextMesh("AnnounceText") ?? FindTextMesh("PopupText") ?? FindTextMesh("MessageText");
+            // Fallback cuối: TMP con bất kỳ NHƯNG không phải TileText (tránh gộp title vào message).
+            if (messageTMP == null)
+            {
+                foreach (var tmp in GetComponentsInChildren<TMP_Text>(true))
+                {
+                    if (tmp != null && tmp != titleTMP) { messageTMP = tmp; break; }
+                }
+            }
+        }
 
         if (stampAnimator == null)
         {

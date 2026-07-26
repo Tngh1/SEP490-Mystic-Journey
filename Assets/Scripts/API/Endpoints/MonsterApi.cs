@@ -14,36 +14,6 @@ namespace MysticJourney.API.Endpoints
         // GAME APIs (Người chơi)
         // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách quái vật ─────────────────────────
-        public void GetAll(
-            int page,
-            int pageSize,
-            Action<PagedResultResponse<MonsterResponse>> onSuccess,
-            Action<ApiException> onError,
-            string search = null,
-            string type = null,
-            bool? isActive = null)
-        {
-            var endpoint = $"{ApiConfig.MonsterAll}?page={page}&pageSize={pageSize}";
-            if (!string.IsNullOrEmpty(search)) endpoint += $"&search={UnityEngine.Networking.UnityWebRequest.EscapeURL(search)}";
-            if (!string.IsNullOrEmpty(type)) endpoint += $"&type={UnityEngine.Networking.UnityWebRequest.EscapeURL(type)}";
-            if (isActive.HasValue) endpoint += $"&isActive={isActive.Value}";
-
-            ApiClient.Instance.Get<PagedResultResponse<MonsterResponse>>(
-                endpoint,
-                response =>
-                {
-                    SafeDebugLog($"GetAll OK | TotalCount={response.TotalCount}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: false);
-        }
-
         // ── Lấy quái vật theo ID ──────────────────────────
         public void GetById(int monsterId, Action<MonsterDetailResponse> onSuccess, Action<ApiException> onError)
         {

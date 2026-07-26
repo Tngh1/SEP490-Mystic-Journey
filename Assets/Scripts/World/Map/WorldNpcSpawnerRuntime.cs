@@ -131,9 +131,9 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
             Debug.Log($"[WorldNpcSpawner] Đã spawn NPC {npc.Name} (ID: {npc.NPCId}) tại localPosition {localPos}");
         }
         
-        // 5. Báo cho hệ thống quét NPC của bạn biết là có NPC mới (bắt buộc)
-        WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);
+        // NPC Spawner completed
     }
+
 
     private static bool ShouldHideNatalie()
     {

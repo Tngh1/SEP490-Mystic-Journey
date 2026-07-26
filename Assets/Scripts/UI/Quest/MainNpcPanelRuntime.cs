@@ -172,7 +172,9 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var linkedQuests = response?.LinkedQuests?
             .Where(q => q != null && !QuestManager.IsStatus(q, "Claimed"))
             .OrderBy(q => QuestManager.IsStatus(q, "InProgress") ? 0 : QuestManager.IsStatus(q, "Completed") ? 1 : 2)
-            .ThenBy(q => q.RequiredLevel)
+            // Chuỗi main quest đi theo QuestId. KHÔNG sắp theo RequiredLevel: Arthur giữ quest
+            // 14 (lv12), 15 (lv12), 16 (lv5) → sắp theo level sẽ đưa quest 16 lên đầu và BE
+            // chặn "locked until the previous main quest is claimed" → player kẹt.
             .ThenBy(q => q.QuestId)
             .ToList() ?? new List<PlayerQuestResponse>();
 
@@ -220,6 +222,11 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 return linked.LastOrDefault();
             }
         }
+
+        // NPC không có thoại cho quest đang tới lượt → dùng thoại thường, KHÔNG lấy thoại của
+        // quest khác (sẽ kể sai cốt truyện và trước đây còn khiến client nhận sai quest).
+        if (linkedQuests != null && linkedQuests.Count > 0)
+            return dialogues.FirstOrDefault(d => !d.LinkedQuestId.HasValue);
 
         return dialogues.FirstOrDefault(d => d.LinkedQuestId.HasValue);
     }
@@ -421,11 +428,16 @@ public class MainNpcPanelRuntime : MonoBehaviour
             }
         }
 
-        var questId = dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
+        // Quest đang tới lượt (currentLinkedQuests[0]) mới là nguồn đúng, không phải dialogue:
+        // Arthur không có dòng thoại nào gắn quest 13 (Tristan giữ), nên PickQuestDialogue
+        // fallback sang thoại của quest 14 → client đi nhận quest 14 mà BE đang khoá
+        // ("locked until the previous main quest is claimed") → player kẹt vĩnh viễn.
+        var activeQuest = currentLinkedQuests.FirstOrDefault();
+        var questId = activeQuest?.QuestId ?? dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
         if (questId <= 0 || processingQuestIds.Contains(questId))
             return;
 
-        var quest = ResolveQuest(questId, linkedQuest, manager);
+        var quest = ResolveQuest(questId, activeQuest ?? linkedQuest, manager);
         if (QuestManager.IsStatus(quest, "Claimed"))
         {
             SetText(questHintText, "Reward already claimed.");
@@ -523,15 +535,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     completedQuest.Progress = Mathf.Max(1, completedQuest.TargetAmount);
                 }
 
-                var qp = MainQuestPanelRuntime.Instance;
-
                 // Auto-claim after completing talk quest
                 manager.ClaimReward(
                     questId,
                     onSuccess: () =>
                     {
                         processingQuestIds.Remove(questId);
-                        if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
                         WorldRuntimeEvents.RaiseQuestsChanged();
                         ClosePanel();
                     },
@@ -539,7 +548,9 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     {
                         processingQuestIds.Remove(questId);
                         Debug.LogWarning($"[MainNpcPanelRuntime] Auto claim failed: {err}");
-                        RouteToQuestReward(questId, "Quest completed. Claim your reward.");
+                        // Đây là nhánh LỖI: chỉ mở panel để người chơi tự claim, không bắn popup
+                        // "Quest completed..." vì InferKind sẽ dựng title thành công "Quest Completed!".
+                        RouteToQuestReward(questId, null);
                     });
             },
             error =>
@@ -557,16 +568,15 @@ public class MainNpcPanelRuntime : MonoBehaviour
             return;
 
         processingQuestIds.Add(questId);
-        var qp = MainQuestPanelRuntime.Instance;
         manager.ClaimReward(
             questId,
             onSuccess: () =>
             {
                 processingQuestIds.Remove(questId);
-                if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
                 WorldRuntimeEvents.RaiseQuestsChanged();
                 ClosePanel();
             },
+
             onError: err =>
             {
                 processingQuestIds.Remove(questId);
@@ -672,13 +682,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 if (response.Success && QuestManager.IsStatus(response.Quest, "Completed"))
                 {
                     var completedQuestId = quest.QuestId;
-                    var qp = MainQuestPanelRuntime.Instance;
                     manager.ClaimReward(
                         completedQuestId,
                         onSuccess: () =>
                         {
+                            // ClaimReward (non-silent) tự bắn popup "Reward Claimed!" — không bắn thêm ở đây.
                             Debug.Log($"[MainNpcPanelRuntime] Auto-claimed questId={completedQuestId}");
-                            if (qp != null) qp.ShowQuestPopup("Quest completed! Reward claimed.");
                             WorldRuntimeEvents.RaiseQuestsChanged();
                             ClosePanel();
                         },
@@ -686,7 +695,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
                         {
                             // Fallback: route sang Reward panel để player claim tay nếu auto-claim thất bại
                             Debug.LogWarning($"[MainNpcPanelRuntime] Auto-claim failed ({err}), routing to panel.");
-                            RouteToQuestReward(completedQuestId, "Quest completed. Claim your reward.");
+                            // Nhánh lỗi: không popup (InferKind sẽ dựng "Quest Completed!" sai ngữ cảnh).
+                            RouteToQuestReward(completedQuestId, null);
                         });
                 }
 
@@ -770,12 +780,14 @@ public class MainNpcPanelRuntime : MonoBehaviour
     }
     private void NotifyQuestAccepted(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
-        var title = Safe(quest?.QuestTitle, Safe(dialogue?.LinkedQuestTitle, "New quest"));
-        var questPanelRuntime = MainQuestPanelRuntime.Instance ?? FindQuestPanelRuntime();
-        if (questPanelRuntime != null)
-            questPanelRuntime.ShowQuestPopup($"Quest Accepted!\n{title} has been added to your quest log.");
-        else
+        // KHÔNG bắn popup ở đây: QuestManager.AcceptQuest đã bắn popup "Quest Accepted!" (kind Accepted)
+        // khi server xác nhận. Bắn thêm ở đây gây popup trùng, và trước đây còn sai kind (Claimed →
+        // "Reward Claimed!" cho một quest vừa nhận). Chỉ log fallback khi không có panel.
+        if (MainQuestPanelRuntime.Instance == null && FindQuestPanelRuntime() == null)
+        {
+            var title = Safe(quest?.QuestTitle, Safe(dialogue?.LinkedQuestTitle, "New quest"));
             Debug.Log($"[QuestPopup] Quest Accepted! {title} has been added to your quest log.");
+        }
     }
     private void OnQuestionAction()
     {
@@ -857,10 +869,21 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private void ClosePanel()
     {
+        // Xoá trạng thái xử lý để tránh bị block khi mở NPC lại
+        processingQuestIds.Clear();
+
+        MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = true;
+
         if (UIManager.Instance != null)
             UIManager.Instance.ClosePanel(npcPanel);
         else if (npcPanel != null)
             npcPanel.SetActive(false);
+
+        WorldRuntimeEvents.RaiseQuestsChanged();
+
+        // Trigger mũi tên ngay lập tức (không chờ 2s routine)
+        if (MysticJourney.Features.Quest.QuestWaypointManager.Instance != null)
+            MysticJourney.Features.Quest.QuestWaypointManager.Instance.RefreshWaypoint();
     }
 
 

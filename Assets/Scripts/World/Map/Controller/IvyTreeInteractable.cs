@@ -47,8 +47,7 @@ public class IvyTreeInteractable : MonoBehaviour
             radius: 3.5f // Bán kính lớn cho cây to
         );
 
-        _interactable.ConfigureQuestItem(objectKey, displayName, linkedQuestId, 1, 3.5f);
-
+        gameObject.SetActive(true);
         RefreshVisibility();
         WorldRuntimeEvents.QuestsChanged += RefreshVisibility;
 
@@ -58,6 +57,7 @@ public class IvyTreeInteractable : MonoBehaviour
             videoPlayer.loopPointReached += OnVideoFinished;
         }
     }
+
 
     private void OnDestroy()
     {
@@ -79,29 +79,75 @@ public class IvyTreeInteractable : MonoBehaviour
             return;
         }
 
+        _isInteracting = true;
         WorldInteractionPromptRuntime.Hide();
 
-        if (QuestManager.Instance != null &&
-            !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
+        CheckHasSkullItem(hasSkull =>
         {
-            _isInteracting = true;
-            QuestManager.Instance.AcceptQuest(
-                linkedQuestId,
-                () =>
-                {
-                    WorldRuntimeEvents.RaiseQuestsChanged();
-                    BeginInteractionSequence();
-                },
-                error =>
-                {
-                    Debug.LogWarning($"[IvyTreeInteractable] AcceptQuest failed: {error}");
-                    _isInteracting = false;
-                }
-            );
+            if (!hasSkull)
+            {
+                _isInteracting = false;
+                WorldRuntimeEvents.RaiseMessage("You need Natalie's remains (Spirit Skull) from the old well before burying her!");
+                return;
+            }
+
+            if (QuestManager.Instance != null &&
+                !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
+            {
+                QuestManager.Instance.AcceptQuest(
+                    linkedQuestId,
+                    onSuccess: () =>
+                    {
+                        _isInteracting = false;
+                        WorldRuntimeEvents.RaiseQuestsChanged();
+                        BeginInteractionSequence();
+                    },
+                    onError: error =>
+                    {
+                        Debug.LogWarning($"[IvyTreeInteractable] AcceptQuest failed: {error}");
+                        _isInteracting = false;
+                        WorldRuntimeEvents.RaiseMessage("You need to complete and claim the reward for the previous quest first!");
+                    }
+                );
+                return;
+            }
+
+            BeginInteractionSequence();
+        });
+    }
+
+    private void CheckHasSkullItem(System.Action<bool> callback)
+    {
+        if (!ApiClient.Instance.HasToken())
+        {
+            callback?.Invoke(true);
             return;
         }
 
-        BeginInteractionSequence();
+        InventoryApi.Instance.GetInventory(
+            onSuccess: inv =>
+            {
+                if (inv?.BagItems != null)
+                {
+                    foreach (var item in inv.BagItems)
+                    {
+                        bool isSkull = (item.ItemId == 32) ||
+                                       (item.ItemName != null && item.ItemName.IndexOf("Skull", System.StringComparison.OrdinalIgnoreCase) >= 0);
+                        if (isSkull && item.Quantity > 0)
+                        {
+                            callback?.Invoke(true);
+                            return;
+                        }
+                    }
+                }
+                callback?.Invoke(false);
+            },
+            onError: err =>
+            {
+                Debug.LogWarning($"[IvyTreeInteractable] CheckHasSkullItem error: {err.Message}");
+                callback?.Invoke(true);
+            }
+        );
     }
 
     private void BeginInteractionSequence()
@@ -123,6 +169,7 @@ public class IvyTreeInteractable : MonoBehaviour
 
         if (videoPlayer != null && videoPlayer.clip != null)
         {
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
             videoPlayer.gameObject.SetActive(true);
             videoPlayer.Play();
 
@@ -136,6 +183,7 @@ public class IvyTreeInteractable : MonoBehaviour
 
             videoPlayer.Stop();
             videoPlayer.gameObject.SetActive(false);
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(videoPlayer);
         }
         else
         {
@@ -172,9 +220,8 @@ public class IvyTreeInteractable : MonoBehaviour
             },
             error =>
             {
-                WorldRuntimeEvents.RaiseMessage(CompletionMessage);
-                QuestManager.Instance?.AddProgress(linkedQuestId, 1);
-                WorldRuntimeEvents.RaiseQuestsChanged();
+                Debug.LogWarning($"[IvyTreeInteractable] InteractObject failed: {error.Message}");
+                WorldRuntimeEvents.RaiseMessage("Cannot interact. You must accept the quest first!");
                 FinalizeAfterInteraction();
             }
         );
@@ -184,6 +231,9 @@ public class IvyTreeInteractable : MonoBehaviour
     {
         _isInteracting = false;
         _interacted = true;
+
+        // Cây Thường Xuân giữ nguyên hình ảnh cảnh quan, chỉ tắt Collider để không bấm lại được
+        gameObject.SetActive(true);
 
         var col2D = GetComponent<Collider2D>();
         if (col2D != null) col2D.enabled = false;
@@ -206,18 +256,20 @@ public class IvyTreeInteractable : MonoBehaviour
 
                 foreach (var item in inv.BagItems)
                 {
-                    if (item.ItemName != null &&
-                        item.ItemName.IndexOf(itemName, System.StringComparison.OrdinalIgnoreCase) >= 0 &&
-                        item.Quantity > 0)
+                    bool isSkull = (item.ItemId == 32) ||
+                                   (item.ItemName != null &&
+                                    (item.ItemName.IndexOf("Skull", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                     item.ItemName.IndexOf(itemName, System.StringComparison.OrdinalIgnoreCase) >= 0));
+                    if (isSkull && item.Quantity > 0)
                     {
                         InventoryApi.Instance.ConsumeItem(
                             item.InventoryItemId, 1,
                             _ =>
                             {
-                                Debug.Log($"[IvyTreeInteractable] Removed '{itemName}' from inventory.");
+                                Debug.Log($"[IvyTreeInteractable] Consumed skull item '{item.ItemName}' (ID {item.ItemId}) from inventory.");
                                 InventoryManager.RefreshAny(refreshStats: false);
                             },
-                            err => Debug.LogWarning($"[IvyTreeInteractable] Failed to remove '{itemName}': {err.Message}")
+                            err => Debug.LogWarning($"[IvyTreeInteractable] Failed to consume skull item: {err.Message}")
                         );
                         break;
                     }
@@ -227,25 +279,30 @@ public class IvyTreeInteractable : MonoBehaviour
         );
     }
 
+
     private void RefreshVisibility()
     {
+        // Luôn giữ GameObject của cây active để môi trường thiên nhiên hiển thị đầy đủ
+        gameObject.SetActive(true);
+
         if (QuestManager.Instance == null) return;
 
         var quests = QuestManager.Instance.GetMainQuests();
-        bool shouldShow = false;
+        bool shouldShowPrompt = false;
         foreach (var q in quests)
         {
             if (q.QuestId == linkedQuestId &&
                 (QuestManager.IsStatus(q, "NotStarted") || QuestManager.IsStatus(q, "InProgress")))
             {
-                shouldShow = true;
+                shouldShowPrompt = true;
                 break;
             }
         }
 
         var col2D = GetComponent<Collider2D>();
-        if (col2D != null) col2D.enabled = shouldShow && !_interacted;
+        if (col2D != null) col2D.enabled = shouldShowPrompt && !_interacted;
 
         _interactable.UpdateOverheadUI();
     }
+
 }

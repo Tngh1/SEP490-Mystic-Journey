@@ -67,10 +67,51 @@ public class OriginTreeInteractable : MonoBehaviour
     public void StartHeal()
     {
         if (_isHealing || _healed) return;
-        _isHealing = true;
+
+        var questState = QuestManager.Instance != null ? QuestManager.Instance.GetQuestState(linkedQuestId) : null;
+        var questStatus = questState != null ? questState.status : string.Empty;
+
+        if (string.Equals(questStatus, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(questStatus, "Claimed", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         WorldInteractionPromptRuntime.Hide();
+
+        if (QuestManager.Instance != null &&
+            !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
+        {
+            _isHealing = true;
+            QuestManager.Instance.AcceptQuest(
+                linkedQuestId,
+                onSuccess: () =>
+                {
+                    _isHealing = false;
+                    WorldRuntimeEvents.RaiseQuestsChanged();
+                    BeginHealSequence();
+                },
+                onError: error =>
+                {
+                    Debug.LogWarning($"[OriginTreeInteractable] AcceptQuest failed: {error}");
+                    _isHealing = false;
+                    WorldRuntimeEvents.RaiseMessage("You need to complete and claim the reward for the previous quest first!");
+
+                }
+            );
+            return;
+        }
+
+        BeginHealSequence();
+    }
+
+    private void BeginHealSequence()
+    {
+        if (_healed) return;
+        _isHealing = true;
         StartCoroutine(HealSequence());
     }
+
 
     private IEnumerator HealSequence()
     {
@@ -84,6 +125,7 @@ public class OriginTreeInteractable : MonoBehaviour
 
         if (videoPlayer != null && videoPlayer.clip != null)
         {
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
             videoPlayer.gameObject.SetActive(true);
             videoPlayer.Play();
 
@@ -97,7 +139,9 @@ public class OriginTreeInteractable : MonoBehaviour
 
             videoPlayer.Stop();
             videoPlayer.gameObject.SetActive(false);
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(videoPlayer);
         }
+
         else
         {
             yield return new WaitForSeconds(2f);
@@ -133,10 +177,10 @@ public class OriginTreeInteractable : MonoBehaviour
             },
             error =>
             {
-                QuestManager.Instance?.AddProgress(linkedQuestId, 1);
-                WorldRuntimeEvents.RaiseQuestsChanged();
+                Debug.LogWarning($"[OriginTreeInteractable] InteractObject failed: {error.Message}");
                 FinalizeAfterHeal();
             }
+
         );
     }
 

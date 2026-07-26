@@ -40,9 +40,10 @@ public class LockedBridgeGate : MonoBehaviour
 
     [Header("Messages")]
     [Tooltip("Thông báo hiển thị khi người chơi cố đi qua lúc cầu đang khóa.")]
-    [SerializeField] private string lockedMessage = "Cầu đã bị khóa! Bạn cần chìa khóa Mystic Key từ Natalie (Nhiệm vụ Rest in Peace) để mở lối sang đảo!";
+    [SerializeField] private string lockedMessage = "The bridge is locked! You need the Mystic Key from Natalie (Rest in Peace quest) to unlock the way to the island!";
 
-    [SerializeField] private string unlockedMessage = "Bạn đã dùng Mystic Key để mở khóa cầu!";
+    [SerializeField] private string unlockedMessage = "You used the Mystic Key to unlock the bridge!";
+
 
     private bool _isUnlocked;
     private WorldInteractable _interactable;

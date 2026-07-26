@@ -95,9 +95,12 @@ public class UIQuestListItem : MonoBehaviour
         if (activeBackground != null)
             activeBackground.SetActive(selected);
 
-        bool isLocked = data != null && string.Equals(data.Status, "NotStarted", StringComparison.OrdinalIgnoreCase);
-        bool isComplete = data != null && (string.Equals(data.Status, "Completed", StringComparison.OrdinalIgnoreCase)
-                                        || string.Equals(data.Status, "Claimed", StringComparison.OrdinalIgnoreCase));
+        // Icon complete chỉ hiện khi ĐÃ NHẬN THƯỞNG (Claimed). Trạng thái Completed mà chưa
+        // claim vẫn coi như đang làm dở → không đóng dấu hoàn thành.
+        bool isComplete = data != null && string.Equals(data.Status, "Claimed", StringComparison.OrdinalIgnoreCase);
+        // Ổ khóa chỉ nói về điều kiện KHÔNG THỂ làm được (thiếu level). Quest NotStarted nhưng
+        // đủ level là quest sắp nhận (đang được tracker chỉ đường) → không được khóa.
+        bool isLocked = data == null || underLeveled;
 
         if (lockIcon != null) lockIcon.SetActive(isLocked);
         if (completeIcon != null) completeIcon.SetActive(isComplete);

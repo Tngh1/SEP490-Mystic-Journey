@@ -13,38 +13,6 @@ namespace MysticJourney.API.Endpoints
         // GAME APIs (Người chơi)
         // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách quests ─────────────────────────
-        public void GetAll(
-            int page,
-            int pageSize,
-            Action<PagedResultResponse<QuestResponse>> onSuccess,
-            Action<ApiException> onError,
-            string search = null,
-            string type = null,
-            bool? isActive = null,
-            string mapName = null)
-        {
-            var endpoint = $"{ApiConfig.QuestAll}?page={page}&pageSize={pageSize}";
-            if (!string.IsNullOrEmpty(search)) endpoint += $"&search={UnityEngine.Networking.UnityWebRequest.EscapeURL(search)}";
-            if (!string.IsNullOrEmpty(type)) endpoint += $"&type={UnityEngine.Networking.UnityWebRequest.EscapeURL(type)}";
-            if (isActive.HasValue) endpoint += $"&isActive={isActive.Value}";
-            if (!string.IsNullOrEmpty(mapName)) endpoint += $"&mapName={UnityEngine.Networking.UnityWebRequest.EscapeURL(mapName)}";
-
-            ApiClient.Instance.Get<PagedResultResponse<QuestResponse>>(
-                endpoint,
-                response =>
-                {
-                    SafeDebugLog($"GetAll OK | TotalCount={response.TotalCount}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: false);
-        }
-
         // ── Lấy quest theo ID ───────────────────────────
         public void GetById(int questId, Action<QuestResponse> onSuccess, Action<ApiException> onError)
         {

@@ -110,6 +110,13 @@ public class WorldInteractable : MonoBehaviour
             {
                 overheadCanvas.transform.localScale = new Vector3(sign, 1f, 1f);
             }
+
+            // NPC prefabs face left via transform.rotation = Euler(0,-180,0) (EnemyBehaviour.ChangeFaceDir),
+            // which mirrors every child - including this canvas. Keep the label world-aligned.
+            if (overheadCanvas.transform.rotation != Quaternion.identity)
+            {
+                overheadCanvas.transform.rotation = Quaternion.identity;
+            }
         }
     }
 

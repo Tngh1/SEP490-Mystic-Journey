@@ -29,7 +29,75 @@ namespace MysticJourney.Features.Quest
         private void Awake()
         {
             if (Instance == null) Instance = this;
-            else Destroy(this);
+            else { Destroy(this); return; }
+
+            // Luôn bật tracking khi game khởi động (reset bất kỳ giá trị PlayerPrefs cũ nào)
+            PlayerPrefs.SetInt("QuestWaypoint_Enabled", 1);
+            PlayerPrefs.Save();
+            Debug.Log("[QuestWaypointManager] Awake: IsTrackingEnabled reset to TRUE");
+        }
+
+        private static bool IsEnemyMatch(string enemyGoName, string targetName)
+        {
+            if (string.IsNullOrWhiteSpace(enemyGoName) || string.IsNullOrWhiteSpace(targetName))
+                return false;
+
+            if (targetName.Contains("/"))
+            {
+                var subTargets = targetName.Split(new[] { '/' }, System.StringSplitOptions.RemoveEmptyEntries);
+                foreach (var sub in subTargets)
+                {
+                    if (IsEnemyMatchSingle(enemyGoName, sub))
+                        return true;
+                }
+            }
+
+            return IsEnemyMatchSingle(enemyGoName, targetName);
+        }
+
+        private static bool IsEnemyMatchSingle(string enemyGoName, string targetName)
+        {
+            if (string.IsNullOrWhiteSpace(enemyGoName) || string.IsNullOrWhiteSpace(targetName))
+                return false;
+
+            string cleanGoName = enemyGoName.Replace("(Clone)", "").Trim();
+
+            if (cleanGoName.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                targetName.IndexOf(cleanGoName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+
+            string normGo = cleanGoName.Replace('_', ' ').Replace('-', ' ');
+            string normTarget = targetName.Replace('_', ' ').Replace('-', ' ');
+
+            if (normGo.IndexOf(normTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                normTarget.IndexOf(normGo, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+
+            var targetTokens = normTarget.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+            var goTokens = normGo.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+
+            var adjectives = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+            {
+                "ice", "fire", "dark", "light", "snow", "poison", "super", "mini", "boss", "spawner", "zone1", "zone2", "zone3"
+            };
+
+            var targetNouns = System.Array.FindAll(targetTokens, t => t.Length >= 3 && !adjectives.Contains(t));
+            if (targetNouns.Length == 0) targetNouns = System.Array.FindAll(targetTokens, t => t.Length >= 3);
+
+            var goNouns = System.Array.FindAll(goTokens, t => t.Length >= 3 && !adjectives.Contains(t));
+            if (goNouns.Length == 0) goNouns = System.Array.FindAll(goTokens, t => t.Length >= 3);
+
+            foreach (var tn in targetNouns)
+            {
+                foreach (var gn in goNouns)
+                {
+                    if (gn.IndexOf(tn, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        tn.IndexOf(gn, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private void OnEnable()
@@ -118,8 +186,7 @@ namespace MysticJourney.Features.Quest
                 // Ở FrozenMountain và các map khác, BoatA là thuyền đến (arrival) — không phải exit.
                 // Chỉ dùng boat trên AutumnPumpkin; map khác dùng portal/gate trực tiếp.
                 string currentSceneClaimed = WorldState.CurrentMapName ?? string.Empty;
-                bool isOnBoatMap = currentSceneClaimed.IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                   currentSceneClaimed.IndexOf("AutumnPumpkin", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                bool isOnBoatMap = currentSceneClaimed.IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0;
                 if (isOnBoatMap)
                     target = FindBoatTransform() ?? FindAnyMapPortal();
                 else
@@ -147,16 +214,33 @@ namespace MysticJourney.Features.Quest
 
             if (target != null && playerTransform != null)
             {
-                Debug.Log($"[QuestWaypointManager] Found target for quest {active.QuestId}: {target.name} at {target.position}, player at {playerTransform.position}");
+                if (_lastLoggedTarget != target || _lastLoggedQuestId != active.QuestId)
+                {
+                    _lastLoggedTarget = target;
+                    _lastLoggedQuestId = active.QuestId;
+                    _lastLoggedNotFound = false;
+                    Debug.Log($"[QuestWaypointManager] Found target for quest {active.QuestId}: {target.name} at {target.position}");
+                }
                 EnsurePointerExists();
                 waypointPointer.Setup(target, playerTransform);
             }
             else
             {
-                Debug.Log($"[QuestWaypointManager] Target not found for quest {active.QuestId}");
+                if (!_lastLoggedNotFound || _lastLoggedQuestId != active.QuestId)
+                {
+                    _lastLoggedTarget = null;
+                    _lastLoggedQuestId = active.QuestId;
+                    _lastLoggedNotFound = true;
+                    Debug.Log($"[QuestWaypointManager] Target not found for quest {active.QuestId}");
+                }
                 if (waypointPointer != null) waypointPointer.Clear();
             }
         }
+
+        private int _lastLoggedQuestId = -1;
+        private Transform _lastLoggedTarget = null;
+        private bool _lastLoggedNotFound = false;
+
 
         private Transform GetPlayerTransform()
         {
@@ -409,8 +493,7 @@ namespace MysticJourney.Features.Quest
 
             // 0a. Xử lý đặc biệt cho Quest 17 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
             // CHỈ dẫn ra Thuyền SAU KHI lữ khách đã nói chuyện xong với Arthur (Completed/Claimed hoặc Progress >= 1)
-            if (quest.QuestId == 17 ||
-                (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Frozen Threat", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            if (quest.QuestId == 17)
             {
                 bool isFinishedWithArthur = QuestUtils.IsStatus(quest, "Completed") ||
                                             QuestUtils.IsStatus(quest, "Claimed") ||
@@ -424,9 +507,7 @@ namespace MysticJourney.Features.Quest
 
             // 0b. Xử lý đặc biệt cho Quest 22 (Quest cuối map FrozenMountain — đánh GolemBoss):
             // Sau khi GolemBoss bị giết (Completed/Claimed), chỉ đến portal/gate để thoát FrozenMountain.
-            if (quest.QuestId == 22 ||
-                (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Truth of the Codex", System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                (quest.ObjectiveTarget != null && quest.ObjectiveTarget.IndexOf("GolemBoss", System.StringComparison.OrdinalIgnoreCase) >= 0 && quest.MapName != null && quest.MapName.IndexOf("Frozen", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            if (quest.QuestId == 22)
             {
                 bool isFinishedWithGolem = QuestUtils.IsStatus(quest, "Completed") ||
                                            QuestUtils.IsStatus(quest, "Claimed") ||
@@ -438,12 +519,9 @@ namespace MysticJourney.Features.Quest
                 }
             }
 
-            // 0c. Xử lý đặc biệt cho Quest 27 (UnderKing boss) và Quest 28 (Return to Elf Forest)
-            // — hai quest cuối map AbandonedCastle.
-            // Quest 27 (Defeat UnderKing): khi Completed/Claimed → chỉ đến Elf Guard để nhận Quest 28.
-            // Quest 28 (Talk to Elf Guard): khi Completed/Claimed → Elf Guard mở portal, chỉ đến portal về ElfForest.
-            if (quest.QuestId == 28 ||
-                (quest.QuestTitle != null && quest.QuestTitle.IndexOf("Return to Elf Forest", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            // 0c. Quest 28 (Ask for the Way Home — quest cuối map AbandonedCastle):
+            // khi Completed/Claimed → Elf Guard đã mở portal, chỉ đến portal về ElfForest.
+            if (quest.QuestId == 28)
             {
                 bool isFinishedWithElfGuard = QuestUtils.IsStatus(quest, "Completed") ||
                                               QuestUtils.IsStatus(quest, "Claimed") ||
@@ -456,33 +534,27 @@ namespace MysticJourney.Features.Quest
                 }
             }
 
-            // 1. Nếu nhiệm vụ chưa nhận (NotStarted): chỉ đường tới NPC giao quest (Quest Giver) để bấm nhận nhiệm vụ.
+            bool isTalkQuest = string.Equals(objType, "Talk", System.StringComparison.OrdinalIgnoreCase);
+
+            // 1. Nhiệm vụ chưa nhận (NotStarted): luôn chỉ đường tới NPC giao quest, bất kể ObjectiveType —
+            // muốn nhận quest thì phải nói chuyện với NPC trước, chưa cần tới mục tiêu.
+            // (targetName chỉ dùng cho quest Talk; với Explore/Collect nó là tên vật/địa điểm, không phải NPC.)
             if (QuestUtils.IsStatus(quest, "NotStarted"))
             {
-                return FindQuestGiverNpc(quest.QuestId, questGiver, objectiveTarget: targetName);
+                var giverNpc = FindQuestGiverNpc(quest.QuestId, questGiver, isTalkQuest ? targetName : null);
+                if (giverNpc != null) return giverNpc;
             }
 
             // 2. Nếu nhiệm vụ đã xong chờ trả (Completed): chỉ đường tới NPC trả quest.
             if (QuestUtils.IsStatus(quest, "Completed"))
             {
-                // [HARDCODE HACK]: Nếu là quest tìm xác, ép chỉ đường về Tristan thay vì Arthur (do Database có thể set nhầm Giver)
-                if (targetName != null && (targetName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 || targetName.IndexOf("Xác", System.StringComparison.OrdinalIgnoreCase) >= 0 || quest.QuestId == 13))
-                {
-                    questGiver = "Tristan";
-                }
-                
-                // [HARDCODE HACK]: Quest 24 (The Abandoned Village) is given by Valiant Warrior but handed in to Natalie
-                if (quest.QuestId == 24)
-                {
-                    questGiver = "Natalie";
-                }
-                
-                // Gọi đúng thứ tự: (questId, questGiver, objectiveTarget)
-                return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
+                return FindQuestGiverNpc(quest.QuestId, questGiver, isTalkQuest ? targetName : null);
             }
+
 
             // Quest đang InProgress: thử resolve target cụ thể theo ObjectiveType.
             var interactables = FindObjectsOfType<WorldInteractable>();
+            bool skipQuestGiverFallback = false;
 
             // 1. Talk to NPC
             if (objType.Equals("Talk", System.StringComparison.OrdinalIgnoreCase))
@@ -500,23 +572,15 @@ namespace MysticJourney.Features.Quest
                 // Nếu đã thu thập đủ, mũi tên chuyển sang chỉ tới NPC trả quest
                 if (quest.Progress >= Mathf.Max(1, quest.TargetAmount))
                 {
-                    // [HARDCODE HACK]: Nếu là quest tìm xác, ép chỉ đường về Tristan thay vì Arthur (do Database có thể set nhầm Giver)
-                    if (targetName != null && (targetName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 || targetName.IndexOf("Xác", System.StringComparison.OrdinalIgnoreCase) >= 0 || quest.QuestId == 13))
-                    {
-                        questGiver = "Tristan";
-                    }
-                    
-                    // [HARDCODE HACK]: Quest 24 is given by Valiant Warrior but handed in to Natalie
-                    if (quest.QuestId == 24)
-                    {
-                        questGiver = "Natalie";
-                    }
-                    
                     return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
                 }
 
                 WorldInteractable bestItem = null;
                 float minDistance = float.MaxValue;
+                // Vật phẩm đang tắt Collider (vừa hái, đang chờ WorldRespawnable mọc lại):
+                // vẫn là mục tiêu đúng, chỉ ưu tiên sau vật phẩm còn sống.
+                WorldInteractable bestHidden = null;
+                float minHiddenDistance = float.MaxValue;
                 Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
 
                 string cleanTarget = (targetName ?? "").Trim();
@@ -527,14 +591,12 @@ namespace MysticJourney.Features.Quest
 
                 foreach (var i in interactables)
                 {
-                    bool isCollectable = (i.Kind == WorldInteractableKind.QuestItem || i.Kind == WorldInteractableKind.Object);
-                    if (!isCollectable) continue;
+                    if (i == null || !i.gameObject.activeInHierarchy) continue;
 
-                    // Bỏ qua các object đã bị tắt Collider (nghĩa là đã tương tác xong)
+                    // Object đã bị tắt Collider = vừa thu thập, đang chờ hồi sinh.
                     var col2D = i.GetComponent<UnityEngine.Collider2D>();
                     var col = i.GetComponent<UnityEngine.Collider>();
-                    if ((col2D != null && !col2D.enabled) || (col != null && !col.enabled))
-                        continue;
+                    bool isHidden = (col2D != null && !col2D.enabled) || (col != null && !col.enabled);
 
                     bool isMatch = false;
                     if (i.QuestId.HasValue && i.QuestId.Value == quest.QuestId && quest.QuestId > 0)
@@ -543,11 +605,15 @@ namespace MysticJourney.Features.Quest
                     }
                     else if (!string.IsNullOrWhiteSpace(cleanTarget))
                     {
-                        if (Matches(i.ObjectKey, cleanTarget) || Matches(i.DisplayName, cleanTarget) ||
-                            Matches(i.gameObject.name, cleanTarget) ||
-                            (!string.IsNullOrWhiteSpace(i.ObjectKey) && cleanTarget.IndexOf(i.ObjectKey.Trim(), System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                            (!string.IsNullOrWhiteSpace(i.DisplayName) && cleanTarget.IndexOf(i.DisplayName.Trim(), System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                            (!string.IsNullOrWhiteSpace(i.gameObject.name) && cleanTarget.IndexOf(i.gameObject.name.Trim(), System.StringComparison.OrdinalIgnoreCase) >= 0))
+                        string gName = i.gameObject.name.Trim();
+                        string dName = (i.DisplayName ?? "").Trim();
+                        string oKey = (i.ObjectKey ?? "").Trim();
+
+                        if (Matches(oKey, cleanTarget) || Matches(dName, cleanTarget) || Matches(gName, cleanTarget) ||
+                            (!string.IsNullOrWhiteSpace(oKey) && cleanTarget.IndexOf(oKey, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                            (!string.IsNullOrWhiteSpace(dName) && cleanTarget.IndexOf(dName, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                            (!string.IsNullOrWhiteSpace(gName) && cleanTarget.IndexOf(gName, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                            (cleanTarget.IndexOf("Flower", System.StringComparison.OrdinalIgnoreCase) >= 0 && (gName.IndexOf("flower", System.StringComparison.OrdinalIgnoreCase) >= 0 || dName.IndexOf("flower", System.StringComparison.OrdinalIgnoreCase) >= 0)))
                         {
                             isMatch = true;
                         }
@@ -556,7 +622,15 @@ namespace MysticJourney.Features.Quest
                     if (isMatch)
                     {
                         float dist = Vector3.Distance(playerPos, i.transform.position);
-                        if (dist < minDistance)
+                        if (isHidden)
+                        {
+                            if (dist < minHiddenDistance)
+                            {
+                                minHiddenDistance = dist;
+                                bestHidden = i;
+                            }
+                        }
+                        else if (dist < minDistance)
                         {
                             minDistance = dist;
                             bestItem = i;
@@ -565,6 +639,7 @@ namespace MysticJourney.Features.Quest
                 }
 
                 if (bestItem != null) return bestItem.transform;
+                if (bestHidden != null) return bestHidden.transform;
 
                 // If not found in interactables, search scene GameObjects matching cleanTarget
                 var allObjs = FindObjectsOfType<GameObject>();
@@ -572,8 +647,19 @@ namespace MysticJourney.Features.Quest
                 float minGoDist = float.MaxValue;
                 foreach (var go in allObjs)
                 {
-                    if (go.activeInHierarchy && !string.IsNullOrWhiteSpace(cleanTarget) &&
-                        go.name.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (go == null || !go.activeInHierarchy) continue;
+                    string gName = go.name.Trim();
+                    if (string.IsNullOrWhiteSpace(gName)) continue;
+
+                    bool matchGo = false;
+                    if (!string.IsNullOrWhiteSpace(cleanTarget))
+                    {
+                        matchGo = gName.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                  cleanTarget.IndexOf(gName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                  (cleanTarget.IndexOf("Flower", System.StringComparison.OrdinalIgnoreCase) >= 0 && gName.IndexOf("flower", System.StringComparison.OrdinalIgnoreCase) >= 0);
+                    }
+
+                    if (matchGo)
                     {
                         float d = Vector3.Distance(playerPos, go.transform.position);
                         if (d < minGoDist)
@@ -584,6 +670,12 @@ namespace MysticJourney.Features.Quest
                     }
                 }
                 if (closestGo != null) return closestGo.transform;
+
+                // Chưa thu thập đủ mà không resolve được vật phẩm: KHÔNG được rơi xuống
+                // fallback 4c (NPC giao quest) — nếu không mũi tên sẽ nhảy sang NPC khi
+                // player đứng gần NPC (NPC gần hơn nên thắng ở bước chọn "gần nhất").
+                // Vẫn cho phép dungeon/portal vì vật phẩm có thể nằm ở khu vực khác.
+                skipQuestGiverFallback = true;
             }
 
             // 3. Defeat Monster — boss có thể nằm TRONG dungeon nên không có mặt ở world scene.
@@ -633,7 +725,10 @@ namespace MysticJourney.Features.Quest
             // 4. Go to Map/Region -> portal tới map đích.
             if (objType.Equals("Explore", System.StringComparison.OrdinalIgnoreCase) || objType.Equals("Reach", System.StringComparison.OrdinalIgnoreCase))
             {
-                var portal = FindPortalToMap(targetName);
+                var portal = FindPortalToMap(targetName) ?? FindPortalToMap(quest.ObjectiveLocation);
+                // Target kiểu "Portal"/"Gate" là chính cái cổng, không phải tên map đích -> lấy portal bất kỳ.
+                if (portal == null && targetName.IndexOf("portal", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    portal = FindAnyMapPortal();
                 if (portal != null) return portal;
             }
 
@@ -647,7 +742,8 @@ namespace MysticJourney.Features.Quest
             var locPortal = FindPortalToMap(quest.ObjectiveLocation);
             if (locPortal != null) return locPortal;
 
-            // 4c. Cuối cùng: NPC giao/nhận quest.
+            // 4c. Cuối cùng: NPC giao/nhận quest — trừ khi mục tiêu là vật phẩm chưa thu thập đủ.
+            if (skipQuestGiverFallback) return null;
             return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
         }
 
@@ -673,50 +769,7 @@ namespace MysticJourney.Features.Quest
             return null;
         }
 
-        private static bool IsEnemyMatch(string enemyGoName, string targetName)
-        {
-            if (string.IsNullOrWhiteSpace(enemyGoName) || string.IsNullOrWhiteSpace(targetName))
-                return false;
 
-            string cleanGoName = enemyGoName.Replace("(Clone)", "").Trim();
-
-            if (cleanGoName.IndexOf(targetName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                targetName.IndexOf(cleanGoName, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                return true;
-
-            string normGo = cleanGoName.Replace('_', ' ').Replace('-', ' ');
-            string normTarget = targetName.Replace('_', ' ').Replace('-', ' ');
-
-            if (normGo.IndexOf(normTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                normTarget.IndexOf(normGo, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                return true;
-
-            var targetTokens = normTarget.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
-            var goTokens = normGo.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
-
-            var adjectives = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
-            {
-                "ice", "fire", "dark", "light", "snow", "poison", "super", "mini", "boss", "spawner", "zone1", "zone2", "zone3"
-            };
-
-            var targetNouns = System.Array.FindAll(targetTokens, t => t.Length >= 3 && !adjectives.Contains(t));
-            if (targetNouns.Length == 0) targetNouns = System.Array.FindAll(targetTokens, t => t.Length >= 3);
-
-            var goNouns = System.Array.FindAll(goTokens, t => t.Length >= 3 && !adjectives.Contains(t));
-            if (goNouns.Length == 0) goNouns = System.Array.FindAll(goTokens, t => t.Length >= 3);
-
-            foreach (var tn in targetNouns)
-            {
-                foreach (var gn in goNouns)
-                {
-                    if (gn.IndexOf(tn, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        tn.IndexOf(gn, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                        return true;
-                }
-            }
-
-            return false;
-        }
 
         private Transform FindMatchingSceneObject(string targetName)
         {

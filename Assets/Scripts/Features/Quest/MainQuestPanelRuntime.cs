@@ -147,6 +147,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
     private void OnMapChanged(string mapName)
     {
+        // Không gọi LoadMyQuests() ở đây: lúc MapChanged bắn ra, LastMapName trên server vẫn là
+        // map cũ nên response sẽ thiếu quest của map mới. MapSceneController nạp lại quest ngay
+        // sau khi UpdatePosition thành công, rồi QuestsChanged sẽ kéo panel về đúng dữ liệu.
         RefreshWorldAndQuests();
     }
 
@@ -173,6 +176,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             quests.AddRange(cached);
             selectedQuest = PickSelectedQuest(null);
             RenderAll();
+            return; // Dừng tại đây khi đã có dữ liệu local, không phát sinh HTTP Request dư thừa
         }
 
         manager.LoadMainQuests(
@@ -190,6 +194,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             }
         );
     }
+
 
     private void BindUi()
     {
@@ -305,17 +310,26 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
     private void OnTrackButtonClicked()
     {
-        MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = !MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
+        bool wasEnabled = MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
+        MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = !wasEnabled;
         UpdateTrackButton();
+
+        // Khi bật track, trigger mũi tên ngay lập tức thay vì chờ 2s routine
+        if (MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled &&
+            MysticJourney.Features.Quest.QuestWaypointManager.Instance != null)
+        {
+            MysticJourney.Features.Quest.QuestWaypointManager.Instance.RefreshWaypoint();
+        }
     }
 
     private void UpdateTrackButton()
     {
         if (trackButton != null)
         {
+            // Chỉ hiện nút Track khi quest đang InProgress
+            // (NotStarted chưa accept, Completed/Claimed không cần dẫn đường)
             bool trackable = selectedQuest != null
-                && !QuestUtils.IsStatus(selectedQuest, "Completed")
-                && !QuestUtils.IsStatus(selectedQuest, "Claimed");
+                && QuestUtils.IsStatus(selectedQuest, "InProgress");
             if (trackButton.gameObject.activeSelf != trackable)
                 trackButton.gameObject.SetActive(trackable);
             if (!trackable)
@@ -384,11 +398,31 @@ public class MainQuestPanelRuntime : MonoBehaviour
         SetText(trackerNumber, $"Quest {active.QuestId}:");
         SetText(trackerTitle, active.QuestTitle ?? string.Empty);
 
-        var statusLabel = QuestUtils.StatusLabel(active);
-        var objectiveLine = ObjectiveTextLine(active);
-        SetText(trackerStatus, string.IsNullOrWhiteSpace(objectiveLine)
-            ? statusLabel
-            : $"{statusLabel}\n{objectiveLine}");
+        if (QuestUtils.IsStatus(active, "Completed"))
+        {
+            SetText(trackerStatus, "<color=#55FF55>Completed! Return to Quest Giver</color>");
+        }
+        else if (QuestUtils.IsStatus(active, "NotStarted"))
+        {
+            // Quest chưa nhận: KHÔNG hiện objective (Defeat/Collect...) vì người chơi chưa
+            // được giao mục tiêu đó — bước thật sự là đi gặp NPC. Waypoint cũng đang chỉ vào NPC.
+            var giver = Safe(active.QuestGiverName, "Quest Giver");
+            SetText(trackerStatus, $"<color=#FFD34D>Talk to {giver} to accept</color>");
+        }
+        else
+        {
+            var targetName = Safe(active.ObjectiveTarget, "target");
+            var objectiveType = Safe(active.ObjectiveType, "Objective");
+            if (active.TargetAmount > 1)
+            {
+                var current = Mathf.Clamp(active.Progress, 0, active.TargetAmount);
+                SetText(trackerStatus, $"{objectiveType}: {targetName} ({current}/{active.TargetAmount})");
+            }
+            else
+            {
+                SetText(trackerStatus, $"{objectiveType}: {targetName}");
+            }
+        }
     }
 
     private void RenderQuestList()
@@ -425,6 +459,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         selectedQuest = quest;
         RenderQuestList();
         RenderQuestDetail();
+        UpdateTrackButton();
     }
 
     private void RenderQuestDetail()
@@ -446,8 +481,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
         SetText(descriptionText, Safe(selectedQuest.QuestDescription, "No description."));
         RenderProgress(selectedQuest);
 
+        // Chỉ đóng dấu hoàn thành khi đã nhận thưởng (Claimed), giống UIQuestListItem.
         if (detailCompleteIcon != null)
-            detailCompleteIcon.SetActive(QuestUtils.IsStatus(selectedQuest, "Completed") || QuestUtils.IsStatus(selectedQuest, "Claimed"));
+            detailCompleteIcon.SetActive(QuestUtils.IsStatus(selectedQuest, "Claimed"));
 
         ApplyDetailTypeIcon(selectedQuest.ObjectiveType);
         RenderRewardItems(selectedQuest);
@@ -587,49 +623,95 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return rewards;
     }
 
+    // Overload cũ: message tự do (AnnounceText), kind suy từ nội dung. Dùng cho các chỗ
+    // không gắn với 1 quest cụ thể (vd MapTeleportPortal "Explored: ...").
+    private struct PopupData
+    {
+        public string announce;
+        public UIQuestPopupView.QuestPopupKind kind;
+        public bool inferKind;
+    }
+
+    private readonly Queue<PopupData> popupQueue = new Queue<PopupData>();
+    private bool isProcessingPopupQueue;
+    private string lastPopupKey = string.Empty;
+    private float lastPopupTime;
+
     public void ShowQuestPopup(string message)
     {
-        ShowPopup(message);
+        ShowPopup(message, UIQuestPopupView.QuestPopupKind.None, inferKind: true);
     }
 
-    private void ShowPopup(string message)
+    public void ShowQuestPopup(string questTitle, UIQuestPopupView.QuestPopupKind kind)
     {
-        BindUi();
+        ShowPopup(questTitle, kind, inferKind: false);
+    }
 
-        if (questPopup == null)
-        {
-            Debug.Log($"[QuestPopup] {message}");
+    private void ShowPopup(string announce, UIQuestPopupView.QuestPopupKind kind, bool inferKind)
+    {
+        if (string.IsNullOrWhiteSpace(announce))
             return;
-        }
 
-        if (questPopupView != null)
-            questPopupView.SetMessage(message);
-        else
-            SetText(popupText, message);
+        // Anti-duplicate: nếu popup cùng nội dung + kind vừa hiện trong vòng 2.5 giây -> bỏ qua tránh trùng
+        string key = $"{announce}_{kind}_{inferKind}";
+        if (key == lastPopupKey && Time.time - lastPopupTime < 2.5f)
+            return;
 
-        if (popupLayer != null && !popupLayer.activeSelf)
+        lastPopupKey = key;
+        lastPopupTime = Time.time;
+
+        popupQueue.Enqueue(new PopupData { announce = announce, kind = kind, inferKind = inferKind });
+
+        if (!isProcessingPopupQueue)
         {
-            popupLayer.SetActive(true);
-            popupLayerActivatedByQuest = true;
+            if (popupRoutine != null) StopCoroutine(popupRoutine);
+            popupRoutine = StartCoroutine(ProcessPopupQueue());
         }
-
-        if (questPopupView != null)
-            questPopupView.Show(message);
-        else
-        {
-            questPopup.SetActive(true);
-            questPopup.transform.SetAsLastSibling();
-        }
-
-        if (popupRoutine != null)
-            StopCoroutine(popupRoutine);
-        popupRoutine = StartCoroutine(HidePopupAfterDelay());
     }
 
-    private IEnumerator HidePopupAfterDelay()
+    private IEnumerator ProcessPopupQueue()
     {
-        yield return new WaitForSeconds(2.4f);
+        isProcessingPopupQueue = true;
 
+        while (popupQueue.Count > 0)
+        {
+            // Nếu video đang chiếu -> tạm dừng chờ video chiếu xong mới hiện popup hoàn thành!
+            while (MysticJourney.Features.Quest.QuestVideoManager.IsVideoPlaying)
+            {
+                yield return new WaitForSeconds(0.2f);
+            }
+
+            var data = popupQueue.Dequeue();
+            BindUi();
+
+
+            if (questPopup != null)
+            {
+                if (popupLayer != null && !popupLayer.activeSelf)
+                {
+                    popupLayer.SetActive(true);
+                    popupLayerActivatedByQuest = true;
+                }
+
+                if (questPopupView != null)
+                {
+                    if (data.inferKind)
+                        questPopupView.Show(data.announce);
+                    else
+                        questPopupView.Show(data.announce, data.kind);
+                }
+                else
+                {
+                    SetText(popupText, data.announce);
+                    questPopup.SetActive(true);
+                    questPopup.transform.SetAsLastSibling();
+                }
+
+                yield return new WaitForSeconds(2.2f);
+            }
+        }
+
+        // Đã hiện hết queue -> đóng popup
         if (questPopupView != null)
             questPopupView.Hide();
         else if (questPopup != null)
@@ -640,7 +722,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
             popupLayer.SetActive(false);
             popupLayerActivatedByQuest = false;
         }
+
+        isProcessingPopupQueue = false;
+        popupRoutine = null;
     }
+
 
     private bool MatchesFilter(PlayerQuestResponse quest)
     {
@@ -883,15 +969,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
-    private static ToggleGroup EnsureToggleGroup(GameObject host)
-    {
-        var group = host.GetComponent<ToggleGroup>();
-        if (group == null)
-            group = host.AddComponent<ToggleGroup>();
-        group.allowSwitchOff = false;
-        return group;
-    }
-
     private void BindFilterButton(string objectName, string filterValue, string label)
     {
         if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
@@ -909,13 +986,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
         var toggle = target.GetComponent<Toggle>();
         if (toggle != null)
         {
-            // ToggleGroup dùng chung trên parent (TopBar) → hành vi radio: luôn đúng 1 filter
-            // bật, và click filter đang bật không tắt được (allowSwitchOff = false).
-            var group = target.transform.parent != null
-                ? EnsureToggleGroup(target.transform.parent.gameObject)
-                : null;
-            if (group != null)
-                toggle.group = group;
+            // KHÔNG dùng ToggleGroup: 3 toggle trong scene đều lưu m_IsOn = 0, còn
+            // UpdateFilterHighlights đồng bộ bằng SetIsOnWithoutNotify (không báo cho group)
+            // → group với allowSwitchOff = false rơi vào trạng thái "không có toggle nào bật"
+            // và ăn luôn click tiếp theo. Trạng thái radio tự quản qua filterToggles là đủ.
+            toggle.group = null;
 
             filterToggles[filterValue] = toggle;
             if (toggle.onValueChanged == null)
@@ -925,6 +1000,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
             {
                 if (isOn)
                     SetFilter(filterValue);
+                else
+                    UpdateFilterHighlights(); // click lại tab đang bật → giữ nguyên filter, bật lại toggle
             });
         }
         else

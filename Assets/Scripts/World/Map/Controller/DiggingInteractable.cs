@@ -96,10 +96,51 @@ public class DiggingInteractable : MonoBehaviour
     public void StartDig()
     {
         if (_isDigging || _dug) return;
-        _isDigging = true;
+
+        var questState = QuestManager.Instance != null ? QuestManager.Instance.GetQuestState(linkedQuestId) : null;
+        var questStatus = questState != null ? questState.status : string.Empty;
+
+        if (string.Equals(questStatus, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(questStatus, "Claimed", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         WorldInteractionPromptRuntime.Hide();
+
+        if (QuestManager.Instance != null &&
+            !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
+        {
+            _isDigging = true;
+            QuestManager.Instance.AcceptQuest(
+                linkedQuestId,
+                onSuccess: () =>
+                {
+                    _isDigging = false;
+                    WorldRuntimeEvents.RaiseQuestsChanged();
+                    BeginDigSequence();
+                },
+                onError: error =>
+                {
+                    Debug.LogWarning($"[DiggingInteractable] AcceptQuest failed: {error}");
+                    _isDigging = false;
+                    WorldRuntimeEvents.RaiseMessage("You need to complete and claim the reward for the previous quest first!");
+
+                }
+            );
+            return;
+        }
+
+        BeginDigSequence();
+    }
+
+    private void BeginDigSequence()
+    {
+        if (_dug) return;
+        _isDigging = true;
         StartCoroutine(DigSequence());
     }
+
 
     // ─── Private ───────────────────────────────────────────────────────────────
 
@@ -118,6 +159,7 @@ public class DiggingInteractable : MonoBehaviour
         bool videoPlayed = false;
         if (videoPlayer != null && videoPlayer.clip != null)
         {
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
             videoPlayer.gameObject.SetActive(true);
             videoPlayer.Play();
             videoPlayed = true;
@@ -133,7 +175,9 @@ public class DiggingInteractable : MonoBehaviour
 
             videoPlayer.Stop();
             videoPlayer.gameObject.SetActive(false);
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(videoPlayer);
         }
+
         else
         {
             // Nếu không có video, chờ 1 giây giả lập
@@ -178,12 +222,10 @@ public class DiggingInteractable : MonoBehaviour
             },
             error =>
             {
-                Debug.LogWarning($"[DiggingInteractable] API fallback: {error.Message}");
-                // Vẫn cập nhật local progress nếu API lỗi
-                QuestManager.Instance?.AddProgress(linkedQuestId, 1);
-                WorldRuntimeEvents.RaiseQuestsChanged();
+                Debug.LogWarning($"[DiggingInteractable] InteractObject failed: {error.Message}");
                 FinalizeAfterDig();
             }
+
         );
     }
 

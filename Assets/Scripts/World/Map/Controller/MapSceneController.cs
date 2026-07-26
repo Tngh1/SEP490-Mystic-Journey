@@ -100,7 +100,10 @@ public class MapSceneController : MonoBehaviour
 
         WorldRuntimeEvents.RaiseMapChanged(targetScene);
         WorldRuntimeEvents.RaiseQuestsChanged();
-        QuestManager.Instance?.LoadMyQuests();
+        // KHÔNG LoadMyQuests() ở đây: BE chỉ tạo bản ghi quest NotStarted cho map bằng
+        // profile.LastMapName (PlayerQuestService.GetMyQuests), mà LastMapName chỉ được cập nhật
+        // bởi UpdatePosition bên dưới. Gọi sớm sẽ nhận lại quest của map CŨ -> vào map mới không
+        // có nhiệm vụ và không có mũi tên waypoint. Load sau khi lưu vị trí thành công.
 
         var player = GameObject.FindGameObjectWithTag("Player");
         if (player == null)
@@ -144,9 +147,16 @@ public class MapSceneController : MonoBehaviour
                 {
                     Debug.Log($"[MapSceneController] Saved: {targetScene} @ {spawnPosition}");
                     WorldRuntimeEvents.RaiseMapChanged(targetScene);
-                    WorldRuntimeEvents.RaiseQuestsChanged();
+                    // LastMapName đã là map mới -> giờ GetMyQuests mới trả về quest của map này.
+                    // HandleLoadedQuestResponses tự bắn QuestsChanged để panel + waypoint render lại.
+                    QuestManager.Instance?.LoadMyQuests();
                 },
-                error => Debug.LogWarning($"[MapSceneController] Save failed: {error.Message}")
+                error =>
+                {
+                    Debug.LogWarning($"[MapSceneController] Save failed: {error.Message}");
+                    // Lưu vị trí thất bại vẫn phải thử nạp quest, nếu không HUD trắng hoàn toàn.
+                    QuestManager.Instance?.LoadMyQuests();
+                }
             );
         }
     }

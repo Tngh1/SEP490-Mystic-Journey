@@ -10,7 +10,6 @@ using UnityEngine.SceneManagement;
 public static class WorldSceneInteractableBootstrap
 {
     private static readonly HashSet<int> bootstrappedScenes = new();
-    private static readonly Vector3 ElderFallbackPosition = new(12.4932f, 18.61223f, 0f);
 
     public static void EnsureForScene(Scene scene)
     {
@@ -52,12 +51,14 @@ public static class WorldSceneInteractableBootstrap
 
     private static void ConfigureFallback(Scene scene)
     {
-        var elderObject = FindOrCreateElderObject(scene, ElderFallbackPosition);
-        if (elderObject != null)
+        var allInteractables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
+        var elder = allInteractables.FirstOrDefault(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc &&
+            (string.Equals(i.DisplayName.Trim(), "Elder Rowan", StringComparison.OrdinalIgnoreCase) ||
+             i.gameObject.name.Contains("MageOld", StringComparison.OrdinalIgnoreCase) ||
+             i.gameObject.name.Contains("ElderRowan", StringComparison.OrdinalIgnoreCase)));
+
+        if (elder != null)
         {
-            var elder = elderObject.GetComponent<WorldInteractable>();
-            if (elder == null)
-                elder = elderObject.AddComponent<WorldInteractable>();
             elder.ConfigureNpc(
                 0,
                 "Elder Rowan",
@@ -69,7 +70,6 @@ public static class WorldSceneInteractableBootstrap
         }
 
         ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", 0, 2.25f);
-        ConfigureObject(scene, "Stone", "ElfForest.AncientStoneMarker", "Ancient Stone Marker", "Interact", 0, 2.5f);
         ConfigureTaggedQuestItems(scene, null);
     }
 
@@ -82,13 +82,14 @@ public static class WorldSceneInteractableBootstrap
         var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
         var hideNatalie = IsQuestCompletedOrClaimed(state, 24);
 
-        // 1. Cập nhật tất cả các NPC đã được đặt sẵn hoặc sinh tự động trong Map dựa theo DisplayName & NpcId
+        // Standardized NPC configuration pipeline for ALL map NPCs
         foreach (var apiNpc in mapNpcs)
         {
             var matches = allInteractables.Where(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc &&
                 (i.NpcId == apiNpc.NPCId ||
                  string.Equals(i.DisplayName.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(i.gameObject.name.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase))).ToList();
+                 string.Equals(i.gameObject.name.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                 (string.Equals(apiNpc.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase) && i.gameObject.name.Contains("MageOld", StringComparison.OrdinalIgnoreCase)))).ToList();
 
             if (hideNatalie && string.Equals(apiNpc.Name, "Natalie", StringComparison.OrdinalIgnoreCase))
             {
@@ -110,45 +111,12 @@ public static class WorldSceneInteractableBootstrap
             }
         }
 
-        // 2. Fallback riêng cho Elder Rowan ở Map 1 & 2 (bảo toàn logic cũ của ElfForest/AutumnPumpkin)
-        if (string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase) || string.Equals(scene.name, "AutumnPumpkin", StringComparison.OrdinalIgnoreCase))
-        {
-            var elder = mapNpcs.OrderBy(n => n.NPCId).FirstOrDefault(n => string.Equals(n.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase) || string.Equals(n.Name, "Elder Rowan (Pumpkin)", StringComparison.OrdinalIgnoreCase)) ?? mapNpcs.FirstOrDefault();
-            
-            var elderPosition = elder != null
-                ? new Vector3((float)elder.PositionX, (float)elder.PositionY, 0f)
-                : ElderFallbackPosition;
-            var elderObject = FindOrCreateElderObject(scene, elderPosition);
-
-            if (elderObject != null && elder != null)
-            {
-                var interactable = elderObject.GetComponent<WorldInteractable>();
-                if (interactable == null)
-                    interactable = elderObject.AddComponent<WorldInteractable>();
-                interactable.ConfigureNpc(
-                    elder.NPCId,
-                    elder.Name,
-                    elder.Description,
-                    FirstDialogue(elder),
-                    elder.InteractionRadius > 0f ? elder.InteractionRadius : 2.75f,
-                    elder.Dialogues?.Where(d => d.LinkedQuestId.HasValue).Select(d => d.LinkedQuestId.Value)
-                );
-            }
-        }
-
         var flowerQuest = state.Quests?.FirstOrDefault(q =>
             q != null &&
             string.Equals(q.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase) &&
             Contains(q.ObjectiveTarget, "White Flower"));
         if (flowerQuest != null)
             ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", flowerQuest.QuestId, 2.25f);
-
-        var stoneQuest = state.Quests?.FirstOrDefault(q =>
-            q != null &&
-            string.Equals(q.ObjectiveType, "Interact", StringComparison.OrdinalIgnoreCase) &&
-            Contains(q.ObjectiveTarget, "Ancient Stone Marker"));
-        if (stoneQuest != null)
-            ConfigureObject(scene, "Stone", "ElfForest.AncientStoneMarker", "Ancient Stone Marker", "Interact", stoneQuest.QuestId, 2.5f);
 
         ConfigureTaggedQuestItems(scene, state);
         ConfigureRespawnableCollectItems(scene, state);
@@ -162,59 +130,7 @@ public static class WorldSceneInteractableBootstrap
              string.Equals(q.Status, "Claimed", StringComparison.OrdinalIgnoreCase)));
     }
 
-    private static GameObject FindOrCreateElderObject(Scene scene, Vector3 position)
-    {
-        // Phá hủy tất cả các bản sao vô thừa nhận của MageOld hoặc ElderRowanInteractable
-        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
-        GameObject primaryElder = null;
 
-        foreach (var obj in objects)
-        {
-            if (obj.scene != scene) continue;
-
-            if (obj.name.Contains("MageOld") || obj.name.Contains("ElderRowanInteractable"))
-            {
-                if (primaryElder == null && obj.name.StartsWith("MageOld"))
-                {
-                    primaryElder = obj;
-                }
-                else
-                {
-                    // Nếu đã tìm thấy NPC thật rồi mà còn dư đứa nào khác thì tiêu diệt hết!
-                    UnityEngine.Object.Destroy(obj);
-                }
-            }
-        }
-        
-        // Quét toàn bộ text trong scene để diệt chữ ảo (phòng hờ kẹt trong UI rác)
-        var allTexts = Resources.FindObjectsOfTypeAll<TMPro.TextMeshProUGUI>();
-        foreach (var t in allTexts)
-        {
-            if (t.gameObject.scene == scene && t.text != null && (t.text.Contains("Elder Rowan") || t.text.Contains("nawoR")))
-            {
-                if (primaryElder != null && !t.transform.IsChildOf(primaryElder.transform))
-                {
-                    var parentCanvas = t.GetComponentInParent<Canvas>();
-                    if (parentCanvas != null) UnityEngine.Object.Destroy(parentCanvas.gameObject);
-                    else UnityEngine.Object.Destroy(t.gameObject);
-                }
-            }
-        }
-
-        if (primaryElder != null)
-        {
-            return primaryElder;
-        }
-
-        var elder = new GameObject("ElderRowanInteractable");
-        SceneManager.MoveGameObjectToScene(elder, scene);
-        var parent = FindSceneObject(scene, "NPC");
-        if (parent != null)
-            elder.transform.SetParent(parent.transform, true);
-
-        elder.transform.position = position;
-        return elder;
-    }
 
     private static void ConfigureObject(Scene scene, string sceneObjectName, string objectKey, string displayName, string interactionType, int questId, float radius)
     {
