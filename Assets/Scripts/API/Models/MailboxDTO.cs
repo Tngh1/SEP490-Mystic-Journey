@@ -1,14 +1,14 @@
 namespace MysticJourney.API.Models.Response
 {
     // ═══════════════════════════════════════════════════════════════════════
-    // MAIL DTOs - Response models cho Mail API
+    // MAILBOX DTOs - Response models cho Mailbox API
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Maps MailSummaryDto – dùng trong danh sách mail (GET /api/mails/me)
+    // Maps MailboxSummaryDto – dùng trong danh sách mail (GET /api/mailboxes/me)
     [System.Serializable]
-    public class MailSummaryResponse
+    public class MailboxSummaryResponse
     {
-        public int MailId;
+        public int MailboxId;
         public string Title;
         public string Type;             // "System", "Event", "Gift"
         public bool IsRead;
@@ -19,20 +19,20 @@ namespace MysticJourney.API.Models.Response
         public string ExpiredAt;
     }
 
-    // Maps MailListPagedDto – trả về bởi GET /api/mails/me
+    // Maps MailboxListPagedDto – trả về bởi GET /api/mailboxes/me
     [System.Serializable]
-    public class MailListPagedResponse
+    public class MailboxListPagedResponse
     {
-        public int TotalMails;
+        public int TotalMailboxes;
         public int Page;
         public int PageSize;
         public int TotalPages;
-        public MailSummaryResponse[] Items;
+        public MailboxSummaryResponse[] Items;
     }
 
-    // Maps MailRewardItemDto – item đính kèm trong mail
+    // Maps MailboxRewardItemDto – item đính kèm trong mail
     [System.Serializable]
-    public class MailRewardItemResponse
+    public class MailboxRewardItemResponse
     {
         public int ItemId;
         public string ItemName;
@@ -40,11 +40,11 @@ namespace MysticJourney.API.Models.Response
         public int Quantity;
     }
 
-    // Maps MailDetailDto – trả về bởi GET /api/mails/{id}, POST /read, /claim
+    // Maps MailboxDetailDto – trả về bởi GET /api/mailboxes/{id}, POST /read, /claim
     [System.Serializable]
-    public class MailDetailResponse
+    public class MailboxDetailResponse
     {
-        public int MailId;
+        public int MailboxId;
         public string Title;
         public string Content;
         public string Type;
@@ -52,26 +52,8 @@ namespace MysticJourney.API.Models.Response
         public bool IsClaimed;
         public float AttachedGold;
         public float AttachedGems;
-        public MailRewardItemResponse[] AttachedItems;
+        public MailboxRewardItemResponse[] AttachedItems;
         public string SentAt;
         public string ExpiredAt;
     }
-    // MailResponse = MailSummaryResponse (dùng trong danh sách)
-    [System.Serializable]
-    public class MailResponse
-    {
-        public int MailId;
-        public string Title;
-        public string Type;
-        public bool IsRead;
-        public bool HasClaimableReward;
-        public bool IsClaimed;
-        public int? RemainingDays;
-        public string SentAt;
-        public string ExpiredAt;
-
-        public int? AttachedItemId => HasClaimableReward ? 0 : (int?)null;
-        public int AttachedItemQuantity => 0;
-    }
-
 }
