@@ -1,36 +1,153 @@
 using UnityEngine;
 
+/// <summary>
+/// Drives the minimap camera. It follows the local player from far above with a
+/// zoomed-out orthographic view (a map, not a second gameplay view) and renders
+/// into RT_Minimap. Player icons are drawn as UI on top of that texture by
+/// <see cref="MinimapMarkerLayer"/> â€” this component only owns the camera.
+/// </summary>
+[RequireComponent(typeof(Camera))]
 public class MinimapCameraController : MonoBehaviour
 {
-    private Transform playerTarget;
-    private float cameraZOffset = -10f;
-    private bool isReady = false; // C? ?ánh d?u khi nào có data m?i ch?y
+    /// <summary>Active minimap camera, used by the marker layer to project world positions.</summary>
+    public static MinimapCameraController Instance { get; private set; }
 
-    // Hàm này sau này s? nh?n data t? file Test ho?c JSON API
+    [Header("View")]
+    [Tooltip("Orthographic size of the minimap view. Larger = more world visible.")]
+    [SerializeField] private float zoom = 20f;
+
+    [Tooltip("Layers the minimap must not render (UI, VFX, ...).")]
+    [SerializeField] private LayerMask hiddenLayers;
+
+    [Header("Follow")]
+    [Tooltip("Follow smoothing. 0 = snap instantly to the target.")]
+    [SerializeField] private float followSmoothing = 12f;
+
+    [SerializeField] private float cameraZOffset = -20f;
+
+    public Camera Camera { get; private set; }
+
+    /// <summary>The transform the minimap is centered on (the local player).</summary>
+    public Transform Target { get; private set; }
+
+    // Full-map mode: the camera stops following and frames the whole level so the
+    // map panel can show every player at once.
+    private bool _fullMap;
+    private Vector3 _fullMapCenter;
+    private float _fullMapZoom;
+
+    private void Awake()
+    {
+        Instance = this;
+
+        Camera = GetComponent<Camera>();
+        Camera.orthographic = true;
+        Camera.orthographicSize = zoom;
+        Camera.cullingMask &= ~hiddenLayers.value;
+
+        // The gameplay camera owns audio; a second listener spams warnings and
+        // breaks 2D spatial panning.
+        var listener = GetComponent<AudioListener>();
+        if (listener != null) listener.enabled = false;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
+    /// <summary>
+    /// Bind the minimap to a player transform. Called by the spawn paths
+    /// (PlayerSpawner / NetworkPlayer / MapSceneController / DungeonManager)
+    /// whenever the local avatar changes.
+    /// </summary>
     public void InitializeMinimap(Transform targetTransform)
     {
-        playerTarget = targetTransform;
+        Target = targetTransform;
+        if (Target == null) return;
 
-        // Set v? trí camera ngay l?p t?c theo v? trí data truy?n vào
-        if (playerTarget != null)
+        // Snap immediately so the map does not slide in from the previous scene.
+        transform.position = FocusPosition();
+    }
+
+    /// <summary>
+    /// Frame the whole level instead of following the player, so the map panel can
+    /// show every player at once. Falls back to normal follow if nothing renderable
+    /// is loaded.
+    /// </summary>
+    public void ShowFullMap()
+    {
+        if (!TryComputeWorldBounds(out Bounds b)) return;
+
+        _fullMapCenter = new Vector3(b.center.x, b.center.y, cameraZOffset);
+
+        // Orthographic size is half the vertical extent; also fit the width through
+        // the aspect ratio, then pad so the level edges are not flush with the frame.
+        float aspect = Camera.aspect > 0.0001f ? Camera.aspect : 1f;
+        _fullMapZoom = Mathf.Max(b.extents.y, b.extents.x / aspect) * 1.05f;
+
+        _fullMap = true;
+        transform.position = _fullMapCenter;
+        Camera.orthographicSize = _fullMapZoom;
+    }
+
+    /// <summary>Go back to following the local player at minimap zoom.</summary>
+    public void ShowMinimap()
+    {
+        _fullMap = false;
+        Camera.orthographicSize = zoom;
+        if (Target != null) transform.position = FocusPosition();
+    }
+
+    // ponytail: bounds are derived from whatever renderers are loaded when the panel
+    // opens â€” good enough for one-scene-per-map. Author explicit bounds on MapData
+    // if maps ever stream in pieces or contain far-away decor that skews the frame.
+    private bool TryComputeWorldBounds(out Bounds bounds)
+    {
+        bounds = default;
+        bool any = false;
+        int mask = Camera.cullingMask;
+
+        var renderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+        foreach (var r in renderers)
         {
-            Vector3 startPos = playerTarget.position;
-            startPos.z = cameraZOffset;
-            transform.position = startPos;
+            if (r == null || !r.enabled) continue;
+            if ((mask & (1 << r.gameObject.layer)) == 0) continue;
+            if (r is ParticleSystemRenderer) continue;
 
-            isReady = true; // B?t c? cho phép camera b?t ??u ?i theo
-            Debug.Log("? [Minimap] ?ã nh?n d? li?u kh?i t?o thành công!");
+            if (!any) { bounds = r.bounds; any = true; }
+            else bounds.Encapsulate(r.bounds);
         }
+
+        return any;
     }
 
     private void LateUpdate()
     {
-        // N?u ch?a có data t? API/Test b?m vào, ho?c m?t target -> ??ng im
-        if (!isReady || playerTarget == null) return;
+        // Full-map view is static: nothing to follow, and the zoom must not snap back.
+        if (_fullMap)
+        {
+            transform.position = _fullMapCenter;
+            if (!Mathf.Approximately(Camera.orthographicSize, _fullMapZoom))
+                Camera.orthographicSize = _fullMapZoom;
+            return;
+        }
 
-        // C?p nh?t v? trí m??t mà (có th? dùng Lerp sau này n?u thích)
-        Vector3 newPosition = playerTarget.position;
-        newPosition.z = cameraZOffset;
-        transform.position = newPosition;
+        if (Target == null) return;
+
+        Vector3 wanted = FocusPosition();
+        transform.position = followSmoothing <= 0f
+            ? wanted
+            : Vector3.Lerp(transform.position, wanted, 1f - Mathf.Exp(-followSmoothing * Time.deltaTime));
+
+        // Keep zoom live-editable while playing.
+        if (!Mathf.Approximately(Camera.orthographicSize, zoom)) Camera.orthographicSize = zoom;
+    }
+
+    private Vector3 FocusPosition()
+    {
+        Vector3 p = Target.position;
+        p.z = cameraZOffset;
+        return p;
     }
 }
