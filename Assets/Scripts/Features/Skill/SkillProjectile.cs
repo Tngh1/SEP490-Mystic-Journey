@@ -3,12 +3,19 @@ using UnityEngine;
 public class SkillProjectile : MonoBehaviour
 {
     [SerializeField] protected float speed = 10f;
+    [SerializeField] protected AudioClip castSound;
+    [SerializeField] protected AudioClip hitSound;
     protected float _damage;
 
     public virtual void Setup(float damage)
     {
         _damage = damage;
         Destroy(gameObject, 2f);
+
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound);
+        }
     }
 
     protected virtual void Update()
@@ -43,6 +50,10 @@ public class SkillProjectile : MonoBehaviour
 
     protected virtual void OnHitTarget()
     {
+        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound);
+        }
         Destroy(gameObject); // Chạm quái thì đạn nổ biến mất
     }
 }
