@@ -196,12 +196,12 @@ namespace MysticJourney.API.Core
         public const string GachaHistory = "/api/gachabanners/history";
 
         // ═══════════════════════════════════════════════════════════════════════
-        // MAILS CONTROLLER - Thư
+        // MAILBOXES CONTROLLER - Thư
         // ═══════════════════════════════════════════════════════════════════════
-        public const string MailMe = "/api/mails/me";
-        public const string MailById = "/api/mails/{0}";
-        public const string MailRead = "/api/mails/{0}/read";
-        public const string MailClaim = "/api/mails/{0}/claim";
+        public const string MailMe = "/api/mailboxes/me";
+        public const string MailById = "/api/mailboxes/{0}";
+        public const string MailRead = "/api/mailboxes/{0}/read";
+        public const string MailClaim = "/api/mailboxes/{0}/claim";
 
         // ═══════════════════════════════════════════════════════════════════════
         // DAILY LOGIN REWARDS CONTROLLER - Thưởng đăng nhập hàng ngày

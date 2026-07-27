@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -6,7 +6,7 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.Screen.Mail
 {
-    public class MailItemUI : MonoBehaviour
+    public class MailboxItemUI : MonoBehaviour
     {
         [Header("UI References")]
         [SerializeField] private TMP_Text titleText;
@@ -14,22 +14,22 @@ namespace MysticJourney.Screen.Mail
         [SerializeField] private GameObject rewardAvailableObj; // Khớp với GameObject RewardAvailable
         [SerializeField] private Toggle itemToggle;
 
-        private MailSummaryResponse _mailData;
-        private Action<MailItemUI> _onClickAction;
+        private MailboxSummaryResponse _mailboxData;
+        private Action<MailboxItemUI> _onClickAction;
 
-        public void Setup(MailSummaryResponse mailData, Action<MailItemUI> onClick)
+        public void Setup(MailboxSummaryResponse mailboxData, Action<MailboxItemUI> onClick)
         {
-            _mailData = mailData;
+            _mailboxData = mailboxData;
             _onClickAction = onClick;
 
-            if (titleText != null) titleText.text = mailData.Title;
+            if (titleText != null) titleText.text = mailboxData.Title;
 
             if (expireText != null)
             {
                 // Ưu tiên dùng RemainingDays do BE tính sẵn
-                if (mailData.RemainingDays.HasValue)
+                if (mailboxData.RemainingDays.HasValue)
                 {
-                    int days = mailData.RemainingDays.Value;
+                    int days = mailboxData.RemainingDays.Value;
                     if (days <= 0)
                         expireText.text = "Expired";
                     else if (days == 1)
@@ -37,7 +37,7 @@ namespace MysticJourney.Screen.Mail
                     else
                         expireText.text = $"{days} days left";
                 }
-                else if (!string.IsNullOrEmpty(mailData.ExpiredAt) && DateTime.TryParse(mailData.ExpiredAt, out DateTime expiredDate))
+                else if (!string.IsNullOrEmpty(mailboxData.ExpiredAt) && DateTime.TryParse(mailboxData.ExpiredAt, out DateTime expiredDate))
                 {
                     int days = (int)Math.Ceiling((expiredDate - DateTime.UtcNow).TotalDays);
                     if (days <= 0)
@@ -69,25 +69,25 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
-        public MailSummaryResponse GetMailData() => _mailData;
+        public MailboxSummaryResponse GetMailboxData() => _mailboxData;
 
         public void UpdateUIState()
         {
             // Hiển thị icon RewardAvailable nếu có quà và chưa nhận
             if (rewardAvailableObj != null)
-                rewardAvailableObj.SetActive(_mailData.HasClaimableReward && !_mailData.IsClaimed);
+                rewardAvailableObj.SetActive(_mailboxData.HasClaimableReward && !_mailboxData.IsClaimed);
         }
 
         public void MarkAsReadLocally()
         {
-            _mailData.IsRead = true;
+            _mailboxData.IsRead = true;
             UpdateUIState();
         }
 
         public void MarkAsClaimedLocally()
         {
-            _mailData.IsClaimed = true;
-            _mailData.HasClaimableReward = false;
+            _mailboxData.IsClaimed = true;
+            _mailboxData.HasClaimableReward = false;
             UpdateUIState();
         }
     }

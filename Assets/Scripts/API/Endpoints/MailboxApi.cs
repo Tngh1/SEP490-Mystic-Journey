@@ -5,58 +5,58 @@ using MysticJourney.API.Models.Response;
 namespace MysticJourney.API.Endpoints
 {
     // ═══════════════════════════════════════════════════════════════════════
-    // MAIL API - Thư
+    // MAILBOX API - Thư
     // ═══════════════════════════════════════════════════════════════════════
-    public class MailApi : BaseApiService<MailApi>
+    public class MailboxApi : BaseApiService<MailboxApi>
     {
         // ═══════════════════════════════════════════════════════════════════════
         // GAME APIs (Người chơi)
         // ═══════════════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách mail (overload cho tương thích) ───────────
-        public void GetMyMails(
-            Action<MailListPagedResponse> onSuccess,
+        // ── Lấy danh sách thư (overload cho tương thích) ────────────
+        public void GetMyMailboxes(
+            Action<MailboxListPagedResponse> onSuccess,
             Action<ApiException> onError)
         {
-            GetMyMails(1, 20, onSuccess, onError);
+            GetMyMailboxes(1, 20, onSuccess, onError);
         }
 
-        // ── Lấy danh sách mail có phân trang ──────────────────────
-        public void GetMyMails(
+        // ── Lấy danh sách thư có phân trang ────────────────────────
+        public void GetMyMailboxes(
             int page,
             int pageSize,
-            Action<MailListPagedResponse> onSuccess,
+            Action<MailboxListPagedResponse> onSuccess,
             Action<ApiException> onError)
         {
             string endpoint = $"{ApiConfig.MailMe}?page={page}&pageSize={pageSize}";
-            SafeDebugLog($"GetMyMails → page={page} pageSize={pageSize}");
-            
-            // ApiClient đã xử lý success:false và unwrap envelope, nhận trực tiếp MailListPagedResponse
-            ApiClient.Instance.Get<MailListPagedResponse>(
+            SafeDebugLog($"GetMyMailboxes → page={page} pageSize={pageSize}");
+
+            // ApiClient đã xử lý success:false và unwrap envelope, nhận trực tiếp MailboxListPagedResponse
+            ApiClient.Instance.Get<MailboxListPagedResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"GetMyMails OK | TotalMails={response.TotalMails} | TotalPages={response.TotalPages} | Items={response.Items?.Length ?? 0}");
+                    SafeDebugLog($"GetMyMailboxes OK | TotalMailboxes={response.TotalMailboxes} | TotalPages={response.TotalPages} | Items={response.Items?.Length ?? 0}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    SafeDebugError($"GetMyMails FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"GetMyMailboxes FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true);
         }
 
-        // ── Lấy chi tiết mail ─────────────────────────────────────
+        // ── Lấy chi tiết thư ───────────────────────────────────────
         public void GetById(
-            int mailId,
-            Action<MailDetailResponse> onSuccess,
+            int mailboxId,
+            Action<MailboxDetailResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.MailById, mailId);
-            SafeDebugLog($"GetById → mailId={mailId}");
-            
-            ApiClient.Instance.Get<MailDetailResponse>(
+            string endpoint = string.Format(ApiConfig.MailById, mailboxId);
+            SafeDebugLog($"GetById → mailboxId={mailboxId}");
+
+            ApiClient.Instance.Get<MailboxDetailResponse>(
                 endpoint,
                 response =>
                 {
@@ -65,7 +65,7 @@ namespace MysticJourney.API.Endpoints
                 },
                 error =>
                 {
-                    SafeDebugError($"GetById FAIL | mailId={mailId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"GetById FAIL | mailboxId={mailboxId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true);
@@ -73,71 +73,71 @@ namespace MysticJourney.API.Endpoints
 
         // ── Đánh dấu đã đọc ──────────────────────────────────────
         public void MarkAsRead(
-            int mailId,
-            Action<MailDetailResponse> onSuccess,
+            int mailboxId,
+            Action<MailboxDetailResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.MailRead, mailId);
-            SafeDebugLog($"MarkAsRead → mailId={mailId}");
-            
-            ApiClient.Instance.PostEmpty<MailDetailResponse>(
+            string endpoint = string.Format(ApiConfig.MailRead, mailboxId);
+            SafeDebugLog($"MarkAsRead → mailboxId={mailboxId}");
+
+            ApiClient.Instance.PostEmpty<MailboxDetailResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"MarkAsRead OK | mailId={mailId} | IsRead={response.IsRead}");
+                    SafeDebugLog($"MarkAsRead OK | mailboxId={mailboxId} | IsRead={response.IsRead}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    SafeDebugError($"MarkAsRead FAIL | mailId={mailId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"MarkAsRead FAIL | mailboxId={mailboxId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true);
         }
 
-        // ── Nhận phần thưởng mail ────────────────────────────────
+        // ── Nhận phần thưởng thư ───────────────────────────────────
         public void ClaimReward(
-            int mailId,
-            Action<MailDetailResponse> onSuccess,
+            int mailboxId,
+            Action<MailboxDetailResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.MailClaim, mailId);
-            SafeDebugLog($"ClaimReward → mailId={mailId}");
-            
-            ApiClient.Instance.PostEmpty<MailDetailResponse>(
+            string endpoint = string.Format(ApiConfig.MailClaim, mailboxId);
+            SafeDebugLog($"ClaimReward → mailboxId={mailboxId}");
+
+            ApiClient.Instance.PostEmpty<MailboxDetailResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"ClaimReward OK | mailId={mailId} | IsClaimed={response.IsClaimed} | Gold={response.AttachedGold} | Gems={response.AttachedGems}");
+                    SafeDebugLog($"ClaimReward OK | mailboxId={mailboxId} | IsClaimed={response.IsClaimed} | Gold={response.AttachedGold} | Gems={response.AttachedGems}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    SafeDebugError($"ClaimReward FAIL | mailId={mailId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"ClaimReward FAIL | mailboxId={mailboxId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true);
         }
 
-        // ── Xóa mail ──────────────────────────────────────────────
+        // ── Xóa thư ───────────────────────────────────────────────
         public void Delete(
-            int mailId,
+            int mailboxId,
             Action<SimpleResponse> onSuccess,
             Action<ApiException> onError)
         {
-            string endpoint = string.Format(ApiConfig.MailById, mailId);
-            SafeDebugLog($"Delete → mailId={mailId}");
-            
+            string endpoint = string.Format(ApiConfig.MailById, mailboxId);
+            SafeDebugLog($"Delete → mailboxId={mailboxId}");
+
             ApiClient.Instance.Delete<SimpleResponse>(
                 endpoint,
                 response =>
                 {
-                    SafeDebugLog($"Delete OK | mailId={mailId}");
+                    SafeDebugLog($"Delete OK | mailboxId={mailboxId}");
                     onSuccess?.Invoke(response);
                 },
                 error =>
                 {
-                    SafeDebugError($"Delete FAIL | mailId={mailId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    SafeDebugError($"Delete FAIL | mailboxId={mailboxId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
                 requiresAuth: true);
