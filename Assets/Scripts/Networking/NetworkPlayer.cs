@@ -40,16 +40,26 @@ public class NetworkPlayer : NetworkBehaviour
     [Networked, OnChangedRender(nameof(OnPlayerClassChanged))] public int PlayerClass { get; set; }
     [Networked, OnChangedRender(nameof(OnSkinChanged))] public int EquippedSkinId { get; set; }
 
+    // (PlayerClass, EquippedSkinId) the current visual was built from. -1 = none yet.
+    private long _builtVisualKey = -1;
+
     public void OnSkinChanged()
     {
-        Debug.Log($"[NetworkPlayer] OnSkinChanged to {EquippedSkinId}");
         OnPlayerClassChanged();
     }
 
     public void OnPlayerClassChanged()
     {
-        Debug.Log($"[NetworkPlayer] OnPlayerClassChanged to {(CharacterClass)PlayerClass}");
         if (visualRoot == null) return;
+
+        // Spawned(), both OnChangedRender hooks and the async inventory fetch all
+        // funnel here, so the same (class, skin) pair was rebuilt 2-3 times per
+        // spawn — each rebuild destroys and re-instantiates the whole visual.
+        long visualKey = ((long)PlayerClass << 32) | (uint)EquippedSkinId;
+        if (_spawnedVisual != null && _builtVisualKey == visualKey) return;
+        _builtVisualKey = visualKey;
+
+        Debug.Log($"[NetworkPlayer] Building visual for {(CharacterClass)PlayerClass} skin={EquippedSkinId}");
 
         if (_spawnedVisual != null)
         {
@@ -125,22 +135,30 @@ public class NetworkPlayer : NetworkBehaviour
     {
         OnAnyReadyStateChanged?.Invoke();
 
-        // Only the Host (StateAuthority) should evaluate if everyone is ready to prevent race conditions
-        if (Object.HasStateAuthority)
-        {
-            if (All.Count > 0 && All.TrueForAll(p => p.IsReadyToRestart))
-            {
-                // Reset all states immediately to avoid multiple triggers
-                foreach (var p in All)
-                {
-                    if (p.Object != null && p.Object.HasStateAuthority)
-                        p.IsReadyToRestart = false; 
-                }
+        // In Shared Mode EVERY client has StateAuthority over its own avatar, so
+        // HasStateAuthority is not a host check — gating on it made all N clients
+        // fire the restart RPC and DungeonManager.RestartDungeon ran N times.
+        // Only the Fusion master client evaluates the all-ready condition.
+        if (PhotonManager.Instance == null || !PhotonManager.Instance.IsHost) return;
+        if (All.Count == 0 || !All.TrueForAll(p => p.IsReadyToRestart)) return;
 
-                Debug.Log("[NetworkPlayer] Host detects all players ready, sending RPC_TriggerRestartDungeon!");
-                RPC_TriggerRestartDungeon();
-            }
+        // Clearing the flag is per-avatar StateAuthority work, so ask each owner to
+        // do it; locally we can write directly.
+        foreach (var p in All)
+        {
+            if (p.Object == null) continue;
+            if (p.Object.HasStateAuthority) p.IsReadyToRestart = false;
+            else p.RPC_ClearReadyToRestart();
         }
+
+        Debug.Log("[NetworkPlayer] Master client detects all players ready, sending RPC_TriggerRestartDungeon!");
+        RPC_TriggerRestartDungeon();
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_ClearReadyToRestart()
+    {
+        IsReadyToRestart = false;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -217,12 +235,14 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    private void OnDestroy()
+    private void OnDestroy() => Unregister();
+
+    // Despawned and OnDestroy both run (in either order) depending on whether the
+    // avatar leaves the session or the scene unloads, so cleanup is idempotent and
+    // lives in one place.
+    private void Unregister()
     {
-        if (All.Contains(this))
-        {
-            All.Remove(this);
-        }
+        All.Remove(this);
 
         if (Local == this) Local = null;
 
@@ -272,7 +292,9 @@ public class NetworkPlayer : NetworkBehaviour
         {
             // Assign this player's class from WorldState (server-authoritative so all clients see the same value).
             string className = WorldState.PlayerClass ?? "Knight";
-            if (!Enum.TryParse<CharacterClass>(className, ignoreCase: false, out var parsed))
+            // ignoreCase must match PhotonManager's parse, otherwise a lowercase
+            // "knight" from the API silently falls back to a different class here.
+            if (!Enum.TryParse<CharacterClass>(className, ignoreCase: true, out var parsed))
                 parsed = CharacterClass.Knight;
             PlayerClass = (int)parsed;
             PlayerName = WorldState.PlayerName ?? "Player";
@@ -304,9 +326,13 @@ public class NetworkPlayer : NetworkBehaviour
             // rather than world origin, then fan out so players don't stack.
             Vector3 spawnBase = ResolveSpawnBase();
             int playerIndex = Mathf.Max(0, Object.InputAuthority.PlayerId - 1);
-            float angle = playerIndex * 60f * Mathf.Deg2Rad;
-            Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * 2.5f;
-            transform.position = spawnBase + offset;
+            // Golden angle instead of a fixed 60° step: 60° wrapped around after 6
+            // players so PlayerId 1 and 7 spawned on top of each other. Radius grows
+            // slowly so a large party spirals outward instead of ringing up.
+            float angle = playerIndex * 137.508f * Mathf.Deg2Rad;
+            float radius = 2.5f * Mathf.Sqrt(1f + playerIndex * 0.35f);
+            Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius;
+            TeleportTo(spawnBase + offset);
 
             // Read initial stats from PlayerEntity if available (loaded from DB), else fallback
             var pEntity = GetComponent<PlayerEntity>();
@@ -364,6 +390,25 @@ public class NetworkPlayer : NetworkBehaviour
         }
 
         OnPlayerReady?.Invoke(this);
+    }
+
+    /// <summary>
+    /// Move this avatar without the remote clients interpolating across the gap.
+    /// Writing transform.position directly makes NetworkTransform treat it as
+    /// movement, so remotes see the avatar slide in from the previous position.
+    /// </summary>
+    private void TeleportTo(Vector3 position)
+    {
+        var nt = GetComponent<NetworkTransform>();
+        if (nt != null) nt.Teleport(position);
+        else transform.position = position;
+
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.position = position;
+        }
     }
 
     /// <summary>
@@ -445,7 +490,7 @@ public class NetworkPlayer : NetworkBehaviour
         if (parent != null) go.transform.SetParent(parent, worldPositionStays: false);
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateSolidSprite(64, 64, ClassColor(characterClass));
+        sr.sprite = SolidSprite(characterClass);
         sr.sortingOrder = 10;
 
         go.transform.localPosition = Vector3.zero;
@@ -467,37 +512,34 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    private static Sprite CreateSolidSprite(int width, int height, Color color)
+    // One sprite per class, kept for the lifetime of the app. Building it per
+    // fallback visual leaked a Texture2D on every class/skin change, and the
+    // visual is rebuilt several times per spawn.
+    private static readonly Dictionary<CharacterClass, Sprite> _fallbackSprites = new();
+
+    private static Sprite SolidSprite(CharacterClass characterClass)
     {
-        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false)
+        if (_fallbackSprites.TryGetValue(characterClass, out var cached) && cached != null)
+            return cached;
+
+        const int size = 64;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
         {
             filterMode = FilterMode.Point,
             wrapMode = TextureWrapMode.Clamp
         };
-        var pixels = new Color32[width * height];
+        var color = (Color32)ClassColor(characterClass);
+        var pixels = new Color32[size * size];
         for (int i = 0; i < pixels.Length; i++) pixels[i] = color;
         tex.SetPixels32(pixels);
         tex.Apply();
 
-        return Sprite.Create(tex, new Rect(0, 0, width, height),
-                              new Vector2(0.5f, 0.5f), 64f);
+        var sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 64f);
+        _fallbackSprites[characterClass] = sprite;
+        return sprite;
     }
 
-    public override void Despawned(NetworkRunner runner, bool hasState)
-    {
-        if (All.Contains(this))
-        {
-            All.Remove(this);
-        }
-        
-        if (Local == this) Local = null;
-
-        if (_spawnedVisual != null)
-        {
-            Destroy(_spawnedVisual);
-            _spawnedVisual = null;
-        }
-    }
+    public override void Despawned(NetworkRunner runner, bool hasState) => Unregister();
 
     /// <summary>
     /// Render-phase callback. Runs every Unity Update after simulation has settled.
@@ -517,12 +559,6 @@ public class NetworkPlayer : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // [DEBUG-MOVE] tick heartbeat - log mỗi 120 frame
-        if (Time.frameCount % 120 == 0)
-            Debug.Log($"[NetPlayer/FixedUpdateNet] tick frame={Time.frameCount} " +
-                      $"HasInputAuth={HasInputAuthority} IsAlive={IsAlive} Runner={Runner?.Stage} " +
-                      $"Object={(Object != null ? "valid" : "NULL")}");
-
         if (!HasInputAuthority) return;
 
         if (Object == null)
@@ -539,21 +575,8 @@ public class NetworkPlayer : NetworkBehaviour
         }
 
         var input = GetInput<NetworkInputData>();
-        if (!input.HasValue)
-        {
-            Debug.LogWarning($"[NetPlayer/FixedUpdateNet] GetInput FAILED! " +
-                           $"Runner.Stage={Runner?.Stage} Runner.IsRunning={Runner?.IsRunning} " +
-                           $"HasAuth={HasInputAuthority} frame={Time.frameCount}");
-            return;
-        }
+        if (!input.HasValue) return;
         var inputData = input.Value;
-
-        if (inputData.Move.sqrMagnitude > 0.01f || Time.frameCount % 30 == 0)
-        {
-            Debug.Log($"[NetPlayer/FixedUpdateNet] move={inputData.Move} dt={Runner.DeltaTime} " +
-                      $"movement={(ReferenceEquals(_movement, null) ? "NULL" : "OK")} " +
-                      $"rb={(ReferenceEquals(_movement, null) ? "n/a" : (_movement.GetComponent<Rigidbody2D>() == null ? "NULL" : "OK"))}");
-        }
 
         NetworkedMove = inputData.Move;
         _movement.Move(inputData.Move, Runner.DeltaTime);
@@ -592,12 +615,10 @@ public class NetworkPlayer : NetworkBehaviour
 
     public void ApplyDamage(int amount)
     {
-        Debug.Log($"[NetworkPlayer.ApplyDamage] amount={amount} IsAlive={IsAlive} HasAuth={Object.HasStateAuthority}");
         if (!Object.HasStateAuthority) return;
         if (!IsAlive) return;
 
         CurrentHp = Mathf.Max(0, CurrentHp - amount);
-        Debug.Log($"[NetworkPlayer.ApplyDamage] After: HP={CurrentHp}/{MaxHp}");
         if (CurrentHp <= 0)
         {
             Die();
@@ -612,7 +633,6 @@ public class NetworkPlayer : NetworkBehaviour
     /// </summary>
     public void RequestDamage(int amount)
     {
-        Debug.Log($"[NetworkPlayer.RequestDamage] amount={amount} SA={Object.HasStateAuthority}");
         if (amount <= 0) return;
 
         if (Object.HasStateAuthority)
@@ -659,15 +679,13 @@ public class NetworkPlayer : NetworkBehaviour
 
     public void Die()
     {
+        if (!IsAlive) return;
         IsAlive = false;
         Debug.Log($"[NetworkPlayer] {PlayerName} died.");
 
-        // Death UI event is now triggered in OnAliveChanged() to ensure it runs
-        // on the correct client, but for safety (e.g. initial spawn) we also invoke it directly if local.
-        if (Object.HasInputAuthority)
-        {
-            OnDied?.Invoke();
-        }
+        // OnDied is raised from OnAliveChanged() only. Invoking it here as well made
+        // the local player get two death popups (OnChangedRender fires on the
+        // authority too). Spawning already dead is handled in Spawned().
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
@@ -710,22 +728,7 @@ public class NetworkPlayer : NetworkBehaviour
         CurrentHp = MaxHp;
         IsAlive = true;
         IsReadyToRestart = false;
-        var nt = GetComponent<NetworkTransform>();
-        if (nt != null)
-        {
-            nt.Teleport(spawnPos);
-        }
-        else
-        {
-            transform.position = spawnPos;
-        }
-
-        var rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector2.zero;
-            rb.position = spawnPos;
-        }
+        TeleportTo(spawnPos);
         Debug.Log($"[NetworkPlayer] {PlayerName} reset for restart at {spawnPos}.");
     }
 
@@ -738,22 +741,7 @@ public class NetworkPlayer : NetworkBehaviour
         CurrentHp = Mathf.Max(1, MaxHp / 10); // 10% HP
         IsAlive = true;
         IsReadyToRestart = false;
-        var nt = GetComponent<NetworkTransform>();
-        if (nt != null)
-        {
-            nt.Teleport(position);
-        }
-        else
-        {
-            transform.position = position;
-        }
-
-        var rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector2.zero;
-            rb.position = position;
-        }
+        TeleportTo(position);
         Debug.Log($"[NetworkPlayer] {PlayerName} respawned in world at {position} with 10% HP.");
     }
 

@@ -17,6 +17,12 @@ namespace MysticJourney.Networking
         // ─────────────────────────────────────────────────────────────────────────
 
         public bool IsBusy => false;
+
+        // ponytail: this is the ACTIVE scene (Main, the UI scene), while the runner is
+        // started with the SceneRef of the map scene, so TryGetPhysicsScene2D below hands
+        // Fusion a physics scene that holds no gameplay colliders. Harmless today because
+        // lag compensation is off; if it is ever enabled, resolve the map scene
+        // (WorldState.CurrentMapName) here instead of the active one.
         public Scene MainRunnerScene => SceneManager.GetActiveScene();
 
         public bool IsRunnerScene(Scene scene)

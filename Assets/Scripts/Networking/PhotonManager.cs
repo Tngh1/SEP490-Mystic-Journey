@@ -76,6 +76,14 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     // ─────────────────────────────────────────────────────────────────────────
 
     private NetworkRunner _runner;
+
+    // True from the moment StartAsync creates a runner until StartGame resolves.
+    // IsConnected is false during that window (the runner exists but is not yet
+    // IsRunning), so without this a second concurrent call would AddComponent a
+    // second NetworkRunner and overwrite _runner, orphaning a live connection on
+    // this DontDestroyOnLoad object for the rest of the session.
+    private bool _connecting;
+
     private LocalInputCollector _inputCollector;
     private readonly HashSet<PlayerRef> _spawnedPlayers = new HashSet<PlayerRef>();
     private readonly List<SessionInfo> _knownSessions = new List<SessionInfo>();
@@ -139,19 +147,11 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
         _inputCollector = GetComponent<LocalInputCollector>();
         if (_inputCollector == null)
         {
-            Debug.LogError("[PhotonManager] LocalInputCollector missing on this GameObject. " +
-                           "Add it (RequireComponent should enforce this).");
+            // OnInput dereferences this every tick, so recover instead of only
+            // logging — a missing collector used to NRE the whole simulation loop.
+            Debug.LogWarning("[PhotonManager] LocalInputCollector missing on this GameObject. Adding one.");
+            _inputCollector = gameObject.AddComponent<LocalInputCollector>();
         }
-        else
-        {
-            Debug.Log("[PhotonManager.Awake] LocalInputCollector wired in.");
-        }
-    }
-
-    private void Start()
-    {
-        Debug.Log($"[PhotonManager.Start] scene='{gameObject.scene.name}'. " +
-                  $"Has MultiplayerBootstrap in scene? {FindAnyObjectByType<MultiplayerBootstrap>() != null}");
     }
 
     private void OnDestroy()
@@ -170,8 +170,9 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// <summary>
     /// Join the shared SOCIAL LOBBY room (presence + party invites). No avatar is
     /// spawned and no input is collected. Every online client calls this once on
-    /// entering Main. Safe to call when already connected — it no-ops. Failures are
-    /// swallowed (logged) so a Photon outage never blocks the Main scene.
+    /// entering Main. Safe to call when already connected — it no-ops. A Photon outage
+    /// never blocks the Main scene: it retries a few times, then tells the player they
+    /// are offline instead of failing silently (party/invites would just never work).
     /// </summary>
     public async Task JoinSocialLobbyAsync()
     {
@@ -181,14 +182,23 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             return;
         }
 
-        try
+        const int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await StartAsync(socialLobbySessionName, PartyPhase.Lobby);
+            try
+            {
+                if (await StartAsync(socialLobbySessionName, PartyPhase.Lobby)) return;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PhotonManager] Social lobby connect attempt {attempt} threw: {ex.Message}");
+            }
+
+            if (attempt < maxAttempts) await Task.Delay(1000 * attempt);
         }
-        catch (Exception ex)
-        {
-            Debug.LogWarning($"[PhotonManager] JoinSocialLobbyAsync failed (Main scene continues offline): {ex.Message}");
-        }
+
+        Debug.LogWarning("[PhotonManager] Could not join the social lobby — party and invites are unavailable.");
+        WorldRuntimeEvents.RaiseMessage("Offline: party and invites are unavailable.");
     }
 
     /// <summary>
@@ -303,6 +313,12 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             return true;
         }
 
+        if (_connecting)
+        {
+            Debug.LogWarning("[PhotonManager] StartAsync called while a connect is already in flight. Ignored.");
+            return false;
+        }
+
         if (playerPrefab == default)
         {
             Debug.LogError("[PhotonManager] playerPrefab is not assigned in Inspector. " +
@@ -310,58 +326,90 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             return false;
         }
 
-        Phase = phase;
-
-        // Create the runner on this GameObject. We never instantiate it from a prefab
-        // because we want it to live exactly as long as PhotonManager itself.
-        _runner = gameObject.AddComponent<NetworkRunner>();
-        // Input is only collected in the dungeon phase — the lobby has no avatar to drive.
-        _runner.ProvideInput = phase == PartyPhase.Dungeon;
-
-        // Use a pass-through scene manager so Fusion does NOT unload the current scenes
-        // (Main UI, ElfForest world, etc.). We want to netcode the scene we are already in.
-        var sceneManager = GetComponent<MysticJourney.Networking.PassThroughSceneManager>();
-        if (sceneManager == null)
+        _connecting = true;
+        try
         {
-            sceneManager = gameObject.AddComponent<MysticJourney.Networking.PassThroughSceneManager>();
+            Phase = phase;
+
+            // Create the runner on this GameObject. We never instantiate it from a prefab
+            // because we want it to live exactly as long as PhotonManager itself.
+            _runner = gameObject.AddComponent<NetworkRunner>();
+            // Input is only collected in the dungeon phase — the lobby has no avatar to drive.
+            _runner.ProvideInput = phase == PartyPhase.Dungeon;
+
+            // Use a pass-through scene manager so Fusion does NOT unload the current scenes
+            // (Main UI, ElfForest world, etc.). We want to netcode the scene we are already in.
+            var sceneManager = GetComponent<MysticJourney.Networking.PassThroughSceneManager>();
+            if (sceneManager == null)
+            {
+                sceneManager = gameObject.AddComponent<MysticJourney.Networking.PassThroughSceneManager>();
+            }
+
+            _runner.AddCallbacks(this);
+
+            // Still hand Fusion a SceneRef so it knows where to spawn NetworkObjects,
+            // even though our custom scene manager will not actually load the scene.
+            var args = new StartGameArgs
+            {
+                GameMode = GameMode.Shared,
+                SessionName = string.IsNullOrWhiteSpace(sessionName) ? defaultSessionName : sessionName,
+                Scene = ResolveGameplayScene(),
+                SceneManager = sceneManager,
+                CustomPhotonAppSettings = BuildAppSettings(),
+            };
+
+            Debug.Log($"[PhotonManager] Connecting to session '{args.SessionName}' " +
+                      $"(phase={phase}, appVersion={appVersion})...");
+            var result = await _runner.StartGame(args);
+
+            if (!result.Ok)
+            {
+                Debug.LogError($"[PhotonManager] StartGame failed: {result.ShutdownReason}");
+                Phase = PartyPhase.None;
+                _runner.RemoveCallbacks(this);
+                Destroy(_runner);
+                _runner = null;
+                return false;
+            }
+
+            Debug.Log($"<color=green>[PhotonManager] Connected to Photon (phase={phase}).</color>");
+            // In the lobby phase we do NOT spawn a gameplay avatar — OnPlayerJoined is
+            // guarded on Phase. Milestone 2 flips Phase to Dungeon to start spawning.
+            return true;
         }
-
-        _runner.AddCallbacks(this);
-
-        // Still hand Fusion a SceneRef so it knows where to spawn NetworkObjects,
-        // even though our custom scene manager will not actually load the scene.
-        var args = new StartGameArgs
+        finally
         {
-            GameMode = GameMode.Shared,
-            SessionName = string.IsNullOrWhiteSpace(sessionName) ? defaultSessionName : sessionName,
-            Scene = ResolveGameplayScene(),
-            SceneManager = sceneManager,
-        };
-
-        Debug.Log($"[PhotonManager] Connecting to session '{args.SessionName}' " +
-                  $"(phase={phase}, appVersion={appVersion})...");
-        var result = await _runner.StartGame(args);
-
-        if (!result.Ok)
-        {
-            Debug.LogError($"[PhotonManager] StartGame failed: {result.ShutdownReason}");
-            Phase = PartyPhase.None;
-            Destroy(_runner);
-            _runner = null;
-            return false;
+            // Cleared on every exit path (success, rejection, and the exception
+            // StartGame can throw) so a failed connect never wedges the guard.
+            _connecting = false;
         }
+    }
 
-        Debug.Log($"<color=green>[PhotonManager] Connected to Photon (phase={phase}).</color>");
-        // In the lobby phase we do NOT spawn a gameplay avatar — OnPlayerJoined is
-        // guarded on Phase. Milestone 2 flips Phase to Dungeon to start spawning.
-        return true;
+    /// <summary>
+    /// Photon settings for this connect, with <see cref="appVersion"/> applied.
+    /// StartGameArgs has no AppVersion field and PhotonAppSettings.Global is
+    /// read-only, so the only way to version-split the matchmaking pool is to pass
+    /// a modified copy of the global settings. Without this, builds of different
+    /// versions land in the same rooms and desync.
+    /// </summary>
+    private Fusion.Photon.Realtime.FusionAppSettings BuildAppSettings()
+    {
+        var global = Fusion.Photon.Realtime.PhotonAppSettings.Global;
+        if (global == null || global.AppSettings == null) return null;
+
+        // Copy: mutating Global would leak the version into the asset on disk.
+        var settings = global.AppSettings.GetCopy();
+        settings.AppVersion = string.IsNullOrWhiteSpace(appVersion) ? string.Empty : appVersion.Trim();
+        return settings;
     }
 
     /// <summary>
     /// Spawn this client's own <see cref="PlayerPresence"/> in the social lobby room.
     /// Called from <see cref="OnPlayerJoined"/> for the local player during the Lobby
-    /// phase. Identity is copied from WorldState into the Spawn initializer so it is
-    /// populated before first replication. No-ops if a local presence already exists.
+    /// phase. Identity is copied from WorldState in the Spawn initializer so it is
+    /// populated before first replication, and re-published later via
+    /// <see cref="PlayerPresence.RefreshLocal"/> once the API hydration finishes.
+    /// No-ops if a local presence already exists.
     /// </summary>
     private void SpawnLocalPresence(NetworkRunner runner)
     {
@@ -379,20 +427,7 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             Vector3.zero,
             Quaternion.identity,
             runner.LocalPlayer,
-            (r, obj) =>
-            {
-                var presence = obj.GetComponent<PlayerPresence>();
-                if (presence == null) return;
-
-                string className = WorldState.PlayerClass ?? "Knight";
-                if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
-                    parsed = CharacterClass.Knight;
-
-                presence.ProfileId = WorldState.PlayerProfileId;
-                presence.DisplayName = WorldState.PlayerName ?? "Player";
-                presence.PlayerClass = (int)parsed;
-                presence.Level = Mathf.Max(1, WorldState.PlayerLevel);
-            });
+            (r, obj) => obj.GetComponent<PlayerPresence>()?.ApplyWorldState());
     }
 
     /// <summary>
@@ -470,7 +505,11 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     private async void ShutdownRunnerAsync(NetworkRunner runner, bool notify)
     {
-        await runner.Shutdown(destroyGameObject: false);
+        // async void: an exception out of Shutdown would be unobserved and would skip
+        // Destroy + OnDisconnected, leaving a dead runner component on this GameObject
+        // and no fallback avatar. Swallow it so teardown always completes.
+        try { await runner.Shutdown(destroyGameObject: false); }
+        catch (Exception ex) { Debug.LogWarning($"[PhotonManager] Runner shutdown threw: {ex.Message}"); }
 
         if (runner != null)
         {
@@ -526,7 +565,10 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             _knownSessions.AddRange(sessionList);
 
         Debug.Log($"[PhotonManager] OnSessionListUpdated: {_knownSessions.Count} session(s).");
-        OnSessionListChanged?.Invoke(_knownSessions);
+
+        // Hand out a snapshot: subscribers that keep the list (lobby UI) used to see
+        // it emptied under them on the next update, since _knownSessions is reused.
+        OnSessionListChanged?.Invoke(new List<SessionInfo>(_knownSessions));
     }
 
     public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
@@ -560,23 +602,12 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        // Debug: Log mỗi 120 frame thay vì mỗi tick
-        if (Time.frameCount % 120 == 0)
-        {
-            Debug.Log($"[Fusion] OnInput called - frame={Time.frameCount}");
-        }
-
         var data = _inputCollector.Collect();
         input.Set(data);
     }
 
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
     {
-        // Debug: Log mỗi 120 frame thay vì mỗi tick
-        if (Time.frameCount % 120 == 0)
-        {
-            Debug.Log($"[Fusion] OnInputMissing - frame={Time.frameCount}");
-        }
         input.Set(default(NetworkInputData));
     }
 
@@ -671,7 +702,11 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
                 return last;
             }
         }
-        catch { /* WorldState may not be initialized */ }
+        catch (Exception ex)
+        {
+            // Was an empty catch: a real failure here silently spawned everyone at origin.
+            Debug.LogWarning($"[PhotonManager] Could not read WorldState.LastPosition, spawning at origin: {ex.Message}");
+        }
         return Vector3.zero;
     }
 
@@ -698,8 +733,6 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     // Scene resolution
     // ─────────────────────────────────────────────────────────────────────────
 
-    [SerializeField] private string[] preferredGameplayScenes = { "ElfForest" };
-
     private static SceneRef ResolveGameplayScene()
     {
         // Preferred order:
@@ -714,7 +747,11 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             if (!string.IsNullOrWhiteSpace(ws))
                 candidates.Add(ws);
         }
-        catch { /* WorldState may not be initialized yet */ }
+        catch (Exception ex)
+        {
+            // Was an empty catch: hid the reason the current map was skipped as a candidate.
+            Debug.LogWarning($"[PhotonManager] Could not read WorldState.CurrentMapName: {ex.Message}");
+        }
 
         // Prefer Main if it is already loaded additively so Fusion does not single-load
         // a fresh Map scene that would wipe out Main's existing UI / systems.
