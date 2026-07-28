@@ -406,8 +406,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             // Quest chưa nhận: KHÔNG hiện objective (Defeat/Collect...) vì người chơi chưa
             // được giao mục tiêu đó — bước thật sự là đi gặp NPC. Waypoint cũng đang chỉ vào NPC.
-            var giver = Safe(active.QuestGiverName, "Quest Giver");
-            SetText(trackerStatus, $"<color=#FFD34D>Talk to {giver} to accept</color>");
+            SetText(trackerStatus, $"<color=#FFD34D>{AcceptPromptLine(active)}</color>");
         }
         else
         {
@@ -496,7 +495,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (detailProgressObj == null)
             return;
 
-        bool hasCount = quest != null && quest.TargetAmount > 1;
+        // Quest chưa nhận thì chưa có tiến trình để đếm — ẩn ô số thay vì hiện 0/8.
+        bool hasCount = quest != null && quest.TargetAmount > 1 && !QuestUtils.IsStatus(quest, "NotStarted");
         if (detailProgressObj.activeSelf != hasCount)
             detailProgressObj.SetActive(hasCount);
 
@@ -1070,23 +1070,20 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return button;
     }
 
-    private static string ObjectiveLine(PlayerQuestResponse quest)
+    // Quest NotStarted: bước hiện tại là đi gặp NPC, chưa phải mục tiêu Collect/Defeat.
+    // Tracker và panel chi tiết dùng chung câu này để không nói hai điều khác nhau về cùng một quest.
+    private static string AcceptPromptLine(PlayerQuestResponse quest)
     {
-        if (quest == null)
-            return string.Empty;
-
-        var current = Mathf.Clamp(quest.Progress, 0, Mathf.Max(1, quest.TargetAmount));
-        var target = Mathf.Max(1, quest.TargetAmount);
-        var objective = Safe(quest.ObjectiveType, "Explore");
-        var targetName = Safe(quest.ObjectiveTarget, "target");
-        var location = Safe(quest.ObjectiveLocation, Safe(quest.RegionName, quest.MapName));
-        return $"{objective}: {targetName} at {location}  {current}/{target}";
+        return $"Talk to {Safe(quest?.QuestGiverName, "Quest Giver")} to accept";
     }
 
     private static string ObjectiveTextLine(PlayerQuestResponse quest)
     {
         if (quest == null)
             return string.Empty;
+
+        if (QuestUtils.IsStatus(quest, "NotStarted"))
+            return AcceptPromptLine(quest);
 
         var objective = Safe(quest.ObjectiveType, "Explore");
         var targetName = Safe(quest.ObjectiveTarget, "target");

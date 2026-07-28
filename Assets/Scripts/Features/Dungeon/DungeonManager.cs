@@ -289,6 +289,10 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     private IEnumerator TransitionToDungeon(string dungeonSceneName)
     {
+        // Che màn hình trước khi unload map: đoạn dưới còn chờ tới 5s cho avatar network
+        // xuất hiện, không có loading thì người chơi ngồi nhìn scene trống suốt lúc đó.
+        yield return LoadingScreen.Show("Entering dungeon...");
+
         // Find player first before unloading
         var player = FindPlayerInstance();
         if (player != null)
@@ -302,7 +306,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         for (int i = SceneManager.sceneCount - 1; i >= 0; i--)
         {
             var s = SceneManager.GetSceneAt(i);
-            if (s.name != "Main" && s.name != dungeonSceneName && s.isLoaded)
+            if (s.name != "Main" && s.name != dungeonSceneName && s.name != LoadingScreen.SceneName && s.isLoaded)
             {
                 yield return SceneManager.UnloadSceneAsync(s);
             }
@@ -393,6 +397,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         PlayerHUDController.Instance?.ToggleDungeonMode(true);
         Debug.Log($"[DungeonManager] Entered dungeon scene: {dungeonSceneName}");
+
+        yield return LoadingScreen.Hide();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -789,6 +795,10 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     private IEnumerator TransitionToWorld()
     {
+        // Che cả đoạn migrate Photon lẫn scene swap — migrate là await mạng, thời gian không
+        // đoán được, để lộ scene dungeon đã unload thì rất xấu.
+        yield return LoadingScreen.Show("Returning to world...");
+
         // If we entered the dungeon as a networked party, leave the dungeon Photon room
         // and return to the shared social lobby FIRST. This tears down the dungeon runner
         // so our avatar despawns for the other members (and theirs for us) — otherwise
@@ -816,7 +826,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         for (int i = SceneManager.sceneCount - 1; i >= 0; i--)
         {
             var s = SceneManager.GetSceneAt(i);
-            if (s.name != "Main" && s.name != PreviousMapSceneName && s.isLoaded)
+            if (s.name != "Main" && s.name != PreviousMapSceneName && s.name != LoadingScreen.SceneName && s.isLoaded)
             {
                 yield return SceneManager.UnloadSceneAsync(s);
             }
@@ -871,6 +881,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         PlayerHUDController.Instance?.ToggleDungeonMode(false);
         IsInDungeon = false;
         Debug.Log($"[DungeonManager] Returned to map: {PreviousMapSceneName} at {WorldState.LastPosition}");
+
+        yield return LoadingScreen.Hide();
     }
 
     public void RestartDungeon()
@@ -934,6 +946,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     private IEnumerator TransitionToRestart(string dungeonSceneName)
     {
+        yield return LoadingScreen.Show("Restarting dungeon...");
+
         // 1. Find player and move them to Main defensively so they survive the reload
         var player = FindPlayerInstance();
         if (player != null)
@@ -1052,6 +1066,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         }
 
         Debug.Log($"[DungeonManager] Successfully restarted dungeon: {dungeonSceneName}");
+
+        yield return LoadingScreen.Hide();
     }
 
     private string GetSceneName(GameObject go)

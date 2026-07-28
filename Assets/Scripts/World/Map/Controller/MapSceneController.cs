@@ -36,6 +36,10 @@ public class MapSceneController : MonoBehaviour
             yield break;
         }
 
+        // Bật màn hình loading TRƯỚC khi unload: nếu bật sau, người chơi thấy một frame
+        // scene trống + player rơi ở toạ độ cũ.
+        yield return LoadingScreen.Show();
+
         var previousScene = WorldState.CurrentMapName;
         if (!string.IsNullOrWhiteSpace(previousScene) && SceneManager.GetSceneByName(previousScene).isLoaded)
         {
@@ -43,10 +47,16 @@ public class MapSceneController : MonoBehaviour
                 .UnloadSceneAsync(previousScene);
         }
 
-        yield return SceneManager
+        LoadingProgress.Report(0.3f, "Loading map...");
+        var loadOp = SceneManager
             .LoadSceneAsync(
                 targetScene,
                 LoadSceneMode.Additive);
+        while (loadOp != null && !loadOp.isDone)
+        {
+            LoadingProgress.Report(Mathf.Lerp(0.3f, 0.85f, loadOp.progress), "Loading map...");
+            yield return null;
+        }
 
         Vector3 spawnPosition = Vector3.zero;
         bool positionFound = false;
@@ -159,5 +169,10 @@ public class MapSceneController : MonoBehaviour
                 }
             );
         }
+
+        // ponytail: KHÔNG chờ UpdatePosition/LoadMyQuests xong mới tắt loading — quest nạp
+        // xong sẽ tự render lại HUD. Nếu sau này muốn vào map là có ngay quest thì đổi callback
+        // ở trên thành cờ và chờ nó trước LoadingScreen.Hide().
+        yield return LoadingScreen.Hide();
     }
 }
