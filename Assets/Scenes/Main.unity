@@ -3097,8 +3097,6 @@ GameObject:
   - component: {fileID: 44840872}
   - component: {fileID: 44840871}
   - component: {fileID: 44840874}
-  - component: {fileID: 44840875}
-  - component: {fileID: 44840876}
   m_Layer: 5
   m_Name: EditAvatarButton
   m_TagString: Untagged
@@ -3218,30 +3216,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 2143448990}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIHoverScaleEffect
---- !u!114 &44840875
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 44840869}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1715270347}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIHoverScaleEffect
---- !u!114 &44840876
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 44840869}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 2048340288}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIHoverScaleEffect
 --- !u!1 &47017258
@@ -5765,8 +5739,6 @@ GameObject:
   - component: {fileID: 86571631}
   - component: {fileID: 86571630}
   - component: {fileID: 86571633}
-  - component: {fileID: 86571634}
-  - component: {fileID: 86571635}
   m_Layer: 5
   m_Name: ViewAchievementListButton
   m_TagString: Untagged
@@ -5887,30 +5859,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 2143448990}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIHoverScaleEffect
---- !u!114 &86571634
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 86571628}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1715270347}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIHoverScaleEffect
---- !u!114 &86571635
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 86571628}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 2048340288}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIHoverScaleEffect
 --- !u!1 &88153124
@@ -29203,10 +29151,12 @@ MonoBehaviour:
 '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d3e943a8c5a5cde49a57e708aa065d1c, type: 2}
-  m_sharedMaterial: {fileID: 1471435246192672474, guid: d3e943a8c5a5cde49a57e708aa065d1c, type: 2}
-  m_fontSharedMaterials: []
-  m_fontMaterial: {fileID: 0}
-  m_fontMaterials: []
+  m_sharedMaterial: {fileID: 1619398599}
+  m_fontSharedMaterials:
+  - {fileID: 1619398599}
+  m_fontMaterial: {fileID: 1619398599}
+  m_fontMaterials:
+  - {fileID: 1619398599}
   m_fontColor32:
     serializedVersion: 2
     rgba: 4291348680
@@ -83230,6 +83180,7 @@ RectTransform:
   - {fileID: 297356167}
   - {fileID: 2089406653}
   - {fileID: 1688872243}
+  - {fileID: 1586775282}
   - {fileID: 1691270972}
   - {fileID: 1022654804}
   - {fileID: 1699018099}
@@ -83297,11 +83248,19 @@ MonoBehaviour:
   nameText: {fileID: 2052927598}
   avatarImage: {fileID: 1044605835}
   levelText: {fileID: 71370448}
-  classText: {fileID: 0}
+  classText: {fileID: 467716598}
   guildText: {fileID: 2118981486}
   titleText: {fileID: 1141393448}
   friendsCountText: {fileID: 103142135}
-  closeButton: {fileID: 0}
+  closeButton: {fileID: 2003613085}
+  classDecoImage: {fileID: 1586775280}
+  classIconImage: {fileID: 676133912}
+  knightFlag: {fileID: 3705409001198054398, guid: 7fa6c4bcb48fb8f4fa7a9088bd83384f, type: 3}
+  mageFlag: {fileID: -7840527155550388648, guid: 5bf88bc03a12b5f498b24dee6ff5441d, type: 3}
+  archerFlag: {fileID: -2756934493599303400, guid: 4b59d496d8c8baf4a8da23c4a61cda28, type: 3}
+  knightIcon: {fileID: -5711848221618334454, guid: 506356f6349bf1642ab5392a01c7f6f5, type: 3}
+  mageIcon: {fileID: -7285376162372006033, guid: 9c1cda9d2064c6b48a51b2b912e88172, type: 3}
+  archerIcon: {fileID: -7132172409892320828, guid: f545abd8f99188d41aaff45c9c2fb5d1, type: 3}
   editAvatarButton: {fileID: 44840871}
   avatarSelectionPanel: {fileID: 1514410588}
   editNameButton: {fileID: 1132374673}
@@ -101166,6 +101125,81 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1585763419}
   m_CullTransparentMesh: 1
+--- !u!1 &1586775279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1586775282}
+  - component: {fileID: 1586775281}
+  - component: {fileID: 1586775280}
+  m_Layer: 5
+  m_Name: ClassDeco
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1586775280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1586775279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: -7840527155550388648, guid: 5bf88bc03a12b5f498b24dee6ff5441d, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1586775281
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1586775279}
+  m_CullTransparentMesh: 1
+--- !u!224 &1586775282
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1586775279}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1304087730}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: -100, y: -55}
+  m_SizeDelta: {x: 266, y: 486}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!1 &1588802733
 GameObject:
   m_ObjectHideFlags: 0
@@ -102815,6 +102849,115 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1617211731}
   m_CullTransparentMesh: 1
+--- !u!21 &1619398599
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Silver Atlas Material (Instance)
+  m_Shader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Cube:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FaceTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 1905160461884972943, guid: d3e943a8c5a5cde49a57e708aa065d1c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Ambient: 0.5
+    - _Bevel: 0.5
+    - _BevelClamp: 0
+    - _BevelOffset: 0
+    - _BevelRoundness: 0
+    - _BevelWidth: 0
+    - _BumpFace: 0
+    - _BumpOutline: 0
+    - _ColorMask: 15
+    - _CullMode: 0
+    - _Diffuse: 0.5
+    - _FaceDilate: 0
+    - _FaceUVSpeedX: 0
+    - _FaceUVSpeedY: 0
+    - _GlowInner: 0.05
+    - _GlowOffset: 0
+    - _GlowOuter: 0.05
+    - _GlowPower: 0.75
+    - _GradientScale: 10
+    - _LightAngle: 3.1416
+    - _MaskSoftnessX: 0
+    - _MaskSoftnessY: 0
+    - _OutlineSoftness: 0
+    - _OutlineUVSpeedX: 0
+    - _OutlineUVSpeedY: 0
+    - _OutlineWidth: 0
+    - _PerspectiveFilter: 0.875
+    - _Reflectivity: 10
+    - _ScaleRatioA: 0.9
+    - _ScaleRatioB: 0.73125
+    - _ScaleRatioC: 0.73125
+    - _ScaleX: 1
+    - _ScaleY: 1
+    - _ShaderFlags: 0
+    - _Sharpness: 0
+    - _SpecularPower: 2
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _TextureHeight: 1024
+    - _TextureWidth: 1024
+    - _UnderlayDilate: 0
+    - _UnderlayOffsetX: 0
+    - _UnderlayOffsetY: 0
+    - _UnderlaySoftness: 0
+    - _VertexOffsetX: 0
+    - _VertexOffsetY: 0
+    - _WeightBold: 0.75
+    - _WeightNormal: 0
+    m_Colors:
+    - _ClipRect: {r: -32767, g: -32767, b: 32767, a: 32767}
+    - _EnvMatrixRotation: {r: 0, g: 0, b: 0, a: 0}
+    - _FaceColor: {r: 1, g: 1, b: 1, a: 1}
+    - _GlowColor: {r: 0, g: 1, b: 0, a: 0.5}
+    - _MaskCoord: {r: 0, g: 0, b: 32767, a: 32767}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _ReflectFaceColor: {r: 0, g: 0, b: 0, a: 1}
+    - _ReflectOutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _UnderlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &1620477044
 GameObject:
   m_ObjectHideFlags: 0
