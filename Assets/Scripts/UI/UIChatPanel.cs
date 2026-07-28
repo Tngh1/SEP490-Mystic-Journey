@@ -70,7 +70,7 @@ public class UIChatPanel : MonoBehaviour
 
     private Coroutine fallbackHistoryCoroutine;
     private Coroutine guildRefreshCoroutine;
-    private WorldChatPhotonRelay subscribedRelay;
+    private bool worldRelayBound;
     private PartyLobby subscribedParty;
 
     private Coroutine sendCooldownCoroutine;
@@ -107,11 +107,6 @@ public class UIChatPanel : MonoBehaviour
 
     private void Update()
     {
-        if (currentChannel == ChatChannel.World && subscribedRelay == null && WorldChatPhotonRelay.Instance != null)
-        {
-            SubscribePhotonRelay();
-        }
-
         if (currentChannel == ChatChannel.Party && subscribedParty != PartyLobby.Local)
         {
             SubscribePartyLobby();
@@ -439,11 +434,7 @@ public class UIChatPanel : MonoBehaviour
                 StartSendCooldown();
                 AddWorldMessage(message);
 
-                var relay = WorldChatPhotonRelay.Instance;
-                if (relay != null)
-                {
-                    relay.BroadcastWorldMessage(message);
-                }
+                PlayerPresence.BroadcastWorldMessage(message);
 
                 UpdateHistoryFallbackState();
                 FocusInput();
@@ -759,28 +750,28 @@ public class UIChatPanel : MonoBehaviour
         }
     }
 
+    // The relay event is static (it fires for messages arriving on ANY player's presence),
+    // so subscribing does not depend on Photon being connected yet — no polling needed.
     private void SubscribePhotonRelay()
     {
-        var relay = WorldChatPhotonRelay.Instance;
-        if (relay == null || subscribedRelay == relay)
+        if (worldRelayBound)
         {
             return;
         }
 
-        UnsubscribePhotonRelay();
-        subscribedRelay = relay;
-        subscribedRelay.WorldMessageReceived += OnPhotonWorldMessageReceived;
+        PlayerPresence.OnWorldMessageReceived += OnPhotonWorldMessageReceived;
+        worldRelayBound = true;
     }
 
     private void UnsubscribePhotonRelay()
     {
-        if (subscribedRelay == null)
+        if (!worldRelayBound)
         {
             return;
         }
 
-        subscribedRelay.WorldMessageReceived -= OnPhotonWorldMessageReceived;
-        subscribedRelay = null;
+        PlayerPresence.OnWorldMessageReceived -= OnPhotonWorldMessageReceived;
+        worldRelayBound = false;
     }
 
     private void SubscribePartyLobby()
@@ -849,10 +840,9 @@ public class UIChatPanel : MonoBehaviour
         }
     }
 
-    private bool HasReadyPhotonRelay()
+    private static bool HasReadyPhotonRelay()
     {
-        var relay = subscribedRelay != null ? subscribedRelay : WorldChatPhotonRelay.Instance;
-        return relay != null && relay.IsReady;
+        return PlayerPresence.WorldChatReady;
     }
 
     private void StartHistoryFallback()

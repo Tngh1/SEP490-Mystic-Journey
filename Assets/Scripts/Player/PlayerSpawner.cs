@@ -24,6 +24,10 @@ public class PlayerSpawner : MonoBehaviour
     private IEnumerator Start()
     {
         yield return HydrateWorldStateBeforeSpawn();
+        // The social presence spawns while this hydration is still in flight, so it can
+        // hold a boot-time profile id (often 0 → unreachable for invites) and a stale
+        // class. Re-publish now that WorldState is authoritative.
+        PlayerPresence.RefreshLocal();
         SpawnPlayer();
     }
 

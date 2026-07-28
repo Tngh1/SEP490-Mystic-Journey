@@ -47,15 +47,25 @@ public static class PartyService
     // 24.4 Invite Player
     // ─────────────────────────────────────────────────────────────────────────
 
+    /// <summary>Why an invite could not be sent. The UI needs this because "you are
+    /// offline" and "your friend is offline" look identical from a bool.</summary>
+    public enum InviteResult
+    {
+        Sent,
+        NotConnected,     // local client has no lobby connection / no local presence
+        FriendOffline,    // friend has no live presence in this lobby
+        PartyUnavailable, // party could not be created, or we are not its host
+        PartyFull,
+    }
+
     /// <summary>
     /// Invite an online friend by profile id. The friend must currently be present in
     /// the social lobby (have a live <see cref="PlayerPresence"/>). Auto-creates the
-    /// party if the local player has not made one yet. Returns false if the friend is
-    /// not reachable (offline / different region) or the invite could not be sent.
+    /// party if the local player has not made one yet.
     /// </summary>
-    public static bool InviteByProfileId(int friendProfileId)
+    public static InviteResult InviteByProfileId(int friendProfileId)
     {
-        if (!IsOnline) return false;
+        if (!IsOnline) return InviteResult.NotConnected;
 
         // Verify the friend is reachable BEFORE creating a party, so a failed invite
         // never leaves the host stuck in an orphan party of one.
@@ -63,20 +73,19 @@ public static class PartyService
         if (target == null)
         {
             Debug.Log($"[PartyService] Invite failed — friend {friendProfileId} is not online in the lobby.");
-            return false;
+            return InviteResult.FriendOffline;
         }
 
         var me = PlayerPresence.Local;
-        var runner = PhotonManager.Instance.Runner;
-        if (me == null || runner == null) return false;
+        if (me == null) return InviteResult.NotConnected;
 
         var party = CurrentParty ?? CreateParty();
-        if (party == null || !party.IsLocalHost) return false;
-        if (party.MemberCount >= PartyLobby.MaxMembers) return false;
+        if (party == null || !party.IsLocalHost) return InviteResult.PartyUnavailable;
+        if (party.MemberCount >= PartyLobby.MaxMembers) return InviteResult.PartyFull;
 
-        target.RPC_ReceiveInvite(runner.LocalPlayer, me.ProfileId, me.DisplayName);
+        target.RPC_ReceiveInvite(me.ProfileId, me.DisplayName);
         party.RegisterPendingInvite();
-        return true;
+        return InviteResult.Sent;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -84,15 +93,20 @@ public static class PartyService
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Accept an invite from the given host. Because the party lives in the shared
-    /// social room the invitee is ALREADY connected, so it simply registers itself in
-    /// the host's roster — no reconnect. Returns false if the host's party can't be found.
+    /// Accept an invite from the host with the given PROFILE id. Because the party lives
+    /// in the shared social room the invitee is ALREADY connected, so it simply registers
+    /// itself in the host's roster — no reconnect. Returns false if the host's party can't
+    /// be found.
+    ///
+    /// Keyed on profile id, not PlayerRef: Fusion re-uses PlayerRefs as peers join and
+    /// leave, so a slot freed by the inviter and taken by a stranger before the invitee
+    /// pressed Accept used to seat them in the stranger's party.
     /// </summary>
-    public static bool AcceptInvite(PlayerRef host)
+    public static bool AcceptInvite(int hostProfileId)
     {
         if (!IsOnline) return false;
 
-        var party = FindPartyByHost(host);
+        var party = FindPartyByHostProfileId(hostProfileId);
         if (party == null)
         {
             Debug.LogWarning("[PartyService] AcceptInvite — host's party no longer exists.");
@@ -107,11 +121,12 @@ public static class PartyService
         return true;
     }
 
-    /// <summary>Decline an invite from the given host (decrements its pending counter).</summary>
-    public static void DeclineInvite(PlayerRef host)
+    /// <summary>Decline an invite from the host with the given profile id (decrements its
+    /// pending counter). Profile-id keyed for the same PlayerRef-reuse reason as
+    /// <see cref="AcceptInvite"/>.</summary>
+    public static void DeclineInvite(int hostProfileId)
     {
-        var party = FindPartyByHost(host);
-        party?.RPC_InviteResolved();
+        FindPartyByHostProfileId(hostProfileId)?.RPC_InviteResolved();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -186,11 +201,12 @@ public static class PartyService
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Find the live party whose host is the given player, or null.</summary>
-    public static PartyLobby FindPartyByHost(PlayerRef host)
+    /// <summary>Find the live party whose host has the given profile id, or null.</summary>
+    public static PartyLobby FindPartyByHostProfileId(int hostProfileId)
     {
+        if (hostProfileId <= 0) return null;
         foreach (var p in PartyLobby.All)
-            if (p != null && p.HostPlayer == host) return p;
+            if (p != null && p.HostProfileId == hostProfileId) return p;
         return null;
     }
 }

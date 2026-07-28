@@ -50,6 +50,12 @@ public class QuestManager : MonoBehaviour
     private int _batchVersion;
     private Coroutine _batchCoroutine;
 
+    // Một silent claim (dọn lúc load) mở quest kế tiếp trong chain, nhưng BE chỉ tạo bản ghi
+    // quest đó ở lần GetMyQuests SAU. Reload đúng 1 lần cho mỗi questId đã silent-claim để lấy
+    // quest mới unlock — không thì đi qua portal sang map mới sẽ bị "No quest available".
+    // Theo questId (không phải bool) nên tự chặn reload storm: mỗi quest chỉ claim được 1 lần.
+    private readonly HashSet<int> _silentClaimRefetched = new();
+
     private const string OfflineQueueKey = "mj_quest_offline_queue";
 
     private void Awake()
@@ -323,10 +329,18 @@ public class QuestManager : MonoBehaviour
 
                 OnQuestClaimed?.Invoke(questId);
 
-                // silent (dọn lúc load): KHÔNG LoadMyQuests để tránh reload storm — HandleLoadedQuestResponses
-                // đang chạy sẽ tự lo phần còn lại. Chỉ reload khi claim lúc chơi để fetch quest kế mới unlock.
+                // silent (dọn lúc load): reload ĐÚNG 1 LẦN. BE chỉ mở quest kế tiếp khi quest
+                // trước đã "Claimed" và chỉ tạo bản ghi ở lần GetMyQuests kế — không reload thì
+                // quest vừa unlock (vd sang AutumnPumpkin sau khi claim quest 8) không bao giờ
+                // xuất hiện. Cờ _silentClaimRefetched chặn reload storm.
                 if (!silent)
+                {
                     LoadMyQuests();
+                }
+                else if (_silentClaimRefetched.Add(questId))
+                {
+                    LoadMyQuests();
+                }
 
                 // Refresh all quest-driven world links so NPC visibility updates immediately.
                 WorldRuntimeEvents.RaiseQuestsChanged();

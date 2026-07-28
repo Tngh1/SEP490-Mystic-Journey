@@ -259,25 +259,29 @@ public class PartyManager : MonoBehaviour
 
         string dungeonRoom = $"DUNGEON_{hostProfileId}";
 
-        // Deterministic master-client election: whoever joins the fresh dungeon room
-        // FIRST becomes the Fusion Shared-Mode master client, which owns enemy AI
-        // (DungeonSpawner spawns only on PhotonManager.IsHost). We want the PARTY HOST
-        // to be that master, so:
-        //   • Host migrates after only a short delay — just long enough for the
-        //     InDungeon state to have propagated to members before the lobby (which the
-        //     host owns) is torn down.
-        //   • Members wait longer so the host reaches the dungeon room first.
+        // Master-client election: whoever joins the fresh dungeon room FIRST becomes the
+        // Fusion Shared-Mode master client, which owns enemy AI (DungeonSpawner spawns
+        // only on PhotonManager.IsHost). We want the PARTY HOST to be that master, so the
+        // host migrates immediately and members only follow once the host is on its way.
         // Both already snapshotted their target above, so the PartyLobby despawning
         // mid-transition is harmless.
-        if (isHost)
+        if (!isHost)
         {
-            Debug.Log("[PartyEntry] HOST: short propagation delay, then migrate first (becomes master).");
-            yield return new WaitForSeconds(0.4f);
-        }
-        else
-        {
-            Debug.Log("[PartyEntry] MEMBER: waiting so host joins the dungeon room first.");
-            yield return new WaitForSeconds(1.6f);
+            // The host's PlayerPresence despawns for us the moment it tears down the lobby
+            // runner — a real "the host is migrating" signal, so wait for that instead of a
+            // blind delay (a slow host used to let a member win the race and own the
+            // enemies, and a fast host cost everyone the full fixed wait).
+            float wait = 3f;
+            while (wait > 0f && PlayerPresence.Find(hostProfileId) != null)
+            {
+                wait -= Time.deltaTime;
+                yield return null;
+            }
+
+            // ponytail: still a grace window, not a handshake — it covers the host's
+            // UserId-release delay + reconnect. Upgrade path: have members poll the
+            // session list for dungeonRoom and migrate the moment it exists.
+            yield return new WaitForSeconds(1f);
         }
 
         // The lobby avatar is a NON-networked PlayerMovement left over from the world
@@ -290,8 +294,6 @@ public class PartyManager : MonoBehaviour
         var photon = PhotonManager.Instance;
         if (photon != null)
         {
-            Debug.Log($"[PartyEntry] Migrating into '{dungeonRoom}' (isHost={isHost})...");
-            Debug.Log($"[PartyEntry] Before migrate - IsDungeonSession={photon.IsDungeonSession} Phase={photon.Phase}");
             var task = photon.MigrateToDungeonAsync(dungeonRoom);
             while (!task.IsCompleted) yield return null;
 
@@ -301,7 +303,7 @@ public class PartyManager : MonoBehaviour
                 _dungeonEntryStarted = false;
                 yield break;
             }
-            Debug.Log($"[PartyEntry] Migration complete. IsConnected={photon.IsConnected} Phase={photon.Phase} IsHost={photon.IsHost} IsDungeonSession={photon.IsDungeonSession}");
+            Debug.Log($"[PartyEntry] Migrated into '{dungeonRoom}'. IsHost={photon.IsHost} Phase={photon.Phase}");
         }
         else
         {
@@ -312,18 +314,18 @@ public class PartyManager : MonoBehaviour
         //    PhotonManager on migration (or a short timeout as a safety net so we never
         //    hang on the loading state).
         float timeout = 10f;
-        Debug.Log($"[PartyEntry] Waiting for NetworkPlayer.Local - current={NetworkPlayer.Local != null}");
         while (timeout > 0f && NetworkPlayer.Local == null)
         {
             timeout -= Time.deltaTime;
             yield return null;
         }
-        Debug.Log($"[PartyEntry] Avatar wait done. NetworkPlayer.Local={(NetworkPlayer.Local != null ? "OK" : "NULL(timeout)")} remaining timeout={timeout:F2}");
+
+        if (NetworkPlayer.Local == null)
+            Debug.LogWarning("[PartyEntry] Timed out waiting for NetworkPlayer.Local — entering scene anyway.");
 
         // 3. Perform the scene transition using the shared session id (no Enter API here).
         if (DungeonManager.Instance != null)
         {
-            Debug.Log($"[PartyEntry] Calling EnterDungeonScene(scene='{scene}', sessionId={sessionId}).");
             DungeonManager.Instance.EnterDungeonScene(configId, scene, 0, dungeonName, sessionId,
                 hasReturnPoint: true, returnMapName: returnMap, returnPosition: returnPos);
         }

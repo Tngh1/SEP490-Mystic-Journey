@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -20,7 +19,6 @@ public class PartyInvitePopup : MonoBehaviour
 {
     private struct Invite
     {
-        public PlayerRef Host;
         public int HostProfileId;
         public string HostName;
     }
@@ -69,16 +67,16 @@ public class PartyInvitePopup : MonoBehaviour
     // Invite handling
     // ─────────────────────────────────────────────────────────────────────────
 
-    private void HandleInvite(PlayerRef host, int hostProfileId, string hostName)
+    private void HandleInvite(int hostProfileId, string hostName)
     {
         // Ignore invites while already in a party (would need to leave first).
         if (PartyService.CurrentParty != null)
         {
-            PartyService.DeclineInvite(host);
+            PartyService.DeclineInvite(hostProfileId);
             return;
         }
 
-        _queue.Enqueue(new Invite { Host = host, HostProfileId = hostProfileId, HostName = hostName });
+        _queue.Enqueue(new Invite { HostProfileId = hostProfileId, HostName = hostName });
         if (!_showing) ShowNext();
     }
 
@@ -103,7 +101,7 @@ public class PartyInvitePopup : MonoBehaviour
     {
         if (_queue.Count == 0) return;
         var invite = _queue.Dequeue();
-        PartyService.AcceptInvite(invite.Host);
+        PartyService.AcceptInvite(invite.HostProfileId);
         ShowNext();
     }
 
@@ -111,7 +109,7 @@ public class PartyInvitePopup : MonoBehaviour
     {
         if (_queue.Count == 0) return;
         var invite = _queue.Dequeue();
-        PartyService.DeclineInvite(invite.Host);
+        PartyService.DeclineInvite(invite.HostProfileId);
         ShowNext();
     }
 

@@ -1316,7 +1316,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &20475573
 RectTransform:
   m_ObjectHideFlags: 0
@@ -30140,6 +30140,7 @@ GameObject:
   - component: {fileID: 488958467}
   - component: {fileID: 488958466}
   - component: {fileID: 488958465}
+  - component: {fileID: 488958468}
   m_Layer: 5
   m_Name: MapViewport
   m_TagString: Untagged
@@ -30218,6 +30219,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 488958463}
   m_CullTransparentMesh: 1
+--- !u!114 &488958468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 488958463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6366ad9216958f4ba549b617d25da31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapMarkerLayer
+  markerSize: 14
+  localColor: {r: 0.35, g: 0.85, b: 1, a: 1}
+  remoteColor: {r: 1, g: 0.85, b: 0.3, a: 1}
+  showRemoteNames: 1
+  clampToEdge: 1
+  clampedAlpha: 0.5
 --- !u!1 &491491487
 GameObject:
   m_ObjectHideFlags: 0
@@ -82405,7 +82424,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1304087730
 RectTransform:
   m_ObjectHideFlags: 0
@@ -107133,6 +107152,7 @@ GameObject:
   - component: {fileID: 1698209279}
   - component: {fileID: 1698209281}
   - component: {fileID: 1698209280}
+  - component: {fileID: 1698209282}
   m_Layer: 5
   m_Name: RawImage
   m_TagString: Untagged
@@ -107156,8 +107176,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 41.342346, y: -8.89502}
-  m_SizeDelta: {x: 1685.3, y: 777.75}
+  m_AnchoredPosition: {x: 95, y: 40}
+  m_SizeDelta: {x: 777.75, y: 777.75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1698209280
 MonoBehaviour:
@@ -107194,6 +107214,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1698209278}
   m_CullTransparentMesh: 1
+--- !u!114 &1698209282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1698209278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6366ad9216958f4ba549b617d25da31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapMarkerLayer
+  markerSize: 22
+  localColor: {r: 0.35, g: 0.85, b: 1, a: 1}
+  remoteColor: {r: 1, g: 0.85, b: 0.3, a: 1}
+  showRemoteNames: 1
+  clampToEdge: 0
+  clampedAlpha: 0.5
 --- !u!1 &1698272636
 GameObject:
   m_ObjectHideFlags: 0
@@ -108903,6 +108941,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 607551fa3529bee409d6c17ef33835d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinimapCameraController
+  zoom: 45
+  hiddenLayers:
+    serializedVersion: 2
+    m_Bits: 32
+  followSmoothing: 12
+  cameraZOffset: -20
 --- !u!114 &1722416994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -108954,7 +108998,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1722416992}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &1722416996
 Camera:
   m_ObjectHideFlags: 0
@@ -108990,11 +109034,11 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 5.9079056
+  orthographic size: 45
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 4294967263
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 8400000, guid: d3c959bf390b4664794a4e87a84fadfa, type: 2}
   m_TargetDisplay: 0
@@ -127230,7 +127274,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -7380097646930794018, guid: afe5617722e2e2f409d807906ff1ceab, type: 3}
+  m_Sprite: {fileID: -1922979618149193216, guid: 5a75d2e221a92314abe83475b1c68785, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1

@@ -146,15 +146,6 @@ public class PlayerMovement : NetworkBehaviour
 
     private void Update()
     {
-        // Debug: Log input state mỗi 60 frame để xem có nhận input không
-        if (Time.frameCount % 60 == 0)
-        {
-            // var inputMove = ReadMoveFallback();
-            // Debug.Log($"[PlayerMovement.Update] frame={Time.frameCount} move={inputMove} " +
-            //           $"rb={_rb != null} bodyType={_rb?.bodyType} " +
-            //           $"HasAuth={(Object != null ? HasInputAuthority.ToString() : "N/A")}");
-        }
-
         // Only the fallback path needs to run in Update. When Fusion is driving
         // movement (Object != null), NetworkPlayer.FixedUpdateNetwork handles input.
         if (!fallbackLocalInput) return;
@@ -230,14 +221,9 @@ public class PlayerMovement : NetworkBehaviour
             ApplyRaw(input, deltaTime);
             return;
         }
-        if (!HasInputAuthority)
-        {
-            Debug.LogWarning($"[PlayerMovement.Move] BLOCKED — no input authority. " +
-                             $"HasInputAuth={HasInputAuthority} input={input} " +
-                             $"InputAuth={Object.InputAuthority} StateAuth={Object.StateAuthority} " +
-                             $"LocalPlayer={Runner?.LocalPlayer}");
-            return;
-        }
+        // Remote avatars move via NetworkTransform; callers may still poke Move() on
+        // them, so this is a normal early-out, not an error worth logging per tick.
+        if (!HasInputAuthority) return;
         if (deltaTime <= 0f) return;
         if (_rb == null)
         {
@@ -265,7 +251,6 @@ public class PlayerMovement : NetworkBehaviour
 
         if (input.sqrMagnitude > 0.01f)
         {
-            Vector3 oldPos = transform.position;
             // Assign position directly rather than Rigidbody2D.MovePosition(). MovePosition
             // queues the move for Unity's next physics step, which runs on its own FixedUpdate
             // cadence — out of step with Fusion's FixedUpdateNetwork tick. NetworkTransform reads
@@ -283,14 +268,6 @@ public class PlayerMovement : NetworkBehaviour
             // both instantly every call.
             transform.position += (Vector3)(_moveInput * _currentMoveSpeed * deltaTime);
             Physics2D.SyncTransforms();
-
-            // Debug: Log movement mỗi 60 frame
-            if (Time.frameCount % 60 == 0)
-            {
-                // Debug.Log($"[PlayerMovement.ApplyRaw] frame={Time.frameCount} " +
-                //           $"pos: {oldPos} -> {transform.position} " +
-                //           $"speed={_currentMoveSpeed} dt={deltaTime}");
-            }
         }
     }
 

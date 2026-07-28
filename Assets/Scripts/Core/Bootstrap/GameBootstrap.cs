@@ -57,10 +57,14 @@ public class GameBootstrap : MonoBehaviour
         Debug.Log($"=== LOAD DONE | UI=Main | Map={WorldState.CurrentMapName} ===");
 
         // Join the shared social lobby room (presence + party invites) once we are in
-        // Main and know who we are. Fire-and-forget: JoinSocialLobbyAsync swallows its
-        // own failures so a Photon outage never blocks the Main scene. Only attempt it
-        // for a logged-in player with a real profile id.
-        if (ApiClient.Instance.HasToken() && WorldState.PlayerProfileId > 0 && PhotonManager.Instance != null)
+        // Main. Fire-and-forget: JoinSocialLobbyAsync retries and reports its own failure
+        // so a Photon outage never blocks the Main scene.
+        //
+        // No longer gated on PlayerProfileId > 0: the id arrives from the API and a boot
+        // where it was still 0 (or GetMe failed) used to skip the connect for the whole
+        // session, permanently killing party/invites. The presence re-publishes its
+        // identity once PlayerSpawner finishes hydrating WorldState.
+        if (ApiClient.Instance.HasToken() && PhotonManager.Instance != null)
         {
             _ = PhotonManager.Instance.JoinSocialLobbyAsync();
             // Listen for incoming party invites while in Main.
