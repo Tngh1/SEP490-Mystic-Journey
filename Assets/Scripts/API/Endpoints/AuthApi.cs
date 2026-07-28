@@ -38,6 +38,10 @@ namespace MysticJourney.API.Endpoints
                 {
                     ApiClient.Instance.SaveToken(response.AccessToken);
 
+                    // Lưu refresh token để tự động làm mới access token khi hết hạn
+                    if (!string.IsNullOrEmpty(response.RefreshToken))
+                        ApiClient.Instance.SaveRefreshToken(response.RefreshToken);
+
                     if (response.PlayerProfileId.HasValue)
                         PlayerPrefs.SetInt(ApiConfig.PlayerProfileIdKey, response.PlayerProfileId.Value);
                     else

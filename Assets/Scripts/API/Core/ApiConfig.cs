@@ -20,6 +20,7 @@ namespace MysticJourney.API.Core
         // KEY LƯU DỮ LIỆU PHIÊN TRONG PLAYERPREFS
         // ═══════════════════════════════════════════════════════════════════════
         public const string AccessTokenKey = "mj_access_token";
+        public const string RefreshTokenKey = "mj_refresh_token";   // JWT refresh token
         public const string PlayerProfileIdKey = "mj_player_profile_id";
         public const string AccountIdKey = "mj_account_id";
         public const string UserNameKey = "mj_user_name";
@@ -39,6 +40,7 @@ namespace MysticJourney.API.Core
         public const string AuthLogin = "/api/auth/login";
         public const string AuthMe = "/api/auth/me";
         public const string AuthLogout = "/api/auth/logout";
+        public const string AuthRefreshToken = "/api/auth/refresh-token";
 
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER CONTROLLER - Trạng thái online

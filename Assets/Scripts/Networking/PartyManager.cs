@@ -267,21 +267,24 @@ public class PartyManager : MonoBehaviour
         // mid-transition is harmless.
         if (!isHost)
         {
-            // The host's PlayerPresence despawns for us the moment it tears down the lobby
-            // runner — a real "the host is migrating" signal, so wait for that instead of a
-            // blind delay (a slow host used to let a member win the race and own the
-            // enemies, and a fast host cost everyone the full fixed wait).
-            float wait = 3f;
+            Debug.Log($"[PartyEntry] Member waiting for host {hostProfileId} to tear down lobby runner...");
+            float wait = 6f;
             while (wait > 0f && PlayerPresence.Find(hostProfileId) != null)
             {
                 wait -= Time.deltaTime;
                 yield return null;
             }
+            Debug.Log($"[PartyEntry] Wait loop finished. Time left: {wait}. PlayerPresence null? {(PlayerPresence.Find(hostProfileId) == null)}");
 
-            // ponytail: still a grace window, not a handshake — it covers the host's
-            // UserId-release delay + reconnect. Upgrade path: have members poll the
-            // session list for dungeonRoom and migrate the moment it exists.
             yield return new WaitForSeconds(1f);
+            Debug.Log($"[PartyEntry] Member grace period finished. Proceeding to migrate.");
+        }
+        else
+        {
+            // Give Fusion time to propagate the InDungeon state to all members
+            // before tearing down the lobby runner. Without this, the host disconnects
+            // too quickly and members never receive the state change.
+            yield return new WaitForSeconds(3.0f);
         }
 
         // The lobby avatar is a NON-networked PlayerMovement left over from the world
@@ -292,6 +295,7 @@ public class PartyManager : MonoBehaviour
         DestroyNonNetworkedPlayers();
 
         var photon = PhotonManager.Instance;
+        Debug.Log($"[PartyEntry] Destroyed non-networked players. PhotonManager exists? {(photon != null)}");
         if (photon != null)
         {
             var task = photon.MigrateToDungeonAsync(dungeonRoom);
@@ -303,6 +307,7 @@ public class PartyManager : MonoBehaviour
                 _dungeonEntryStarted = false;
                 yield break;
             }
+
             Debug.Log($"[PartyEntry] Migrated into '{dungeonRoom}'. IsHost={photon.IsHost} Phase={photon.Phase}");
         }
         else
@@ -322,12 +327,14 @@ public class PartyManager : MonoBehaviour
 
         if (NetworkPlayer.Local == null)
             Debug.LogWarning("[PartyEntry] Timed out waiting for NetworkPlayer.Local — entering scene anyway.");
+        else
+            Debug.Log("[PartyEntry] NetworkPlayer.Local found! Entering Dungeon Scene.");
 
         // 3. Perform the scene transition using the shared session id (no Enter API here).
         if (DungeonManager.Instance != null)
         {
             DungeonManager.Instance.EnterDungeonScene(configId, scene, 0, dungeonName, sessionId,
-                hasReturnPoint: true, returnMapName: returnMap, returnPosition: returnPos);
+                hasReturnPoint: true, returnMapName: returnMap, returnPosition: returnPos, isHost: isHost);
         }
         else
         {

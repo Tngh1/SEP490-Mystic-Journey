@@ -8,10 +8,23 @@ public class UIBuffPanel : MonoBehaviour
 
     private BuffManager _buffManager;
     private Dictionary<string, UIBuffIcon> _activeIcons = new Dictionary<string, UIBuffIcon>();
+    private bool _autoBind = true;
+
+    public void Init(BuffManager manager)
+    {
+        _autoBind = false;
+        if (_buffManager != null) _buffManager.OnBuffsUpdated -= Refresh;
+        _buffManager = manager;
+        if (_buffManager != null)
+        {
+            _buffManager.OnBuffsUpdated += Refresh;
+            Refresh();
+        }
+    }
 
     private void Update()
     {
-        if (_buffManager == null)
+        if (_autoBind && _buffManager == null)
         {
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)

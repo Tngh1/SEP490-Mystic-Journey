@@ -34,6 +34,10 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text levelUpPointsText;
     [SerializeField] private UILevelUpPanel levelUpPanel;
 
+    [Header("HUD Groups")]
+    [SerializeField] private GameObject nonCombatActionGroup;
+    [SerializeField] private GameObject dungeonSpecificGroup;
+
     [Header("Level-Gated Buttons")]
     [SerializeField] private GameObject chatButtonObj;
     [SerializeField] private GameObject friendButtonObj;
@@ -139,10 +143,30 @@ public class PlayerHUDController : MonoBehaviour
 
     private void OnLevelUpButtonClicked()
     {
+        if (levelUpPanel == null)
+        {
+            levelUpPanel = UnityEngine.Object.FindFirstObjectByType<UILevelUpPanel>(FindObjectsInactive.Include);
+        }
+
         if (levelUpPanel != null)
         {
             levelUpPanel.gameObject.SetActive(true);
         }
+        else
+        {
+            Debug.LogWarning("[PlayerHUDController] UILevelUpPanel is null and not found in scene!");
+        }
+    }
+
+    private Transform FindChildRecursive(Transform parent, string exactName)
+    {
+        if (parent.name == exactName) return parent;
+        foreach (Transform child in parent)
+        {
+            var result = FindChildRecursive(child, exactName);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     public void FindHUDReferences()
@@ -192,6 +216,25 @@ public class PlayerHUDController : MonoBehaviour
         {
             corruptionBarImage = transform.Find("Corruption/CorruptionBar/CorruptionFill")?.GetComponent<Image>()
                               ?? transform.Find("TopBar/Center_Resources/CorruptionBox/CorruptionFill")?.GetComponent<Image>();
+        }
+
+        if (levelUpButton == null)
+        {
+            var lb = FindChildRecursive(transform, "LevelUpButton");
+            if (lb != null)
+            {
+                levelUpButton = lb.GetComponent<Button>();
+                if (levelUpButton == null) levelUpButton = lb.gameObject.AddComponent<Button>();
+                
+                var img = lb.GetComponent<Image>();
+                if (img != null) img.raycastTarget = true;
+                
+                lb.SetAsLastSibling();
+            }
+        }
+        if (levelUpPointsText == null && levelUpButton != null)
+        {
+            levelUpPointsText = levelUpButton.GetComponentInChildren<TMP_Text>();
         }
 
         MakeHorizontalFill(corruptionBarImage);
@@ -275,6 +318,18 @@ public class PlayerHUDController : MonoBehaviour
         ConfigureResourceText(goldText);
         ConfigureResourceText(gemText);
 
+        if (nonCombatActionGroup == null)
+        {
+            var grp = transform.Find("NonCombatActionGroup") ?? transform.Find("Left");
+            if (grp != null) nonCombatActionGroup = grp.gameObject;
+        }
+        
+        if (dungeonSpecificGroup == null)
+        {
+            var grp = transform.Find("DungeonSpecificGroup");
+            if (grp != null) dungeonSpecificGroup = grp.gameObject;
+        }
+
         // Đảm bảo trạng thái nút bấm đúng với map hiện tại khi vừa vào game
         bool inDungeon = false;
         if (DungeonManager.Instance != null)
@@ -288,6 +343,9 @@ public class PlayerHUDController : MonoBehaviour
     {
         if (settingsButtonObj != null) settingsButtonObj.SetActive(!isInDungeon);
         if (pauseButtonObj != null) pauseButtonObj.SetActive(isInDungeon);
+        
+        if (nonCombatActionGroup != null) nonCombatActionGroup.SetActive(!isInDungeon);
+        if (dungeonSpecificGroup != null) dungeonSpecificGroup.SetActive(isInDungeon);
     }
 
     public void StartHUDLoop()
@@ -567,18 +625,10 @@ public class PlayerHUDController : MonoBehaviour
 
     private void WireMenuButton()
     {
-        var menuTr = transform.Find("Left/MenuButton");
+        var menuTr = FindChildRecursive(transform, "MenuButton");
         if (menuTr == null) return;
 
         AddHoverEffect(menuTr);
-
-        // MenuButton phải luôn hiện & bấm được dù CanvasGroup của Left tắt cụm nút.
-        var menuGroup = menuTr.GetComponent<CanvasGroup>();
-        if (menuGroup == null) menuGroup = menuTr.gameObject.AddComponent<CanvasGroup>();
-        menuGroup.ignoreParentGroups = true;
-        menuGroup.alpha = 1f;
-        menuGroup.interactable = true;
-        menuGroup.blocksRaycasts = true;
 
         // Idempotent: FindHUDReferences có thể chạy lại, chỉ gắn listener 1 lần.
         if (_menuWired) return;
@@ -590,14 +640,32 @@ public class PlayerHUDController : MonoBehaviour
         if (closeIcon != null) _menuCloseIcon = closeIcon.gameObject;
 
         var leftTr = menuTr.parent;
-        _leftGroup = leftTr.GetComponent<CanvasGroup>();
-        if (_leftGroup == null) _leftGroup = leftTr.gameObject.AddComponent<CanvasGroup>();
+        var parentCg = leftTr.GetComponent<CanvasGroup>();
+        if (parentCg != null)
+        {
+            parentCg.alpha = 1f;
+            parentCg.interactable = true;
+            parentCg.blocksRaycasts = true;
+        }
 
         var toggle = menuTr.GetComponent<Toggle>();
         if (toggle != null)
         {
             toggle.isOn = _menuOpen;
             toggle.onValueChanged.AddListener(SetMenuOpen);
+        }
+        else
+        {
+            var btn = menuTr.GetComponent<Button>();
+            if (btn != null)
+            {
+                btn.onClick.AddListener(() => SetMenuOpen(!_menuOpen));
+            }
+            else
+            {
+                var newBtn = menuTr.gameObject.AddComponent<Button>();
+                newBtn.onClick.AddListener(() => SetMenuOpen(!_menuOpen));
+            }
         }
 
         ApplyMenuVisibility();
@@ -611,11 +679,21 @@ public class PlayerHUDController : MonoBehaviour
 
     private void ApplyMenuVisibility()
     {
-        if (_leftGroup != null)
+        var leftTr = FindChildRecursive(transform, "Left");
+        if (leftTr != null)
         {
-            _leftGroup.alpha = _menuOpen ? 1f : 0f;
-            _leftGroup.interactable = _menuOpen;
-            _leftGroup.blocksRaycasts = _menuOpen;
+            for (int i = 0; i < leftTr.childCount; i++)
+            {
+                var child = leftTr.GetChild(i);
+                if (child.name == "MenuButton") continue;
+                
+                var cg = child.GetComponent<CanvasGroup>();
+                if (cg == null) cg = child.gameObject.AddComponent<CanvasGroup>();
+                
+                cg.alpha = _menuOpen ? 1f : 0f;
+                cg.interactable = _menuOpen;
+                cg.blocksRaycasts = _menuOpen;
+            }
         }
 
         // Đổi icon MenuButton: đóng -> icon menu, mở -> icon X (đóng).

@@ -33,21 +33,37 @@ public class UILevelUpPanel : MonoBehaviour
     public void FetchOptions()
     {
         SetLoading(true);
-        CharacterApi.Instance.GetLevelUpOptions(
-            onSuccess: options =>
+        PlayerApi.Instance.GetMyProfile(
+            onSuccess: profile =>
             {
-                SetLoading(false);
-                currentOptions = options;
-                UpdateUI();
+                if (remainingPointsText != null)
+                {
+                    remainingPointsText.text = $"Remaining: {profile.AvailableStatPoints}";
+                }
+                
+                CharacterApi.Instance.GetLevelUpOptions(
+                    onSuccess: options =>
+                    {
+                        SetLoading(false);
+                        currentOptions = options;
+                        UpdateUI();
+                    },
+                    onError: error =>
+                    {
+                        SetLoading(false);
+                        Debug.LogError("Failed to fetch level up options: " + error.Message);
+                        if (error.ErrorCode == "NO_STAT_POINTS")
+                        {
+                            ClosePanel();
+                        }
+                    }
+                );
             },
             onError: error =>
             {
                 SetLoading(false);
-                Debug.LogError("Failed to fetch level up options: " + error.Message);
-                if (error.ErrorCode == "NO_STAT_POINTS")
-                {
-                    ClosePanel();
-                }
+                Debug.LogError("Failed to fetch profile in level up panel: " + error.Message);
+                ClosePanel();
             }
         );
     }

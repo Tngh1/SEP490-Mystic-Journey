@@ -71,6 +71,12 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         }
 
         ApplyAuthorityRole();
+        
+        // Notify DungeonManager so UI tracks progress even on proxy clients
+        if (DungeonManager.Instance != null)
+        {
+            DungeonManager.Instance.RegisterNetworkedEnemy(_entity);
+        }
     }
 
     /// <summary>
