@@ -68,33 +68,6 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── POST /api/characters/upgrade ──────────────────────────────────────
-        /// <summary>
-        /// Chi Skill Points để tăng 1 attribute.
-        /// Attribute hợp lệ: MaxHp | Atk | Def | MoveSpeed | AttackSpeed | CritRate | CritDamage | DamageBonus
-        /// </summary>
-        public void UpgradeAttribute(
-            UpgradeAttributeRequest body,
-            Action<UpgradeAttributeResponse> onSuccess,
-            Action<ApiException> onError)
-        {
-            SafeDebugLog($"UpgradeAttribute → {body?.AttributeName} x{body?.Amount}");
-            ApiClient.Instance.Post<UpgradeAttributeRequest, UpgradeAttributeResponse>(
-                ApiConfig.CharacterUpgrade,
-                body,
-                response =>
-                {
-                    SafeDebugLog($"UpgradeAttribute OK | {response.UpgradedAttribute} +{response.AmountSpent} | SKP left={response.RemainingSkillPoints}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"UpgradeAttribute FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
         // ── PUT /api/characters/hp ────────────────────────────────────────────
         /// <summary>
         /// Đồng bộ máu hiện tại về Backend

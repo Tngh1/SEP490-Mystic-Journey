@@ -1,14 +1,3 @@
-namespace MysticJourney.API.Models.Request
-{
-    [System.Serializable]
-    public class SpendCurrencyRequest
-    {
-        public string Currency { get; set; } = "Gold";
-        public decimal Amount { get; set; }
-        public string Reason { get; set; } = "Spend";
-    }
-}
-
 namespace MysticJourney.API.Models.Response
 {
     [System.Serializable]

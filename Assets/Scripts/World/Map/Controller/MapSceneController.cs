@@ -36,6 +36,10 @@ public class MapSceneController : MonoBehaviour
             yield break;
         }
 
+        // Bật màn hình loading TRƯỚC khi unload: nếu bật sau, người chơi thấy một frame
+        // scene trống + player rơi ở toạ độ cũ.
+        yield return LoadingScreen.Show();
+
         var previousScene = WorldState.CurrentMapName;
         if (!string.IsNullOrWhiteSpace(previousScene) && SceneManager.GetSceneByName(previousScene).isLoaded)
         {
@@ -43,10 +47,16 @@ public class MapSceneController : MonoBehaviour
                 .UnloadSceneAsync(previousScene);
         }
 
-        yield return SceneManager
+        LoadingProgress.Report(0.3f, "Loading map...");
+        var loadOp = SceneManager
             .LoadSceneAsync(
                 targetScene,
                 LoadSceneMode.Additive);
+        while (loadOp != null && !loadOp.isDone)
+        {
+            LoadingProgress.Report(Mathf.Lerp(0.3f, 0.85f, loadOp.progress), "Loading map...");
+            yield return null;
+        }
 
         Vector3 spawnPosition = Vector3.zero;
         bool positionFound = false;
@@ -100,7 +110,10 @@ public class MapSceneController : MonoBehaviour
 
         WorldRuntimeEvents.RaiseMapChanged(targetScene);
         WorldRuntimeEvents.RaiseQuestsChanged();
-        QuestManager.Instance?.LoadMyQuests();
+        // KHÔNG LoadMyQuests() ở đây: BE chỉ tạo bản ghi quest NotStarted cho map bằng
+        // profile.LastMapName (PlayerQuestService.GetMyQuests), mà LastMapName chỉ được cập nhật
+        // bởi UpdatePosition bên dưới. Gọi sớm sẽ nhận lại quest của map CŨ -> vào map mới không
+        // có nhiệm vụ và không có mũi tên waypoint. Load sau khi lưu vị trí thành công.
 
         var player = GameObject.FindGameObjectWithTag("Player");
         if (player == null)
@@ -144,10 +157,22 @@ public class MapSceneController : MonoBehaviour
                 {
                     Debug.Log($"[MapSceneController] Saved: {targetScene} @ {spawnPosition}");
                     WorldRuntimeEvents.RaiseMapChanged(targetScene);
-                    WorldRuntimeEvents.RaiseQuestsChanged();
+                    // LastMapName đã là map mới -> giờ GetMyQuests mới trả về quest của map này.
+                    // HandleLoadedQuestResponses tự bắn QuestsChanged để panel + waypoint render lại.
+                    QuestManager.Instance?.LoadMyQuests();
                 },
-                error => Debug.LogWarning($"[MapSceneController] Save failed: {error.Message}")
+                error =>
+                {
+                    Debug.LogWarning($"[MapSceneController] Save failed: {error.Message}");
+                    // Lưu vị trí thất bại vẫn phải thử nạp quest, nếu không HUD trắng hoàn toàn.
+                    QuestManager.Instance?.LoadMyQuests();
+                }
             );
         }
+
+        // ponytail: KHÔNG chờ UpdatePosition/LoadMyQuests xong mới tắt loading — quest nạp
+        // xong sẽ tự render lại HUD. Nếu sau này muốn vào map là có ngay quest thì đổi callback
+        // ở trên thành cờ và chờ nó trước LoadingScreen.Hide().
+        yield return LoadingScreen.Hide();
     }
 }

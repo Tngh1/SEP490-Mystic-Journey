@@ -325,8 +325,9 @@ public class PlayerHUDController : MonoBehaviour
         if (_isRefreshing) return;
         _isRefreshing = true;
         
-        // Send heartbeat to keep status Online
-        PlayerApi.Instance.SendHeartbeat();
+        // Heartbeat is NOT sent here: HeartbeatSender already pings every 30s, and the BE
+        // treats anything within 5 minutes as Online. Sending it again on the 15s HUD
+        // refresh tripled the write rate on the busiest endpoint for no extra freshness.
 
         // Step 1: Refresh Profile (Level, Exp)
         PlayerApi.Instance.GetMyProfile(

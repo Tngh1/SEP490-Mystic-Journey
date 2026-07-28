@@ -54,8 +54,8 @@ namespace MysticJourney.Screen.Mail
         [Header("Main Setup")]
         [SerializeField] private Button closeButton;
 
-        private MailSummaryResponse _currentSelectedMailSummary;
-        private MailItemUI _currentSelectedMailUI;
+        private MailboxSummaryResponse _currentSelectedMailboxSummary;
+        private MailboxItemUI _currentSelectedMailboxUI;
 
         private int _currentPage = 1;
         private int _totalPages = 1;
@@ -80,7 +80,7 @@ namespace MysticJourney.Screen.Mail
             if (rightPanel != null) rightPanel.SetActive(true);
             HideRightPanelContent();
             _currentPage = 1;
-            LoadMailsFromBackend();
+            LoadMailboxesFromBackend();
         }
 
         private void HideRightPanelContent()
@@ -102,7 +102,7 @@ namespace MysticJourney.Screen.Mail
             if (deleteButton != null) deleteButton.gameObject.SetActive(true);
         }
 
-        private void LoadMailsFromBackend()
+        private void LoadMailboxesFromBackend()
         {
             _isLoading = true;
             SetPaginationInteractable(false);
@@ -117,10 +117,10 @@ namespace MysticJourney.Screen.Mail
                 }
             }
 
-            MailApi.Instance.GetMyMails(
+            MailboxApi.Instance.GetMyMailboxes(
                 _currentPage,
                 _itemsPerPage,
-                response => PopulateMailList(response),
+                response => PopulateMailboxList(response),
                 onError: error =>
                 {
                     _isLoading = false;
@@ -140,7 +140,7 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
-        private void PopulateMailList(MailListPagedResponse response)
+        private void PopulateMailboxList(MailboxListPagedResponse response)
         {
             if (response == null || response.Items == null || response.Items.Length == 0)
             {
@@ -148,14 +148,14 @@ namespace MysticJourney.Screen.Mail
                 if (_currentPage > 1)
                 {
                     _currentPage--;
-                    LoadMailsFromBackend();
+                    LoadMailboxesFromBackend();
                     return;
                 }
 
                 if (emptyListText != null)
                 {
                     emptyListText.gameObject.SetActive(true);
-                    emptyListText.text = "No mail has arrived yet.";
+                    emptyListText.text = "No mailbox has arrived yet.";
                 }
 
                 if (contentContainer != null)
@@ -193,9 +193,9 @@ namespace MysticJourney.Screen.Mail
 
                     itemGO.SetActive(true);
 
-                    var mailUI = itemGO.GetComponent<MailItemUI>();
-                    if (mailUI != null)
-                        mailUI.Setup(response.Items[i], OnMailClicked);
+                    var mailboxUI = itemGO.GetComponent<MailboxItemUI>();
+                    if (mailboxUI != null)
+                        mailboxUI.Setup(response.Items[i], OnMailboxClicked);
                 }
                 else
                 {
@@ -229,53 +229,53 @@ namespace MysticJourney.Screen.Mail
 
             if (rightPanel != null) rightPanel.SetActive(false);
 
-            LoadMailsFromBackend();
+            LoadMailboxesFromBackend();
         }
 
-        private void OnMailClicked(MailItemUI clickedUI)
+        private void OnMailboxClicked(MailboxItemUI clickedUI)
         {
-            _currentSelectedMailUI = clickedUI;
-            _currentSelectedMailSummary = clickedUI.GetMailData();
+            _currentSelectedMailboxUI = clickedUI;
+            _currentSelectedMailboxSummary = clickedUI.GetMailboxData();
 
-            MailApi.Instance.GetById(
-                _currentSelectedMailSummary.MailId,
-                onSuccess: mailDetail => DisplayMailDetail(mailDetail, clickedUI),
-                onError: error => Debug.LogError($"[MailboxUI] Lỗi lấy chi tiết mail: {error.Message}")
+            MailboxApi.Instance.GetById(
+                _currentSelectedMailboxSummary.MailboxId,
+                onSuccess: mailboxDetail => DisplayMailboxDetail(mailboxDetail, clickedUI),
+                onError: error => Debug.LogError($"[MailboxUI] Lỗi lấy chi tiết thư: {error.Message}")
             );
         }
 
-        private void DisplayMailDetail(MailDetailResponse mailData, MailItemUI clickedUI)
+        private void DisplayMailboxDetail(MailboxDetailResponse mailboxData, MailboxItemUI clickedUI)
         {
             if (rightPanel != null) rightPanel.SetActive(true);
 
             ShowRightPanelContent();
 
-            if (titleText != null) titleText.text = mailData.Title;
-            if (typeText != null) 
+            if (titleText != null) titleText.text = mailboxData.Title;
+            if (typeText != null)
             {
-                typeText.text = mailData.Type;
-                typeText.color = GetMailTypeColor(mailData.Type);
+                typeText.text = mailboxData.Type;
+                typeText.color = GetMailboxTypeColor(mailboxData.Type);
             }
-            if (bodyText != null) bodyText.text = mailData.Content;
+            if (bodyText != null) bodyText.text = mailboxData.Content;
 
             // Display rewards section
-            DisplayRewards(mailData);
+            DisplayRewards(mailboxData);
 
-            if (!mailData.IsRead)
+            if (!mailboxData.IsRead)
             {
-                MailApi.Instance.MarkAsRead(
-                    mailData.MailId,
+                MailboxApi.Instance.MarkAsRead(
+                    mailboxData.MailboxId,
                     res => clickedUI.MarkAsReadLocally(),
                     err => { }
                 );
             }
         }
 
-        private void DisplayRewards(MailDetailResponse mailData)
+        private void DisplayRewards(MailboxDetailResponse mailboxData)
         {
-            bool hasGold = mailData.AttachedGold > 0;
-            bool hasGems = mailData.AttachedGems > 0;
-            bool hasItems = mailData.AttachedItems != null && mailData.AttachedItems.Length > 0;
+            bool hasGold = mailboxData.AttachedGold > 0;
+            bool hasGems = mailboxData.AttachedGems > 0;
+            bool hasItems = mailboxData.AttachedItems != null && mailboxData.AttachedItems.Length > 0;
             bool hasRewards = hasGold || hasGems || hasItems;
 
             if (rewardsContainer != null)
@@ -292,9 +292,9 @@ namespace MysticJourney.Screen.Mail
                     itemId = -1,
                     itemName = "Gold",
                     icon = GetIconFromDatabase("Gold", "Currency"),
-                    quantity = (int)mailData.AttachedGold,
+                    quantity = (int)mailboxData.AttachedGold,
                     rarity = "Common",
-                    rawData = new MailRewardItemResponse { ItemId = -1, ItemName = "Gold", Quantity = (int)mailData.AttachedGold }
+                    rawData = new MailboxRewardItemResponse { ItemId = -1, ItemName = "Gold", Quantity = (int)mailboxData.AttachedGold }
                 };
                 allRewards.Add(goldDisplayData);
             }
@@ -307,9 +307,9 @@ namespace MysticJourney.Screen.Mail
                     itemId = -2,
                     itemName = "Gem",
                     icon = GetIconFromDatabase("Gem", "Currency"),
-                    quantity = (int)mailData.AttachedGems,
+                    quantity = (int)mailboxData.AttachedGems,
                     rarity = "Rare",
-                    rawData = new MailRewardItemResponse { ItemId = -2, ItemName = "Gem", Quantity = (int)mailData.AttachedGems }
+                    rawData = new MailboxRewardItemResponse { ItemId = -2, ItemName = "Gem", Quantity = (int)mailboxData.AttachedGems }
                 };
                 allRewards.Add(gemDisplayData);
             }
@@ -317,7 +317,7 @@ namespace MysticJourney.Screen.Mail
             // Items
             if (hasItems)
             {
-                foreach (var item in mailData.AttachedItems)
+                foreach (var item in mailboxData.AttachedItems)
                 {
                     allRewards.Add(CreateItemDisplayData(item));
                 }
@@ -327,12 +327,12 @@ namespace MysticJourney.Screen.Mail
             SetupRewardSlots(allRewards);
 
             // Claim button / claimed stamp
-            if (mailData.IsClaimed)
+            if (mailboxData.IsClaimed)
             {
                 if (claimButton != null) claimButton.gameObject.SetActive(false);
                 if (claimedStamp != null) claimedStamp.SetActive(true);
             }
-            else if (IsExpired(mailData.ExpiredAt))
+            else if (IsExpired(mailboxData.ExpiredAt))
             {
                 // Hết hạn mà chưa nhận -> BE sẽ từ chối claim, nên ẩn cả nút lẫn stamp.
                 if (claimButton != null) claimButton.gameObject.SetActive(false);
@@ -399,7 +399,7 @@ namespace MysticJourney.Screen.Mail
             return null;
         }
 
-        private UIItemDisplayData CreateItemDisplayData(MailRewardItemResponse item)
+        private UIItemDisplayData CreateItemDisplayData(MailboxRewardItemResponse item)
         {
             var displayData = new UIItemDisplayData
             {
@@ -426,18 +426,18 @@ namespace MysticJourney.Screen.Mail
 
         private void OnClaimClicked()
         {
-            if (_currentSelectedMailSummary == null || claimButton == null) return;
+            if (_currentSelectedMailboxSummary == null || claimButton == null) return;
             claimButton.interactable = false;
 
-            MailApi.Instance.ClaimReward(
-                mailId: _currentSelectedMailSummary.MailId,
+            MailboxApi.Instance.ClaimReward(
+                mailboxId: _currentSelectedMailboxSummary.MailboxId,
                 onSuccess: response =>
                 {
                     if (rewardsContainer != null) rewardsContainer.SetActive(false);
                     if (claimButton != null) claimButton.gameObject.SetActive(false);
                     claimButton.interactable = true;
                     if (claimedStamp != null) claimedStamp.SetActive(true);
-                    _currentSelectedMailUI?.MarkAsClaimedLocally();
+                    _currentSelectedMailboxUI?.MarkAsClaimedLocally();
 
                     // Cập nhật HUD ngay để Gold/Gem/Level phản ánh phần thưởng vừa nhận,
                     // thay vì chờ vòng lặp refresh 3s của PlayerHUDController.
@@ -456,18 +456,18 @@ namespace MysticJourney.Screen.Mail
 
         private void OnDeleteClicked()
         {
-            if (_currentSelectedMailSummary == null || deleteButton == null) return;
+            if (_currentSelectedMailboxSummary == null || deleteButton == null) return;
 
             // Thư hết hạn thì quà không claim được nữa -> xóa thẳng, khỏi cảnh báo.
             // Còn quà chưa nhận (và chưa hết hạn) -> bắt buộc mở popup xác nhận.
-            if (_currentSelectedMailSummary.HasClaimableReward && !_currentSelectedMailSummary.IsClaimed
-                && !IsExpired(_currentSelectedMailSummary.ExpiredAt))
+            if (_currentSelectedMailboxSummary.HasClaimableReward && !_currentSelectedMailboxSummary.IsClaimed
+                && !IsExpired(_currentSelectedMailboxSummary.ExpiredAt))
             {
-                ShowConfirmPopup("This mail still has unclaimed rewards. Are you sure you want to delete it?");
+                ShowConfirmPopup("This mailbox still has unclaimed rewards. Are you sure you want to delete it?");
             }
             else
             {
-                PerformDeleteMail();
+                PerformDeleteMailbox();
             }
         }
 
@@ -487,7 +487,7 @@ namespace MysticJourney.Screen.Mail
         private void OnPopupOkClicked()
         {
             if (confirmPanel != null) confirmPanel.SetActive(false);
-            PerformDeleteMail();
+            PerformDeleteMailbox();
         }
 
         private void OnPopupCancelClicked()
@@ -495,33 +495,33 @@ namespace MysticJourney.Screen.Mail
             if (confirmPanel != null) confirmPanel.SetActive(false);
         }
 
-        private void PerformDeleteMail()
+        private void PerformDeleteMailbox()
         {
-            if (_currentSelectedMailSummary == null) return;
+            if (_currentSelectedMailboxSummary == null) return;
 
-            int mailId = _currentSelectedMailSummary.MailId;
+            int mailboxId = _currentSelectedMailboxSummary.MailboxId;
 
-            MailApi.Instance.Delete(
-                mailId,
+            MailboxApi.Instance.Delete(
+                mailboxId,
                 onSuccess: res =>
                 {
-                    if (_currentSelectedMailSummary != null && _currentSelectedMailSummary.MailId == mailId)
+                    if (_currentSelectedMailboxSummary != null && _currentSelectedMailboxSummary.MailboxId == mailboxId)
                     {
-                        _currentSelectedMailSummary = null;
-                        _currentSelectedMailUI = null;
+                        _currentSelectedMailboxSummary = null;
+                        _currentSelectedMailboxUI = null;
                     }
                     HideRightPanelContent();
-                    LoadMailsFromBackend();
+                    LoadMailboxesFromBackend();
                 },
                 onError: err => Debug.LogError("[MailboxUI] Xóa thư thất bại")
             );
         }
 
-        private Color GetMailTypeColor(string type)
+        private Color GetMailboxTypeColor(string type)
         {
             if (string.IsNullOrEmpty(type)) return Color.white;
-            
-            // Theo FE design, chỉnh mã màu phù hợp với từng loại mail
+
+            // Theo FE design, chỉnh mã màu phù hợp với từng loại thư
             switch (type.ToLower())
             {
                 case "gift":
@@ -536,7 +536,7 @@ namespace MysticJourney.Screen.Mail
                     return Color.yellow;
                 default:
                     if (ColorUtility.TryParseHtmlString("#E6E6E6", out Color defaultColor)) return defaultColor;
-                    return Color.white; 
+                    return Color.white;
             }
         }
     }

@@ -9,9 +9,20 @@ namespace MysticJourney.Core.Utilities
     {
         public static List<PlayerQuestResponse> NormalizeMainQuests(IEnumerable<PlayerQuestResponse> source)
         {
+            string currentMap = WorldState.CurrentMapName ?? string.Empty;
+
+            bool IsOnCurrentMap(PlayerQuestResponse q)
+            {
+                if (q == null || string.IsNullOrWhiteSpace(currentMap) || string.IsNullOrWhiteSpace(q.MapName))
+                    return false;
+                return q.MapName.IndexOf(currentMap, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                       currentMap.IndexOf(q.MapName, System.StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+
             return (source ?? Enumerable.Empty<PlayerQuestResponse>())
                 .Where(IsMainQuest)
-                .OrderBy(QuestStatusPriority)
+                .OrderBy(q => IsOnCurrentMap(q) ? 0 : 1)
+                .ThenBy(QuestStatusPriority)
                 .ThenBy(q => q.RequiredLevel)
                 .ThenBy(q => q.QuestId)
                 .ToList();
@@ -19,12 +30,43 @@ namespace MysticJourney.Core.Utilities
 
         public static PlayerQuestResponse PickPreferredQuest(IEnumerable<PlayerQuestResponse> source)
         {
-            var quests = source?.ToList() ?? new List<PlayerQuestResponse>();
-            return quests.FirstOrDefault(q => IsStatus(q, "InProgress"))
-                   ?? quests.FirstOrDefault(q => IsStatus(q, "Completed"))
-                   ?? quests.FirstOrDefault(q => IsStatus(q, "NotStarted"))
-                   ?? quests.FirstOrDefault();
+            var quests = source?.Where(q => q != null && !IsStatus(q, "Claimed")).ToList() ?? new List<PlayerQuestResponse>();
+            if (quests.Count == 0) return null;
+
+            string currentMap = WorldState.CurrentMapName ?? string.Empty;
+
+            bool IsOnCurrentMap(PlayerQuestResponse q)
+            {
+                if (q == null || string.IsNullOrWhiteSpace(currentMap) || string.IsNullOrWhiteSpace(q.MapName))
+                    return true;
+                return q.MapName.IndexOf(currentMap, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                       currentMap.IndexOf(q.MapName, System.StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+
+            // Ưu tiên theo thứ tự tiến trình nghiêm ngặt (ưu tiên QuestId nhỏ nhất của Main Quest):
+            // 1. Quần thể InProgress trên map hiện tại (QuestId nhỏ nhất)
+            var inProgressCurrent = quests.Where(q => IsStatus(q, "InProgress") && IsOnCurrentMap(q)).OrderBy(q => q.QuestId).FirstOrDefault();
+            if (inProgressCurrent != null) return inProgressCurrent;
+
+            // 2. Completed (chờ trả) trên map hiện tại (QuestId nhỏ nhất)
+            var completedCurrent = quests.Where(q => IsStatus(q, "Completed") && IsOnCurrentMap(q)).OrderBy(q => q.QuestId).FirstOrDefault();
+            if (completedCurrent != null) return completedCurrent;
+
+            // 3. InProgress trên bất kỳ map nào (QuestId nhỏ nhất)
+            var inProgressAny = quests.Where(q => IsStatus(q, "InProgress")).OrderBy(q => q.QuestId).FirstOrDefault();
+            if (inProgressAny != null) return inProgressAny;
+
+            // 4. Completed trên bất kỳ map nào (QuestId nhỏ nhất)
+            var completedAny = quests.Where(q => IsStatus(q, "Completed")).OrderBy(q => q.QuestId).FirstOrDefault();
+            if (completedAny != null) return completedAny;
+
+            // 5. NotStarted (chưa nhận) - luôn chọn QuestId nhỏ nhất của map hiện tại
+            var notStartedCurrent = quests.Where(q => IsOnCurrentMap(q)).OrderBy(q => q.QuestId).FirstOrDefault();
+            if (notStartedCurrent != null) return notStartedCurrent;
+
+            return quests.OrderBy(q => q.QuestId).FirstOrDefault();
         }
+
 
         public static PlayerQuestResponse FindSameQuest(IEnumerable<PlayerQuestResponse> source, PlayerQuestResponse target)
         {
@@ -68,6 +110,7 @@ namespace MysticJourney.Core.Utilities
                    string.Equals(t, "Explore",  System.StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(t, "OpenChest",System.StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(t, "Talk",     System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(t, "Interact", System.StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(t, "EquipSkill",System.StringComparison.OrdinalIgnoreCase);
         }
 

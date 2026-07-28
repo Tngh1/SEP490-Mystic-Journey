@@ -80,6 +80,7 @@ public class BoatVideoTeleporter : MapTeleportPortal
         // 3. Bật video lên xem
         if (videoPlayer != null && videoPlayer.clip != null)
         {
+            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
             videoPlayer.gameObject.SetActive(true);
             videoPlayer.Play();
             Debug.Log("[Boat] Đang chiếu video...");
@@ -103,11 +104,13 @@ public class BoatVideoTeleporter : MapTeleportPortal
 
     private void OnVideoFinished(UnityEngine.Video.VideoPlayer vp)
     {
+        MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(vp);
         PlayerPrefs.SetInt("JustUsedBoat", 1);
         PlayerPrefs.Save();
         Debug.Log("[Boat] Chiếu video xong. Chuẩn bị dịch chuyển...");
         DoTeleport();
     }
+
 
     private void DoTeleport()
     {

@@ -72,6 +72,32 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             selectHighlight.SetActive(isActive);
     }
 
+    public virtual void SetupCustom(string displayName, string amountText, Sprite icon)
+    {
+        BindCore();
+
+        RawData = null;
+
+        if (iconImage != null)
+        {
+            iconImage.sprite = icon;
+            iconImage.enabled = icon != null;
+            iconImage.preserveAspect = true;
+            iconImage.color = Color.white;
+        }
+
+        if (itemNameText != null)
+            itemNameText.text = displayName ?? string.Empty;
+
+        if (quantityText != null)
+            quantityText.text = amountText ?? string.Empty;
+
+        SetHighlight(false);
+
+        if (rarityBorder != null && rarityBorder.sprite == null)
+            rarityBorder.enabled = false;
+    }
+
     protected virtual void SetRarityColor(string rarity)
     {
         if (rarityBorder == null)

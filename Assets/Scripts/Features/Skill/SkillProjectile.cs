@@ -2,21 +2,28 @@ using UnityEngine;
 
 public class SkillProjectile : MonoBehaviour
 {
-    [SerializeField] private float speed = 10f;
-    private float _damage;
+    [SerializeField] protected float speed = 10f;
+    [SerializeField] protected AudioClip castSound;
+    [SerializeField] protected AudioClip hitSound;
+    protected float _damage;
 
-    public void Setup(float damage)
+    public virtual void Setup(float damage)
     {
         _damage = damage;
         Destroy(gameObject, 2f);
+
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound);
+        }
     }
 
-    void Update()
+    protected virtual void Update()
     {
         transform.Translate(Vector3.right * speed * Time.deltaTime, Space.Self);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    protected virtual void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Monster"))
         {
@@ -37,7 +44,16 @@ public class SkillProjectile : MonoBehaviour
                 }
             }
 
-            Destroy(gameObject); // Chạm quái thì đạn nổ biến mất
+            OnHitTarget();
         }
+    }
+
+    protected virtual void OnHitTarget()
+    {
+        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound);
+        }
+        Destroy(gameObject); // Chạm quái thì đạn nổ biến mất
     }
 }

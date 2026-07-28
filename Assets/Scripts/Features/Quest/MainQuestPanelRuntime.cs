@@ -9,7 +9,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using QuestUtils = MysticJourney.Core.Utilities.QuestUtils;
-using GameConstants = MysticJourney.Core.Utilities.GameConstants;
 
 public class MainQuestPanelRuntime : MonoBehaviour
 {
@@ -19,14 +18,16 @@ public class MainQuestPanelRuntime : MonoBehaviour
     [SerializeField] private GameObject questTracker;
     [SerializeField] private GameObject questPanel;
     [SerializeField] private GameObject questPopup;
-    [SerializeField] private Transform questListContent;
-    [SerializeField] private UIQuestListItem questSlotPrefab;
-    [SerializeField] private Transform rewardListContent;
-    [SerializeField] private UIQuestRewardSlot rewardSlotPrefab;
+
+    private Transform questListContent;
+    private GameObject questSlotPrefab;
+    private Transform rewardItemsContainer;
+    private GameObject rewardSlotPrefab;
+    private GameObject rewardsContainer;
 
     private readonly List<PlayerQuestResponse> quests = new List<PlayerQuestResponse>();
     private readonly List<UIQuestListItem> questSlots = new List<UIQuestListItem>();
-    private readonly List<UIQuestRewardSlot> rewardSlots = new List<UIQuestRewardSlot>();
+    private readonly List<UIBaseItemSlot> rewardSlots = new List<UIBaseItemSlot>();
 
     private readonly Dictionary<int, QuestResponse> questDefinitionCache = new Dictionary<int, QuestResponse>();
     private readonly HashSet<int> pendingQuestDefinitionRequests = new HashSet<int>();
@@ -35,53 +36,37 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private UIQuestPanelView questPanelView;
     private UIQuestPopupView questPopupView;
 
-    // Action Buttons
-    private GameObject acceptQuestButtonObject;
-    private GameObject completeQuestButtonObject;
-    private GameObject declineQuestButtonObject;
-    private GameObject claimQuestButtonObject;
-    private GameObject claimedButtonObject;
-
-    private Button acceptQuestButton;
-    private Button completeQuestButton;
-    private Button declineQuestButton;
-    private Button claimQuestButton;
-    private Button claimedButton;
-    private Button trackToggleButton;
-    private TextSlot trackToggleText;
-
-    private GameObject primaryActionButtonObject;
-    private Button primaryActionButton;
-    private TextSlot primaryActionButtonText;
-    private bool usePrimaryActionButton;
-
-    private TextSlot acceptQuestButtonText;
-    private TextSlot completeQuestButtonText;
-    private TextSlot declineQuestButtonText;
-    private TextSlot claimQuestButtonText;
-    private TextSlot claimedButtonText;
+    private Button trackButton;
+    private Image trackButtonImage;
+    private TextSlot trackButtonText;
+    private Sprite trackActiveSprite;
+    private Sprite trackInactiveSprite;
 
     private TextSlot trackerNumber;
     private TextSlot trackerTitle;
     private TextSlot trackerStatus;
     private TextSlot detailTitle;
-    private TextSlot detailType;
     private TextSlot objectiveText;
-    private TextSlot detailProgress;
     private TextSlot descriptionText;
-    private TextSlot questGiverText;
-    private TextSlot rewardsText;
     private TextSlot popupText;
+    private GameObject detailProgressObj;
+    private TextSlot detailProgress;
+    private GameObject detailCompleteIcon;
+    private Image detailTypeImage;
+    private Sprite detailKillSprite;
+    private Sprite detailCollectSprite;
+    private Sprite detailTalkSprite;
+    private Sprite detailExploreSprite;
 
     private PlayerQuestResponse selectedQuest;
     private Coroutine popupRoutine;
     private string filter = "All";
+    private readonly Dictionary<string, GameObject> filterHighlights = new Dictionary<string, GameObject>();
+    private readonly Dictionary<string, Toggle> filterToggles = new Dictionary<string, Toggle>();
     private int pendingSelectedQuestId;
     private bool popupLayerActivatedByQuest;
     private bool didWarnMissingListTemplate;
     private bool didBind;
-    private TMP_Dropdown filterDropdown;
-    private bool didBindDropdown;
 
     private void Awake()
     {
@@ -139,11 +124,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
         OpenQuestPanel();
     }
 
-    private void OnMapChanged(string mapName)
-    {
-        RefreshWorldAndQuests();
-    }
-
     public void OpenQuestPanelForReward(int questId)
     {
         pendingSelectedQuestId = questId;
@@ -163,6 +143,14 @@ public class MainQuestPanelRuntime : MonoBehaviour
             UIManager.Instance.ClosePanel(questPanel);
         else
             questPanel.SetActive(false);
+    }
+
+    private void OnMapChanged(string mapName)
+    {
+        // Không gọi LoadMyQuests() ở đây: lúc MapChanged bắn ra, LastMapName trên server vẫn là
+        // map cũ nên response sẽ thiếu quest của map mới. MapSceneController nạp lại quest ngay
+        // sau khi UpdatePosition thành công, rồi QuestsChanged sẽ kéo panel về đúng dữ liệu.
+        RefreshWorldAndQuests();
     }
 
     public void RefreshWorldAndQuests()
@@ -188,9 +176,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
             quests.AddRange(cached);
             selectedQuest = PickSelectedQuest(null);
             RenderAll();
+            return; // Dừng tại đây khi đã có dữ liệu local, không phát sinh HTTP Request dư thừa
         }
 
-        // Then also hit the API to get any newer state
         manager.LoadMainQuests(
             (loadedQuests, activeQuest) =>
             {
@@ -202,11 +190,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
             error =>
             {
                 Debug.LogWarning($"[MainQuestPanelRuntime] Load quests failed: {error}");
-                // Don't clear – keep whatever was shown from cache
                 RenderAll();
             }
         );
     }
+
 
     private void BindUi()
     {
@@ -219,10 +207,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             questTracker.SetActive(true);
             BindButton(questTracker, OpenQuestPanel);
-            // Bind each named child Text separately — tên chính xác theo Hierarchy
             trackerNumber = trackerNumber.IsValid ? trackerNumber : FindTextSlot(questTracker.transform, "QuestNumber", "TrackerNumber");
-            trackerTitle  = trackerTitle.IsValid  ? trackerTitle  : FindTextSlot(questTracker.transform, "QuestName",   "TrackerTitle", "QuestTitle", "TitleText");
-            trackerStatus = trackerStatus.IsValid ? trackerStatus : FindTextSlot(questTracker.transform, "QuestStatus",  "TrackerStatus", "ObjectiveText", "ProgressText");
+            trackerTitle = trackerTitle.IsValid ? trackerTitle : FindTextSlot(questTracker.transform, "QuestName", "TrackerTitle", "QuestTitle", "TitleText");
+            trackerStatus = trackerStatus.IsValid ? trackerStatus : FindTextSlot(questTracker.transform, "QuestStatus", "TrackerStatus", "ObjectiveText", "ProgressText");
         }
 
         if (questPanel == null)
@@ -237,36 +224,50 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (questPanelView != null)
         {
             questListContent = questListContent != null ? questListContent : questPanelView.QuestListContent;
-            questSlotPrefab = questSlotPrefab != null ? questSlotPrefab : questPanelView.QuestSlotTemplate;
-            rewardListContent = rewardListContent != null ? rewardListContent : questPanelView.RewardListContent;
-            rewardSlotPrefab = rewardSlotPrefab != null ? rewardSlotPrefab : questPanelView.RewardSlotTemplate;
+            questSlotPrefab = questSlotPrefab != null ? questSlotPrefab : questPanelView.QuestSlotPrefab;
+            rewardItemsContainer = rewardItemsContainer != null ? rewardItemsContainer : questPanelView.RewardItemsContainer;
+            rewardSlotPrefab = rewardSlotPrefab != null ? rewardSlotPrefab : questPanelView.RewardSlotPrefab;
+            rewardsContainer = rewardsContainer != null ? rewardsContainer : questPanelView.RewardsContainer;
 
-            detailTitle = detailTitle.IsValid ? detailTitle : new TextSlot(questPanelView.QuestTitleTMP, questPanelView.QuestTitleText);
-            detailType = detailType.IsValid ? detailType : new TextSlot(questPanelView.QuestTypeTMP, questPanelView.QuestTypeText);
-            objectiveText = objectiveText.IsValid ? objectiveText : new TextSlot(questPanelView.ObjectiveTMP, questPanelView.ObjectiveText);
-            detailProgress = detailProgress.IsValid ? detailProgress : new TextSlot(questPanelView.ProgressTMP, questPanelView.ProgressText);
-            descriptionText = descriptionText.IsValid ? descriptionText : new TextSlot(questPanelView.DescriptionTMP, questPanelView.DescriptionText);
-            questGiverText = questGiverText.IsValid ? questGiverText : new TextSlot(questPanelView.QuestGiverTMP, questPanelView.QuestGiverText);
-            rewardsText = rewardsText.IsValid ? rewardsText : new TextSlot(questPanelView.RewardsTMP, questPanelView.RewardsText);
+            detailTitle = detailTitle.IsValid ? detailTitle : new TextSlot(questPanelView.QuestTitleTMP, null);
+            objectiveText = objectiveText.IsValid ? objectiveText : new TextSlot(questPanelView.ObjectiveTMP, null);
+            descriptionText = descriptionText.IsValid ? descriptionText : new TextSlot(questPanelView.DescriptionTMP, null);
+
+            trackActiveSprite = trackActiveSprite != null ? trackActiveSprite : questPanelView.TrackActiveSprite;
+            trackInactiveSprite = trackInactiveSprite != null ? trackInactiveSprite : questPanelView.TrackInactiveSprite;
+            detailCompleteIcon = detailCompleteIcon != null ? detailCompleteIcon : questPanelView.DetailCompleteIcon;
+
+            detailTypeImage = detailTypeImage != null ? detailTypeImage : questPanelView.QuestTypeImage;
+            detailKillSprite = detailKillSprite != null ? detailKillSprite : questPanelView.KillTypeSprite;
+            detailCollectSprite = detailCollectSprite != null ? detailCollectSprite : questPanelView.CollectTypeSprite;
+            detailTalkSprite = detailTalkSprite != null ? detailTalkSprite : questPanelView.TalkTypeSprite;
+            detailExploreSprite = detailExploreSprite != null ? detailExploreSprite : questPanelView.ExploreTypeSprite;
         }
 
-        // Only use aggressive fallbacks if UIQuestPanelView is completely missing
         if (questPanelView == null)
         {
             questListContent = questListContent != null ? questListContent : FindDescendant(questPanel.transform, "QuestListContent")?.transform;
-            rewardListContent = rewardListContent != null ? rewardListContent : FindDescendant(questPanel.transform, "RewardListContent")?.transform;
+            rewardItemsContainer = rewardItemsContainer != null ? rewardItemsContainer : FindDescendant(questPanel.transform, "RewardItemsContainer")?.transform;
+            if (rewardItemsContainer == null)
+                rewardItemsContainer = FindDescendant(questPanel.transform, "ReclaimList")?.transform;
 
-            detailTitle = detailTitle.IsValid ? detailTitle : FindTextSlot(questPanel.transform, "QuestTitle", "DetailTitle", "TitleText");
-            detailType = detailType.IsValid ? detailType : FindTextSlot(questPanel.transform, "QuestType", "Type", "TypeText");
-            objectiveText = objectiveText.IsValid ? objectiveText : FindTextSlot(questPanel.transform, "Objective", "QuestObjective", "ObjectiveText");
-            detailProgress = detailProgress.IsValid ? detailProgress : FindTextSlot(questPanel.transform, "Progress", "QuestProgress", "ProgressText");
-            descriptionText = descriptionText.IsValid ? descriptionText : FindTextSlot(questPanel.transform, "Description", "QuestDescription", "DescriptionText");
-            questGiverText = questGiverText.IsValid ? questGiverText : FindTextSlot(questPanel.transform, "QuestGiver", "Giver", "GiverText");
-            rewardsText = rewardsText.IsValid ? rewardsText : FindTextSlot(questPanel.transform, "Rewards", "RewardsTitle", "RewardsText");
+            detailTitle = detailTitle.IsValid ? detailTitle : FindTextSlot(questPanel.transform, "QuestTitleText", "QuestTitle", "TitleText");
+            objectiveText = objectiveText.IsValid ? objectiveText : FindTextSlot(questPanel.transform, "ObjectiveText", "Objective");
+            descriptionText = descriptionText.IsValid ? descriptionText : FindTextSlot(questPanel.transform, "DescriptionText", "Description");
+        }
+
+        // ProgressText là object riêng tách khỏi ObjectiveText, chỉ hiện với quest có đếm
+        // (targetAmount > 1). Không nằm trong UIQuestPanelView nên bind theo tên.
+        if (detailProgressObj == null)
+        {
+            detailProgressObj = FindDescendant(questPanel.transform, "ProgressText");
+            if (detailProgressObj != null)
+                detailProgress = TextSlot.From(detailProgressObj);
         }
 
         EnsureRewardContentLayout();
         EnsureQuestListContentLayout();
+
         if (questPopup != null)
         {
             questPopupView = questPopupView != null ? questPopupView : questPopup.GetComponent<UIQuestPopupView>();
@@ -275,178 +276,83 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 questPopup.SetActive(false);
         }
 
-        filterDropdown = filterDropdown != null ? filterDropdown : questPanel.GetComponentInChildren<TMP_Dropdown>(true);
-        if (filterDropdown != null && !didBindDropdown)
-        {
-            didBindDropdown = true;
-            filterDropdown.ClearOptions();
-            filterDropdown.AddOptions(new System.Collections.Generic.List<string> { "All Regions", "Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4" });
-            
-            filterDropdown.onValueChanged.RemoveAllListeners();
-            filterDropdown.onValueChanged.AddListener(OnFilterDropdownChanged);
-        }
+        BindFilterButton("AllButton", "All", "All");
+        BindFilterButton("InProgressButton", "InProgress", "In Progress");
+        BindFilterButton("CompletedButton", "Completed", "Completed");
+        UpdateFilterHighlights();
 
-        BindPanelButton("AllButton", () => SetFilter("All"), "All");
-        BindPanelButton("InProgressButton", () => SetFilter("InProgress"), "In Progress");
-        BindPanelButton("CompletedButton", () => SetFilter("Completed"), "Completed");
-        BindPanelButton("AllRegionsButton", () => SetFilter("All"), "All Regions");
-        BindPanelButton("RefreshButton", RefreshWorldAndQuests, "Refresh");
-        
         if (questPanelView != null && questPanelView.CloseButton != null)
             BindButton(questPanelView.CloseButton.gameObject, CloseQuestPanel);
         else
             BindPanelButton("CloseButton", CloseQuestPanel);
 
-        BindQuestActionButtons();
-        BindTrackToggleButton();
+        BindTrackButton();
 
         didBind = true;
     }
 
-    private void BindQuestActionButtons()
-    {
-        // Yuuko update: Đã bổ sung DeclineQuestButton cho khớp với ActionButtons của bạn
-        if (questPanelView != null)
-        {
-            acceptQuestButtonObject = questPanelView.AcceptQuestButton != null ? questPanelView.AcceptQuestButton.gameObject : FindDescendant(questPanel.transform, "AcceptQuestButton");
-            completeQuestButtonObject = questPanelView.CompleteQuestButton != null ? questPanelView.CompleteQuestButton.gameObject : FindDescendant(questPanel.transform, "CompleteQuestButton");
-            declineQuestButtonObject = questPanelView.DeclineQuestButton != null ? questPanelView.DeclineQuestButton.gameObject : FindDescendant(questPanel.transform, "DeclineQuestButton");
-            claimQuestButtonObject = questPanelView.ClaimQuestButton != null ? questPanelView.ClaimQuestButton.gameObject : FindDescendant(questPanel.transform, "ClaimQuestButton");
-            claimedButtonObject = questPanelView.ClaimedButton != null ? questPanelView.ClaimedButton.gameObject : FindDescendant(questPanel.transform, "ClaimedButton");
-        }
-        else
-        {
-            acceptQuestButtonObject = FindDescendant(questPanel.transform, "AcceptQuestButton");
-            completeQuestButtonObject = FindDescendant(questPanel.transform, "CompleteQuestButton");
-            declineQuestButtonObject = FindDescendant(questPanel.transform, "DeclineQuestButton");
-            claimQuestButtonObject = FindDescendant(questPanel.transform, "ClaimQuestButton");
-            claimedButtonObject = FindDescendant(questPanel.transform, "ClaimedButton");
-        }
-
-        var foundActionObjects = new List<GameObject> { acceptQuestButtonObject, completeQuestButtonObject, claimQuestButtonObject }
-            .Where(obj => obj != null)
-            .Distinct()
-            .ToList();
-
-        acceptQuestButtonText = acceptQuestButtonText.IsValid ? acceptQuestButtonText : FindButtonLabel(acceptQuestButtonObject);
-        completeQuestButtonText = completeQuestButtonText.IsValid ? completeQuestButtonText : FindButtonLabel(completeQuestButtonObject);
-        declineQuestButtonText = declineQuestButtonText.IsValid ? declineQuestButtonText : FindButtonLabel(declineQuestButtonObject);
-        claimQuestButtonText = claimQuestButtonText.IsValid ? claimQuestButtonText : FindButtonLabel(claimQuestButtonObject);
-        claimedButtonText = claimedButtonText.IsValid ? claimedButtonText : FindButtonLabel(claimedButtonObject);
-
-        usePrimaryActionButton = foundActionObjects.Count <= 1 && declineQuestButtonObject == null;
-        primaryActionButtonObject = usePrimaryActionButton
-            ? (questPanelView != null && questPanelView.PrimaryActionButton != null ? questPanelView.PrimaryActionButton.gameObject : null)
-              ?? foundActionObjects.FirstOrDefault()
-              ?? FindDescendant(questPanel.transform, "QuestActionButton")
-              ?? FindDescendant(questPanel.transform, "PrimaryActionButton")
-              ?? FindDescendant(questPanel.transform, "AcceptButton")
-            : null;
-
-        if (usePrimaryActionButton && primaryActionButtonObject != null)
-        {
-            primaryActionButton = BindButton(primaryActionButtonObject, OnPrimaryActionClicked);
-            primaryActionButtonText = primaryActionButtonText.IsValid
-                ? primaryActionButtonText
-                : FindTextSlot(primaryActionButtonObject.transform, "Text (TMP)", "Text", "Label", "TitleText");
-            return;
-        }
-
-        usePrimaryActionButton = false;
-        primaryActionButton = null;
-        primaryActionButtonObject = null;
-
-        acceptQuestButton = BindButton(acceptQuestButtonObject, () => AcceptQuest(selectedQuest));
-        completeQuestButton = BindButton(completeQuestButtonObject, () => CompleteQuest(selectedQuest));
-        claimQuestButton = BindButton(claimQuestButtonObject, () => ClaimReward(selectedQuest));
-
-        // Gán chức năng đóng bảng quest cho nút Decline (Bạn có thể đổi sang API Decline nếu có sau này)
-        declineQuestButton = BindButton(declineQuestButtonObject, CloseQuestPanel);
-
-        claimedButton = claimedButtonObject == null ? null : claimedButtonObject.GetComponent<Button>();
-        if (claimedButton != null)
-            claimedButton.interactable = false;
-    }
-
-    private void BindTrackToggleButton()
+    private void BindTrackButton()
     {
         GameObject btnObj = null;
-        if (questPanelView != null && questPanelView.TrackToggleButton != null)
-        {
-            btnObj = questPanelView.TrackToggleButton.gameObject;
-        }
+        if (questPanelView != null && questPanelView.TrackQuestButton != null)
+            btnObj = questPanelView.TrackQuestButton.gameObject;
         else
+            btnObj = FindDescendant(questPanel.transform, "TrackQuestButton");
+
+        if (btnObj == null)
+            return;
+
+        trackButton = BindButton(btnObj, OnTrackButtonClicked);
+        trackButtonImage = btnObj.GetComponent<Image>();
+        trackButtonText = FindButtonLabel(btnObj);
+        UpdateTrackButton();
+    }
+
+    private void OnTrackButtonClicked()
+    {
+        bool wasEnabled = MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
+        MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = !wasEnabled;
+        UpdateTrackButton();
+
+        // Khi bật track, trigger mũi tên ngay lập tức thay vì chờ 2s routine
+        if (MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled &&
+            MysticJourney.Features.Quest.QuestWaypointManager.Instance != null)
         {
-            btnObj = FindDescendant(questPanel != null ? questPanel.transform : transform, "TrackToggleButton")
-                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "TrackButton")
-                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "WaypointButton")
-                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "ToggleTrackButton")
-                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "GuideButton")
-                  ?? FindDescendant(questPanel != null ? questPanel.transform : transform, "TrackToggle");
-        }
-
-        if (btnObj == null && questPanel != null)
-        {
-            var existing = FindDescendant(questPanel.transform, "AutoTrackToggleButton");
-            if (existing != null)
-            {
-                btnObj = existing;
-            }
-            else
-            {
-                btnObj = new GameObject("AutoTrackToggleButton");
-                btnObj.transform.SetParent(questPanel.transform, false);
-                var rect = btnObj.AddComponent<RectTransform>();
-                rect.anchorMin = new Vector2(1, 1);
-                rect.anchorMax = new Vector2(1, 1);
-                rect.pivot = new Vector2(1, 1);
-                rect.anchoredPosition = new Vector2(-20, -20);
-                rect.sizeDelta = new Vector2(120, 36);
-
-                var img = btnObj.AddComponent<Image>();
-                img.color = new Color(0.2f, 0.2f, 0.2f, 0.9f);
-
-                var txtGo = new GameObject("Text (TMP)");
-                txtGo.transform.SetParent(btnObj.transform, false);
-                var txtRect = txtGo.AddComponent<RectTransform>();
-                txtRect.anchorMin = Vector2.zero;
-                txtRect.anchorMax = Vector2.one;
-                txtRect.sizeDelta = Vector2.zero;
-
-                var tmp = txtGo.AddComponent<TextMeshProUGUI>();
-                tmp.alignment = TextAlignmentOptions.Center;
-                tmp.fontSize = 16;
-                tmp.fontStyle = FontStyles.Bold;
-                tmp.color = Color.yellow;
-            }
-        }
-
-        if (btnObj != null)
-        {
-            trackToggleButton = BindButton(btnObj, OnToggleTrackClicked);
-            trackToggleText = FindButtonLabel(btnObj);
-            UpdateTrackToggleUI();
+            MysticJourney.Features.Quest.QuestWaypointManager.Instance.RefreshWaypoint();
         }
     }
 
-    private void OnToggleTrackClicked()
+    private void UpdateTrackButton()
     {
-        MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = !MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
-        UpdateTrackToggleUI();
-    }
+        if (trackButton != null)
+        {
+            // Chỉ hiện nút Track khi quest đang InProgress
+            // (NotStarted chưa accept, Completed/Claimed không cần dẫn đường)
+            bool trackable = selectedQuest != null
+                && QuestUtils.IsStatus(selectedQuest, "InProgress");
+            if (trackButton.gameObject.activeSelf != trackable)
+                trackButton.gameObject.SetActive(trackable);
+            if (!trackable)
+                return;
+        }
 
-    private void UpdateTrackToggleUI()
-    {
-        if (!trackToggleText.IsValid) return;
         bool enabled = MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
-        trackToggleText.Set(enabled ? "Track: ON" : "Track: OFF");
+
+        if (trackButtonImage != null)
+        {
+            var sprite = enabled ? trackActiveSprite : trackInactiveSprite;
+            if (sprite != null)
+                trackButtonImage.sprite = sprite;
+        }
+
+        if (trackButtonText.IsValid)
+            trackButtonText.Set(enabled ? "Tracking" : "Track");
     }
-
-
 
     private void SetFilter(string nextFilter)
     {
         filter = string.IsNullOrWhiteSpace(nextFilter) ? "All" : nextFilter;
+        UpdateFilterHighlights();
         RenderQuestList();
     }
 
@@ -475,6 +381,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         RenderTracker();
         RenderQuestList();
         RenderQuestDetail();
+        UpdateTrackButton();
     }
 
     private void RenderTracker()
@@ -488,23 +395,38 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return;
         }
 
-        // QuestNumber: Hiển thị đúng QuestId để không bị nhảy số khi list thay đổi
         SetText(trackerNumber, $"Quest {active.QuestId}:");
-
-        // QuestName: chỉ tên quest, không kèm status hay số đếm
         SetText(trackerTitle, active.QuestTitle ?? string.Empty);
 
-        // QuestStatus: trạng thái + tóm tắt objective (không có số đếm để tránh lộn với text khác)
-        var statusLabel = QuestUtils.StatusLabel(active);
-        var objectiveLine = ObjectiveTextLine(active);
-        SetText(trackerStatus, string.IsNullOrWhiteSpace(objectiveLine)
-            ? statusLabel
-            : $"{statusLabel}\n{objectiveLine}");
+        if (QuestUtils.IsStatus(active, "Completed"))
+        {
+            SetText(trackerStatus, "<color=#55FF55>Completed! Return to Quest Giver</color>");
+        }
+        else if (QuestUtils.IsStatus(active, "NotStarted"))
+        {
+            // Quest chưa nhận: KHÔNG hiện objective (Defeat/Collect...) vì người chơi chưa
+            // được giao mục tiêu đó — bước thật sự là đi gặp NPC. Waypoint cũng đang chỉ vào NPC.
+            SetText(trackerStatus, $"<color=#FFD34D>{AcceptPromptLine(active)}</color>");
+        }
+        else
+        {
+            var targetName = Safe(active.ObjectiveTarget, "target");
+            var objectiveType = Safe(active.ObjectiveType, "Objective");
+            if (active.TargetAmount > 1)
+            {
+                var current = Mathf.Clamp(active.Progress, 0, active.TargetAmount);
+                SetText(trackerStatus, $"{objectiveType}: {targetName} ({current}/{active.TargetAmount})");
+            }
+            else
+            {
+                SetText(trackerStatus, $"{objectiveType}: {targetName}");
+            }
+        }
     }
 
     private void RenderQuestList()
     {
-        if (questListContent == null || GetQuestSlotSource() == null)
+        if (questListContent == null || questSlotPrefab == null)
         {
             if (!didWarnMissingListTemplate)
             {
@@ -524,7 +446,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             var quest = visible[i];
             slot.gameObject.SetActive(true);
             slot.transform.SetSiblingIndex(i);
-            slot.Setup(quest, selectedQuest != null && selectedQuest.QuestId == quest.QuestId, OnQuestSelected, GetQuestSprite(quest));
+            slot.Setup(quest, selectedQuest != null && selectedQuest.QuestId == quest.QuestId, OnQuestSelected);
         }
 
         for (var i = visible.Count; i < questSlots.Count; i++)
@@ -536,6 +458,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         selectedQuest = quest;
         RenderQuestList();
         RenderQuestDetail();
+        UpdateTrackButton();
     }
 
     private void RenderQuestDetail()
@@ -543,33 +466,86 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (selectedQuest == null)
         {
             SetText(detailTitle, "Select a quest");
-            SetText(detailType, string.Empty);
             SetText(objectiveText, string.Empty);
             SetText(descriptionText, "Select a quest to view detail.");
-            SetText(questGiverText, string.Empty);
-            SetText(rewardsText, string.Empty);
-            RenderRewards(null);
-            UpdateActionButtons(null);
+            if (detailCompleteIcon != null) detailCompleteIcon.SetActive(false);
+            if (detailProgressObj != null) detailProgressObj.SetActive(false);
+            ApplyDetailTypeIcon(null);
+            RenderRewardItems(null);
             return;
         }
 
         SetText(detailTitle, selectedQuest.QuestTitle);
-        SetText(detailType, $"{Safe(selectedQuest.QuestType, "Main Quest")} - Lv.{selectedQuest.RequiredLevel}");
         SetText(objectiveText, ObjectiveTextLine(selectedQuest));
-        SetText(detailProgress, ProgressOnlyLine(selectedQuest));
         SetText(descriptionText, Safe(selectedQuest.QuestDescription, "No description."));
-        SetText(questGiverText, $"Quest Giver\n{Safe(selectedQuest.QuestGiverName, "Elder Rowan")}");
-        SetText(rewardsText, RewardLine(selectedQuest));
-        RenderRewards(selectedQuest);
-        UpdateActionButtons(selectedQuest);
+        RenderProgress(selectedQuest);
+
+        // Chỉ đóng dấu hoàn thành khi đã nhận thưởng (Claimed), giống UIQuestListItem.
+        if (detailCompleteIcon != null)
+            detailCompleteIcon.SetActive(QuestUtils.IsStatus(selectedQuest, "Claimed"));
+
+        ApplyDetailTypeIcon(selectedQuest.ObjectiveType);
+        RenderRewardItems(selectedQuest);
     }
 
-    private void RenderRewards(PlayerQuestResponse quest)
+    // Progress hiển thị ở ProgressText riêng, chỉ với quest có đếm (targetAmount > 1).
+    // Quest như Talk/Explore một lần (target <= 1) thì ẩn hẳn ô số.
+    private void RenderProgress(PlayerQuestResponse quest)
     {
-        if (rewardListContent == null || GetRewardSlotSource() == null)
+        if (detailProgressObj == null)
+            return;
+
+        // Quest chưa nhận thì chưa có tiến trình để đếm — ẩn ô số thay vì hiện 0/8.
+        bool hasCount = quest != null && quest.TargetAmount > 1 && !QuestUtils.IsStatus(quest, "NotStarted");
+        if (detailProgressObj.activeSelf != hasCount)
+            detailProgressObj.SetActive(hasCount);
+
+        if (hasCount && detailProgress.IsValid)
+        {
+            var current = Mathf.Clamp(quest.Progress, 0, quest.TargetAmount);
+            detailProgress.Set($"{current}/{quest.TargetAmount}");
+        }
+    }
+
+    private void ApplyDetailTypeIcon(string objectiveType)
+    {
+        if (detailTypeImage == null) return;
+
+        var slot = UIQuestListItem.MapObjectiveType(objectiveType);
+        Sprite sprite = slot switch
+        {
+            UIQuestListItem.QuestTypeSlot.Kill => detailKillSprite,
+            UIQuestListItem.QuestTypeSlot.Collect => detailCollectSprite,
+            UIQuestListItem.QuestTypeSlot.Talk => detailTalkSprite,
+            _ => detailExploreSprite,
+        };
+
+        if (sprite != null)
+            detailTypeImage.sprite = sprite;
+
+        bool hasSprite = detailTypeImage.sprite != null;
+        detailTypeImage.enabled = hasSprite;
+        detailTypeImage.gameObject.SetActive(hasSprite);
+    }
+
+    private void RenderRewardItems(PlayerQuestResponse quest)
+    {
+        if (rewardItemsContainer == null)
             return;
 
         var rewards = BuildRewards(quest);
+        bool claimed = QuestUtils.IsStatus(quest, "Claimed");
+
+        if (rewardsContainer != null)
+            rewardsContainer.SetActive(rewards.Count > 0);
+
+        if (rewardSlotPrefab == null)
+        {
+            for (var i = 0; i < rewardSlots.Count; i++)
+                rewardSlots[i].gameObject.SetActive(false);
+            return;
+        }
+
         for (var i = 0; i < rewards.Count; i++)
         {
             var slot = GetOrCreateRewardSlot(i);
@@ -578,15 +554,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
             slot.gameObject.SetActive(true);
             slot.transform.SetSiblingIndex(i);
-            slot.Setup(rewards[i].Name, rewards[i].Amount, rewards[i].Sprite);
-            slot.SetClaimed(QuestUtils.IsStatus(quest, "Claimed"));
+            slot.SetupCustom(rewards[i].Name, rewards[i].Amount, rewards[i].Sprite);
         }
 
         for (var i = rewards.Count; i < rewardSlots.Count; i++)
-        {
-            rewardSlots[i].SetClaimed(false);
             rewardSlots[i].gameObject.SetActive(false);
-        }
     }
 
     private List<RewardViewData> BuildRewards(PlayerQuestResponse quest)
@@ -651,243 +623,95 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return rewards;
     }
 
-    private void UpdateActionButtons(PlayerQuestResponse quest)
+    // Overload cũ: message tự do (AnnounceText), kind suy từ nội dung. Dùng cho các chỗ
+    // không gắn với 1 quest cụ thể (vd MapTeleportPortal "Explored: ...").
+    private struct PopupData
     {
-        if (usePrimaryActionButton && primaryActionButtonObject != null)
-        {
-            UpdatePrimaryActionButton(quest);
-            return;
-        }
-
-        SetActive(acceptQuestButtonObject, QuestUtils.IsStatus(quest, "NotStarted"));
-        SetActive(completeQuestButtonObject, QuestUtils.IsStatus(quest, "InProgress"));
-        SetActive(claimQuestButtonObject, QuestUtils.IsStatus(quest, "Completed"));
-        SetActive(claimedButtonObject, QuestUtils.IsStatus(quest, "Claimed"));
-
-        // Cập nhật trạng thái Decline
-        SetActive(declineQuestButtonObject, QuestUtils.IsStatus(quest, "NotStarted") || QuestUtils.IsStatus(quest, "InProgress"));
-
-        if (completeQuestButton != null && quest != null)
-            completeQuestButton.interactable = CanCompleteLocally(quest);
-
-        bool isMainQuest = quest != null && string.Equals(quest.QuestType, "Main", StringComparison.OrdinalIgnoreCase);
-
-        if (acceptQuestButton != null)
-            acceptQuestButton.interactable = quest != null && !isMainQuest;
-        if (claimQuestButton != null)
-            claimQuestButton.interactable = quest != null;
-        if (declineQuestButton != null)
-            declineQuestButton.interactable = quest != null;
-        if (claimedButton != null)
-            claimedButton.interactable = false;
+        public string announce;
+        public UIQuestPopupView.QuestPopupKind kind;
+        public bool inferKind;
     }
 
-    private void UpdatePrimaryActionButton(PlayerQuestResponse quest)
-    {
-        if (primaryActionButtonObject == null)
-            return;
-
-        var isNotStarted = QuestUtils.IsStatus(quest, "NotStarted");
-        var isInProgress = QuestUtils.IsStatus(quest, "InProgress");
-        var isCompleted = QuestUtils.IsStatus(quest, "Completed");
-        var isClaimed = QuestUtils.IsStatus(quest, "Claimed");
-        var visible = quest != null && (isNotStarted || isInProgress || isCompleted || isClaimed);
-
-        primaryActionButtonObject.SetActive(visible);
-        if (!visible)
-            return;
-
-        string label = "Accept Quest";
-        bool isMainQuest = quest != null && string.Equals(quest.QuestType, "Main", StringComparison.OrdinalIgnoreCase);
-
-        if (isNotStarted) label = isMainQuest ? "Talk to NPC" : "Accept Quest";
-        else if (isCompleted) label = "Claim Reward";
-        else if (isClaimed) label = "Claimed";
-        else if (isInProgress)
-        {
-            if (CanCompleteLocally(quest))
-                label = "Complete Quest";
-            else
-            {
-                if (string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase))
-                    label = "Defeating...";
-                else if (string.Equals(quest.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase))
-                    label = "Gathering...";
-                else if (string.Equals(quest.ObjectiveType, "Talk", StringComparison.OrdinalIgnoreCase))
-                    label = "Talk to NPC";
-                else if (string.Equals(quest.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase))
-                    label = "Exploring...";
-                else if (string.Equals(quest.ObjectiveType, "EquipSkill", StringComparison.OrdinalIgnoreCase))
-                    label = "Equip a Skill";
-                else
-                    label = "In Progress...";
-            }
-        }
-
-        SetText(primaryActionButtonText, label);
-
-        if (primaryActionButton != null)
-            primaryActionButton.interactable = (isNotStarted && !isMainQuest) || isCompleted || (isInProgress && CanCompleteLocally(quest));
-    }
-
-    private void OnPrimaryActionClicked()
-    {
-        if (selectedQuest == null)
-            return;
-
-        if (QuestUtils.IsStatus(selectedQuest, "NotStarted"))
-        {
-            AcceptQuest(selectedQuest);
-            return;
-        }
-
-        if (QuestUtils.IsStatus(selectedQuest, "InProgress"))
-        {
-            if (CanCompleteLocally(selectedQuest))
-                CompleteQuest(selectedQuest);
-            return;
-        }
-
-        if (QuestUtils.IsStatus(selectedQuest, "Completed"))
-            ClaimReward(selectedQuest);
-    }
-
-    private void AcceptQuest(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return;
-
-        var manager = GetQuestManager();
-        if (manager == null)
-        {
-            ShowPopup("Quest system is not ready.");
-            return;
-        }
-
-        manager.AcceptQuest(
-            quest.QuestId,
-            () =>
-            {
-                pendingSelectedQuestId = quest.QuestId;
-                ShowPopup($"Quest Accepted!\n{quest.QuestTitle} has been added to your quest log.");
-                WorldRuntimeEvents.RaiseQuestsChanged();
-            },
-            error => ShowPopup(error)
-        );
-    }
-
-    private void CompleteQuest(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return;
-
-        var manager = GetQuestManager();
-        if (manager == null)
-        {
-            ShowPopup("Quest system is not ready.");
-            return;
-        }
-
-        manager.CompleteQuest(
-            quest.QuestId,
-            () =>
-            {
-                pendingSelectedQuestId = quest.QuestId;
-                ShowPopup("Quest completed. Claim your reward.");
-                WorldRuntimeEvents.RaiseQuestsChanged();
-            },
-            error => ShowPopup(error)
-        );
-    }
-
-    private void ClaimReward(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return;
-
-        var manager = GetQuestManager();
-        if (manager == null)
-        {
-            ShowPopup("Quest system is not ready.");
-            return;
-        }
-
-        manager.ClaimReward(
-            quest.QuestId,
-            () =>
-            {
-                pendingSelectedQuestId = quest.QuestId;
-                ShowPopup("Congratulations! Reward claimed.");
-                RefreshPlayerLevel();
-                WorldRuntimeEvents.RaiseQuestsChanged();
-            },
-            error => ShowPopup(error)
-        );
-    }
-
-    private void RefreshPlayerLevel()
-    {
-        if (!ApiClient.Instance.HasToken())
-            return;
-
-        PlayerApi.Instance.GetMyProfile(
-            profile =>
-            {
-                if (profile == null)
-                    return;
-
-                WorldState.PlayerLevel = Mathf.Max(1, profile.Level);
-                PlayerPrefs.SetInt(ApiConfig.PlayerLevelKey, WorldState.PlayerLevel);
-                PlayerPrefs.Save();
-                WorldRuntimeEvents.RaiseLevelChanged();
-            },
-            error => Debug.LogWarning($"[MainQuestPanelRuntime] Refresh profile failed: {error.Message}")
-        );
-    }
+    private readonly Queue<PopupData> popupQueue = new Queue<PopupData>();
+    private bool isProcessingPopupQueue;
+    private string lastPopupKey = string.Empty;
+    private float lastPopupTime;
 
     public void ShowQuestPopup(string message)
     {
-        ShowPopup(message);
+        ShowPopup(message, UIQuestPopupView.QuestPopupKind.None, inferKind: true);
     }
 
-    private void ShowPopup(string message)
+    public void ShowQuestPopup(string questTitle, UIQuestPopupView.QuestPopupKind kind)
     {
-        BindUi();
+        ShowPopup(questTitle, kind, inferKind: false);
+    }
 
-        if (questPopup == null)
-        {
-            Debug.Log($"[QuestPopup] {message}");
+    private void ShowPopup(string announce, UIQuestPopupView.QuestPopupKind kind, bool inferKind)
+    {
+        if (string.IsNullOrWhiteSpace(announce))
             return;
-        }
 
-        if (questPopupView != null)
-            questPopupView.SetMessage(message);
-        else
-            SetText(popupText, message);
+        // Anti-duplicate: nếu popup cùng nội dung + kind vừa hiện trong vòng 2.5 giây -> bỏ qua tránh trùng
+        string key = $"{announce}_{kind}_{inferKind}";
+        if (key == lastPopupKey && Time.time - lastPopupTime < 2.5f)
+            return;
 
-        if (popupLayer != null && !popupLayer.activeSelf)
+        lastPopupKey = key;
+        lastPopupTime = Time.time;
+
+        popupQueue.Enqueue(new PopupData { announce = announce, kind = kind, inferKind = inferKind });
+
+        if (!isProcessingPopupQueue)
         {
-            popupLayer.SetActive(true);
-            popupLayerActivatedByQuest = true;
+            if (popupRoutine != null) StopCoroutine(popupRoutine);
+            popupRoutine = StartCoroutine(ProcessPopupQueue());
         }
-
-        if (questPopupView != null)
-            questPopupView.Show(message);
-        else
-        {
-            questPopup.SetActive(true);
-            questPopup.transform.SetAsLastSibling();
-        }
-
-        if (popupRoutine != null)
-            StopCoroutine(popupRoutine);
-        popupRoutine = StartCoroutine(HidePopupAfterDelay());
     }
 
-    private IEnumerator HidePopupAfterDelay()
+    private IEnumerator ProcessPopupQueue()
     {
-        yield return new WaitForSeconds(2.4f);
+        isProcessingPopupQueue = true;
 
+        while (popupQueue.Count > 0)
+        {
+            // Nếu video đang chiếu -> tạm dừng chờ video chiếu xong mới hiện popup hoàn thành!
+            while (MysticJourney.Features.Quest.QuestVideoManager.IsVideoPlaying)
+            {
+                yield return new WaitForSeconds(0.2f);
+            }
+
+            var data = popupQueue.Dequeue();
+            BindUi();
+
+
+            if (questPopup != null)
+            {
+                if (popupLayer != null && !popupLayer.activeSelf)
+                {
+                    popupLayer.SetActive(true);
+                    popupLayerActivatedByQuest = true;
+                }
+
+                if (questPopupView != null)
+                {
+                    if (data.inferKind)
+                        questPopupView.Show(data.announce);
+                    else
+                        questPopupView.Show(data.announce, data.kind);
+                }
+                else
+                {
+                    SetText(popupText, data.announce);
+                    questPopup.SetActive(true);
+                    questPopup.transform.SetAsLastSibling();
+                }
+
+                yield return new WaitForSeconds(2.2f);
+            }
+        }
+
+        // Đã hiện hết queue -> đóng popup
         if (questPopupView != null)
             questPopupView.Hide();
         else if (questPopup != null)
@@ -898,15 +722,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
             popupLayer.SetActive(false);
             popupLayerActivatedByQuest = false;
         }
+
+        isProcessingPopupQueue = false;
+        popupRoutine = null;
     }
 
-    public void OnFilterDropdownChanged(int index)
-    {
-        if (filterDropdown != null && index >= 0 && index < filterDropdown.options.Count)
-        {
-            SetFilter(filterDropdown.options[index].text);
-        }
-    }
 
     private bool MatchesFilter(PlayerQuestResponse quest)
     {
@@ -914,17 +734,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return QuestUtils.IsStatus(quest, "InProgress");
         if (string.Equals(filter, "Completed", StringComparison.OrdinalIgnoreCase))
             return QuestUtils.IsStatus(quest, "Completed") || QuestUtils.IsStatus(quest, "Claimed");
-            
-        if (!string.Equals(filter, "All", StringComparison.OrdinalIgnoreCase) && 
-            !string.Equals(filter, "All Regions", StringComparison.OrdinalIgnoreCase) && 
-            !string.IsNullOrWhiteSpace(filter))
-        {
-            if (filter.StartsWith("Chapter", StringComparison.OrdinalIgnoreCase))
-                return quest.QuestTitle != null && quest.QuestTitle.Contains($"[{filter}]", StringComparison.OrdinalIgnoreCase);
-                
-            return string.Equals(quest.MapName, filter, StringComparison.OrdinalIgnoreCase);
-        }
-        
+
         return true;
     }
 
@@ -933,57 +743,59 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (index < questSlots.Count)
             return questSlots[index];
 
-        var source = GetQuestSlotSource();
-        if (source == null || questListContent == null)
+        if (questSlotPrefab == null || questListContent == null)
             return null;
 
-        var slot = Instantiate(source, questListContent);
-        slot.transform.localScale = Vector3.one;
-        slot.gameObject.name = $"QuestSlot_{index + 1}";
+        var slotObj = Instantiate(questSlotPrefab, questListContent);
+        slotObj.transform.localScale = Vector3.one;
+        slotObj.name = $"QuestSlot_{index + 1}";
+
+        var slot = slotObj.GetComponent<UIQuestListItem>();
+        if (slot == null)
+        {
+            Debug.LogError($"[MainQuestPanelRuntime] Quest slot prefab '{questSlotPrefab.name}' is missing a UIQuestListItem component.", slotObj);
+            return null;
+        }
+
         questSlots.Add(slot);
         return slot;
     }
 
-    private UIQuestRewardSlot GetOrCreateRewardSlot(int index)
+    private UIBaseItemSlot GetOrCreateRewardSlot(int index)
     {
         if (index < rewardSlots.Count)
             return rewardSlots[index];
 
-        var source = GetRewardSlotSource();
-        if (source == null || rewardListContent == null)
+        if (rewardSlotPrefab == null || rewardItemsContainer == null)
             return null;
 
-        var slot = Instantiate(source, rewardListContent);
-        slot.transform.localScale = Vector3.one;
-        slot.gameObject.name = $"QuestReward_{index + 1}";
+        var slotObj = Instantiate(rewardSlotPrefab, rewardItemsContainer);
+        slotObj.transform.localScale = Vector3.one;
+        slotObj.name = $"Reward_{index + 1}";
+
+        var slot = slotObj.GetComponent<UIBaseItemSlot>();
+        if (slot == null)
+        {
+            Debug.LogError($"[MainQuestPanelRuntime] Reward slot prefab '{rewardSlotPrefab.name}' is missing a UIBaseItemSlot component.", slotObj);
+            return null;
+        }
+
         rewardSlots.Add(slot);
         return slot;
     }
 
-    private UIQuestListItem GetQuestSlotSource()
-    {
-        return questSlotPrefab;
-    }
-
-    private UIQuestRewardSlot GetRewardSlotSource()
-    {
-        return rewardSlotPrefab;
-    }
-
-
-
     private void EnsureRewardContentLayout()
     {
-        if (rewardListContent == null)
+        if (rewardItemsContainer == null)
             return;
 
-        if (rewardListContent.GetComponent<HorizontalLayoutGroup>() != null ||
-            rewardListContent.GetComponent<GridLayoutGroup>() != null ||
-            rewardListContent.GetComponent<VerticalLayoutGroup>() != null)
+        if (rewardItemsContainer.GetComponent<HorizontalLayoutGroup>() != null ||
+            rewardItemsContainer.GetComponent<GridLayoutGroup>() != null ||
+            rewardItemsContainer.GetComponent<VerticalLayoutGroup>() != null)
             return;
 
-        var layout = rewardListContent.gameObject.AddComponent<HorizontalLayoutGroup>();
-        layout.spacing = 12f;
+        var layout = rewardItemsContainer.gameObject.AddComponent<HorizontalLayoutGroup>();
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlWidth = false;
         layout.childControlHeight = false;
@@ -1012,34 +824,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         var fitter = questListContent.gameObject.GetComponent<ContentSizeFitter>();
         if (fitter == null)
             fitter = questListContent.gameObject.AddComponent<ContentSizeFitter>();
-        
+
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-    }
-
-
-
-    private Sprite GetQuestSprite(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return null;
-
-        var definition = GetCachedQuestDefinition(quest.QuestId);
-        return ResolveIconSprite(
-            FirstNonEmpty(quest.IconUrl, quest.QuestIconUrl, definition?.IconUrl, definition?.QuestIconUrl),
-            remoteFirst: true,
-            quest.IconKey,
-            quest.QuestIconKey,
-            definition?.IconKey,
-            definition?.QuestIconKey,
-            $"quest:{quest.QuestId}",
-            quest.QuestId.ToString(),
-            quest.QuestTitle,
-            definition?.Title,
-            quest.QuestType,
-            definition?.Type,
-            quest.ObjectiveType,
-            definition?.ObjectiveType,
-            "Quest");
     }
 
     private Sprite GetRewardSkillSprite(PlayerQuestResponse quest, string skillName)
@@ -1056,11 +842,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
             skillName,
             "Skill",
             "RewardSkill");
-    }
-
-    private Sprite GetLibrarySprite(params string[] ids)
-    {
-        return GetLocalSprite(ids);
     }
 
     private QuestResponse GetCachedQuestDefinition(int questId)
@@ -1188,6 +969,76 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    private void BindFilterButton(string objectName, string filterValue, string label)
+    {
+        if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
+            return;
+
+        var target = FindDescendant(questPanel.transform, objectName);
+        if (target == null)
+            return;
+
+        SetText(FindButtonLabel(target), label);
+
+        // Filter buttons trong TopBar là Toggle (có selectedSprite = FilterActive), không phải
+        // Button. Toggle nuốt pointer click nên onClick không bao giờ chạy — phải listen
+        // onValueChanged và chỉ đổi filter khi toggle bật.
+        var toggle = target.GetComponent<Toggle>();
+        if (toggle != null)
+        {
+            // KHÔNG dùng ToggleGroup: 3 toggle trong scene đều lưu m_IsOn = 0, còn
+            // UpdateFilterHighlights đồng bộ bằng SetIsOnWithoutNotify (không báo cho group)
+            // → group với allowSwitchOff = false rơi vào trạng thái "không có toggle nào bật"
+            // và ăn luôn click tiếp theo. Trạng thái radio tự quản qua filterToggles là đủ.
+            toggle.group = null;
+
+            filterToggles[filterValue] = toggle;
+            if (toggle.onValueChanged == null)
+                toggle.onValueChanged = new Toggle.ToggleEvent();
+            toggle.onValueChanged.RemoveAllListeners();
+            toggle.onValueChanged.AddListener(isOn =>
+            {
+                if (isOn)
+                    SetFilter(filterValue);
+                else
+                    UpdateFilterHighlights(); // click lại tab đang bật → giữ nguyên filter, bật lại toggle
+            });
+        }
+        else
+        {
+            BindButton(target, () => SetFilter(filterValue));
+        }
+
+        var highlight = FindDescendant(target.transform, "ActiveBackground");
+        if (highlight != null)
+            filterHighlights[filterValue] = highlight;
+    }
+
+    private void UpdateFilterHighlights()
+    {
+        foreach (var pair in filterHighlights)
+        {
+            if (pair.Value == null)
+                continue;
+
+            bool active = string.Equals(pair.Key, filter, StringComparison.OrdinalIgnoreCase);
+            if (pair.Value.activeSelf != active)
+                pair.Value.SetActive(active);
+        }
+
+        // Đồng bộ toggle khi filter đổi bằng code (vd OpenQuestPanelForReward set "Completed").
+        // SetIsOnWithoutNotify để không trigger lại listener → tránh vòng lặp / filter đúp.
+        foreach (var pair in filterToggles)
+        {
+            if (pair.Value == null)
+                continue;
+
+            bool active = string.Equals(pair.Key, filter, StringComparison.OrdinalIgnoreCase);
+            if (pair.Value.isOn != active)
+                pair.Value.SetIsOnWithoutNotify(active);
+        }
+    }
+
     private void BindPanelButton(string objectName, UnityEngine.Events.UnityAction action, string label = null)
     {
         if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
@@ -1219,65 +1070,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return button;
     }
 
-    private static UIQuestListItem EnsureQuestSlotComponent(GameObject target)
+    // Quest NotStarted: bước hiện tại là đi gặp NPC, chưa phải mục tiêu Collect/Defeat.
+    // Tracker và panel chi tiết dùng chung câu này để không nói hai điều khác nhau về cùng một quest.
+    private static string AcceptPromptLine(PlayerQuestResponse quest)
     {
-        if (target == null)
-            return null;
-
-        var item = target.GetComponent<UIQuestListItem>();
-        if (item == null)
-            item = target.AddComponent<UIQuestListItem>();
-        return item;
-    }
-
-    private static UIQuestRewardSlot EnsureRewardSlotComponent(GameObject target)
-    {
-        if (target == null)
-            return null;
-
-        var item = target.GetComponent<UIQuestRewardSlot>();
-        if (item == null)
-            item = target.AddComponent<UIQuestRewardSlot>();
-        return item;
-    }
-
-
-
-    private static bool CanCompleteLocally(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return false;
-
-        var targetAmount = Mathf.Max(1, quest.TargetAmount);
-        return quest.Progress >= targetAmount;
-    }
-
-    private static string StatusLabel(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return "Unknown";
-
-        return quest.Status switch
-        {
-            "NotStarted" => "Available",
-            "InProgress" => "In Progress",
-            "Completed" => "Completed",
-            "Claimed" => "Claimed",
-            _ => Safe(quest.Status, "Unknown")
-        };
-    }
-
-    private static string ObjectiveLine(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return string.Empty;
-
-        var current = Mathf.Clamp(quest.Progress, 0, Mathf.Max(1, quest.TargetAmount));
-        var target = Mathf.Max(1, quest.TargetAmount);
-        var objective = Safe(quest.ObjectiveType, "Explore");
-        var targetName = Safe(quest.ObjectiveTarget, "target");
-        var location = Safe(quest.ObjectiveLocation, Safe(quest.RegionName, quest.MapName));
-        return $"{objective}: {targetName} at {location}  {current}/{target}";
+        return $"Talk to {Safe(quest?.QuestGiverName, "Quest Giver")} to accept";
     }
 
     private static string ObjectiveTextLine(PlayerQuestResponse quest)
@@ -1285,39 +1082,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (quest == null)
             return string.Empty;
 
+        if (QuestUtils.IsStatus(quest, "NotStarted"))
+            return AcceptPromptLine(quest);
+
         var objective = Safe(quest.ObjectiveType, "Explore");
         var targetName = Safe(quest.ObjectiveTarget, "target");
         var location = Safe(quest.ObjectiveLocation, Safe(quest.RegionName, quest.MapName));
         return $"{objective}: {targetName} at {location}";
-    }
-
-    private static string ProgressOnlyLine(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return string.Empty;
-
-        var current = Mathf.Clamp(quest.Progress, 0, Mathf.Max(1, quest.TargetAmount));
-        var target = Mathf.Max(1, quest.TargetAmount);
-        return $"{current}/{target}";
-    }
-    private static string RewardLine(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return string.Empty;
-
-        var parts = new List<string>();
-        if (quest.RewardExperience > 0)
-            parts.Add($"EXP +{quest.RewardExperience}");
-        if (quest.RewardGold > 0)
-            parts.Add($"Gold +{quest.RewardGold:0}");
-        if (quest.RewardGems > 0)
-            parts.Add($"Gems +{quest.RewardGems:0}");
-        if (!string.IsNullOrWhiteSpace(quest.RewardItemName))
-            parts.Add($"Item: {quest.RewardItemName}");
-        if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
-            parts.Add($"Skill: {RewardSkillLabel(quest)}");
-
-        return parts.Count == 0 ? "No reward." : string.Join(" | ", parts);
     }
 
     private static string RewardSkillLabel(PlayerQuestResponse quest)
@@ -1363,27 +1134,17 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
-    private static TextSlot FindTextSlot(Transform root, params string[] names)
-    {
-        return FindTextSlot(root, names, default, default, default, default, default);
-    }
-
-    private static TextSlot FindTextSlot(Transform root, string name1, string name2 = null, string name3 = null, string name4 = null, TextSlot skip = default, TextSlot skip2 = default, TextSlot skip3 = default, TextSlot skip4 = default, TextSlot skip5 = default)
-    {
-        var names = new[] { name1, name2, name3, name4 }.Where(n => !string.IsNullOrWhiteSpace(n)).ToArray();
-        return FindTextSlot(root, names, skip, skip2, skip3, skip4, skip5);
-    }
-
-    private static TextSlot FindTextSlot(Transform root, string[] names, TextSlot skip, TextSlot skip2, TextSlot skip3, TextSlot skip4, TextSlot skip5)
+    private static TextSlot FindTextSlot(Transform root, string name1, string name2 = null, string name3 = null, string name4 = null)
     {
         if (root == null)
             return default;
 
+        var names = new[] { name1, name2, name3, name4 }.Where(n => !string.IsNullOrWhiteSpace(n)).ToArray();
         for (var i = 0; i < names.Length; i++)
         {
             var child = FindDescendant(root, names[i]);
             var slot = TextSlot.From(child);
-            if (slot.IsValid && !slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3) && !slot.Equals(skip4) && !slot.Equals(skip5))
+            if (slot.IsValid)
                 return slot;
         }
 
@@ -1395,21 +1156,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (buttonObject == null)
             return default;
 
-        var slot = FindTextSlot(buttonObject.transform, "Text (TMP)", "Text", "Label", "TitleText");
-        if (!slot.IsValid)
-            slot = FindTextSlot(buttonObject.transform, "Item Label", "ButtonText", "Caption", "NameText");
-        return slot;
+        return FindTextSlot(buttonObject.transform, "Text (TMP)", "Text", "Label", "TitleText");
     }
 
     private static void SetText(TextSlot slot, string value)
     {
         slot.Set(value);
-    }
-
-    private static void SetActive(GameObject target, bool active)
-    {
-        if (target != null)
-            target.SetActive(active);
     }
 
     private readonly struct RewardViewData
@@ -1486,6 +1238,3 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 }
-
-
-

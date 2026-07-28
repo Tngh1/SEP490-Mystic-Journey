@@ -819,8 +819,8 @@ public class UIPartyPanel : MonoBehaviour
             string friendName = friend.DisplayName;
             btn.onClick.AddListener(() =>
             {
-                bool sent = PartyService.InviteByProfileId(profileId);
-                if (sent)
+                var result = PartyService.InviteByProfileId(profileId);
+                if (result == PartyService.InviteResult.Sent)
                 {
                     WorldRuntimeEvents.RaiseMessage($"Invited {friendName}.");
                     btnTxt.text = "SENT";
@@ -830,7 +830,15 @@ public class UIPartyPanel : MonoBehaviour
                 }
                 else
                 {
-                    WorldRuntimeEvents.RaiseMessage($"{friendName} is not online right now.");
+                    // Report the real reason: blaming the friend for a local connection
+                    // problem sent players hunting a bug on the wrong side.
+                    WorldRuntimeEvents.RaiseMessage(result switch
+                    {
+                        PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
+                        PartyService.InviteResult.PartyFull => "Your party is already full.",
+                        PartyService.InviteResult.PartyUnavailable => "Could not create the party. Try again.",
+                        _ => "You are not connected to the party service.",
+                    });
                 }
             });
         }

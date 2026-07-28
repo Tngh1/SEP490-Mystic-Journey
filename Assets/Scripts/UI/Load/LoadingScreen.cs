@@ -1,100 +1,48 @@
-﻿using System.Collections;
-using TMPro;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
-public sealed class LoadingScreen : MonoBehaviour
+/// <summary>
+/// Bật/tắt scene "Loading" cho các lần đổi scene lúc đang chơi (qua cổng map, vào/ra dungeon).
+/// Dùng lại đúng scene + <see cref="BootstrapLoadingUI"/> mà GameBootstrap đã dùng, nên không có
+/// UI riêng phải bảo trì; ở đây chỉ load additive rồi unload.
+/// </summary>
+public static class LoadingScreen
 {
-    [Header("UI References")]
-    [SerializeField] private Image progressFill;
-    [SerializeField] private TMP_Text loadingText;
-    [SerializeField] private TMP_Text tipText;
+    /// <summary>
+    /// Public để các vòng lặp "unload mọi scene lạ" (DungeonManager) biết mà chừa scene này ra —
+    /// nếu không nó unload luôn màn hình loading đang che, lộ scene trống.
+    /// </summary>
+    public const string SceneName = "Loading";
 
-    [Header("Scene Settings")]
-    [SerializeField] private string fallbackSceneName = "Abandoned  Castle";
-    [SerializeField] private float minimumLoadingTime = 0.6f;
+    /// <summary>Scene nội bộ có thể load xong trong 1-2 frame; giữ tối thiểu để không bị nháy.</summary>
+    private const float MinSeconds = 0.35f;
 
-    [Header("Tip Settings")]
-    [SerializeField] private LoadingTipDatabase tipDatabase;
+    private static float _shownAt;
 
-    private const float SceneLoadCompleteProgress = 0.9f;
-    private const string LoadingPrefix = "Đang tải dữ liệu trò chơi...";
-
-    private void Awake()
+    public static IEnumerator Show(string status = "Loading map...")
     {
-        SetProgress(0f);
-    }
+        LoadingProgress.Reset();
+        LoadingProgress.Report(0.05f, status);
+        _shownAt = Time.unscaledTime;
 
-    private void Start()
-    {
-        ShowRandomTip();
-
-        string targetScene = string.IsNullOrWhiteSpace(SceneLoader.TargetSceneName)
-            ? fallbackSceneName
-            : SceneLoader.TargetSceneName;
-
-        StartCoroutine(LoadSceneRoutine(targetScene));
-    }
-
-    private void ShowRandomTip()
-    {
-        if (tipText == null || tipDatabase == null)
-            return;
-
-        string tip = tipDatabase.GetRandomTip();
-
-        tipText.text = string.IsNullOrWhiteSpace(tip)
-            ? string.Empty
-            : $"Mẹo: {tip}";
-    }
-
-    private IEnumerator LoadSceneRoutine(string sceneName)
-    {
-        if (string.IsNullOrWhiteSpace(sceneName))
-        {
-            Debug.LogError("Scene name is empty.");
+        var scene = SceneManager.GetSceneByName(SceneName);
+        if (scene.IsValid() && scene.isLoaded)
             yield break;
-        }
 
-        float startTime = Time.unscaledTime;
-
-        AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
-
-        if (operation == null)
-        {
-            Debug.LogError($"Cannot load scene: {sceneName}");
-            yield break;
-        }
-
-        operation.allowSceneActivation = false;
-
-        while (operation.progress < SceneLoadCompleteProgress)
-        {
-            float normalizedProgress = Mathf.Clamp01(operation.progress / SceneLoadCompleteProgress);
-            SetProgress(normalizedProgress);
-            yield return null;
-        }
-
-        SetProgress(1f);
-
-        float elapsedTime = Time.unscaledTime - startTime;
-        float remainingTime = minimumLoadingTime - elapsedTime;
-
-        if (remainingTime > 0f)
-            yield return new WaitForSecondsRealtime(remainingTime);
-
-        operation.allowSceneActivation = true;
+        yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
     }
 
-    private void SetProgress(float value)
+    public static IEnumerator Hide()
     {
-        float progress = Mathf.Clamp01(value);
+        LoadingProgress.Report(1f, "Ready");
 
-        if (progressFill != null)
-            progressFill.fillAmount = progress;
+        float elapsed = Time.unscaledTime - _shownAt;
+        if (elapsed < MinSeconds)
+            yield return new WaitForSecondsRealtime(MinSeconds - elapsed);
 
-        if (loadingText != null)
-            loadingText.text = $"{LoadingPrefix} ({Mathf.RoundToInt(progress * 100f)}%)";
+        var scene = SceneManager.GetSceneByName(SceneName);
+        if (scene.IsValid() && scene.isLoaded)
+            yield return SceneManager.UnloadSceneAsync(scene);
     }
 }

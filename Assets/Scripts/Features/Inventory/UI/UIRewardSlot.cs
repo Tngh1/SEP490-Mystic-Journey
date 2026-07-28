@@ -3,7 +3,7 @@ using UnityEngine;
 public class UIRewardSlot : UIBaseItemSlot
 {
     [Header("Reward Specifics")]
-    [SerializeField] private GameObject claimedOverlay; // Màng ?en m? + Ch? "?ã nh?n"
+    [SerializeField] private GameObject claimedOverlay; // Mï¿½ng ?en m? + Ch? "?ï¿½ nh?n"
 
     public void SetupReward(UIItemDisplayData data)
     {
@@ -15,11 +15,39 @@ public class UIRewardSlot : UIBaseItemSlot
 
         base.SetupCore(data);
 
-        // Làm m? ô n?u ?ã nh?n ph?n th??ng này (Dùng cho Quest)
+        // Lï¿½m m? ï¿½ n?u ?ï¿½ nh?n ph?n th??ng nï¿½y (Dï¿½ng cho Quest)
         if (claimedOverlay != null)
         {
             claimedOverlay.SetActive(data.isClaimed);
         }
+    }
+
+    // Quest rewards carry a formatted amount string ("+500", "x1") instead of an int quantity,
+    // so set icon/name/amount directly rather than going through the "xN" quantity path.
+    public void SetupQuestReward(string rewardName, string amount, Sprite sprite, bool claimed)
+    {
+        BindCore();
+
+        RawData = null;
+
+        if (iconImage != null)
+        {
+            iconImage.sprite = sprite;
+            iconImage.enabled = sprite != null;
+            iconImage.preserveAspect = true;
+            iconImage.color = Color.white;
+        }
+
+        if (itemNameText != null)
+            itemNameText.text = rewardName ?? string.Empty;
+
+        if (quantityText != null)
+            quantityText.text = amount ?? string.Empty;
+
+        SetHighlight(false);
+
+        if (claimedOverlay != null)
+            claimedOverlay.SetActive(claimed);
     }
 
     public override void ClearSlot()

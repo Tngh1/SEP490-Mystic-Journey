@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ea375edf7a841947b2f355188726263, type: 3}
+  m_Name: DeadlyExplosion
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: 13
+  skillIcon: {fileID: 3965501406060407901, guid: cc6202d2209baa3419260e7fbbc624a9, type: 3}
+  skillPrefab: {fileID: 2120658464934084357, guid: dfeecc774a5336945bb3e29ff2b1cfbb, type: 3}
+  classRequirement: All

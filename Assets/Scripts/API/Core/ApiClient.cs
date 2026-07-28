@@ -3,6 +3,7 @@ using System.Collections;
 using System.Text;
 using MysticJourney.API.Models.Response;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -49,7 +50,8 @@ namespace MysticJourney.API.Core
             if (go.transform.parent != null)
                 go.transform.SetParent(null);
 
-            DontDestroyOnLoad(go);
+            if (Application.isPlaying)
+                DontDestroyOnLoad(go);
         }
 
         // ── Token Management ──────────────────────────────────────
@@ -101,95 +103,54 @@ namespace MysticJourney.API.Core
         // Gửi GET request và parse response thành kiểu T
         public void Get<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = false)
         {
-            StartCoroutine(GetCoroutine(endpoint, onSuccess, onError, requiresAuth));
-        }
-
-        private IEnumerator GetCoroutine<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
-        {
-            string url = ApiConfig.BaseUrl + endpoint;
-            Debug.Log($"[ApiClient] GET {url}");
-
-            using (var request = UnityWebRequest.Get(url))
-            {
-                SetCommonHeaders(request, requiresAuth);
-                request.timeout = ApiConfig.Timeout;
-                yield return request.SendWebRequest();
-                HandleResponse(request, onSuccess, onError);
-            }
+            StartCoroutine(SendCoroutine("GET", endpoint, null, onSuccess, onError, requiresAuth));
         }
 
         // Gửi POST request với JSON body và parse response thành kiểu T
         public void Post<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = false)
         {
-            StartCoroutine(PostCoroutine(endpoint, body, onSuccess, onError, requiresAuth));
+            StartCoroutine(SendCoroutine("POST", endpoint, Serialize(body), onSuccess, onError, requiresAuth));
         }
 
         // Gửi POST không có body (dùng cho logout, mark-as-read, claim reward...)
         public void PostEmpty<TResponse>(string endpoint, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = false)
         {
-            StartCoroutine(PostCoroutine<object, TResponse>(endpoint, null, onSuccess, onError, requiresAuth));
-        }
-
-        private IEnumerator PostCoroutine<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth)
-        {
-            string url = ApiConfig.BaseUrl + endpoint;
-            string jsonBody = body != null ? JsonConvert.SerializeObject(body) : "{}";
-            Debug.Log($"[ApiClient] POST {url}  body={jsonBody}");
-
-            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
-            using (var request = new UnityWebRequest(url, "POST"))
-            {
-                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.timeout = ApiConfig.Timeout;
-                SetCommonHeaders(request, requiresAuth);
-                yield return request.SendWebRequest();
-                HandleResponse<TResponse>(request, onSuccess, onError);
-            }
+            StartCoroutine(SendCoroutine("POST", endpoint, "{}", onSuccess, onError, requiresAuth));
         }
 
         // Gửi PUT request với JSON body và parse response thành kiểu T
         public void Put<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
-            StartCoroutine(PutCoroutine(endpoint, body, onSuccess, onError, requiresAuth));
-        }
-
-        private IEnumerator PutCoroutine<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth)
-        {
-            string url = ApiConfig.BaseUrl + endpoint;
-            string jsonBody = body != null ? JsonConvert.SerializeObject(body) : "{}";
-            Debug.Log($"[ApiClient] PUT {url}  body={jsonBody}");
-
-            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
-            using (var request = new UnityWebRequest(url, "PUT"))
-            {
-                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.timeout = ApiConfig.Timeout;
-                SetCommonHeaders(request, requiresAuth);
-                yield return request.SendWebRequest();
-                HandleResponse<TResponse>(request, onSuccess, onError);
-            }
+            StartCoroutine(SendCoroutine("PUT", endpoint, Serialize(body), onSuccess, onError, requiresAuth));
         }
 
         // Gửi DELETE request và parse response thành kiểu T
         public void Delete<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
-            StartCoroutine(DeleteCoroutine(endpoint, onSuccess, onError, requiresAuth));
+            StartCoroutine(SendCoroutine("DELETE", endpoint, null, onSuccess, onError, requiresAuth));
         }
 
-        private IEnumerator DeleteCoroutine<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
+        private static string Serialize<T>(T body)
+        {
+            return body != null ? JsonConvert.SerializeObject(body) : "{}";
+        }
+
+        // Một coroutine dùng chung cho mọi verb; jsonBody == null nghĩa là không gửi body
+        private IEnumerator SendCoroutine<T>(string method, string endpoint, string jsonBody, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
         {
             string url = ApiConfig.BaseUrl + endpoint;
-            Debug.Log($"[ApiClient] DELETE {url}");
+            // Không log body: request đăng nhập/đăng ký chứa mật khẩu, Player log là plaintext
+            Debug.Log($"[ApiClient] {method} {url}");
 
-            using (var request = UnityWebRequest.Delete(url))
+            using (var request = new UnityWebRequest(url, method))
             {
+                if (jsonBody != null)
+                    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.timeout = ApiConfig.Timeout;
                 SetCommonHeaders(request, requiresAuth);
                 yield return request.SendWebRequest();
-                HandleResponse<T>(request, onSuccess, onError);
+                HandleResponse(request, onSuccess, onError);
             }
         }
 
@@ -271,38 +232,34 @@ namespace MysticJourney.API.Core
                 return;
             }
 
-            // Thành công HTTP nhưng BE có thể trả về { success: false } trong body
-            // Parse envelope để kiểm tra success
+            // Thành công HTTP nhưng BE có thể trả về { success: false } trong body.
+            // Parse JSON đúng 1 lần rồi dùng chung cho cả việc check success và unwrap data.
+            T result = default;
             try
             {
-                var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);
-                
-                // Nếu BE trả về envelope với success: false → gọi onError
-                // Chỉ check khi thực sự có trường success trong JSON (để tránh lỗi với các response dạng {"message":"ok"})
-                if (envelope != null && !envelope.Success && (rawBody.Contains("\"success\"") || rawBody.Contains("\"Success\"")))
+                var json = string.IsNullOrWhiteSpace(rawBody) ? null : JToken.Parse(rawBody);
+                var envelope = json as JObject;
+                var successToken = envelope?.Property("success", StringComparison.OrdinalIgnoreCase)?.Value;
+                bool isEnvelope = successToken != null && successToken.Type == JTokenType.Boolean;
+
+                // BE trả về envelope với success: false → gọi onError
+                if (isEnvelope && !successToken.Value<bool>())
                 {
-                    Debug.LogWarning($"[ApiClient] ⚠️ BE returned success=false | ErrorCode={envelope.ErrorCode} | Message={envelope.Message}");
-                    
+                    string errCode = ReadString(envelope, "errorCode") ?? "BUSINESS_ERROR";
+                    string errText = ReadString(envelope, "message") ?? "Request failed";
+                    Debug.LogWarning($"[ApiClient] ⚠️ BE returned success=false | ErrorCode={errCode} | Message={errText}");
+
                     onError?.Invoke(new ApiException
                     {
                         StatusCode = request.responseCode,
-                        ErrorCode = envelope.ErrorCode ?? "BUSINESS_ERROR",
-                        Message = envelope.Message ?? "Request failed",
+                        ErrorCode = errCode,
+                        Message = errText,
                         RawBody = rawBody
                     });
                     return;
                 }
-            }
-            catch
-            {
-                // Body không phải envelope hợp lệ, tiếp tục parse bình thường
-            }
 
-            // Parse thành công → deserialize JSON thành kiểu T
-            T result = default;
-            try
-            {
-                result = UnwrapEnvelope<T>(rawBody);
+                result = UnwrapEnvelope<T>(json, envelope, isEnvelope);
                 Debug.Log($"[ApiClient] ✅ {request.responseCode} OK | type={typeof(T).Name}");
             }
             catch (Exception ex)
@@ -325,43 +282,37 @@ namespace MysticJourney.API.Core
             onSuccess?.Invoke(result);
         }
 
-        // Unwrap envelope ApiResponse<T> { success, message, errorCode, data }
-        // Trả về .Data nếu là envelope, ngược lại parse trực tiếp
-        private static T UnwrapEnvelope<T>(string rawBody)
+        private static string ReadString(JObject obj, string name)
         {
+            var value = obj?.Property(name, StringComparison.OrdinalIgnoreCase)?.Value;
+            return value == null || value.Type == JTokenType.Null ? null : value.ToString();
+        }
+
+        // Unwrap envelope ApiResponse<T> { success, message, errorCode, data }
+        // Trả về .data nếu là envelope, ngược lại parse trực tiếp từ JSON đã parse sẵn
+        private static T UnwrapEnvelope<T>(JToken json, JObject envelope, bool isEnvelope)
+        {
+            if (json == null)
+                return default;
+
             var targetType = typeof(T);
-            
-            // Nếu T là ApiResponse<> → parse trực tiếp
-            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>))
+
+            // Nếu T là ApiResponse<> hoặc SimpleResponse → map trực tiếp cả envelope
+            if ((targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>)) ||
+                targetType == typeof(SimpleResponse))
             {
-                Debug.Log($"[ApiClient] RAW JSON for {targetType.Name}: {rawBody}");
-                return JsonConvert.DeserializeObject<T>(rawBody);
+                return json.ToObject<T>();
             }
 
-            // Thử parse envelope trước
-            try
+            if (isEnvelope)
             {
-                var envelope = JsonConvert.DeserializeObject<ApiResponse<object>>(rawBody);
-                if (envelope != null && envelope.Success && envelope.Data != null)
-                {
-                    // Re-serialize Data rồi deserialize sang T để unwrap
-                    string dataJson = JsonConvert.SerializeObject(envelope.Data);
-                    Debug.Log($"[ApiClient] UNWRAPPED JSON for {targetType.Name}: {dataJson}");
-                    return JsonConvert.DeserializeObject<T>(dataJson);
-                }
-                else
-                {
-                    Debug.LogWarning($"[ApiClient] ENVELOPE FAILED OR DATA NULL. Raw: {rawBody}");
-                }
+                var data = envelope.Property("data", StringComparison.OrdinalIgnoreCase)?.Value;
+                if (data != null && data.Type != JTokenType.Null)
+                    return data.ToObject<T>();
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[ApiClient] Envelope parse error: {ex.Message}");
-            }
-            
-            Debug.Log($"[ApiClient] FALLBACK JSON for {targetType.Name}: {rawBody}");
-            // Parse trực tiếp nếu không có envelope
-            return JsonConvert.DeserializeObject<T>(rawBody);
+
+            return json.ToObject<T>();
         }
+
     }
 }

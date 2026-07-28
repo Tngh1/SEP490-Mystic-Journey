@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Fusion;
+using MysticJourney.API.Models.Response;
 using UnityEngine;
 
 /// <summary>
@@ -37,10 +38,17 @@ public class PlayerPresence : NetworkBehaviour
 
     /// <summary>
     /// Raised on the INVITED client when a host sends a party invite. Args: inviter
-    /// <see cref="PlayerRef"/>, inviter profile id, inviter display name. The invite
-    /// popup UI subscribes to this — no business logic lives in the UI itself.
+    /// profile id, inviter display name. The invite popup UI subscribes to this — no
+    /// business logic lives in the UI itself.
     /// </summary>
-    public static event Action<PlayerRef, int, string> OnInviteReceived;
+    public static event Action<int, string> OnInviteReceived;
+
+    /// <summary>
+    /// Raised on EVERY client when a world-chat message arrives over Fusion. Static
+    /// because the message travels on the sender's presence, so each listener would
+    /// otherwise have to subscribe to every peer's object.
+    /// </summary>
+    public static event Action<WorldChatMessageResponse> OnWorldMessageReceived;
 
     [Networked, OnChangedRender(nameof(OnProfileIdChanged))]
     public int ProfileId { get; set; }
@@ -71,14 +79,53 @@ public class PlayerPresence : NetworkBehaviour
     private void OnProfileIdChanged() => RegisterSelf();
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Identity
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Copy the local player's identity from <see cref="WorldState"/> onto the networked
+    /// fields. Callable at any time (not just from the Spawn initializer): the presence is
+    /// spawned during Main-scene bootstrap while PlayerSpawner is still hydrating WorldState
+    /// from the API, so a spawn-only write froze whatever was known at boot — usually
+    /// profile id 0 (unreachable for invites) and a stale class / level 1 in the roster.
+    /// No-op unless this client owns the object.
+    /// </summary>
+    public void ApplyWorldState()
+    {
+        if (!HasStateAuthority) return;
+
+        string className = WorldState.PlayerClass ?? "Knight";
+        if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
+            parsed = CharacterClass.Knight;
+
+        // Never overwrite a good profile id with 0: RegisterSelf ignores non-positive ids,
+        // which would leave a stale registry entry pointing at this presence.
+        if (WorldState.PlayerProfileId > 0) ProfileId = WorldState.PlayerProfileId;
+        DisplayName = WorldState.PlayerName ?? "Player";
+        PlayerClass = (int)parsed;
+        Level = Mathf.Max(1, WorldState.PlayerLevel);
+
+        // Register explicitly rather than relying on OnProfileIdChanged: a presence that
+        // spawned before the profile id was known must land in the registry the moment it
+        // arrives, or the local player stays invisible to inviters.
+        RegisterSelf();
+    }
+
+    /// <summary>Re-publish the local presence's identity. Safe no-op when offline.</summary>
+    public static void RefreshLocal() => Local?.ApplyWorldState();
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Registry
     // ─────────────────────────────────────────────────────────────────────────
 
     private void RegisterSelf()
     {
         if (ProfileId <= 0) return;
-        if (_registry.TryGetValue(ProfileId, out var existing) && existing != null && existing != this)
-            return; // first valid presence for this profile wins
+
+        // LAST valid presence for this profile wins. On a fast reconnect the remote
+        // peers can still hold the previous (about-to-despawn) proxy for this profile;
+        // a first-wins rule would reject the live presence and, with no retry, leave
+        // the reconnected player permanently unreachable for invites.
         _registry[ProfileId] = this;
     }
 
@@ -103,6 +150,21 @@ public class PlayerPresence : NetworkBehaviour
         return p;
     }
 
+    /// <summary>
+    /// Look up the presence owned by a given peer, or null if that peer has none.
+    /// Used to attribute an incoming RPC to a real player instead of trusting the
+    /// identity the sender put in the payload.
+    /// </summary>
+    public static PlayerPresence FindByPlayer(PlayerRef player)
+    {
+        foreach (var p in _registry.Values)
+        {
+            if (p == null || p.Object == null) continue;
+            if (p.Object.InputAuthority == player) return p;
+        }
+        return null;
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Invite mailbox
     // ─────────────────────────────────────────────────────────────────────────
@@ -113,8 +175,76 @@ public class PlayerPresence : NetworkBehaviour
     /// <see cref="OnInviteReceived"/> for the popup UI to render Accept / Decline.
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.InputAuthority)]
-    public void RPC_ReceiveInvite(PlayerRef inviter, int inviterProfileId, NetworkString<_32> inviterName)
+    public void RPC_ReceiveInvite(int inviterProfileId, NetworkString<_32> inviterName)
     {
-        OnInviteReceived?.Invoke(inviter, inviterProfileId, inviterName.Value);
+        OnInviteReceived?.Invoke(inviterProfileId, inviterName.Value);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // World chat relay
+    //
+    // World chat rides the presence object instead of a separate networked relay:
+    // presence is already spawned per player in the social room, already carries the
+    // identity the chat list needs, and — because a player can only send on the object
+    // it owns (RpcSources.InputAuthority) — the sender cannot be forged at all.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Minimum seconds between two accepted messages from the same player.</summary>
+    private const float MinChatInterval = 0.5f;
+
+    /// <summary>Must match the NetworkString width used by <see cref="RPC_WorldMessage"/>.</summary>
+    private const int MaxChatChars = 256;
+
+    private float _lastChatAccepted = float.NegativeInfinity;
+
+    /// <summary>True when a world-chat message can actually be relayed over Photon.</summary>
+    public static bool WorldChatReady =>
+        Local != null && Local.Runner != null && Local.Runner.IsRunning;
+
+    /// <summary>
+    /// Relay a freshly-sent world message to everyone in the social room. Returns false
+    /// when offline, in which case callers keep their HTTP history polling fallback.
+    /// </summary>
+    public static bool BroadcastWorldMessage(WorldChatMessageResponse message)
+    {
+        if (message == null || message.ChatMessageId <= 0) return false;
+        if (!WorldChatReady) return false;
+
+        string body = message.Content ?? string.Empty;
+        if (body.Length > MaxChatChars) body = body.Substring(0, MaxChatChars);
+
+        Local.RPC_WorldMessage(message.ChatMessageId, body);
+        return true;
+    }
+
+    /// <summary>
+    /// Sent by a player ON ITS OWN presence and received by every peer. Sender identity
+    /// is read from this object's networked fields, never from the payload.
+    /// </summary>
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    public void RPC_WorldMessage(int chatMessageId, NetworkString<_256> content)
+    {
+        string body = content.ToString();
+        if (chatMessageId <= 0 || string.IsNullOrWhiteSpace(body)) return;
+
+        // Flood guard: the send cooldown lives in the UI, so a modified client could
+        // otherwise push a message every tick to every peer in the room.
+        float now = Time.unscaledTime;
+        if (now - _lastChatAccepted < MinChatInterval) return;
+        _lastChatAccepted = now;
+
+        OnWorldMessageReceived?.Invoke(new WorldChatMessageResponse
+        {
+            ChatMessageId = chatMessageId,
+            SenderId = ProfileId,
+            SenderName = DisplayName.ToString(),
+            Channel = "World",
+            Content = body,
+            // A just-sent message is never reported or hidden; the server owns both, and
+            // trusting the sender for them let a client hide/flag other players' text.
+            IsReported = false,
+            IsHidden = false,
+            SentAt = DateTime.UtcNow.ToString("o")
+        });
     }
 }

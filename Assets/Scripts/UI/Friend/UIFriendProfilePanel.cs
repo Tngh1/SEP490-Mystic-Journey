@@ -24,6 +24,19 @@ namespace UI.Friend
         [SerializeField] private TMP_Text friendsCountText;
         [SerializeField] private Button closeButton;
 
+        [Header("Class Art")]
+        [Tooltip("Cờ lớn bên ngoài panel (PlayerProfilePanel/ClassDeco).")]
+        [SerializeField] private Image classDecoImage;
+        [Tooltip("Huy hiệu class nhỏ (LeftPanel/Bg_Class/Deco/ClassIcon).")]
+        [SerializeField] private Image classIconImage;
+        // Sprite gán tay: 6 file này nằm ngoài Assets/Resources nên không Resources.Load được.
+        [SerializeField] private Sprite knightFlag;
+        [SerializeField] private Sprite mageFlag;
+        [SerializeField] private Sprite archerFlag;
+        [SerializeField] private Sprite knightIcon;
+        [SerializeField] private Sprite mageIcon;
+        [SerializeField] private Sprite archerIcon;
+
         [Header("Avatar & Name Edit")]
         [SerializeField] private Button editAvatarButton;
         [SerializeField] private UIAvatarSelectionPanel avatarSelectionPanel;
@@ -68,18 +81,12 @@ namespace UI.Friend
         
         private void Awake()
         {
-            if (classText == null)
-                classText = transform.Find("LeftPanel/Bg_Class/classText")?.GetComponent<TMP_Text>();
-
             BindCloseButtons();
             AddHoverEffects();
         }
 
         private void Start()
         {
-            BindCloseButtons();
-            AddHoverEffects();
-
             if (viewAchievementListButton != null)
                 viewAchievementListButton.onClick.AddListener(ShowAchievementListView);
 
@@ -180,7 +187,9 @@ namespace UI.Friend
         {
             if (nameText != null) nameText.text = profile.CharacterName;
             if (levelText != null) levelText.text = $"Level {profile.Level}";
-            if (classText != null) classText.text = string.IsNullOrEmpty(profile.Class) ? "Warrior" : profile.Class;
+            string className = string.IsNullOrEmpty(profile.Class) ? "Knight" : profile.Class;
+            if (classText != null) classText.text = className;
+            ApplyClassArt(className);
             if (guildText != null) guildText.text = $"Guild: {profile.Guild}";
             if (titleText != null) titleText.text = $"Title: {profile.Title}";
 
@@ -195,6 +204,27 @@ namespace UI.Friend
             // Achievement List button: hiện khi đang xem profile của chính mình.
             if (viewAchievementListButton != null)
                 viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile);
+        }
+
+        /// <summary>Đổi cờ lớn + huy hiệu nhỏ theo class. BE trả về string nên so sánh không phân biệt hoa/thường, không khớp thì về Knight.</summary>
+        private void ApplyClassArt(string className)
+        {
+            Sprite flag = knightFlag;
+            Sprite icon = knightIcon;
+
+            if (string.Equals(className, "Mage", StringComparison.OrdinalIgnoreCase))
+            {
+                flag = mageFlag;
+                icon = mageIcon;
+            }
+            else if (string.Equals(className, "Archer", StringComparison.OrdinalIgnoreCase))
+            {
+                flag = archerFlag;
+                icon = archerIcon;
+            }
+
+            if (classDecoImage != null && flag != null) classDecoImage.sprite = flag;
+            if (classIconImage != null && icon != null) classIconImage.sprite = icon;
         }
 
         private void OpenNameChangePanel()

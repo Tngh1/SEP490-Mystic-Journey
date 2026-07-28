@@ -79,6 +79,11 @@ public class MainMapPanelRuntime : MonoBehaviour
     {
         SyncMinimapBackground();
 
+        // The panel shows the whole level, not the player's surroundings, so the
+        // shared minimap camera zooms out to frame everything while it is open.
+        if (MinimapCameraController.Instance != null)
+            MinimapCameraController.Instance.ShowFullMap();
+
         WorldRuntimeEvents.MapCompleted += OnQuestClaimedCheckMapUnlock;
         WorldRuntimeEvents.QuestsChanged += OnQuestsChanged;
         WorldRuntimeEvents.MapChanged += OnMapChanged;
@@ -95,6 +100,10 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void OnDisable()
     {
+        // Hand the camera back to the HUD minimap, otherwise it stays zoomed out.
+        if (MinimapCameraController.Instance != null)
+            MinimapCameraController.Instance.ShowMinimap();
+
         WorldRuntimeEvents.MapCompleted -= OnQuestClaimedCheckMapUnlock;
         WorldRuntimeEvents.QuestsChanged -= OnQuestsChanged;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;

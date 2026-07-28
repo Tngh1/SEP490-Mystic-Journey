@@ -25,7 +25,7 @@ using UnityEngine.AI;
 /// Spawned() never fires, so EnemyEntity behaves exactly as before.
 /// </summary>
 [RequireComponent(typeof(EnemyEntity))]
-public class NetworkEnemy : NetworkBehaviour
+public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
 {
     // Authoritative, replicated state. Written only by the StateAuthority.
     [Networked] public int CurrentHp { get; set; }
@@ -69,13 +69,38 @@ public class NetworkEnemy : NetworkBehaviour
             CurrentHp = _entity.CurrentHealth > 0 ? _entity.CurrentHealth : MaxHp;
             IsAlive = true;
         }
-        else
+
+        ApplyAuthorityRole();
+    }
+
+    /// <summary>
+    /// Fusion hands StateAuthority over this enemy to another client when the
+    /// previous authority leaves the session. Without re-running the AI enable/disable
+    /// here, the enemy kept its proxy setup on the new authority — EnemyBehaviour and
+    /// the NavMeshAgent stayed disabled and every enemy froze in place for the rest of
+    /// the run.
+    /// </summary>
+    public void StateAuthorityChanged()
+    {
+        if (HasStateAuthority)
         {
-            // Proxy: AI + navmesh are authority-only. Disable them so this client
-            // does not fight the replicated NetworkTransform position.
-            if (_behaviour != null) _behaviour.enabled = false;
-            if (_agent != null) _agent.enabled = false;
+            // Adopt whatever the replicated state says so the fresh authority does not
+            // publish a stale/default HP on its first tick.
+            _entity.SyncNetworkedHealth(CurrentHp, MaxHp);
         }
+
+        ApplyAuthorityRole();
+    }
+
+    /// <summary>
+    /// AI + navmesh run on the StateAuthority only; proxies take position from
+    /// NetworkTransform instead, so local AI there would fight the replication.
+    /// </summary>
+    private void ApplyAuthorityRole()
+    {
+        bool authority = HasStateAuthority;
+        if (_behaviour != null) _behaviour.enabled = authority;
+        if (_agent != null) _agent.enabled = authority;
     }
 
     public override void FixedUpdateNetwork()
@@ -85,9 +110,17 @@ public class NetworkEnemy : NetworkBehaviour
         // Copy the authority's local EnemyEntity HP into the networked mirror so
         // it replicates to every proxy. EnemyEntity remains the source of truth on
         // the authority; we just publish it.
-        MaxHp = Mathf.Max(1, _entity.MaxHealth);
-        CurrentHp = Mathf.Max(0, _entity.CurrentHealth);
-        IsAlive = !_entity.IsDead;
+        //
+        // Only write on change: assigning a [Networked] property marks it dirty even
+        // when the value is identical, so the old unconditional writes re-sent HP for
+        // every enemy every tick (idle enemies included).
+        int maxHp = Mathf.Max(1, _entity.MaxHealth);
+        int currentHp = Mathf.Max(0, _entity.CurrentHealth);
+        bool alive = !_entity.IsDead;
+
+        if (MaxHp != maxHp) MaxHp = maxHp;
+        if (CurrentHp != currentHp) CurrentHp = currentHp;
+        if (IsAlive != alive) IsAlive = alive;
     }
 
     public override void Render()

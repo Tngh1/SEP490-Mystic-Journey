@@ -39,7 +39,11 @@ namespace MysticJourney.API.Core
         public const string AuthLogin = "/api/auth/login";
         public const string AuthMe = "/api/auth/me";
         public const string AuthLogout = "/api/auth/logout";
-        public const string AuthRefreshToken = "/api/auth/refresh-token";
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // PLAYER CONTROLLER - Trạng thái online
+        // ═══════════════════════════════════════════════════════════════════════
+        public const string PlayerHeartbeat = "/api/player/heartbeat";
 
         // ═══════════════════════════════════════════════════════════════════════
         // CHARACTERS CONTROLLER - Nhân vật của người chơi
@@ -47,7 +51,6 @@ namespace MysticJourney.API.Core
         public const string CharacterCreate = "/api/characters";
         public const string CharacterStats = "/api/characters/stats";
         public const string CharacterHp = "/api/characters/hp";
-        public const string CharacterUpgrade = "/api/characters/upgrade";
         public const string CharacterBuffs = "/api/characters/buffs";
         public const string CharacterLevelUpOptions = "/api/characters/level-up-options";
         public const string CharacterAllocateStat = "/api/characters/allocate-stat";
@@ -56,14 +59,12 @@ namespace MysticJourney.API.Core
         // INVENTORY CONTROLLER - Hành trang
         // ═══════════════════════════════════════════════════════════════════════
         public const string InventoryMe = "/api/inventory/me";
-        public const string InventoryMeFull = "/api/inventory/me/full";
         public const string InventoryEquip = "/api/inventory/equip-item";
         public const string InventoryUnequip = "/api/inventory/unequip-item";
         public const string InventoryConsume = "/api/inventory/consume-item";
 
-        // CURRENCY CONTROLLER - Player gold/gems balance and spending
+        // CURRENCY CONTROLLER - Player gold/gems balance
         public const string CurrencyBalance = "/api/currencies/me/balance";
-        public const string CurrencySpend = "/api/currencies/spend";
 
         // ═══════════════════════════════════════════════════════════════════════
         // GUILDS CONTROLLER - Hệ thống Bang hội v3
@@ -92,10 +93,9 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER PROFILES CONTROLLER - Hồ sơ người chơi
         // ═══════════════════════════════════════════════════════════════════════
+        // Dùng cho cả GET (lấy profile) và PUT (cập nhật profile)
         public const string PlayerProfileById = "/api/playerprofiles/{0}";
-        public const string PlayerProfileUpdate = "/api/playerprofiles/{0}";
         public const string PlayerProfileChangeName = "/api/playerprofiles/change-name";
-        public const string PlayerProfileMe = "/api/playerprofiles/me";
         public const string PlayerProfileMeFriends = "/api/playerprofiles/me/friends";
 
         // Friend API
@@ -117,8 +117,8 @@ namespace MysticJourney.API.Core
         public const string PlayerSkillsMe = "/api/player-skills/me";
         public const string PlayerSkillsUpgrade = "/api/player-skills/upgrade";
         public const string PlayerSkillsEquip = "/api/player-skills/equip";
-        public const string PlayerSkillsUnlock = "/api/player-skills/unlock";
         public const string PlayerSkillsDismantle = "/api/player-skills/dismantle";
+        public const string PlayerSkillsRecordCast = "/api/player-skills/record-cast/{0}";
 
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER QUESTS CONTROLLER - Nhiệm vụ của người chơi
@@ -139,23 +139,16 @@ namespace MysticJourney.API.Core
         public const string DungeonSessionProgress = "/api/dungeons/session/{0}/progress";
         public const string DungeonSessionComplete = "/api/dungeons/session/{0}/complete";
         public const string DungeonSessionClaimReward = "/api/dungeons/session/{0}/claim-reward";
-        public const string DungeonSessionAbandon = "/api/dungeons/session/{0}/abandon";
-        public const string DungeonSessionActive = "/api/dungeons/session/active";
-        public const string DungeonHistory = "/api/dungeons/history";
 
         // ═══════════════════════════════════════════════════════════════════════
         // MONSTERS CONTROLLER - Quái vật và Spawns
         // ═══════════════════════════════════════════════════════════════════════
-        public const string MonsterAll = "/api/monsters";
         public const string MonsterById = "/api/monsters/{0}";
         public const string MonsterByIdForPlayer = "/api/monsters/{0}/me";
         public const string MonsterCatalogForPlayer = "/api/monsters/me/catalog";
         public const string MonsterSpawns = "/api/monsters/spawns";
-        public const string MonsterDrops = "/api/monsters/drops";
         public const string MonsterDiscover = "/api/monsters/{0}/discover";
         public const string MonsterDefeat = "/api/monsters/{0}/defeat";
-        public const string MonsterSpawnsById = "/api/monsters/{0}/spawns";
-        public const string MonsterCreateSpawn = "/api/monsters/spawns";
 
         // ═══════════════════════════════════════════════════════════════════════
         // WORLD CONTROLLER - Thế giới game
@@ -164,52 +157,31 @@ namespace MysticJourney.API.Core
         public const string WorldPosition = "/api/world/position";
         public const string WorldNpcTalk = "/api/world/npc/talk";
         public const string WorldNpcTurnIn = "/api/world/npc/turn-in";
-        public const string WorldChestOpen = "/api/world/chests/open";
         public const string WorldInteract = "/api/world/interactions";
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";
         public const string WorldDailyLoginRetroClaim = "/api/world/daily-login/retro-claim";
 
         public const string ChatWorldMessages = "/api/chat/world/messages";
-        public const string ChatWorldHistory = "/api/chat/world/history";
         public const string ChatWorldSend = "/api/chat/world/send";
         public const string ChatWorldReport = "/api/chat/world/report";
         public const string ChatFriendMessages = "/api/chat/friend/messages";
-        public const string ChatFriendHistory = "/api/chat/friend/history";
         public const string ChatFriendSend = "/api/chat/friend/send";
         public const string ChatFriendReport = "/api/chat/friend/report";
 
         // ═══════════════════════════════════════════════════════════════════════
         // QUESTS CONTROLLER - Catalog nhiệm vụ
         // ═══════════════════════════════════════════════════════════════════════
-        public const string QuestAll = "/api/quests";
         public const string QuestById = "/api/quests/{0}";
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // ITEMS CONTROLLER - Catalog vật phẩm
-        // ═══════════════════════════════════════════════════════════════════════
-        public const string ItemAll = "/api/items";
-        public const string ItemById = "/api/items/{0}";
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // SKILLS CONTROLLER - Catalog kỹ năng
-        // ═══════════════════════════════════════════════════════════════════════
-        public const string SkillAll = "/api/skills";
-        public const string SkillById = "/api/skills/{0}";
 
         // ═══════════════════════════════════════════════════════════════════════
         // ACHIEVEMENTS CONTROLLER - Thành tựu
         // ═══════════════════════════════════════════════════════════════════════
         public const string AchievementAll = "/api/achievements";
-        public const string AchievementById = "/api/achievements/{0}";
         public const string AchievementMe = "/api/achievements/me";
-        public const string AchievementUnlockMe = "/api/achievements/me/{0}/unlock";
 
         // ═══════════════════════════════════════════════════════════════════════
         // SHOP ITEMS CONTROLLER - Vật phẩm cửa hàng
         // ═══════════════════════════════════════════════════════════════════════
-        public const string ShopItemAll = "/api/shopitems";
-        public const string ShopItemById = "/api/shopitems/{0}";
-        public const string PlayerShopItems = "/api/shop/items";
         public const string PlayerShopFixed = "/api/shop/fixed";
         public const string PlayerShopDailyDeals = "/api/shop/daily-deals";
         public const string PlayerShopRefreshStatus = "/api/shop/daily-deals/refresh-status";
@@ -219,27 +191,21 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         // GACHA BANNERS CONTROLLER - Banner gacha/quay thưởng
         // ═══════════════════════════════════════════════════════════════════════
-        public const string GachaAll = "/api/gachabanners";
         public const string GachaById = "/api/gachabanners/{0}";
-        public const string GachaItemsPaged = "/api/gachabanners/items-paged";
-        public const string GachaAddItem = "/api/gachabanners/{0}/items";
         public const string GachaPull = "/api/gachabanners/{0}/pull";
         public const string GachaHistory = "/api/gachabanners/history";
 
         // ═══════════════════════════════════════════════════════════════════════
-        // MAILS CONTROLLER - Thư
+        // MAILBOXES CONTROLLER - Thư
         // ═══════════════════════════════════════════════════════════════════════
-        public const string MailMe = "/api/mails/me";
-        public const string MailById = "/api/mails/{0}";
-        public const string MailRead = "/api/mails/{0}/read";
-        public const string MailClaim = "/api/mails/{0}/claim";
-        public const string MailByIds = "/api/mails/by-ids";
-        public const string MailBroadcast = "/api/mails/broadcast";
+        public const string MailMe = "/api/mailboxes/me";
+        public const string MailById = "/api/mailboxes/{0}";
+        public const string MailRead = "/api/mailboxes/{0}/read";
+        public const string MailClaim = "/api/mailboxes/{0}/claim";
 
         // ═══════════════════════════════════════════════════════════════════════
         // DAILY LOGIN REWARDS CONTROLLER - Thưởng đăng nhập hàng ngày
         // ═══════════════════════════════════════════════════════════════════════
-        public const string DailyLoginRewardAll = "/api/dailyloginrewards";
         public const string DailyLoginRewardCurrentMonth = "/api/dailyloginrewards/current-month";
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -247,13 +213,6 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         public const string SkinEquip = "/api/skins/equip";
         public const string SkinUnequip = "/api/skins/unequip";
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // GAME SETTINGS CONTROLLER - Cài đặt game
-        // ═══════════════════════════════════════════════════════════════════════
-        public const string GameSettingAll = "/api/gamesettings";
-        public const string GameSettingById = "/api/gamesettings/{0}";
-        public const string GameSettingByKey = "/api/gamesettings/key/{0}";
 
     }
 }

@@ -115,50 +115,6 @@ namespace MysticJourney.API.Endpoints
                 onError, requiresAuth: true);
         }
 
-        // ── Mở rương theo chestId ───────────────────
-        public void OpenChestByChestId(int chestId, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
-            => OpenChest(new OpenWorldChestRequest { ChestId = chestId }, onSuccess, onError);
-
-        // ── Mở rương theo playerChestId ─────────────
-        public void OpenChestByPlayerChestId(int playerChestId, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
-            => OpenChest(new OpenWorldChestRequest { PlayerChestId = playerChestId }, onSuccess, onError);
-
-        // ── Nhận thưởng đăng nhập hàng ngày ─────────
-        public void ClaimDailyLoginReward(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
-        {
-            ApiClient.Instance.PostEmpty<ClaimDailyRewardResponse>(
-                ApiConfig.WorldDailyLoginClaim,
-                response => onSuccess?.Invoke(response),
-                onError, requiresAuth: true);
-        }
-
-        // ── Nhận thưởng đăng nhập trễ (retro) ──────
-        public void ClaimRetroDailyLoginReward(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
-        {
-            ApiClient.Instance.PostEmpty<ClaimDailyRewardResponse>(
-                ApiConfig.WorldDailyLoginRetroClaim,
-                response => onSuccess?.Invoke(response),
-                onError, requiresAuth: true);
-        }
-
-        // ── Kiểm tra trạng thái đăng nhập ───────────
-        public void GetDailyLoginStatus(Action<PlayerDailyLoginResponse> onSuccess, Action<ApiException> onError)
-        {
-            ApiClient.Instance.Get<PlayerDailyLoginResponse>(
-                ApiConfig.DailyLoginRewardCurrentMonth,
-                response => onSuccess?.Invoke(response),
-                onError, requiresAuth: true);
-        }
-
-        // ── Private: Mở rương ────────────────────────
-        private void OpenChest(OpenWorldChestRequest body, Action<OpenChestResponse> onSuccess, Action<ApiException> onError)
-        {
-            ApiClient.Instance.Post<OpenWorldChestRequest, OpenChestResponse>(
-                ApiConfig.WorldChestOpen, body,
-                response => onSuccess?.Invoke(response),
-                onError, requiresAuth: true);
-        }
-
         // ── Private: Áp dụng vị trí world ────────────
         private static void ApplyWorldPosition(PlayerWorldPositionResponse position)
         {

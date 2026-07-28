@@ -6,62 +6,124 @@ using UnityEngine.UI;
 
 public class UIQuestListItem : MonoBehaviour
 {
+    public enum QuestTypeSlot
+    {
+        Kill,
+        Collect,
+        Talk,
+        Explore,
+    }
+
+    public static QuestTypeSlot MapObjectiveType(string objectiveType)
+    {
+        var normalized = string.IsNullOrWhiteSpace(objectiveType)
+            ? "explore"
+            : objectiveType.Trim().ToLowerInvariant();
+
+        switch (normalized)
+        {
+            case "defeat":
+            case "kill":
+                return QuestTypeSlot.Kill;
+            case "collect":
+            case "gather":
+            case "fetch":
+                return QuestTypeSlot.Collect;
+            case "talk":
+                return QuestTypeSlot.Talk;
+            default:
+                return QuestTypeSlot.Explore;
+        }
+    }
     [SerializeField] private Image background;
-    [SerializeField] private Image icon;
+    [SerializeField] private GameObject activeBackground;
     [SerializeField] private TMP_Text titleTMP;
-    [SerializeField] private TMP_Text statusTMP;
-    [SerializeField] private TMP_Text levelTMP;
-    [SerializeField] private TMP_Text progressTMP;
-    [SerializeField] private Text titleText;
-    [SerializeField] private Text statusText;
-    [SerializeField] private Text levelText;
-    [SerializeField] private Text progressText;
-    [SerializeField] private GameObject lockedGroup;
+    [SerializeField] private TMP_Text suggestLevelTMP;
+    [SerializeField] private GameObject lockIcon;
+    [SerializeField] private GameObject completeIcon;
     [SerializeField] private Button selectButton;
+
+    [Header("Type Icon (1 image, đổi sprite theo ObjectiveType)")]
+    [SerializeField] private Image typeImage;
+
+    [Header("Type Icons (sprite theo ObjectiveType)")]
+    [SerializeField] private Sprite killIcon;
+    [SerializeField] private Sprite collectIcon;
+    [SerializeField] private Sprite talkIcon;
+    [SerializeField] private Sprite exploreIcon;
+
+    [Header("Visual")]
+    [SerializeField] private Color activeColor = Color.white;
+    [SerializeField] private Color dimColor = new Color(1f, 1f, 1f, 0.25f);
+    [SerializeField] private Color suggestLevelLockedColor = new Color(1f, 0.15f, 0.15f, 1f);
 
     private PlayerQuestResponse quest;
     private Action<PlayerQuestResponse> onSelected;
     private Color defaultBackgroundColor;
     private bool hasDefaultBackgroundColor;
+    private Color suggestLevelNormalColor;
+    private bool hasSuggestLevelNormalColor;
 
     private void Awake()
     {
         Bind();
     }
 
-    public void Setup(PlayerQuestResponse data, bool selected, Action<PlayerQuestResponse> selectedCallback, Sprite iconSprite = null)
+    public void Setup(PlayerQuestResponse data, bool selected, Action<PlayerQuestResponse> selectedCallback)
     {
         Bind();
 
         quest = data;
         onSelected = selectedCallback;
 
-        SetText(titleTMP, titleText, data?.QuestTitle ?? "Unknown Quest");
-        
-        // Chỉ gán Status và Progress nếu chúng thực sự khác với title/level (tránh trùng lặp do fallback tự động)
-        if (statusTMP != titleTMP && statusTMP != levelTMP)
-            SetText(statusTMP, statusText, StatusLabel(data));
-            
-        SetText(levelTMP, levelText, data == null ? "Lv.?" : $"Lv.{data.RequiredLevel}");
-        
-        if (progressTMP != titleTMP && progressTMP != levelTMP && progressTMP != statusTMP)
-            SetText(progressTMP, progressText, data == null ? string.Empty : ProgressLabel(data));
+        if (titleTMP != null)
+            titleTMP.text = data?.QuestTitle ?? "Unknown Quest";
+
+        bool underLeveled = data != null && WorldState.PlayerLevel < data.RequiredLevel;
+
+        if (suggestLevelTMP != null)
+        {
+            suggestLevelTMP.text = data == null ? "Suggested: Level ?" : $"Suggested: Level {data.RequiredLevel}";
+            suggestLevelTMP.color = underLeveled ? suggestLevelLockedColor : suggestLevelNormalColor;
+        }
+
+        ApplyTypeIcon(data?.ObjectiveType);
 
         if (background != null)
-            background.color = selected ? new Color(1f, 1f, 1f, 1f) : defaultBackgroundColor;
+            background.color = selected ? Color.white : defaultBackgroundColor;
 
-        // Bỏ logic tự tắt icon nếu iconSprite == null. Nếu null thì giữ nguyên icon mặc định (như lá cờ)
-        if (icon != null && iconSprite != null)
-        {
-            icon.sprite = iconSprite;
-            icon.enabled = true;
-        }
+        if (activeBackground != null)
+            activeBackground.SetActive(selected);
 
-        if (lockedGroup != null)
+        // Icon complete chỉ hiện khi ĐÃ NHẬN THƯỞNG (Claimed). Trạng thái Completed mà chưa
+        // claim vẫn coi như đang làm dở → không đóng dấu hoàn thành.
+        bool isComplete = data != null && string.Equals(data.Status, "Claimed", StringComparison.OrdinalIgnoreCase);
+        // Ổ khóa chỉ nói về điều kiện KHÔNG THỂ làm được (thiếu level). Quest NotStarted nhưng
+        // đủ level là quest sắp nhận (đang được tracker chỉ đường) → không được khóa.
+        bool isLocked = data == null || underLeveled;
+
+        if (lockIcon != null) lockIcon.SetActive(isLocked);
+        if (completeIcon != null) completeIcon.SetActive(isComplete);
+    }
+
+    private void ApplyTypeIcon(string objectiveType)
+    {
+        if (typeImage == null) return;
+
+        var sprite = MapObjectiveType(objectiveType) switch
         {
-            bool isLocked = data != null && string.Equals(data.Status, "NotStarted", StringComparison.OrdinalIgnoreCase);
-            lockedGroup.SetActive(isLocked);
-        }
+            QuestTypeSlot.Kill => killIcon,
+            QuestTypeSlot.Collect => collectIcon,
+            QuestTypeSlot.Talk => talkIcon,
+            _ => exploreIcon,
+        };
+
+        if (sprite != null)
+            typeImage.sprite = sprite;
+
+        bool hasSprite = typeImage.sprite != null;
+        typeImage.enabled = hasSprite;
+        typeImage.gameObject.SetActive(hasSprite);
     }
 
     private void Bind()
@@ -74,44 +136,25 @@ public class UIQuestListItem : MonoBehaviour
             hasDefaultBackgroundColor = true;
         }
 
-        if (icon == null)
-            icon = FindImageByName("Icon") ?? FindImageByName("QuestIcon"); // Đổi từ Image thành QuestIcon để không nhận nhầm lá cờ
+        if (typeImage == null)
+            typeImage = FindImageByName("Type") ?? FindImageByName("QuestType");
 
-        if (titleTMP == null && titleText == null)
+        if (activeBackground == null)
+            activeBackground = FindChild("ActiveBackground");
+
+        if (titleTMP == null)
+            titleTMP = FindTMPByName("TitleQuest") ?? FindTMPByName("QuestTitle") ?? FindTMPByName("Title");
+        if (suggestLevelTMP == null)
+            suggestLevelTMP = FindTMPByName("SuggestLevel") ?? FindTMPByName("LevelText");
+        if (suggestLevelTMP != null && !hasSuggestLevelNormalColor)
         {
-            titleTMP = FindTMPByName("TitleQuest") ?? FindTMPByName("QuestTitle") ?? FindTMPByName("TitleText") ?? FindTMPByName("Title");
-            titleText = FindTextByName("TitleQuest") ?? FindTextByName("QuestTitle") ?? FindTextByName("TitleText") ?? FindTextByName("Title");
+            suggestLevelNormalColor = suggestLevelTMP.color;
+            hasSuggestLevelNormalColor = true;
         }
-
-        var allTMP = GetComponentsInChildren<TMP_Text>(true);
-        var allText = GetComponentsInChildren<Text>(true);
-
-        if (titleTMP == null && titleText == null && allTMP.Length > 0)
-            titleTMP = allTMP[0];
-        if (titleTMP == null && titleText == null && allText.Length > 0)
-            titleText = allText[0];
-
-        // Khong tu dong lay TMP theo index nua vi se gay trung text va che de
-        if (statusTMP == null && statusText == null)
-        {
-            statusTMP = FindTMPByName("StatusText") ?? FindTMPByName("Status");
-            statusText = FindTextByName("StatusText") ?? FindTextByName("Status");
-        }
-
-        if (levelTMP == null && levelText == null)
-        {
-            levelTMP = FindTMPByName("LevelText") ?? FindTMPByName("LvText") ?? FindTMPByName("Text (TMP)");
-            levelText = FindTextByName("LevelText") ?? FindTextByName("LvText") ?? FindTextByName("Text");
-        }
-
-        if (progressTMP == null && progressText == null)
-        {
-            progressTMP = FindTMPByName("ProgressText") ?? FindTMPByName("Progress");
-            progressText = FindTextByName("ProgressText") ?? FindTextByName("Progress");
-        }
-
-        if (lockedGroup == null)
-            lockedGroup = FindChild("LockedGroup");
+        if (lockIcon == null)
+            lockIcon = FindChild("Lock");
+        if (completeIcon == null)
+            completeIcon = FindChild("Complete");
 
         if (selectButton == null)
             selectButton = GetComponent<Button>();
@@ -127,18 +170,6 @@ public class UIQuestListItem : MonoBehaviour
         selectButton.onClick.AddListener(() => onSelected?.Invoke(quest));
     }
 
-    private Image FindFirstChildImageExcept(Image excluded)
-    {
-        var images = GetComponentsInChildren<Image>(true);
-        for (var i = 0; i < images.Length; i++)
-        {
-            if (images[i] != null && images[i] != excluded)
-                return images[i];
-        }
-
-        return null;
-    }
-
     private Image FindImageByName(string objectName)
     {
         var child = FindChild(objectName);
@@ -149,12 +180,6 @@ public class UIQuestListItem : MonoBehaviour
     {
         var child = FindChild(objectName);
         return child == null ? null : child.GetComponent<TMP_Text>();
-    }
-
-    private Text FindTextByName(string objectName)
-    {
-        var child = FindChild(objectName);
-        return child == null ? null : child.GetComponent<Text>();
     }
 
     private GameObject FindChild(string objectName)
@@ -168,49 +193,4 @@ public class UIQuestListItem : MonoBehaviour
 
         return null;
     }
-
-    private static TMP_Text GetTMPAt(TMP_Text[] texts, int index)
-    {
-        return texts != null && texts.Length > index ? texts[index] : null;
-    }
-
-    private static Text GetTextAt(Text[] texts, int index)
-    {
-        return texts != null && texts.Length > index ? texts[index] : null;
-    }
-
-    private static void SetText(TMP_Text tmp, Text text, string value)
-    {
-        if (tmp != null)
-        {
-            tmp.text = value ?? string.Empty;
-            return;
-        }
-
-        if (text != null)
-            text.text = value ?? string.Empty;
-    }
-
-    private static string StatusLabel(PlayerQuestResponse data)
-    {
-        if (data == null)
-            return "Unknown";
-
-        return data.Status switch
-        {
-            "NotStarted" => "Available",
-            "InProgress" => "In Progress",
-            "Completed" => "Completed",
-            "Claimed" => "Claimed",
-            _ => string.IsNullOrWhiteSpace(data.Status) ? "Unknown" : data.Status
-        };
-    }
-
-    private static string ProgressLabel(PlayerQuestResponse data)
-    {
-        var target = Mathf.Max(1, data.TargetAmount);
-        var current = Mathf.Clamp(data.Progress, 0, target);
-        return $"{current}/{target}";
-    }
 }
-
