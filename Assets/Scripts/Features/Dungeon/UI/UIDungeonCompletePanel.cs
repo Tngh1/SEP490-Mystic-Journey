@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 namespace MysticJourney.Features.Dungeon.UI
@@ -73,8 +74,50 @@ namespace MysticJourney.Features.Dungeon.UI
             if (goldText != null) goldText.text = "...";
             if (expText != null) expText.text = "...";
 
-            // Gọi API ClaimReward đã làm hôm qua
-            DungeonApi.Instance.ClaimReward(sessionId, OnClaimSuccess, OnClaimError);
+            if (timeText != null) timeText.text = "--:--";
+
+            StartCoroutine(ClaimWithRetry(sessionId));
+        }
+
+        /// <summary>
+        /// The backend only allows claim-reward once the session is "Completed", and only the
+        /// host marks it so (POST complete). The host broadcasts RPC_BossDied *before* that call
+        /// returns, so a party member who reaches the chest first used to get
+        /// "cannot have rewards claimed (status: InProgress)" and the panel sat on "..." with no
+        /// gold, no items and no time. Retry briefly instead of failing the whole reward.
+        /// </summary>
+        private IEnumerator ClaimWithRetry(int sessionId)
+        {
+            const int maxAttempts = 6;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                bool done = false;
+                bool retryable = false;
+
+                DungeonApi.Instance.ClaimReward(
+                    sessionId,
+                    response => { OnClaimSuccess(response); done = true; },
+                    error =>
+                    {
+                        // Only the "not completed yet" race is worth retrying; a duplicate claim
+                        // or a missing session will never succeed on a second attempt.
+                        retryable = error.Message != null && error.Message.Contains("Complete the dungeon first");
+                        if (!retryable) OnClaimError(error);
+                        done = true;
+                    });
+
+                yield return new WaitUntil(() => done);
+
+                if (!retryable) yield break;
+
+                Debug.Log($"[UIDungeonCompletePanel] Session not marked complete yet, retrying claim ({attempt}/{maxAttempts})...");
+                yield return new WaitForSeconds(0.5f);
+            }
+
+            Debug.LogWarning("[UIDungeonCompletePanel] Claim reward timed out waiting for the host to complete the session.");
+            if (goldText != null) goldText.text = "+0";
+            if (expText != null) expText.text = "+0";
         }
 
         private void OnClaimSuccess(ClaimDungeonRewardResponse response)
@@ -119,12 +162,24 @@ namespace MysticJourney.Features.Dungeon.UI
         private void OnClaimError(ApiException error)
         {
             Debug.LogError($"Claim Reward Failed: {error.Message}");
+
+            // Never leave the panel on "..." — that reads as "still loading" forever. A failed
+            // claim (already claimed, session gone) still has to resolve to something visible.
+            if (goldText != null) goldText.text = "+0";
+            if (expText != null) expText.text = "+0";
         }
 
         private void OnExitClicked()
         {
+            if (exitButton != null) exitButton.interactable = false;
+
+            // Leaving cancels our restart vote. Without this, the flag stayed true on our
+            // replicated avatar for the moment before it despawns and the host could count a
+            // departing player as ready.
+            if (NetworkPlayer.Local != null) NetworkPlayer.Local.RPC_ClearReadyToRestart();
+
             gameObject.SetActive(false);
-            
+
             if (DungeonManager.Instance != null)
             {
                 DungeonManager.Instance.ReturnToWorldMap();
@@ -142,6 +197,12 @@ namespace MysticJourney.Features.Dungeon.UI
             {
                 NetworkPlayer.Local.RPC_SetReadyToRestart();
             }
+            else
+            {
+                // Offline / single-player has no NetworkPlayer at all, so the ready-vote path
+                // never resolves and the button just went dead. Restart straight away.
+                DungeonManager.Instance?.RestartDungeon();
+            }
         }
 
         private void UpdateReadyState()
@@ -151,10 +212,20 @@ namespace MysticJourney.Features.Dungeon.UI
             int readyCount = NetworkPlayer.All.Count(p => p.IsReadyToRestart);
             int totalCount = NetworkPlayer.All.Count;
 
+            var txt = againButton.GetComponentInChildren<TMP_Text>();
+            if (txt == null) return;
+
             if (readyCount > 0)
             {
-                var txt = againButton.GetComponentInChildren<TMP_Text>();
-                if (txt != null) txt.text = $"Waiting... ({readyCount}/{totalCount})";
+                txt.text = $"Waiting... ({readyCount}/{totalCount})";
+            }
+            else
+            {
+                // The host clears every ready flag when it fires the restart, and also when a
+                // vote is abandoned (someone exited). Without this the button stayed disabled
+                // reading "Waiting..." forever with nothing left to wait for.
+                txt.text = "Again";
+                againButton.interactable = true;
             }
         }
     }

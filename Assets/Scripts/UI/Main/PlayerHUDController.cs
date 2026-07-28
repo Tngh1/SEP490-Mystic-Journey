@@ -1134,10 +1134,19 @@ public class PlayerHUDController : MonoBehaviour
         int readyCount = NetworkPlayer.All.Count(p => p.IsReadyToRestart);
         int totalCount = NetworkPlayer.All.Count;
 
+        var txt = btnAgain.GetComponentInChildren<TMP_Text>();
+        if (txt == null) return;
+
         if (readyCount > 0)
         {
-            var txt = btnAgain.GetComponentInChildren<TMP_Text>();
-            if (txt != null) txt.text = $"Waiting... ({readyCount}/{totalCount})";
+            txt.text = $"Waiting... ({readyCount}/{totalCount})";
+        }
+        else
+        {
+            // The host clears every ready flag once the restart fires or a vote is
+            // abandoned; without this the button stayed disabled on "Waiting..." forever.
+            txt.text = "Again";
+            btnAgain.interactable = true;
         }
     }
 

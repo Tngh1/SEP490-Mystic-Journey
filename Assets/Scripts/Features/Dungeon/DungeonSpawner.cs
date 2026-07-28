@@ -388,10 +388,36 @@ public class DungeonSpawner : MonoBehaviour
         if (online && prefab.GetComponent<Fusion.NetworkObject>() != null)
         {
             // Non-authority clients do not spawn — they receive the replica.
-            if (!photon.IsHost) return null;
+            if (!photon.IsHost)
+            {
+                Debug.Log($"[DungeonSpawner] Proxy — skipping local spawn of '{prefab.name}', waiting for replica.");
+                return null;
+            }
 
-            var netObj = photon.Runner.Spawn(prefab, position, rotation);
-            if (netObj == null) return null;
+            // Runner.Spawn can legitimately fail (runner shutting down, its gameplay
+            // SceneRef unloaded by the dungeon transition, prefab not in the Fusion
+            // table). Swallowing that silently was why "no monsters" left no trace in
+            // the console: the master returned null exactly like a proxy, InstantiateAll
+            // skipped it, and DungeonManager registered an empty list — so every client
+            // sat on "Loading..." with nothing to explain it.
+            Fusion.NetworkObject netObj = null;
+            try
+            {
+                netObj = photon.Runner.Spawn(prefab, position, rotation);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[DungeonSpawner] Runner.Spawn THREW for '{prefab.name}': {ex.Message}");
+                return null;
+            }
+
+            if (netObj == null)
+            {
+                Debug.LogError($"[DungeonSpawner] Runner.Spawn returned NULL for '{prefab.name}' " +
+                               $"(IsHost={photon.IsHost}, runner running={photon.IsConnected}). " +
+                               "Enemy will be missing on every client.");
+                return null;
+            }
 
             // Do NOT reparent networked enemies: Fusion's NetworkTransform replicates
             // LOCAL position and this prefab has SyncParent disabled, so parenting the
@@ -491,14 +517,20 @@ public class DungeonSpawner : MonoBehaviour
     /// Boss detection logic — matches existing DungeonManager convention.
     /// Returns true for monsters that should be spawned by BossSpawner instead.
     /// Rules (applied in order):
-    ///   1. Monster.Type == "Boss" (case-insensitive) from backend model.
+    ///   1. MonsterType == "Boss" (case-insensitive) — the flat field the API actually sends.
     ///   2. MonsterName contains "boss" or "ogre" (case-insensitive).
+    ///
+    /// Rule 1 used to read <c>response.Monster.Type</c>, but GET /api/monsters/spawns maps to
+    /// MonsterSpawnResponseDto, which flattens the monster to MonsterName + MonsterType and
+    /// carries no nested Monster object — so that check never fired and every boss row was
+    /// queued as a normal enemy (no "Extracted Boss data" log, _bossSpawnData stayed null,
+    /// SpawnBoss failed). The name fallback does not cover most seeded bosses either
+    /// ("SwampDemon", "UnderKing", "OrcWarlord"), so MonsterType is the only reliable signal.
     /// </summary>
     private static bool IsBossType(MonsterSpawnResponse response)
     {
-        if (response.Monster != null &&
-            !string.IsNullOrEmpty(response.Monster.Type) &&
-            response.Monster.Type.Equals("Boss", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(response.MonsterType) &&
+            response.MonsterType.Equals("Boss", StringComparison.OrdinalIgnoreCase))
             return true;
 
         string name = (response.MonsterName ?? string.Empty).ToLower();

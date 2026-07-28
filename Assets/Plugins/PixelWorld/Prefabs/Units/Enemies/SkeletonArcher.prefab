@@ -106,6 +106,9 @@ GameObject:
   - component: {fileID: 2621465942398727422}
   - component: {fileID: 2245477834773947124}
   - component: {fileID: 4211528939406924533}
+  - component: {fileID: 7708324539660690089}
+  - component: {fileID: 5732956355891153464}
+  - component: {fileID: 4660985381647578260}
   m_Layer: 0
   m_Name: SkeletonArcher
   m_TagString: Monster
@@ -365,6 +368,59 @@ MonoBehaviour:
   skill2Prefab: {fileID: 0}
   skill2Cooldown: 20
   skill2SpawnDelay: 0.5
+--- !u!114 &7708324539660690089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3106695761367093741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 256892204
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5732956355891153464}
+  - {fileID: 4660985381647578260}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &5732956355891153464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3106695761367093741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &4660985381647578260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3106695761367093741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5641aa6cf4996f42ba7048508333e37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkEnemy
+  _CurrentHp: 0
+  _MaxHp: 0
+  _IsAlive:
+    _value: 0
 --- !u!1 &7569415806414035205
 GameObject:
   m_ObjectHideFlags: 0

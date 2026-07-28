@@ -131,7 +131,13 @@ public class NetworkPlayer : NetworkBehaviour
 
     public static event Action OnAnyReadyStateChanged;
 
-    private void OnReadyStateChanged()
+    private void OnReadyStateChanged() => EvaluateRestartReadiness();
+
+    /// <summary>
+    /// Runs on every client whenever a ready flag changes or a player leaves; only the
+    /// master client actually triggers the restart.
+    /// </summary>
+    private static void EvaluateRestartReadiness()
     {
         OnAnyReadyStateChanged?.Invoke();
 
@@ -152,11 +158,18 @@ public class NetworkPlayer : NetworkBehaviour
         }
 
         Debug.Log("[NetworkPlayer] Master client detects all players ready, sending RPC_TriggerRestartDungeon!");
-        RPC_TriggerRestartDungeon();
+
+        // Must be sent from an avatar we own. OnChangedRender fires on the avatar whose
+        // flag changed, so when a REMOTE player was the last to press Again the master
+        // was calling this on a proxy it has no StateAuthority over and Fusion rejected
+        // it ("Local simulation is not allowed to send this RPC on NetworkPlayer_2"),
+        // leaving every client stuck on "Waiting...". Local is always ours.
+        if (Local != null) Local.RPC_TriggerRestartDungeon();
+        else Debug.LogWarning("[NetworkPlayer] All players ready but Local is null — cannot send restart RPC.");
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_ClearReadyToRestart()
+    public void RPC_ClearReadyToRestart()
     {
         IsReadyToRestart = false;
     }
@@ -166,6 +179,17 @@ public class NetworkPlayer : NetworkBehaviour
     {
         Debug.Log("[NetworkPlayer] Received RPC to RestartDungeon!");
         DungeonManager.Instance?.RestartDungeon();
+    }
+
+    /// <summary>
+    /// Host → everyone: the backend session id of the NEW run. Only the host calls the
+    /// Enter API on restart, so without this members keep the finished run's id and their
+    /// claim-reward fails on run 2 (panel falls back to +0 / +0 / --:--).
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_SetRestartSession(int sessionId)
+    {
+        DungeonManager.Instance?.AdoptRestartSession(sessionId);
     }
 
     // Replicated movement vector. The input-authority client writes it each tick
@@ -251,6 +275,11 @@ public class NetworkPlayer : NetworkBehaviour
             Destroy(_spawnedVisual);
             _spawnedVisual = null;
         }
+
+        // Exit leaves the room, so the remaining players' "all ready" condition changes
+        // without any ready flag changing. Without this re-check, P1 pressing Again then
+        // P2 pressing Exit left P1 on "Waiting... (1/2)" forever — nothing ever fired again.
+        if (Local != null) EvaluateRestartReadiness();
     }
 
     // ─────────────────────────────────────────────────────────────────────────

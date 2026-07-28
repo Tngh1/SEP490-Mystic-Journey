@@ -17,8 +17,11 @@ GameObject:
   - component: {fileID: 1324518477876919692}
   - component: {fileID: 796519254400494086}
   - component: {fileID: 5591966528492212356}
+  - component: {fileID: 5449068050235570546}
+  - component: {fileID: 3108507404631144929}
+  - component: {fileID: 7981359168118766691}
   m_Layer: 3
-  m_Name: Slime_ice
+  m_Name: slime_ice
   m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -279,6 +282,59 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimations
   enemyBehaviour: {fileID: 1324518477876919692}
   enemyEntity: {fileID: 785081076253946274}
+--- !u!114 &5449068050235570546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8779738101531892766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1732310077
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 3108507404631144929}
+  - {fileID: 7981359168118766691}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &3108507404631144929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8779738101531892766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &7981359168118766691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8779738101531892766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5641aa6cf4996f42ba7048508333e37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkEnemy
+  _CurrentHp: 0
+  _MaxHp: 0
+  _IsAlive:
+    _value: 0
 --- !u!1 &8849873415815426735
 GameObject:
   m_ObjectHideFlags: 0
@@ -471,4 +527,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 2290829961680176815}
   m_PrefabAsset: {fileID: 0}
-

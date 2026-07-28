@@ -18,6 +18,16 @@ public class UIDungeonProgressPanel : MonoBehaviour
 
     private void OnEnable()
     {
+        ResetProgress();
+    }
+
+    /// <summary>
+    /// Restart the timer and un-latch the "Cleared!" state. The panel lives in the always
+    /// loaded Main HUD, so a dungeon restart never re-enables it — without this it stayed
+    /// frozen on the finished run's time and "Cleared!" for the whole second run.
+    /// </summary>
+    public void ResetProgress()
+    {
         _elapsedTime = 0f;
         _isRunning = true;
     }
@@ -59,18 +69,18 @@ public class UIDungeonProgressPanel : MonoBehaviour
                 }
                 progressText.text = lines.TrimEnd('\n');
             }
+            else if (DungeonManager.Instance.IsDungeonCleared)
+            {
+                // Only the boss actually dying clears the dungeon. BossCount == 0 is NOT a
+                // clear signal — it is also true during the ~1.2s shake before the boss
+                // object exists, and latching _isRunning=false there froze the panel on
+                // "Cleared!" with the boss still at full HP.
+                progressText.text = "Cleared!";
+                _isRunning = false;
+            }
             else
             {
-                int bosses = DungeonManager.Instance.BossCount;
-                if (bosses > 0)
-                {
-                    progressText.text = "Boss Spawned!";
-                }
-                else
-                {
-                    progressText.text = "Cleared!";
-                    _isRunning = false;
-                }
+                progressText.text = "Boss Spawned!";
             }
         }
 
