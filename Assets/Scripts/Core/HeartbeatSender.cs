@@ -8,6 +8,14 @@ namespace MysticJourney.Core
     {
         [SerializeField] private float heartbeatInterval = 30f;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoStart()
+        {
+            var go = new GameObject("HeartbeatSender");
+            DontDestroyOnLoad(go);
+            go.AddComponent<HeartbeatSender>();
+        }
+
         private void Start()
         {
             InvokeRepeating(nameof(SendHeartbeat), 1f, heartbeatInterval);
@@ -15,7 +23,10 @@ namespace MysticJourney.Core
 
         private void SendHeartbeat()
         {
-            string url = $"{ApiConfig.BaseUrl}/api/player/heartbeat";
+            if (!ApiClient.Instance.HasToken())
+                return;
+
+            string url = ApiConfig.PlayerHeartbeat;
             
             ApiClient.Instance.PostEmpty<object>(url, (res) => 
             {

@@ -250,8 +250,8 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
             // The Photon cloud releases the peer's UserId slightly AFTER Fusion's Shutdown
             // Task completes. Reconnecting to a new room with the same UserId before that
             // release makes the server kick the fresh peer with DisconnectByServerLogic
-            // (code 104). A short grace delay lets the old peer fully drain first.
-            await Task.Delay(700);
+            // (code 104). A longer grace delay lets the old peer fully drain first.
+            await Task.Delay(2000);
         }
 
         // The kick-on-reuse (code 104) is TRANSIENT: once the old peer fully drains

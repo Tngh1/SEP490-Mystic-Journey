@@ -421,8 +421,9 @@ public class DungeonSpawner : MonoBehaviour
             {
                 agent.enabled = false;
                 agent.enabled = true; // re-bind to the dungeon scene's NavMesh
-                if (UnityEngine.AI.NavMesh.SamplePosition(position, out var hit, 3f, UnityEngine.AI.NavMesh.AllAreas))
-                    agent.Warp(hit.position);
+                // Note: removed agent.Warp(hit.position) because it might warp enemies under the floor.
+                // Unity automatically snaps the agent to the nearest NavMesh surface when enabled.
+                Debug.Log($"[DungeonSpawner] Spawned {prefab.name} at {position}. Agent bound to NavMesh.");
             }
 
             return netObj.gameObject;

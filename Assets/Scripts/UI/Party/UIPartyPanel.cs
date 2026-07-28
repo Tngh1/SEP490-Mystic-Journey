@@ -479,8 +479,31 @@ public class UIPartyPanel : MonoBehaviour
                 var comp = child.GetComponent<UIPartySlot>();
                 if (comp == null) comp = child.gameObject.AddComponent<UIPartySlot>();
                 resolved.Add(comp);
+
+                // Auto-scale down the huge PlayerHUD template
+                var rt = child.GetComponent<RectTransform>();
+                if (rt != null) rt.localScale = new Vector3(0.6f, 0.6f, 1f);
             }
             slots = resolved.ToArray();
+
+            // Auto-configure layout for the Players container
+            var layout = playersTrans.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+            if (layout == null) layout = playersTrans.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            layout.spacing = 10;
+            
+            var playersRt = playersTrans.GetComponent<RectTransform>();
+            if (playersRt != null)
+            {
+                playersRt.anchorMin = new Vector2(0, 1);
+                playersRt.anchorMax = new Vector2(0, 1);
+                playersRt.pivot = new Vector2(0, 1);
+                // Position it below the main PlayerHUD
+                playersRt.anchoredPosition = new Vector2(20, -150); 
+            }
         }
 
         EnsureAvatarDb();

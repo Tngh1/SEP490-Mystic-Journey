@@ -21,6 +21,11 @@ public class DungeonManager : MonoBehaviour
     public int EnemiesKilledCount { get; private set; } = 0;
     public bool IsInDungeon { get; private set; } = false;
 
+    // Added to support UI Progress
+    public int TotalNormalEnemies => EnemiesKilledCount + _normalEnemies.Count;
+    public int BossCount => _bossEnemies.Count;
+    public Dictionary<string, (int killed, int total)> EnemyProgress { get; private set; } = new();
+
     // Saved position in world map to return to
     public string PreviousMapSceneName { get; private set; } = "AbandonedCastle";
     public Vector3 PreviousPlayerPosition { get; private set; } = Vector3.zero;
@@ -224,6 +229,9 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         );
     }
 
+    /// <summary>True if the local player is the host of the current party dungeon.</summary>
+    public bool IsPartyHost { get; private set; }
+
     /// <summary>
     /// EVERY client (host + members): perform the actual scene transition into the
     /// dungeon using an already-established session id (from the host). Does NOT call
@@ -233,7 +241,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     /// is picked up by FindPlayerInstance just like a local player.
     /// </summary>
     public void EnterDungeonScene(int configId, string dungeonSceneName, int cost, string dungeonName, int sessionId,
-                                  bool hasReturnPoint = false, string returnMapName = null, Vector3 returnPosition = default)
+                                  bool hasReturnPoint = false, string returnMapName = null, Vector3 returnPosition = default, bool isHost = false)
     {
         if (sessionId <= 0)
         {
@@ -242,10 +250,14 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             return;
         }
 
+        IsPartyHost = isHost;
         CurrentDungeonConfigId = configId;
         CurrentDungeonCost = cost;
-        CurrentDungeonName = dungeonName;
-        _currentDungeonSceneName = dungeonSceneName;
+        CurrentDungeonName = dungeonName?.Trim('\0');
+        
+        // Clean trailing nulls in case it came from a Fusion NetworkString
+        _currentDungeonSceneName = dungeonSceneName?.Trim('\0');
+        
         CurrentSessionId = sessionId;
         IsInDungeon = true;
 
@@ -314,10 +326,10 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         // Set LastPosition to zero so player spawner falls back to scene spawnPoint
         WorldState.LastPosition = Vector3.zero;
-        WorldState.CurrentMapName = dungeonSceneName;
+        WorldState.CurrentMapName = _currentDungeonSceneName;
 
         // Load dungeon scene additively
-        yield return SceneManager.LoadSceneAsync(dungeonSceneName, LoadSceneMode.Additive);
+        yield return SceneManager.LoadSceneAsync(_currentDungeonSceneName, LoadSceneMode.Additive);
 
         // The local (networked) avatar may not exist yet on a client that just migrated
         // — if it is still null here we skip the teleport and the player is left at the
@@ -337,9 +349,9 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // Move player into the dungeon scene
         if (player != null)
         {
-            var dungeonScene = SceneManager.GetSceneByName(dungeonSceneName);
+            var dungeonScene = SceneManager.GetSceneByName(_currentDungeonSceneName);
             if (SafeMoveToScene(player, dungeonScene))
-                Debug.Log($"[DungeonManager] Moved player into dungeon scene: {dungeonSceneName}");
+                Debug.Log($"[DungeonManager] Moved player into dungeon scene: {_currentDungeonSceneName}");
         }
         else
         {
@@ -373,7 +385,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                     rb.linearVelocity = Vector2.zero;
                     rb.position = spawnPos;
                 }
-                player.transform.position = spawnPos;
+                
+                var nt = player.GetComponent<Fusion.NetworkTransform>();
+                if (nt != null)
+                    nt.Teleport(spawnPos);
+                else
+                    player.transform.position = spawnPos;
+
                 WorldState.LastPosition = spawnPos;
             }
         }
@@ -424,6 +442,26 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // Wait one frame so Awake/Start have all completed in the loaded scene
         yield return null;
 
+        var photon = PhotonManager.Instance;
+        bool online = photon != null && photon.IsDungeonSession;
+
+        // In multiplayer, the Party Host MUST be the Master Client (IsHost) to spawn monsters.
+        // Fusion sometimes takes a few ticks to assert IsSharedModeMasterClient after migration.
+        // If we spawn before this happens, Runner.Spawn is skipped and no monsters appear.
+        if (online && IsPartyHost)
+        {
+            float waitMaster = 5f;
+            while (waitMaster > 0f && !photon.IsHost)
+            {
+                waitMaster -= Time.deltaTime;
+                yield return null;
+            }
+            if (!photon.IsHost)
+            {
+                Debug.LogWarning("[DungeonManager] Timed out waiting to become Master Client! Spawns may fail.");
+            }
+        }
+
         var spawner = FindFirstObjectByType<DungeonSpawner>();
 
         if (spawner != null)
@@ -446,18 +484,25 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
             yield return new WaitUntil(() => spawnDone);
 
-            _normalEnemies.Clear();
-
             if (spawnedEnemies != null)
             {
-                foreach (var enemy in spawnedEnemies)
+                photon = PhotonManager.Instance;
+                bool isProxy = photon != null && photon.IsDungeonSession && !photon.IsHost;
+                
+                if (!isProxy)
                 {
-                    if (enemy == null) continue;
-                    _normalEnemies.Add(enemy);
-                    enemy.OnDeath -= HandleNormalEnemyDeath;
-                    enemy.OnDeath += HandleNormalEnemyDeath;
+                    _normalEnemies.Clear();
+                    EnemyProgress.Clear();
+                    foreach (var enemy in spawnedEnemies)
+                    {
+                        RegisterNetworkedEnemy(enemy);
+                    }
+                    Debug.Log($"[DungeonManager] Registered {_normalEnemies.Count} normal enemies.");
                 }
-                Debug.Log($"[DungeonManager] Registered {_normalEnemies.Count} normal enemies.");
+                else
+                {
+                    Debug.Log("[DungeonManager] Proxy client waiting for NetworkEnemy spawns.");
+                }
             }
         }
         else
@@ -472,14 +517,74 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             Debug.Log($"[DungeonManager] Fallback: found {enemies.Length} pre-placed enemies.");
 
             _normalEnemies.Clear();
+            EnemyProgress.Clear();
             foreach (var enemy in enemies)
             {
                 if (enemy == null) continue;
                 _normalEnemies.Add(enemy);
                 enemy.OnDeath -= HandleNormalEnemyDeath;
                 enemy.OnDeath += HandleNormalEnemyDeath;
+
+                string n = GetCleanEnemyName(enemy);
+                if (!EnemyProgress.ContainsKey(n)) EnemyProgress[n] = (0, 0);
+                var p = EnemyProgress[n];
+                p.total++;
+                EnemyProgress[n] = p;
             }
         }
+    }
+
+    public void RegisterNetworkedEnemy(EnemyEntity enemy)
+    {
+        if (enemy == null) return;
+        
+        bool isBoss = enemy.gameObject.name.EndsWith("_Boss");
+
+        if (isBoss)
+        {
+            if (!_bossEnemies.Contains(enemy))
+            {
+                _bossEnemies.Add(enemy);
+                enemy.OnDeath -= HandleBossEnemyDeath;
+                enemy.OnDeath += HandleBossEnemyDeath;
+            }
+        }
+        else
+        {
+            if (!_normalEnemies.Contains(enemy))
+            {
+                _normalEnemies.Add(enemy);
+                enemy.OnDeath -= HandleNormalEnemyDeath;
+                enemy.OnDeath += HandleNormalEnemyDeath;
+
+                string n = GetCleanEnemyName(enemy);
+                if (!EnemyProgress.ContainsKey(n)) EnemyProgress[n] = (0, 0);
+                var p = EnemyProgress[n];
+                p.total++;
+                EnemyProgress[n] = p;
+                Debug.Log($"[DungeonManager] Registered networked enemy: {n} (Total: {p.total})");
+            }
+        }
+    }
+
+    private string GetCleanEnemyName(EnemyEntity enemy)
+    {
+        if (enemy == null) return "Unknown";
+        string cleanName = enemy.gameObject.name.Replace("(Clone)", "").Trim();
+        int spaceIndex = cleanName.IndexOf(" (");
+        if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex);
+        
+        int lastUnderscore = cleanName.LastIndexOf('_');
+        if (lastUnderscore > 0 && lastUnderscore < cleanName.Length - 1)
+        {
+            string suffix = cleanName.Substring(lastUnderscore + 1);
+            if (int.TryParse(suffix, out _))
+            {
+                cleanName = cleanName.Substring(0, lastUnderscore);
+            }
+        }
+        
+        return cleanName;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -498,6 +603,14 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         enemy.OnDeath -= HandleNormalEnemyDeath;
         _normalEnemies.Remove(enemy);
         EnemiesKilledCount++;
+
+        string n = GetCleanEnemyName(enemy);
+        if (EnemyProgress.ContainsKey(n))
+        {
+            var p = EnemyProgress[n];
+            p.killed++;
+            EnemyProgress[n] = p;
+        }
 
         int remaining  = _normalEnemies.Count;
         int total      = EnemiesKilledCount + remaining;
@@ -553,17 +666,17 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         }
 
         EnemyEntity boss = DungeonSpawner.Instance.SpawnBoss();
+        if (boss != null)
+        {
+            RegisterNetworkedEnemy(boss);
+        }
+        
         if (boss == null)
         {
             Debug.LogWarning("[DungeonManager] DungeonSpawner.SpawnBoss returned null. Completing dungeon without boss.");
             yield return StartCoroutine(BossDeathSequence(GetFallbackChestPosition()));
             yield break;
         }
-
-        _bossEnemies.Clear();
-        _bossEnemies.Add(boss);
-        boss.OnDeath -= HandleBossEnemyDeath;
-        boss.OnDeath += HandleBossEnemyDeath;
 
         _currentPhase = DungeonPhase.Boss;
         Debug.Log($"[DungeonManager] Boss '{boss.name}' spawned. Phase → Boss.");
