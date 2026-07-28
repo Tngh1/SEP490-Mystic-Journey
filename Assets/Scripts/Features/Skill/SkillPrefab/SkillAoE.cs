@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class SkillAoE : MonoBehaviour
 {
     [SerializeField] private float duration = 3f;
+    [SerializeField] private AudioClip castSound;
     private float _damage;
 
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
@@ -12,6 +13,11 @@ public class SkillAoE : MonoBehaviour
     {
         _damage = damage;
         Destroy(gameObject, duration);
+
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound);
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

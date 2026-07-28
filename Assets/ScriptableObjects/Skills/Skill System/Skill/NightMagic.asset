@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ea375edf7a841947b2f355188726263, type: 3}
+  m_Name: NightMagic
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: 12
+  skillIcon: {fileID: 5218580261869590449, guid: eb04a01c0cf237141973d648946d73c4, type: 3}
+  skillPrefab: {fileID: 2040857393468443434, guid: d4a5b43ee8f853f47b7d55dfa96b2f47, type: 3}
+  classRequirement: Mage
