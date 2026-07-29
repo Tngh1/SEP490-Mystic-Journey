@@ -28,6 +28,11 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
     private float _cooldownTimer = 0f;
     private float _cooldownDuration = 1f;
 
+    // Nhãn nhỏ dưới đáy ô: "Lv 5" khi bị khóa theo level, "Empty" khi mở nhưng chưa
+    // trang bị gì. Tạo bằng code để không phải sửa prefab/scene, và tách khỏi
+    // cooldownText (nằm giữa ô, trùng vị trí ổ khóa).
+    private TextMeshProUGUI hintLabel;
+
     private void OnEnable()
     {
         PlayerCombat.OnSkillCast += HandleSkillCast;
@@ -71,6 +76,46 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                 equippedIcon.color = new Color(1f, 1f, 1f, 0f); // Ẩn icon nếu slot bị khóa
             }
         }
+
+        RefreshHintLabel(isLocked);
+    }
+
+    // Ô số 1 mở từ Lv 1 nên không có ổ khóa: người chơi mới (chưa có skill nào, quest
+    // "Equip Your First Skill" còn NotStarted) chỉ thấy một ô vuông trống cạnh hai ô
+    // khóa → không biết mình đã có skill chưa hay phải làm gì. Ghi thẳng trạng thái
+    // lên ô: "Lv 5" nếu khóa theo level, "Empty" nếu mở nhưng chưa trang bị.
+    private void RefreshHintLabel(bool isLocked)
+    {
+        bool hasSkill = equippedIcon != null && equippedIcon.sprite != null;
+        if (!isLocked && hasSkill)
+        {
+            if (hintLabel != null) hintLabel.gameObject.SetActive(false);
+            return;
+        }
+
+        if (hintLabel == null)
+        {
+            var go = new GameObject("HintLabel", typeof(RectTransform));
+            go.transform.SetParent(transform, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 0.34f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            hintLabel = go.AddComponent<TextMeshProUGUI>();
+            hintLabel.alignment = TextAlignmentOptions.Center;
+            hintLabel.enableAutoSizing = true;
+            hintLabel.fontSizeMin = 8f;
+            hintLabel.fontSizeMax = 18f;
+            hintLabel.raycastTarget = false;
+            hintLabel.outlineWidth = 0.2f;
+            hintLabel.outlineColor = new Color32(0, 0, 0, 255);
+        }
+
+        hintLabel.gameObject.SetActive(true);
+        hintLabel.text = isLocked ? $"Lv {requiredLevel}" : "Empty";
+        hintLabel.color = isLocked ? new Color(1f, 0.83f, 0.30f) : new Color(0.78f, 0.78f, 0.78f);
     }
 
     private void HandleSkillEquipped(int equippedSlotIndex, SkillData vData, PlayerSkillResponse sData)
@@ -88,6 +133,9 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                 equippedIcon.color = _isCooldown ? new Color(0.35f, 0.35f, 0.35f, 1f) : Color.white;
                 equippedIcon.gameObject.SetActive(true);
                 equippedIcon.enabled = true;
+                // RefreshLockState() ở trên chạy TRƯỚC khi có sprite nên vẫn coi ô này là
+                // "Empty"; gọi lại để tắt nhãn ngay sau khi icon vào ô.
+                RefreshHintLabel(false);
             }
         }
 

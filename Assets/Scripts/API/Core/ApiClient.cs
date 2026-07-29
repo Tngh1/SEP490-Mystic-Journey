@@ -119,21 +119,27 @@ namespace MysticJourney.API.Core
         }
 
         // ── HTTP Methods ──────────────────────────────────────────
+        //
+        // requiresAuth mặc định TRUE cho mọi verb. Trước đây Get/Post/PostEmpty
+        // mặc định false, nên quên tham số là gửi request KHÔNG có header
+        // Authorization — và vì luồng refresh token trong SendCoroutine chỉ chạy
+        // khi requiresAuth=true, những call đó gặp 401 là chết luôn, không
+        // refresh. Chỉ endpoint thật sự công khai (LoginGame) mới truyền false.
 
         // Gửi GET request và parse response thành kiểu T
-        public void Get<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = false)
+        public void Get<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
             StartCoroutine(SendCoroutine("GET", endpoint, null, onSuccess, onError, requiresAuth));
         }
 
         // Gửi POST request với JSON body và parse response thành kiểu T
-        public void Post<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = false)
+        public void Post<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
             StartCoroutine(SendCoroutine("POST", endpoint, Serialize(body), onSuccess, onError, requiresAuth));
         }
 
         // Gửi POST không có body (dùng cho logout, mark-as-read, claim reward...)
-        public void PostEmpty<TResponse>(string endpoint, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = false)
+        public void PostEmpty<TResponse>(string endpoint, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
             StartCoroutine(SendCoroutine("POST", endpoint, "{}", onSuccess, onError, requiresAuth));
         }

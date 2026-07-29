@@ -43,7 +43,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
         // ── Lấy dungeon theo ID ───────────────────────────────
@@ -63,7 +63,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetById FAIL | dungeonConfigId={dungeonConfigId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
         // ── Vào dungeon ────────────────────────────────────
