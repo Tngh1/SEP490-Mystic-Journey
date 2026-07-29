@@ -197,22 +197,32 @@ namespace MysticJourney.UI.Guild
             }
         }
 
-        private UIGuildDonatePopup donatePopup;
+        private UIGuildDonatePopup oldDonatePopup; // Deprecated
+        public UIGuildDonatePanel donatePanel; // The new UI panel
 
         private void OpenDonatePopup()
         {
             if (currentGuild == null) return;
             
-            if (donatePopup == null)
+            // Try to find if not explicitly assigned
+            if (donatePanel == null) donatePanel = FindObjectOfType<UIGuildDonatePanel>(true);
+
+            if (donatePanel != null)
             {
-                donatePopup = UIGuildDonatePopup.CreateRuntime(mainGuildPanel.transform);
+                donatePanel.Open(currentGuild.guildId, () => 
+                {
+                    OpenGuildDetail(currentGuild.guildId); // Refresh after donate
+                });
             }
-            
-            donatePopup.Open(currentGuild.guildId, () => 
+            else
             {
-                // Refresh data on success
-                OpenGuildDetail(currentGuild.guildId);
-            });
+                // Fallback to old popup if the new panel isn't set up yet
+                if (oldDonatePopup == null) oldDonatePopup = UIGuildDonatePopup.CreateRuntime(mainGuildPanel.transform);
+                oldDonatePopup.Open(currentGuild.guildId, () => 
+                {
+                    OpenGuildDetail(currentGuild.guildId);
+                });
+            }
         }
 
         private void OnSaveSettingsClicked()
@@ -542,6 +552,37 @@ namespace MysticJourney.UI.Guild
             // Map UI cho Tab Manage
             if (txtGuildExp != null) txtGuildExp.text = $"EXP: {detail.guildExp}/{detail.expToNextLevel}";
             if (txtMedalsToLevelUp != null) txtMedalsToLevelUp.text = $"Medals: {detail.medalsToNextLevel}";
+
+            // Check Daily Donate Limit
+            int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+            var myMember = detail.members?.FirstOrDefault(m => m.playerProfileId == myProfileId);
+            if (guildInfoPanel != null && myMember != null)
+            {
+                bool hasDonatedToday = false;
+                if (!string.IsNullOrEmpty(myMember.lastDonateAt))
+                {
+                    if (System.DateTime.TryParse(myMember.lastDonateAt, out System.DateTime lastDonate))
+                    {
+                        if (lastDonate.ToUniversalTime().Date == System.DateTime.UtcNow.Date)
+                        {
+                            hasDonatedToday = true;
+                        }
+                    }
+                }
+
+                var allButtons = guildInfoPanel.GetComponentsInChildren<Button>(true);
+                foreach (var b in allButtons)
+                {
+                    if (b.name == "DonateButton")
+                    {
+                        b.interactable = !hasDonatedToday;
+                        // Optional: Dim visual if it has Image or CanvasGroup
+                        var cg = b.GetComponent<CanvasGroup>();
+                        if (cg != null) cg.alpha = hasDonatedToday ? 0.5f : 1.0f;
+                        break;
+                    }
+                }
+            }
 
             // Load danh sách thành viên (bao gồm cả bản thân)
             LoadMemberList();
@@ -972,7 +1013,7 @@ namespace MysticJourney.UI.Guild
         {
             if (currentGuild == null) return;
 
-            GuildApi.Donate(currentGuild.guildId, 1, 
+            GuildApi.Donate(currentGuild.guildId, "Gold", 10000, 
                 onSuccess: (result) => {
                     Debug.Log($"Donate success! Gained {result.guildExpGained} EXP. New Level: {result.newGuildLevel}");
                     // Refresh data

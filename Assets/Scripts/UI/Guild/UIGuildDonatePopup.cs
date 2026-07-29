@@ -181,7 +181,7 @@ namespace MysticJourney.UI.Guild
             btnConfirm.interactable = false;
             txtMessage.text = "Processing donation...";
 
-            GuildApi.Donate(_guildId, amount,
+            GuildApi.Donate(_guildId, "Gold", amount,
                 result =>
                 {
                     txtMessage.text = $"Success! Gained {result.guildExpGained} EXP.";
