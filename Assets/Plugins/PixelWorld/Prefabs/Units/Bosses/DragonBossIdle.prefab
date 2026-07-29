@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &182991790906959039
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8750212697943708753}
+  m_Layer: 3
+  m_Name: SkillSpawm (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8750212697943708753
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 182991790906959039}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.33, y: 0.87, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6421518163564970639}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1882585447114136234
 GameObject:
   m_ObjectHideFlags: 0
@@ -109,6 +140,7 @@ GameObject:
   - component: {fileID: 1993000447208712848}
   - component: {fileID: 3804217952497485769}
   - component: {fileID: 2202384562105501630}
+  - component: {fileID: 3988841195017180136}
   m_Layer: 3
   m_Name: DragonBossIdle
   m_TagString: Monster
@@ -132,6 +164,7 @@ Transform:
   - {fileID: 120636546983536624}
   - {fileID: 3873140305307427925}
   - {fileID: 516054002161986012}
+  - {fileID: 8750212697943708753}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5873183395328046233
@@ -348,9 +381,9 @@ MonoBehaviour:
   skillCooldown: 5
   skillSpawnDelay: 0.5
   skillSpawnPoint: {fileID: 516054002161986012}
-  canCastSkill2: 0
-  skill2Prefab: {fileID: 0}
-  skill2Cooldown: 20
+  canCastSkill2: 1
+  skill2Prefab: {fileID: 6047706682435460019, guid: 4efe05ed90e390443b8026a66e8b7e71, type: 3}
+  skill2Cooldown: 10
   skill2SpawnDelay: 0.5
 --- !u!195 &3804217952497485769
 NavMeshAgent:
@@ -388,6 +421,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimations
   enemyBehaviour: {fileID: 1993000447208712848}
   enemyEntity: {fileID: 7943769286385528771}
+--- !u!114 &3988841195017180136
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172419713170817087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c2e2e9ecbc3273419fbaf21e48a3612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DragonAttackShooter
+  fireballPrefab: {fileID: 6321490196262049899, guid: 700ad2ef339f4ea47a01dcbd4fc2c374, type: 3}
+  spawnPoint: {fileID: 8750212697943708753}
+  fireballSpawnDelay: 0.6
 --- !u!1 &8313003941646082007
 GameObject:
   m_ObjectHideFlags: 0
@@ -577,4 +625,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 87678081678147993}
   m_PrefabAsset: {fileID: 0}
-

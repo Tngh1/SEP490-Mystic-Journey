@@ -239,9 +239,35 @@ public class PlayerMovement : NetworkBehaviour
     /// the network path (<see cref="Move"/>) and the single-player fallback in
     /// <see cref="Update"/>.
     /// </summary>
+    private float _rootTimer = 0f;
+
+    /// <summary>
+    /// Applies a Root / Snare effect that prevents the player from moving for a specified duration.
+    /// Supports duration stacking up to maxCap.
+    /// </summary>
+    public void ApplyRoot(float duration, bool stackDuration = true, float maxCap = 5f)
+    {
+        if (stackDuration)
+        {
+            _rootTimer = Mathf.Min(_rootTimer + duration, maxCap);
+        }
+        else if (duration > _rootTimer)
+        {
+            _rootTimer = duration;
+        }
+    }
+
     private void ApplyRaw(Vector2 input, float deltaTime)
     {
         if (_rb == null) return;
+
+        if (_rootTimer > 0f)
+        {
+            _rootTimer -= deltaTime;
+            _moveInput = Vector2.zero;
+            if (_animation != null) _animation.SetMovement(Vector2.zero, true);
+            return;
+        }
 
         _moveInput = input;
         if (_moveInput != Vector2.zero)
@@ -251,21 +277,6 @@ public class PlayerMovement : NetworkBehaviour
 
         if (input.sqrMagnitude > 0.01f)
         {
-            // Assign position directly rather than Rigidbody2D.MovePosition(). MovePosition
-            // queues the move for Unity's next physics step, which runs on its own FixedUpdate
-            // cadence — out of step with Fusion's FixedUpdateNetwork tick. NetworkTransform reads
-            // transform.position right after this call, so a queued MovePosition is invisible to
-            // it and movement never replicates (or appears to not move at all).
-            //
-            // Write transform.position (not rb.position). Physics2D.SyncTransforms() copies
-            // Transform -> physics engine, never the other way around — writing rb.position and
-            // then calling SyncTransforms() leaves transform.position (and therefore the
-            // SpriteRenderer and NetworkTransform's replication sample) permanently stale until
-            // Unity's own FixedUpdate physics step happens to run on its own cadence. Confirmed
-            // empirically: 5 consecutive rb.position writes + SyncTransforms() never moved
-            // transform.position once. Writing transform.position directly + SyncTransforms()
-            // (to keep the Rigidbody2D's internal position in sync for collision queries) updates
-            // both instantly every call.
             transform.position += (Vector3)(_moveInput * _currentMoveSpeed * deltaTime);
             Physics2D.SyncTransforms();
         }
@@ -276,7 +287,7 @@ public class PlayerMovement : NetworkBehaviour
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Override the current movement speed. Pass 0 or negative to revert to
+    /// Override the current movement speed. Pass <= 0 to revert to
     /// the inspector-configured base speed.
     /// </summary>
     public void SetMoveSpeedOverride(float speed)

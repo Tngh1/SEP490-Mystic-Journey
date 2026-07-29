@@ -29,10 +29,17 @@ public class SlimeDebuff : MonoBehaviour
 
         if (playerMovement != null)
         {
-            originalSpeed = playerMovement.CurrentMoveSpeed;
-            float slowedSpeed = originalSpeed * slowMultiplier;
-            // Áp dụng tốc độ bị làm chậm
-            playerMovement.SetMoveSpeedOverride(slowedSpeed);
+            if (slowMultiplier <= 0f)
+            {
+                playerMovement.ApplyRoot(duration);
+            }
+            else
+            {
+                originalSpeed = playerMovement.CurrentMoveSpeed;
+                float slowedSpeed = originalSpeed * slowMultiplier;
+                // Áp dụng tốc độ bị làm chậm
+                playerMovement.SetMoveSpeedOverride(slowedSpeed);
+            }
         }
 
         var buffMgr = GetComponent<BuffManager>();
@@ -46,6 +53,11 @@ public class SlimeDebuff : MonoBehaviour
         if (newDuration > duration)
         {
             duration = newDuration;
+        }
+
+        if (playerMovement != null && slowMultiplier <= 0f)
+        {
+            playerMovement.ApplyRoot(duration);
         }
 
         var buffMgr = GetComponent<BuffManager>();
