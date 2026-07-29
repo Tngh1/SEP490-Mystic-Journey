@@ -77,6 +77,7 @@ namespace MysticJourney.API.Models
         public bool isOnline;
         public string joinedAt;
         public string leftAt;
+        public string lastDonateAt;
     }
 
     [Serializable]
@@ -120,9 +121,9 @@ namespace MysticJourney.API.Models
         public string createdAt;
     }
 
-    [Serializable]
     public class DonateRequest
     {
+        public string currencyType;
         public int amount;
     }
 
@@ -130,6 +131,7 @@ namespace MysticJourney.API.Models
     public class GuildDonateResultDto
     {
         public int goldSpent;
+        public int gemSpent;
         public int guildExpGained;
         public int guildMedalsGained;
         public int playerMedalsGained;

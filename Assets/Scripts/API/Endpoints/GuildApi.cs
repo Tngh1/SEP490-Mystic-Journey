@@ -162,10 +162,10 @@ namespace MysticJourney.API.Endpoints
 
         // ─── Donate ───────────────────────────────────────────────────────
 
-        public static void Donate(int id, int amount, Action<GuildDonateResultDto> onSuccess, Action<ApiException> onError)
+        public static void Donate(int id, string currencyType, int amount, Action<GuildDonateResultDto> onSuccess, Action<ApiException> onError)
         {
             string url = ApiConfig.GuildDonate.Replace("{id}", id.ToString());
-            var payload = new DonateRequest { amount = amount };
+            var payload = new DonateRequest { currencyType = currencyType, amount = amount };
             ApiClient.Instance.Post(url, payload, onSuccess, onError, requiresAuth: true);
         }
 
