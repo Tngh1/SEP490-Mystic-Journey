@@ -14,11 +14,20 @@ public class DarknessCurseSkill : MonoBehaviour
     [Tooltip("Tỷ lệ làm chậm (0.5 = giảm 50% tốc độ)")]
     [SerializeField] private float slowMultiplier = 0.5f;
 
+    [Header("Audio Settings")]
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     private PlayerEntity targetEntity;
     private PlayerMovement targetMovement;
 
     private void Start()
     {
+        if (castSound != null && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         // 1. Tìm người chơi để bám vào
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)

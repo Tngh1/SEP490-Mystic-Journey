@@ -71,6 +71,15 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         }
 
         ApplyAuthorityRole();
+
+        Debug.Log($"[NetworkEnemy] Spawned '{name}' authority={HasStateAuthority} pos={transform.position} " +
+                  $"scene='{gameObject.scene.name}'");
+
+        // Notify DungeonManager so UI tracks progress even on proxy clients
+        if (DungeonManager.Instance != null)
+        {
+            DungeonManager.Instance.RegisterNetworkedEnemy(_entity);
+        }
     }
 
     /// <summary>

@@ -152,6 +152,18 @@ public class PlayerWorldInteractor : MonoBehaviour
             return;
         }
 
+        // Entering a dungeon deliberately does NOT push the dungeon scene name to the
+        // server (PlayerWorldPositionSync skips saving while IsInDungeon), so the server
+        // still has the world map. Every interact from inside a dungeon therefore fails
+        // validation with "Player is currently in <world map>, not <dungeon>" — hundreds
+        // of 400s in the console. World quest progress can never belong to a dungeon
+        // object anyway, so resolve it locally instead of calling the API.
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+        {
+            target.OnSuccessfulInteraction();
+            return;
+        }
+
         // Ủy quyền hoàn toàn cho các controller tự quản lý tương tác / video / mở khóa
         if (target.GetComponent<IvyTreeInteractable>() != null ||
             target.GetComponent<LockedBridgeGate>() != null ||
@@ -199,6 +211,13 @@ public class PlayerWorldInteractor : MonoBehaviour
             target.ProgressDelta,
             response =>
             {
+                // target is captured across a network round-trip. A dungeon restart/exit
+                // unloads the scene meanwhile, so by the time this lands the component can
+                // be destroyed — touching it then throws MissingReferenceException
+                // ("WorldInteractable has been destroyed"). Unity's == override treats a
+                // destroyed object as null, so this guard covers it.
+                if (target == null) return;
+
                 Debug.Log($"[PlayerWorldInteractor] Interacted with '{target.DisplayName}'. QuestId: {questIdToSend}. Response: {response?.Message}");
 
                 // Server là nguồn sự thật cho progress: áp Quest đã cộng progress vào cache
@@ -216,6 +235,7 @@ public class PlayerWorldInteractor : MonoBehaviour
             error =>
             {
                 Debug.LogWarning($"[PlayerWorldInteractor] InteractObject failed: {error.Message}");
+                if (target == null) return;
                 target.OnSuccessfulInteraction();
             }
         );

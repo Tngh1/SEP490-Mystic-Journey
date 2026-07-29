@@ -21,6 +21,18 @@ public class DungeonManager : MonoBehaviour
     public int EnemiesKilledCount { get; private set; } = 0;
     public bool IsInDungeon { get; private set; } = false;
 
+    // Added to support UI Progress
+    public int TotalNormalEnemies => EnemiesKilledCount + _normalEnemies.Count;
+    public int BossCount => _bossEnemies.Count;
+
+    /// <summary>
+    /// True once the boss is actually dead. The UI must gate "Cleared!" on this, not on
+    /// BossCount: between the last normal dying and the boss object existing there is a
+    /// ~1.2s shake window (phase BossSpawning) where BossCount is still 0.
+    /// </summary>
+    public bool IsDungeonCleared => _currentPhase == DungeonPhase.Complete;
+    public Dictionary<string, (int killed, int total)> EnemyProgress { get; private set; } = new();
+
     // Saved position in world map to return to
     public string PreviousMapSceneName { get; private set; } = "AbandonedCastle";
     public Vector3 PreviousPlayerPosition { get; private set; } = Vector3.zero;
@@ -31,6 +43,17 @@ public class DungeonManager : MonoBehaviour
     private readonly List<EnemyEntity> _bossEnemies   = new();
     private bool bossKilled = false;
     private Vector3 _bossDeathPosition = Vector3.zero;
+
+    // Guards the one-shot "I became master late, re-run the spawn" recovery so a client
+    // that legitimately has no enemies cannot loop the pipeline forever.
+    private bool _masterSpawnRetried = false;
+
+    // One-shot guard so the spawn runs exactly once per dungeon entry. Both the
+    // sceneLoaded event and TransitionToDungeon kick it off (the event alone proved
+    // unreliable: WorldState.CurrentMapName is written from 12 places — including the
+    // WorldApi.GetState hydration that lands mid-load — so the event's name check can
+    // reject the very scene we just loaded and no enemies ever spawn).
+    private bool _spawnStarted = false;
 
     // ── Saved state for RestartDungeon ──
     private List<string> _currentPartyMembers = new();
@@ -55,7 +78,12 @@ public class DungeonManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        // Only the surviving singleton owns the subscription. Awake destroys duplicates,
+        // and their OnDestroy must not touch the event.
+        if (Instance != this) return;
+
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        Instance = null;
     }
     private GameObject FindPlayerInstance()
     {
@@ -132,6 +160,8 @@ public class DungeonManager : MonoBehaviour
         _normalEnemies.Clear();
         _bossEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
+        _masterSpawnRetried = false;
+        _spawnStarted = false;
 
         // Save current map state to return later
         PreviousMapSceneName = WorldState.CurrentMapName;
@@ -224,6 +254,9 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         );
     }
 
+    /// <summary>True if the local player is the host of the current party dungeon.</summary>
+    public bool IsPartyHost { get; private set; }
+
     /// <summary>
     /// EVERY client (host + members): perform the actual scene transition into the
     /// dungeon using an already-established session id (from the host). Does NOT call
@@ -233,7 +266,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     /// is picked up by FindPlayerInstance just like a local player.
     /// </summary>
     public void EnterDungeonScene(int configId, string dungeonSceneName, int cost, string dungeonName, int sessionId,
-                                  bool hasReturnPoint = false, string returnMapName = null, Vector3 returnPosition = default)
+                                  bool hasReturnPoint = false, string returnMapName = null, Vector3 returnPosition = default, bool isHost = false)
     {
         if (sessionId <= 0)
         {
@@ -242,10 +275,14 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             return;
         }
 
+        IsPartyHost = isHost;
         CurrentDungeonConfigId = configId;
         CurrentDungeonCost = cost;
-        CurrentDungeonName = dungeonName;
-        _currentDungeonSceneName = dungeonSceneName;
+        CurrentDungeonName = dungeonName?.Trim('\0');
+        
+        // Clean trailing nulls in case it came from a Fusion NetworkString
+        _currentDungeonSceneName = dungeonSceneName?.Trim('\0');
+        
         CurrentSessionId = sessionId;
         IsInDungeon = true;
 
@@ -255,6 +292,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _normalEnemies.Clear();
         _bossEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
+        _masterSpawnRetried = false;
+        _spawnStarted = false;
 
         // Return point: the party path migrates the Photon runner FIRST, which destroys
         // the world avatar and spawns a fresh networked one at a different position — so
@@ -314,10 +353,14 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         // Set LastPosition to zero so player spawner falls back to scene spawnPoint
         WorldState.LastPosition = Vector3.zero;
-        WorldState.CurrentMapName = dungeonSceneName;
+        WorldState.CurrentMapName = _currentDungeonSceneName;
 
         // Load dungeon scene additively
-        yield return SceneManager.LoadSceneAsync(dungeonSceneName, LoadSceneMode.Additive);
+        yield return SceneManager.LoadSceneAsync(_currentDungeonSceneName, LoadSceneMode.Additive);
+
+        // Kick the spawn off here rather than trusting the sceneLoaded event to have done it.
+        // No-ops if the event already fired.
+        BeginEnemySpawn(_currentDungeonSceneName);
 
         // The local (networked) avatar may not exist yet on a client that just migrated
         // — if it is still null here we skip the teleport and the player is left at the
@@ -337,9 +380,9 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // Move player into the dungeon scene
         if (player != null)
         {
-            var dungeonScene = SceneManager.GetSceneByName(dungeonSceneName);
+            var dungeonScene = SceneManager.GetSceneByName(_currentDungeonSceneName);
             if (SafeMoveToScene(player, dungeonScene))
-                Debug.Log($"[DungeonManager] Moved player into dungeon scene: {dungeonSceneName}");
+                Debug.Log($"[DungeonManager] Moved player into dungeon scene: {_currentDungeonSceneName}");
         }
         else
         {
@@ -373,7 +416,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                     rb.linearVelocity = Vector2.zero;
                     rb.position = spawnPos;
                 }
-                player.transform.position = spawnPos;
+                
+                var nt = player.GetComponent<Fusion.NetworkTransform>();
+                if (nt != null)
+                    nt.Teleport(spawnPos);
+                else
+                    player.transform.position = spawnPos;
+
                 WorldState.LastPosition = spawnPos;
             }
         }
@@ -403,14 +452,31 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (!IsInDungeon || scene.name != WorldState.CurrentMapName)
+        // Compare against the dungeon we are actually entering, NOT WorldState.CurrentMapName:
+        // that field is written from a dozen places (the WorldApi.GetState hydration lands
+        // right in the middle of the additive load) and any of them racing us here made the
+        // check reject the dungeon scene, so the spawn never started.
+        if (!IsInDungeon || scene.name != _currentDungeonSceneName)
             return;
 
-        Debug.Log($"[DungeonManager] Dungeon scene loaded: {scene.name}. Starting spawn + registration...");
+        BeginEnemySpawn(scene.name);
+    }
+
+    /// <summary>
+    /// Single entry point for the dungeon spawn. Called both from the sceneLoaded event and
+    /// directly by <see cref="TransitionToDungeon"/> once the additive load finishes, so a
+    /// missed event cannot leave the run with zero enemies. The flag keeps it one-shot.
+    /// </summary>
+    private void BeginEnemySpawn(string mapName)
+    {
+        if (_spawnStarted) return;
+        _spawnStarted = true;
+
+        Debug.Log($"[DungeonManager] Dungeon scene loaded: {mapName}. Starting spawn + registration...");
 
         // Try to use DungeonSpawner for data-driven spawning.
         // Falls back to scanning existing scene enemies if no spawner is present.
-        StartCoroutine(SpawnAndRegisterEnemies(scene.name));
+        StartCoroutine(SpawnAndRegisterEnemies(mapName));
     }
 
     /// <summary>
@@ -423,6 +489,44 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     {
         // Wait one frame so Awake/Start have all completed in the loaded scene
         yield return null;
+
+        var photon = PhotonManager.Instance;
+        bool online = photon != null && photon.IsDungeonSession;
+
+        // Spawn authority is Fusion's Shared-Mode master client (PhotonManager.IsHost),
+        // and that is decided by ROOM JOIN ORDER — not by who hosted the party. The two
+        // can diverge: MigrateToRoomAsync notes the party host's peer drains slower and
+        // "tends to lose the race", in which case a member becomes master instead.
+        //
+        // Fusion also takes a few ticks to assert IsSharedModeMasterClient after
+        // migration, so whoever ends up master must let that flag settle before the
+        // pipeline runs — otherwise SpawnEnemyObject's `if (!photon.IsHost) return null`
+        // skips every Runner.Spawn and nobody gets monsters. Gating this wait on
+        // IsPartyHost was the bug: a member-master raced ahead and spawned nothing,
+        // while the party host waited, never became master, and also spawned nothing.
+        //
+        // 2s was also too short: MigrateToRoomAsync retries with backoff (600–2400ms per
+        // attempt), so the room's master can be elected several seconds after this client
+        // finished loading the dungeon scene. When that happened the one-shot check below
+        // said "not master" on EVERY client, so nobody ever called Runner.Spawn and the
+        // whole party sat on "Loading...". The window is wider now AND the decision is
+        // recoverable — see the re-run below.
+        if (online)
+        {
+            // Also break as soon as replicated enemies exist: that means the master already
+            // ran Runner.Spawn, so there is nothing left to wait for. Without it a proxy
+            // burned the WHOLE 6s every time — the wait only ends early for whoever becomes
+            // master. On a RESTART the master was elected on the first entry and never
+            // changes, so those 6s were pure dead time and the progress panel sat on
+            // "Loading..." for 6s after pressing Again.
+            float waitMaster = 6f;
+            while (waitMaster > 0f && !photon.IsHost && !AnyEnemyInScene())
+            {
+                waitMaster -= Time.deltaTime;
+                yield return null;
+            }
+            Debug.Log($"[DungeonManager] Spawn authority settled: IsHost={photon.IsHost} (IsPartyHost={IsPartyHost}).");
+        }
 
         var spawner = FindFirstObjectByType<DungeonSpawner>();
 
@@ -446,18 +550,57 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
             yield return new WaitUntil(() => spawnDone);
 
-            _normalEnemies.Clear();
-
             if (spawnedEnemies != null)
             {
-                foreach (var enemy in spawnedEnemies)
+                photon = PhotonManager.Instance;
+                bool isProxy = photon != null && photon.IsDungeonSession && !photon.IsHost;
+                
+                if (!isProxy)
                 {
-                    if (enemy == null) continue;
-                    _normalEnemies.Add(enemy);
-                    enemy.OnDeath -= HandleNormalEnemyDeath;
-                    enemy.OnDeath += HandleNormalEnemyDeath;
+                    _normalEnemies.Clear();
+                    EnemyProgress.Clear();
+                    foreach (var enemy in spawnedEnemies)
+                    {
+                        RegisterNetworkedEnemy(enemy);
+                    }
+                    Debug.Log($"[DungeonManager] Registered {_normalEnemies.Count} normal enemies.");
                 }
-                Debug.Log($"[DungeonManager] Registered {_normalEnemies.Count} normal enemies.");
+                else
+                {
+                    // A proxy gets its enemies from Fusion, not from the (empty) spawn
+                    // list — NetworkEnemy.Spawned calls RegisterNetworkedEnemy itself.
+                    // But that callback races the dungeon transition: replicas that
+                    // arrive while the proxy is still migrating/loading get wiped by
+                    // EnterDungeonScene's _normalEnemies.Clear(), and replicas that
+                    // arrive later were never waited for. Either way the proxy ended up
+                    // with 0 tracked enemies, which is exactly what pins the progress
+                    // panel on "Loading..." (TotalNormalEnemies == 0).
+                    //
+                    // So sweep the scene instead of trusting the callback timing.
+                    // RegisterNetworkedEnemy is idempotent (Contains guards), so this is
+                    // safe to run alongside the Spawned() path.
+                    yield return SweepReplicatedEnemies();
+                }
+
+                // Recovery for the actual multiplayer failure. "Am I the master?" is read
+                // ONCE, right after this client loaded the dungeon scene — but Fusion elects
+                // the Shared-Mode master asynchronously, and MigrateToRoomAsync retries with
+                // backoff, so that read can be too early on EVERY client. When it was, both
+                // clients took the proxy path, nobody called Runner.Spawn, there were no
+                // replicas to sweep, and the whole party sat on "Loading..." forever.
+                //
+                // Covers both branches on purpose: a client that became master *during* the
+                // pipeline hits the !isProxy branch and registers an empty list, which is
+                // just as broken as the proxy case.
+                photon = PhotonManager.Instance;
+                if (_normalEnemies.Count == 0 && _bossEnemies.Count == 0 &&
+                    photon != null && photon.IsDungeonSession && photon.IsHost && !_masterSpawnRetried)
+                {
+                    _masterSpawnRetried = true;
+                    Debug.LogWarning("[DungeonManager] 0 enemies but we ARE the master client — " +
+                                     "the authority read was too early. Re-running the spawn pipeline.");
+                    yield return SpawnAndRegisterEnemies(mapName);
+                }
             }
         }
         else
@@ -472,14 +615,122 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             Debug.Log($"[DungeonManager] Fallback: found {enemies.Length} pre-placed enemies.");
 
             _normalEnemies.Clear();
+            EnemyProgress.Clear();
             foreach (var enemy in enemies)
             {
                 if (enemy == null) continue;
                 _normalEnemies.Add(enemy);
                 enemy.OnDeath -= HandleNormalEnemyDeath;
                 enemy.OnDeath += HandleNormalEnemyDeath;
+
+                string n = GetCleanEnemyName(enemy);
+                if (!EnemyProgress.ContainsKey(n)) EnemyProgress[n] = (0, 0);
+                var p = EnemyProgress[n];
+                p.total++;
+                EnemyProgress[n] = p;
             }
         }
+    }
+
+    /// <summary>
+    /// Proxy-side enemy discovery. Polls the scene for replicated EnemyEntity objects
+    /// until some show up (or we give up), then registers them. Needed because the
+    /// authority's Runner.Spawn calls and this client's dungeon transition run
+    /// concurrently, so NetworkEnemy.Spawned can fire either before this client has
+    /// cleared its lists or well after it finished loading.
+    /// </summary>
+    private static bool AnyEnemyInScene() =>
+        FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length > 0;
+
+    private IEnumerator SweepReplicatedEnemies()
+    {
+        // ponytail: fixed 8s poll window instead of reacting to a "spawn finished"
+        // signal from the authority. Upgrade path: have the master broadcast an RPC
+        // with the expected enemy count once InstantiateAll returns, and wait on that.
+        float wait = 8f;
+        while (wait > 0f)
+        {
+            var found = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            if (found.Length > 0)
+            {
+                _normalEnemies.Clear();
+                _bossEnemies.Clear();
+                EnemyProgress.Clear();
+                foreach (var enemy in found) RegisterNetworkedEnemy(enemy);
+                Debug.Log($"[DungeonManager] Proxy swept {found.Length} replicated enemies " +
+                          $"→ {_normalEnemies.Count} normal, {_bossEnemies.Count} boss.");
+                yield break;
+            }
+
+            wait -= Time.deltaTime;
+            yield return null;
+        }
+
+        Debug.LogWarning("[DungeonManager] Proxy found NO replicated enemies after 8s — " +
+                         "the master client likely never ran Runner.Spawn (check its console).");
+    }
+
+    public void RegisterNetworkedEnemy(EnemyEntity enemy)
+    {
+        if (enemy == null) return;
+        
+        // Name test alone is not enough: NetworkEnemy.Spawned() (which calls us) fires
+        // from inside Runner.Spawn, i.e. BEFORE DungeonSpawner.SpawnBoss renames the
+        // instance to "{MonsterName}(Boss)". Proxies never rename at all — SpawnEnemyObject
+        // returns null for non-hosts. So the boss was filed as a normal enemy, _bossEnemies
+        // stayed empty and the UI read "Cleared!" with the boss still alive.
+        // _currentPhase is the one boss signal set on EVERY client (TriggerBossSequence on
+        // the host, ClientBossSequence on proxies), and only the boss spawns after Normal.
+        string enemyName = enemy.gameObject.name;
+        bool isBoss = _currentPhase != DungeonPhase.Normal
+                      || enemyName.EndsWith("(Boss)") || enemyName.EndsWith("_Boss");
+
+        if (isBoss)
+        {
+            if (!_bossEnemies.Contains(enemy))
+            {
+                _bossEnemies.Add(enemy);
+                enemy.OnDeath -= HandleBossEnemyDeath;
+                enemy.OnDeath += HandleBossEnemyDeath;
+                Debug.Log($"[DungeonManager] Registered networked BOSS: {enemy.gameObject.name} (phase={_currentPhase})");
+            }
+        }
+        else
+        {
+            if (!_normalEnemies.Contains(enemy))
+            {
+                _normalEnemies.Add(enemy);
+                enemy.OnDeath -= HandleNormalEnemyDeath;
+                enemy.OnDeath += HandleNormalEnemyDeath;
+
+                string n = GetCleanEnemyName(enemy);
+                if (!EnemyProgress.ContainsKey(n)) EnemyProgress[n] = (0, 0);
+                var p = EnemyProgress[n];
+                p.total++;
+                EnemyProgress[n] = p;
+                Debug.Log($"[DungeonManager] Registered networked enemy: {n} (Total: {p.total})");
+            }
+        }
+    }
+
+    private string GetCleanEnemyName(EnemyEntity enemy)
+    {
+        if (enemy == null) return "Unknown";
+        string cleanName = enemy.gameObject.name.Replace("(Clone)", "").Trim();
+        int spaceIndex = cleanName.IndexOf(" (");
+        if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex);
+        
+        int lastUnderscore = cleanName.LastIndexOf('_');
+        if (lastUnderscore > 0 && lastUnderscore < cleanName.Length - 1)
+        {
+            string suffix = cleanName.Substring(lastUnderscore + 1);
+            if (int.TryParse(suffix, out _))
+            {
+                cleanName = cleanName.Substring(0, lastUnderscore);
+            }
+        }
+        
+        return cleanName;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -498,6 +749,14 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         enemy.OnDeath -= HandleNormalEnemyDeath;
         _normalEnemies.Remove(enemy);
         EnemiesKilledCount++;
+
+        string n = GetCleanEnemyName(enemy);
+        if (EnemyProgress.ContainsKey(n))
+        {
+            var p = EnemyProgress[n];
+            p.killed++;
+            EnemyProgress[n] = p;
+        }
 
         int remaining  = _normalEnemies.Count;
         int total      = EnemiesKilledCount + remaining;
@@ -523,7 +782,17 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             );
         }
 
-        if (remaining == 0 && _currentPhase == DungeonPhase.Normal)
+        // Boss sequence is HOST-ONLY when online. DungeonSpawner.SpawnEnemyObject returns
+        // null for non-hosts (they receive the boss via replication), so a proxy running
+        // this fell into the "boss == null" fallback below and spawned the reward chest
+        // while the host's boss was still alive. Proxies wait for RPC_BossSpawning /
+        // RPC_BossDied instead. Mirrors the online+!IsHost test in SpawnEnemyObject —
+        // IsHost is also false offline (no runner), so gating on IsHost alone would stop
+        // single-player from ever spawning a boss.
+        var photon = PhotonManager.Instance;
+        bool isProxy = photon != null && photon.IsDungeonSession && !photon.IsHost;
+
+        if (remaining == 0 && _currentPhase == DungeonPhase.Normal && !isProxy)
             StartCoroutine(TriggerBossSequence());
     }
 
@@ -548,22 +817,27 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         if (DungeonSpawner.Instance == null)
         {
             Debug.LogWarning("[DungeonManager] DungeonSpawner not found. Skipping boss and completing dungeon.");
+            // Latch Complete before the chest drops: BossDeathSequence spawns the reward
+            // chest, and leaving the phase at BossSpawning left the UI on "Boss Spawned!"
+            // with a lootable chest already on the floor.
+            _currentPhase = DungeonPhase.Complete;
             yield return StartCoroutine(BossDeathSequence(GetFallbackChestPosition()));
             yield break;
         }
 
         EnemyEntity boss = DungeonSpawner.Instance.SpawnBoss();
+        if (boss != null)
+        {
+            RegisterNetworkedEnemy(boss);
+        }
+        
         if (boss == null)
         {
             Debug.LogWarning("[DungeonManager] DungeonSpawner.SpawnBoss returned null. Completing dungeon without boss.");
+            _currentPhase = DungeonPhase.Complete;
             yield return StartCoroutine(BossDeathSequence(GetFallbackChestPosition()));
             yield break;
         }
-
-        _bossEnemies.Clear();
-        _bossEnemies.Add(boss);
-        boss.OnDeath -= HandleBossEnemyDeath;
-        boss.OnDeath += HandleBossEnemyDeath;
 
         _currentPhase = DungeonPhase.Boss;
         Debug.Log($"[DungeonManager] Boss '{boss.name}' spawned. Phase → Boss.");
@@ -578,6 +852,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         boss.OnDeath -= HandleBossEnemyDeath;
         _bossEnemies.Remove(boss);
+
+        // Proxies register the boss too now, so a non-host client can reach completion
+        // twice: once from its own replicated boss death, once from the host's
+        // RPC_BossDied. Whichever arrives first latches the phase; the second must not
+        // re-run the sequence (it would spawn a second chest and re-POST Complete).
+        if (_currentPhase == DungeonPhase.Complete) return;
+
         bossKilled           = true;
         EnemiesKilledCount++;
         _bossDeathPosition   = boss.transform.position;
@@ -612,6 +893,10 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     public void ClientReceiveBossDeath(Vector3 chestPosition)
     {
+        // Same double-entry guard as HandleBossEnemyDeath: this client may already have
+        // completed off its own replicated boss death before the host's RPC lands.
+        if (_currentPhase == DungeonPhase.Complete) return;
+
         _currentPhase = DungeonPhase.Complete;
         Debug.Log($"[DungeonManager] Client received boss death event at {chestPosition}. Starting completion sequence.");
         StartCoroutine(BossDeathSequence(chestPosition));
@@ -687,8 +972,28 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     [Tooltip("Kéo Prefab Rương của bạn vào đây (vd: DarkChest)")]
     public GameObject rewardChestPrefab;
 
+    private GameObject _rewardChest;
+
+    /// <summary>
+    /// Destroy the reward chest of the previous run. Unloading the dungeon scene was NOT
+    /// enough to take it with it: the chest is Instantiate()d with no parent so it lands in
+    /// the ACTIVE scene, and the active scene is always Main (both TransitionToRestart and
+    /// ReturnToWorldMap end with SetActiveScene("Main")). Only the assigned-prefab branch
+    /// tries to move it into the dungeon scene, and that move is best-effort — SafeMoveToScene
+    /// bails when WorldState.CurrentMapName is not a loaded scene. Main is never unloaded, so
+    /// whatever stayed there survived into run 2 as a second, openable chest.
+    /// </summary>
+    private void DespawnRewardChest()
+    {
+        if (_rewardChest != null) Destroy(_rewardChest);
+        _rewardChest = null;
+    }
+
     private void SpawnFinalChestAtPosition(Vector3 targetPosition)
     {
+        // One chest per run, always.
+        DespawnRewardChest();
+
         GameObject chestGO = null;
 
         // 1. Instantiate from assigned prefab
@@ -696,7 +1001,11 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         {
             chestGO = Instantiate(rewardChestPrefab, targetPosition + Vector3.up * 6f, Quaternion.identity);
             chestGO.name = "DungeonChest";
-            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(chestGO, UnityEngine.SceneManagement.SceneManager.GetSceneByName(WorldState.CurrentMapName));
+            // GetSceneByName returns an INVALID Scene when the name is not a loaded scene
+            // (WorldState.CurrentMapName is written from a dozen places and can hold the
+            // overworld name here) and MoveGameObjectToScene then throws
+            // "ArgumentException: Destination scene is not valid". SafeMoveToScene guards it.
+            SafeMoveToScene(chestGO, SceneManager.GetSceneByName(WorldState.CurrentMapName));
             
             // Ensure components are present and active
             var chestScript = chestGO.GetComponent<DungeonChest>();
@@ -743,6 +1052,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             Debug.LogWarning("[DungeonManager] Chest prefab not found — created a fallback yellow 2D Sprite chest.");
         }
 
+        _rewardChest = chestGO;
         StartCoroutine(ChestDropAnimation(chestGO, targetPosition));
     }
 
@@ -879,10 +1189,26 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         }
 
         PlayerHUDController.Instance?.ToggleDungeonMode(false);
+        // Same leak as the restart path: the chest lives in Main, so Exit carried it out to
+        // the world map instead of unloading it with the dungeon.
+        DespawnRewardChest();
         IsInDungeon = false;
         Debug.Log($"[DungeonManager] Returned to map: {PreviousMapSceneName} at {WorldState.LastPosition}");
 
         yield return LoadingScreen.Hide();
+    }
+
+    /// <summary>
+    /// Party member: take over the session id the host created for the restarted run.
+    /// Called from <see cref="NetworkPlayer.RPC_SetRestartSession"/>.
+    /// </summary>
+    public void AdoptRestartSession(int sessionId)
+    {
+        if (sessionId <= 0) return;
+        if (CurrentSessionId == sessionId) return;
+        CurrentSessionId = sessionId;
+        IsInDungeon = true;
+        Debug.Log($"[DungeonManager] Adopted host restart session: {sessionId}");
     }
 
     public void RestartDungeon()
@@ -894,11 +1220,25 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _normalEnemies.Clear();
         _bossEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
+        _masterSpawnRetried = false;
+        _spawnStarted = false;
+
+        // Remove run 1's chest NOW, not when run 2's boss dies — otherwise it stays
+        // standing and openable for the whole second run.
+        DespawnRewardChest();
+
+        // The progress panel lives in the Main HUD, which is never unloaded, so its
+        // OnEnable does not run again on a restart.
+        var progress = FindFirstObjectByType<UIDungeonProgressPanel>(FindObjectsInactive.Include);
+        if (progress != null) progress.ResetProgress();
 
         // Note: PreviousMapSceneName and PreviousPlayerPosition are preserved from the FIRST time they entered!
 
-        // Only host should call Enter API for restart
-        if (PhotonManager.Instance?.IsHost == true)
+        // Whoever owns the backend session calls Enter: the party host, and also a solo
+        // player (no NetworkPlayer at all → IsHost is false offline, so the old check sent
+        // solo down the member path and it reused the finished run's session id).
+        bool ownsSession = PhotonManager.Instance?.IsHost == true || NetworkPlayer.Local == null;
+        if (ownsSession)
         {
             DungeonApi.Instance.Enter(CurrentDungeonConfigId, _currentPartyMembers,
                 onSuccess: response =>
@@ -908,7 +1248,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                         CurrentSessionId = response.DungeonSessionId;
                         IsInDungeon = true;
                         Debug.Log($"[DungeonManager] Session created for Restart: {CurrentSessionId}");
-                        
+
+                        // Members never call Enter, so without this they keep the finished
+                        // run's id and their claim-reward on run 2 fails → the complete
+                        // panel falls back to +0 / +0 / --:--.
+                        if (NetworkPlayer.Local != null)
+                            NetworkPlayer.Local.RPC_SetRestartSession(CurrentSessionId);
+
                         // Close the Dungeon Complete panel since it lives in Main scene
                         var p = FindFirstObjectByType<MysticJourney.Features.Dungeon.UI.UIDungeonCompletePanel>(FindObjectsInactive.Include);
                         if (p != null) p.gameObject.SetActive(false);

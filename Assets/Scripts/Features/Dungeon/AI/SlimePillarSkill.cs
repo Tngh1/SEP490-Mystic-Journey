@@ -19,8 +19,18 @@ public class SlimePillarSkill : MonoBehaviour
     [Tooltip("Thời gian tự huỷ của chính cái cọc slime này (để nó không tồn tại mãi trên bản đồ)")]
     [SerializeField] private float lifeTime = 2f;
 
+    [Header("Audio Settings")]
+    [SerializeField] private AudioClip castSound;
+    [SerializeField] private AudioClip hitSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     private void Start()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         // Cọc slime mọc lên, sau 2s (lifeTime) sẽ tự động biến mất
         Destroy(gameObject, lifeTime);
     }
@@ -30,6 +40,11 @@ public class SlimePillarSkill : MonoBehaviour
         // Khi chạm vào người chơi
         if (col.CompareTag("Player"))
         {
+            if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+            {
+                MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
+            }
+
             // Truyền hiệu ứng chất nhầy sang cho người chơi
             SlimeDebuff.ApplyTo(col.gameObject, slowMultiplier, damagePerTick, tickInterval, debuffDuration);
         }

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using TMPro; // BẮT BUỘC THÊM DÒNG NÀY CHO TEXTMESHPRO
+using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.Core.Services;
 using MysticJourney.API.Models.Response;
@@ -22,8 +22,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
 
     [Header("Cooldown UI")]
     public Image cooldownOverlay;
-
-    // 👇 ĐÃ ĐỔI SANG BIẾN CỦA TEXTMESHPRO
     public TextMeshProUGUI cooldownText;
 
     private bool _isCooldown = false;
@@ -34,20 +32,64 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
     {
         PlayerCombat.OnSkillCast += HandleSkillCast;
         OnSkillEquipped += HandleSkillEquipped;
+        RefreshLockState();
     }
+
     private void OnDisable()
     {
         PlayerCombat.OnSkillCast -= HandleSkillCast;
         OnSkillEquipped -= HandleSkillEquipped;
     }
 
-    // Khôi phục cooldown ngay từ broadcast trang bị skill (kể cả lúc mới vào game).
-    // Trước đây chỉ PlayerCombat làm việc này, nhưng nó spawn ở world scene nên
-    // thường CHƯA subscribe khi HUDSkillManager broadcast lúc load → cooldown bị miss
-    // dù icon đã hiện. SkillSlot luôn tồn tại (HUD persistent) nên không dính race đó.
+    public void RefreshLockState()
+    {
+        // Gán Level yêu cầu chuẩn theo slotIndex (0 = Lv 1, 1 = Lv 5, 2 = Lv 10)
+        if (slotIndex == 0) requiredLevel = 1;
+        else if (slotIndex == 1) requiredLevel = 5;
+        else if (slotIndex == 2) requiredLevel = 10;
+
+        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
+        bool isLocked = currentLevel < requiredLevel;
+
+        if (lockImage != null)
+        {
+            lockImage.SetActive(isLocked);
+
+            // Đảm bảo Image ổ khóa bật hiển thị rõ ràng trên UI
+            var lockImgComp = lockImage.GetComponent<Image>();
+            if (lockImgComp != null)
+            {
+                lockImgComp.enabled = true;
+                lockImgComp.color = Color.white;
+            }
+        }
+
+        if (isLocked)
+        {
+            if (equippedIcon != null)
+            {
+                equippedIcon.color = new Color(1f, 1f, 1f, 0f); // Ẩn icon nếu slot bị khóa
+            }
+        }
+    }
+
     private void HandleSkillEquipped(int equippedSlotIndex, SkillData vData, PlayerSkillResponse sData)
     {
         if (equippedSlotIndex != this.slotIndex) return;
+
+        RefreshLockState();
+
+        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
+        if (currentLevel >= requiredLevel)
+        {
+            if (equippedIcon != null && vData != null && vData.skillIcon != null)
+            {
+                equippedIcon.sprite = vData.skillIcon;
+                equippedIcon.color = _isCooldown ? new Color(0.35f, 0.35f, 0.35f, 1f) : Color.white;
+                equippedIcon.gameObject.SetActive(true);
+                equippedIcon.enabled = true;
+            }
+        }
 
         if (sData != null && !string.IsNullOrEmpty(sData.NextAvailableTime) &&
             System.DateTime.TryParse(sData.NextAvailableTime,
@@ -63,51 +105,79 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
             }
         }
 
-        // Skill mới không còn cooldown → xoá overlay (trường hợp đổi sang skill đã hồi xong).
+        // Skill không còn cooldown → khôi phục icon sáng và xóa overlay
         _isCooldown = false;
         _cooldownTimer = 0f;
         if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
         if (cooldownText != null) cooldownText.text = "";
+        if (equippedIcon != null && currentLevel >= requiredLevel)
+        {
+            equippedIcon.color = Color.white;
+        }
     }
 
     void Start()
     {
-        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
-        if (lockImage != null) lockImage.SetActive(currentLevel < requiredLevel);
+        RefreshLockState();
 
-        if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount = 0f;
+            // Đặt màu lớp phủ đếm ngược thành màu đen mờ (75% alpha) để làm mờ icon phía sau khi hồi chiêu
+            cooldownOverlay.color = new Color(0f, 0f, 0f, 0.75f);
+        }
 
-        // Ẩn số đếm ngược khi mới vào game
-        if (cooldownText != null) cooldownText.text = "";
+        if (cooldownText != null)
+        {
+            cooldownText.text = "";
+            cooldownText.alignment = TextAlignmentOptions.Center;
+        }
     }
 
     private void Update()
     {
-        if (_isCooldown && cooldownOverlay != null)
+        if (_isCooldown)
         {
             _cooldownTimer -= Time.deltaTime;
-            cooldownOverlay.fillAmount = _cooldownTimer / _cooldownDuration;
 
-            // HIỂN THỊ SỐ ĐẾM NGƯỢC
+            if (cooldownOverlay != null)
+            {
+                cooldownOverlay.fillAmount = Mathf.Clamp01(_cooldownTimer / _cooldownDuration);
+                // Giữ màu xám mờ đậm đè lên icon kỹ năng
+                cooldownOverlay.color = new Color(0f, 0f, 0f, 0.75f);
+            }
+
+            // Hiển thị số giây hồi chiêu bằng màu VÀNG KIM NỔI BẬT với kích thước lớn
             if (cooldownText != null)
             {
-                cooldownText.text = Mathf.CeilToInt(_cooldownTimer).ToString();
+                int remainingInt = Mathf.CeilToInt(_cooldownTimer);
+                cooldownText.text = $"<size=150%><color=#FFE042><b>{remainingInt}</b></color></size>";
+            }
+
+            // Làm mờ icon kỹ năng phía dưới trong lúc chờ hồi chiêu
+            if (equippedIcon != null)
+            {
+                equippedIcon.color = new Color(0.35f, 0.35f, 0.35f, 1f);
             }
 
             if (_cooldownTimer <= 0)
             {
                 _isCooldown = false;
-                cooldownOverlay.fillAmount = 0f;
-
-                // Ẩn số đếm ngược khi hồi xong
+                if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
                 if (cooldownText != null) cooldownText.text = "";
+
+                // Trả lại độ sáng 100% cho icon kỹ năng khi hồi chiêu xong
+                if (equippedIcon != null)
+                {
+                    equippedIcon.color = Color.white;
+                }
             }
         }
     }
 
     private void HandleSkillCast(int castedSlotIndex, float cooldownTime)
     {
-        if (this.slotIndex == castedSlotIndex && cooldownOverlay != null)
+        if (this.slotIndex == castedSlotIndex)
         {
             StartCooldown(cooldownTime);
         }
@@ -122,13 +192,30 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         if (cooldownOverlay != null)
         {
             cooldownOverlay.fillAmount = 1f;
+            cooldownOverlay.color = new Color(0f, 0f, 0f, 0.75f);
         }
 
-        if (cooldownText != null) cooldownText.text = Mathf.CeilToInt(cooldownTime).ToString();
+        if (equippedIcon != null)
+        {
+            equippedIcon.color = new Color(0.35f, 0.35f, 0.35f, 1f);
+        }
+
+        if (cooldownText != null)
+        {
+            int remainingInt = Mathf.CeilToInt(cooldownTime);
+            cooldownText.text = $"<size=150%><color=#FFE042><b>{remainingInt}</b></color></size>";
+        }
     }
 
     public void OnDrop(PointerEventData eventData)
     {
+        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
+        if (currentLevel < requiredLevel)
+        {
+            Debug.LogWarning($"Cannot equip: skill slot {slotIndex} requires Player Level {requiredLevel}.");
+            return;
+        }
+
         if (_isCooldown)
         {
             Debug.LogWarning("Cannot equip: skill slot is currently on cooldown.");
@@ -198,6 +285,13 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
+        if (currentLevel < requiredLevel)
+        {
+            Debug.LogWarning($"Slot {slotIndex} is locked!");
+            return;
+        }
+
         // Cho phép click vào HUD để tung chiêu
         if (equippedIcon != null && equippedIcon.sprite != null)
         {

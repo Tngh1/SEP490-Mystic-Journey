@@ -95,9 +95,19 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         manager.TalkToNpc(
             interactable.NpcId,
-            response => RenderApiResponse(response, interactable),
+            // interactable is captured across a network round-trip and used as the fallback
+            // for name/description/portrait. A scene unload (dungeon enter/restart/exit)
+            // destroys it meanwhile, and touching a destroyed component throws
+            // MissingReferenceException. Unity's == override treats it as null, so this
+            // guard covers it; the locally-rendered panel from RenderLocal stays as-is.
+            response =>
+            {
+                if (interactable == null) return;
+                RenderApiResponse(response, interactable);
+            },
             error =>
             {
+                if (interactable == null) return;
                 StartTypewriter(dialogueText, string.IsNullOrWhiteSpace(interactable.GreetingText) ? error : interactable.GreetingText);
                 Debug.LogWarning($"[MainNpcPanelRuntime] TalkToNpc failed: {error}");
             }

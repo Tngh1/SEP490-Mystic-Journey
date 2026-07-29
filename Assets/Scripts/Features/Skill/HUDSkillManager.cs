@@ -13,11 +13,27 @@ public class HUDSkillManager : MonoBehaviour
     private void OnEnable()
     {
         SkillSlot.OnSkillEquipped += UpdateHUDIcon;
+        EnsureMasterData();
+        RefreshHUDSkills();
     }
 
     private void Start()
     {
         EnsureMasterData();
+        StartCoroutine(AutoRefreshRoutine());
+    }
+
+    private System.Collections.IEnumerator AutoRefreshRoutine()
+    {
+        // 1. Tải ngay lần đầu
+        RefreshHUDSkills();
+
+        // 2. Chờ 0.5s tải lại phòng trường hợp Auth/API chưa nạp kịp
+        yield return new WaitForSeconds(0.5f);
+        RefreshHUDSkills();
+
+        // 3. Chờ 1.5s tải lại lần nữa để đảm bảo 100% khi vào game skill tự hiện lên HUD mà không cần mở SkillPanel
+        yield return new WaitForSeconds(1.5f);
         RefreshHUDSkills();
     }
 
@@ -29,24 +45,64 @@ public class HUDSkillManager : MonoBehaviour
         }
     }
 
+    private void EnsureSlotIndices()
+    {
+        var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var hudSlots = new System.Collections.Generic.List<SkillSlot>();
+
+        foreach (var s in allSlots)
+        {
+            if (s != null && !s.transform.IsChildOf(this.transform))
+            {
+                hudSlots.Add(s);
+            }
+        }
+
+        hudSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
+
+        for (int i = 0; i < hudSlots.Count && i < 3; i++)
+        {
+            if (hudSlots[i] != null)
+            {
+                hudSlots[i].slotIndex = i;
+            }
+        }
+    }
+
     public void RefreshHUDSkills()
     {
         EnsureMasterData();
 
-        // 1. Reset tất cả ô icon HUD về trạng thái ẩn ban đầu
-        if (hudSkillIcons != null)
+        // 1. Tự động tìm tất cả ô SkillSlot thuộc HUD (nằm ngoài SkillPanel)
+        var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var hudSlots = new System.Collections.Generic.List<SkillSlot>();
+        var skillPanelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+
+        foreach (var s in allSlots)
         {
-            foreach (var icon in hudSkillIcons)
+            if (s != null)
             {
-                if (icon != null)
-                {
-                    icon.sprite = null;
-                    icon.color = new Color(1, 1, 1, 0); // Ẩn đi
-                }
+                if (skillPanelManager != null && s.transform.IsChildOf(skillPanelManager.transform))
+                    continue; // Bỏ qua slot bên trong Panel
+                hudSlots.Add(s);
+            }
+        }
+
+        // Sắp xếp các ô HUD từ trái sang phải
+        hudSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
+
+        // Gán slotIndex chuẩn (0, 1, 2) và cập nhật lock state
+        for (int i = 0; i < hudSlots.Count && i < 3; i++)
+        {
+            if (hudSlots[i] != null)
+            {
+                hudSlots[i].slotIndex = i;
+                hudSlots[i].RefreshLockState();
             }
         }
 
         Debug.Log("[HUDSkillManager] Start fetching skills...");
+
         // 2. Tự động tải danh sách skill đang trang bị để hiển thị lên HUD
         MysticJourney.API.Endpoints.SkillApi.Instance.GetMySkills(
             onSuccess: (response) =>
@@ -56,19 +112,22 @@ public class HUDSkillManager : MonoBehaviour
                 
                 foreach (var ps in response.Skills)
                 {
-                    if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < hudSkillIcons.Length)
+                    if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < hudSlots.Count)
                     {
                         var visual = System.Array.Find(allSkillsInGame, d => d != null && d.skillId == ps.SkillId);
                         if (visual != null && visual.skillIcon != null)
                         {
-                            var icon = hudSkillIcons[ps.EquippedSlot.Value];
-                            if (icon != null)
+                            var slot = hudSlots[ps.EquippedSlot.Value];
+                            if (slot != null)
                             {
                                 Debug.Log($"[HUDSkillManager] Loaded equipped skill {visual.name} (id={visual.skillId}) at slot {ps.EquippedSlot.Value}");
-                                icon.gameObject.SetActive(true);
-                                icon.enabled = true;
-                                icon.sprite = visual.skillIcon;
-                                icon.color = Color.white; // Hiện rõ ảnh lên
+                                if (slot.equippedIcon != null)
+                                {
+                                    slot.equippedIcon.gameObject.SetActive(true);
+                                    slot.equippedIcon.enabled = true;
+                                    slot.equippedIcon.sprite = visual.skillIcon;
+                                    slot.equippedIcon.color = Color.white;
+                                }
 
                                 // Broadcast to PlayerCombat and HUD SkillSlots immediately on game load
                                 SkillSlot.BroadcastSkillEquipped(ps.EquippedSlot.Value, visual, ps);

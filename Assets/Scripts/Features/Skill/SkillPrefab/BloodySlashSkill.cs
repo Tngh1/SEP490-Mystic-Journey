@@ -8,17 +8,31 @@ public class BloodySlashSkill : SkillProjectile
     // Lưu danh sách quái đã chém trúng để không bị trừ máu nhiều lần trong 1 nhát chém
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
 
+    private Transform _casterTransform;
+    private Vector3 _offsetFromCaster;
+
     public override void Setup(float damage)
     {
-        _damage = damage;
+        base.Setup(damage);
         // Thay vì 2s như đạn bay, nhát chém sẽ tự huỷ rất nhanh (tùy theo animation duration)
         Destroy(gameObject, duration);
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            Transform fp = player.transform.Find("FirePoint");
+            _casterTransform = fp != null ? fp : player.transform;
+            _offsetFromCaster = transform.position - _casterTransform.position;
+        }
     }
 
     protected override void Update()
     {
-        // Cố tình bỏ trống (KHÔNG gọi base.Update()) để skill không bị di chuyển về phía trước như viên đạn.
-        // Nó sẽ nằm cố định ngay trước mặt nhân vật giống một nhát chém cận chiến.
+        // Di chuyển nhát chém bám theo người chơi khi người chơi di chuyển
+        if (_casterTransform != null)
+        {
+            transform.position = _casterTransform.position + _offsetFromCaster;
+        }
     }
 
     protected override void OnTriggerEnter2D(Collider2D collision)

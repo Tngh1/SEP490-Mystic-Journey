@@ -57,6 +57,8 @@ namespace MysticJourney.API.Core
         // ── Token Management ──────────────────────────────────────
 
         private string _cachedToken = null;
+        private string _cachedRefreshToken = null;
+        private bool _isRefreshing = false; // Tránh nhiều request refresh cùng lúc
 
         // Lưu JWT access token vào PlayerPrefs sau khi login thành công
         public void SaveToken(string token)
@@ -65,6 +67,22 @@ namespace MysticJourney.API.Core
             PlayerPrefs.SetString(ApiConfig.AccessTokenKey, token);
             PlayerPrefs.Save();
             Debug.Log("[ApiClient] Token saved.");
+        }
+
+        // Lưu Refresh Token vào PlayerPrefs
+        public void SaveRefreshToken(string refreshToken)
+        {
+            _cachedRefreshToken = refreshToken;
+            PlayerPrefs.SetString(ApiConfig.RefreshTokenKey, refreshToken);
+            PlayerPrefs.Save();
+        }
+
+        // Lấy Refresh Token
+        public string GetRefreshToken()
+        {
+            if (!string.IsNullOrEmpty(_cachedRefreshToken)) return _cachedRefreshToken;
+            _cachedRefreshToken = PlayerPrefs.GetString(ApiConfig.RefreshTokenKey, string.Empty);
+            return _cachedRefreshToken;
         }
 
         // Lấy token hiện tại từ PlayerPrefs (trống nếu chưa login)
@@ -79,7 +97,9 @@ namespace MysticJourney.API.Core
         public void ClearToken()
         {
             _cachedToken = null;
+            _cachedRefreshToken = null;
             PlayerPrefs.DeleteKey(ApiConfig.AccessTokenKey);
+            PlayerPrefs.DeleteKey(ApiConfig.RefreshTokenKey);
             PlayerPrefs.DeleteKey(ApiConfig.PlayerProfileIdKey);
             PlayerPrefs.DeleteKey(ApiConfig.AccountIdKey);
             PlayerPrefs.DeleteKey(ApiConfig.UserNameKey);
@@ -136,12 +156,13 @@ namespace MysticJourney.API.Core
         }
 
         // Một coroutine dùng chung cho mọi verb; jsonBody == null nghĩa là không gửi body
+        // Tự động retry 1 lần sau khi refresh access token nếu server trả 401.
         private IEnumerator SendCoroutine<T>(string method, string endpoint, string jsonBody, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
         {
             string url = ApiConfig.BaseUrl + endpoint;
-            // Không log body: request đăng nhập/đăng ký chứa mật khẩu, Player log là plaintext
             Debug.Log($"[ApiClient] {method} {url}");
 
+            // Lần 1: gửi request bình thường
             using (var request = new UnityWebRequest(url, method))
             {
                 if (jsonBody != null)
@@ -150,7 +171,98 @@ namespace MysticJourney.API.Core
                 request.timeout = ApiConfig.Timeout;
                 SetCommonHeaders(request, requiresAuth);
                 yield return request.SendWebRequest();
+
+                // Nếu 401 và có refresh token → thử refresh rồi retry
+                if (requiresAuth && request.responseCode == 401)
+                {
+                    string rt = GetRefreshToken();
+                    if (!string.IsNullOrEmpty(rt) && !_isRefreshing)
+                    {
+                        // Refresh token
+                        bool refreshed = false;
+                        yield return StartCoroutine(RefreshAccessTokenCoroutine(rt, success => refreshed = success));
+
+                        if (refreshed)
+                        {
+                            Debug.Log($"[ApiClient] Token refreshed. Retrying {method} {url}");
+                            // Lần 2: retry với access token mới
+                            using (var retry = new UnityWebRequest(url, method))
+                            {
+                                if (jsonBody != null)
+                                    retry.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+                                retry.downloadHandler = new DownloadHandlerBuffer();
+                                retry.timeout = ApiConfig.Timeout;
+                                SetCommonHeaders(retry, requiresAuth);
+                                yield return retry.SendWebRequest();
+                                HandleResponse(retry, onSuccess, onError);
+                            }
+                            yield break;
+                        }
+                        else
+                        {
+                            // Refresh thất bại → clear session, thông báo cần login lại
+                            Debug.LogWarning("[ApiClient] Refresh token failed. Session expired. Clearing token.");
+                            ClearToken();
+                            onError?.Invoke(new ApiException
+                            {
+                                StatusCode = 401,
+                                ErrorCode = "SESSION_EXPIRED",
+                                Message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                            });
+                            yield break;
+                        }
+                    }
+                }
+
                 HandleResponse(request, onSuccess, onError);
+            }
+        }
+
+        // Coroutine gọi /api/auth/refresh-token, trả về true nếu thành công
+        private IEnumerator RefreshAccessTokenCoroutine(string refreshToken, Action<bool> onDone)
+        {
+            _isRefreshing = true;
+            string url = ApiConfig.BaseUrl + ApiConfig.AuthRefreshToken;
+            string body = $"{{\"refreshToken\":\"{refreshToken}\"}}";
+
+            using (var req = new UnityWebRequest(url, "POST"))
+            {
+                req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.timeout = ApiConfig.Timeout;
+                req.SetRequestHeader("Content-Type", "application/json");
+                req.SetRequestHeader("Accept", "application/json");
+                yield return req.SendWebRequest();
+
+                if (req.result == UnityWebRequest.Result.Success && req.responseCode < 400)
+                {
+                    try
+                    {
+                        var json = Newtonsoft.Json.Linq.JObject.Parse(req.downloadHandler.text);
+                        var data = json["data"];
+                        string newAccessToken = data?["accessToken"]?.ToString() ?? data?["AccessToken"]?.ToString();
+                        string newRefreshToken = data?["refreshToken"]?.ToString() ?? data?["RefreshToken"]?.ToString();
+
+                        if (!string.IsNullOrEmpty(newAccessToken))
+                        {
+                            SaveToken(newAccessToken);
+                            if (!string.IsNullOrEmpty(newRefreshToken))
+                                SaveRefreshToken(newRefreshToken);
+                            Debug.Log("[ApiClient] Access token refreshed successfully.");
+                            onDone?.Invoke(true);
+                            _isRefreshing = false;
+                            yield break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ApiClient] Failed to parse refresh response: {ex.Message}");
+                    }
+                }
+
+                Debug.LogWarning($"[ApiClient] Token refresh failed. Code={req.responseCode}");
+                onDone?.Invoke(false);
+                _isRefreshing = false;
             }
         }
 

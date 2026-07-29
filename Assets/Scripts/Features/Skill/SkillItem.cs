@@ -11,6 +11,7 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
     public PlayerSkillResponse serverData; // Dữ liệu thật (từ API)
 
     [Header("UI Components")]
+    public Image backgroundImage;
     public Image myIcon;
     public TextMeshProUGUI levelText;// (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
     public GameObject lockOverlay;
@@ -31,19 +32,57 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         visualData = vData;
         serverData = sData;
 
-        myIcon.sprite = visualData.skillIcon;
+        // 1. Loại bỏ ô nền hình chữ nhật màu trắng
+        Image rootImage = GetComponent<Image>();
+        if (rootImage != null)
+        {
+            if (rootImage.sprite == null || rootImage.sprite.name == "UISprite" || rootImage.sprite.name == "Background")
+            {
+                rootImage.color = new Color(1f, 1f, 1f, 0f); // Làm nền trắng hoàn toàn trong suốt
+            }
+            else
+            {
+                rootImage.color = Color.white;
+            }
+        }
 
-        // KIỂM TRA: Nếu chưa sở hữu (bị khóa)
+        if (backgroundImage != null)
+        {
+            if (backgroundImage.sprite == null || backgroundImage.sprite.name == "UISprite")
+            {
+                backgroundImage.color = new Color(1f, 1f, 1f, 0f);
+            }
+        }
+
+        // 2. Định dạng Icon Kỹ năng nằm gọn gàng bên trong khung (chống lọt/tràn ra ngoài)
+        if (myIcon != null && visualData != null)
+        {
+            myIcon.sprite = visualData.skillIcon;
+            myIcon.preserveAspect = true; // Giữ tỉ lệ chuẩn của skill icon
+
+            // Căn lề icon nằm lùi vào trong khung 15% để không đè đè lên viền vàng
+            RectTransform iconRect = myIcon.rectTransform;
+            if (iconRect != null)
+            {
+                iconRect.anchorMin = new Vector2(0.15f, 0.15f);
+                iconRect.anchorMax = new Vector2(0.85f, 0.85f);
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+            }
+        }
+
+        // 3. Trạng thái Đã mở khóa / Chưa sở hữu (Khóa)
         if (serverData == null)
         {
             if (levelText != null) levelText.text = "";
             if (lockOverlay != null) lockOverlay.SetActive(true);
+            if (myIcon != null) myIcon.color = new Color(0.5f, 0.5f, 0.5f, 0.6f);
         }
-        // KIỂM TRA: Nếu đã sở hữu
         else
         {
             if (levelText != null) levelText.text = "Lv." + serverData.Level;
             if (lockOverlay != null) lockOverlay.SetActive(false);
+            if (myIcon != null) myIcon.color = Color.white;
         }
     }
 

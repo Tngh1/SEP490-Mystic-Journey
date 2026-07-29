@@ -4,6 +4,8 @@ public class LightsaberSkill : MonoBehaviour
 {
     [SerializeField] private float damageRadius = 1.5f;
     [SerializeField] private float duration = 2f;
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
     
     private float _damage;
 
@@ -11,6 +13,11 @@ public class LightsaberSkill : MonoBehaviour
     {
         _damage = damage;
         Destroy(gameObject, duration);
+        
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
         
         // Deal damage immediately at spawn position to targets in small radius
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, damageRadius);
