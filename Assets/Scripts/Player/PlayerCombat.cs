@@ -107,6 +107,30 @@ public class PlayerCombat : NetworkBehaviour
 
     public static event System.Action<int, float> OnSkillCast;
 
+    private float _silenceTimer = 0f;
+    public bool IsSilenced => _silenceTimer > 0f;
+
+    /// <summary>
+    /// Locks the player from using basic attacks or casting skills for a specified duration.
+    /// Supports duration stacking up to maxCap.
+    /// </summary>
+    public void ApplySilence(float duration, bool stackDuration = true, float maxCap = 5f)
+    {
+        if (stackDuration)
+        {
+            _silenceTimer = Mathf.Min(_silenceTimer + duration, maxCap);
+        }
+        else if (duration > _silenceTimer)
+        {
+            _silenceTimer = duration;
+        }
+
+        if (_isAimingAoE)
+        {
+            CancelAimingMode();
+        }
+    }
+
     // AoE aiming state (local-only — each client aims independently)
     private bool _isAimingAoE = false;
     private GameObject _aimingPrefab;
@@ -268,7 +292,7 @@ public class PlayerCombat : NetworkBehaviour
     /// </summary>
     public void RequestAttack(Vector2 aimWorldPosition)
     {
-        if (IsBusy() || Time.time < nextAttackTime) return;
+        if (IsSilenced || IsBusy() || Time.time < nextAttackTime) return;
 
         if (Runner == null || !Runner.IsRunning)
         {
@@ -376,7 +400,7 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Attack()
     {
-        if (IsBusy() || Time.time < nextAttackTime) return;
+        if (IsSilenced || IsBusy() || Time.time < nextAttackTime) return;
         Debug.Log($"[PlayerCombat] Attack triggered. Cooldown: {currentAttackCooldown}, Delay: {currentAttackDelay}");
         nextAttackTime = Time.time + currentAttackCooldown;
 
@@ -522,6 +546,10 @@ public class PlayerCombat : NetworkBehaviour
                prefab.name.Contains("Lightsaber") || 
                prefab.name.Contains("FrozenSash") ||
                prefab.GetComponent<FrozenSashSkill>() != null ||
+               prefab.name.Contains("PumpkinMagic") ||
+               prefab.GetComponent<PumpkinMagicSkill>() != null ||
+               prefab.name.Contains("PumpkinThrow") ||
+               prefab.GetComponent<PumpkinThrowSkill>() != null ||
                prefab.GetComponent<NetworkSkillHealing>() != null;
     }
 
@@ -530,7 +558,7 @@ public class PlayerCombat : NetworkBehaviour
         if (prefab == null) return;
 
         float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
-        if (IsBusy() || Time.time < nextTime) return;
+        if (IsSilenced || IsBusy() || Time.time < nextTime) return;
 
         // Chỉ cho phép 1 kỹ năng ngắm 1 lúc, huỷ kỹ năng cũ nếu có
         if (_isAimingAoE)
@@ -640,6 +668,10 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
+        if (_silenceTimer > 0f)
+        {
+            _silenceTimer -= Time.deltaTime;
+        }
         if (animator != null && attackSpeedStat > 0)
         {
             var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
@@ -924,31 +956,47 @@ public class PlayerCombat : NetworkBehaviour
         {
             float damage = GetClassScaledDamage(_skillDamages[slotIndex]);
             
-            var aoe = skillObj.GetComponent<SkillAoE>();
-            if (aoe != null) 
+            var pumpkinThrow = skillObj.GetComponent<PumpkinThrowSkill>();
+            if (pumpkinThrow != null)
             {
-                aoe.Setup(damage);
+                pumpkinThrow.Setup(damage, spawnPosition);
             }
-            else 
+            else
             {
-                var frozenSash = skillObj.GetComponent<FrozenSashSkill>();
-                if (frozenSash != null)
+                var pumpkin = skillObj.GetComponent<PumpkinMagicSkill>();
+                if (pumpkin != null)
                 {
-                    frozenSash.Setup(damage);
+                    pumpkin.Setup(damage);
                 }
                 else
                 {
-                    var lightsaber = skillObj.GetComponent<LightsaberSkill>();
-                    if (lightsaber != null)
+                    var aoe = skillObj.GetComponent<SkillAoE>();
+                    if (aoe != null) 
                     {
-                        lightsaber.Setup(damage);
+                        aoe.Setup(damage);
                     }
-                    else
+                    else 
                     {
-                        var projectile = skillObj.GetComponent<SkillProjectile>();
-                        if (projectile != null)
+                        var frozenSash = skillObj.GetComponent<FrozenSashSkill>();
+                        if (frozenSash != null)
                         {
-                            projectile.Setup(damage);
+                            frozenSash.Setup(damage);
+                        }
+                        else
+                        {
+                            var lightsaber = skillObj.GetComponent<LightsaberSkill>();
+                            if (lightsaber != null)
+                            {
+                                lightsaber.Setup(damage);
+                            }
+                            else
+                            {
+                                var projectile = skillObj.GetComponent<SkillProjectile>();
+                                if (projectile != null)
+                                {
+                                    projectile.Setup(damage);
+                                }
+                            }
                         }
                     }
                 }
@@ -956,7 +1004,11 @@ public class PlayerCombat : NetworkBehaviour
         }
         
         // Fallback destruction for skills that don't destroy themselves (like Holymagic offline)
-        if (skillObj.GetComponent<LightsaberSkill>() == null && skillObj.GetComponent<SkillAoE>() == null && skillObj.GetComponent<SkillProjectile>() == null)
+        if (skillObj.GetComponent<LightsaberSkill>() == null && 
+            skillObj.GetComponent<SkillAoE>() == null && 
+            skillObj.GetComponent<SkillProjectile>() == null &&
+            skillObj.GetComponent<PumpkinMagicSkill>() == null &&
+            skillObj.GetComponent<PumpkinThrowSkill>() == null)
         {
             Destroy(skillObj, 2f);
         }

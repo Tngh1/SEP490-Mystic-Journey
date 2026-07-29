@@ -129,6 +129,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyBehaviour: {fileID: 315620975146887174}
   enemyEntity: {fileID: 8736197218167449664}
+--- !u!1 &1402834371232843259
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7137538991710249339}
+  m_Layer: 3
+  m_Name: SpawmPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7137538991710249339
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1402834371232843259}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.07, y: 1.58, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8865404182053855536}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2041877308061324728
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,6 +269,7 @@ GameObject:
   - component: {fileID: 7452285061503227165}
   - component: {fileID: 5078320248076810816}
   - component: {fileID: 3726327522116540725}
+  - component: {fileID: 6106394496388531159}
   m_Layer: 3
   m_Name: UnderKing
   m_TagString: Monster
@@ -260,6 +292,7 @@ Transform:
   m_Children:
   - {fileID: 1749131984603707939}
   - {fileID: 7999336694076233518}
+  - {fileID: 7137538991710249339}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &3502607421154932590
@@ -550,6 +583,27 @@ MonoBehaviour:
   _MaxHp: 0
   _IsAlive:
     _value: 0
+--- !u!114 &6106394496388531159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3241807574851689362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c48913fc4f9f2542a83754a89c100eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExtraEnemySkillSpawner
+  extraSkills:
+  - skillName: Easter Cocoon
+    skillPrefab: {fileID: 3006243740660250920, guid: a35f5ff898d19914eaf2381e62fb863a, type: 3}
+    cooldown: 10
+    spawnDelay: 0.5
+    spawnOnSelf: 1
+    canCast: 1
+    nextCastTime: 0
+  spawnPoint: {fileID: 7137538991710249339}
 --- !u!1001 &8041373790917685575
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -700,4 +754,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 8041373790917685575}
   m_PrefabAsset: {fileID: 0}
-
