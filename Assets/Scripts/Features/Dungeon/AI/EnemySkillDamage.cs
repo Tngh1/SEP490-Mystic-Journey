@@ -11,8 +11,23 @@ public class EnemySkillDamage : MonoBehaviour
     [Tooltip("Có huỷ kỹ năng ngay sau khi chạm vào người chơi không?")]
     [SerializeField] private bool destroyOnHit = true;
 
+    [Header("Audio Settings")]
+    [Tooltip("Âm thanh xuất hiện của kỹ năng quái")]
+    [SerializeField] private AudioClip castSound;
+
+    [Tooltip("Âm thanh khi kỹ năng quái trúng người chơi")]
+    [SerializeField] private AudioClip hitSound;
+
+    [Tooltip("Âm lượng hiệu ứng âm thanh (0.0 đến 1.0)")]
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     private void Start()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         // Tự động huỷ sau một khoảng thời gian (lifeTime) để dọn dẹp các khối băng cũ
         Destroy(gameObject, lifeTime);
     }
@@ -48,6 +63,11 @@ public class EnemySkillDamage : MonoBehaviour
 
     private void DealDamage(GameObject target)
     {
+        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
+        }
+
         // Xử lý sát thương tương tự như cách Boss đánh thường
         var networkPlayer = target.GetComponent<NetworkPlayer>();
         if (networkPlayer != null)

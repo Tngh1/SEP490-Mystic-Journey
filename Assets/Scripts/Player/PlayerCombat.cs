@@ -520,6 +520,8 @@ public class PlayerCombat : NetworkBehaviour
         if (prefab == null) return false;
         return prefab.GetComponent<SkillAoE>() != null || 
                prefab.name.Contains("Lightsaber") || 
+               prefab.name.Contains("FrozenSash") ||
+               prefab.GetComponent<FrozenSashSkill>() != null ||
                prefab.GetComponent<NetworkSkillHealing>() != null;
     }
 
@@ -929,17 +931,25 @@ public class PlayerCombat : NetworkBehaviour
             }
             else 
             {
-                var lightsaber = skillObj.GetComponent<LightsaberSkill>();
-                if (lightsaber != null)
+                var frozenSash = skillObj.GetComponent<FrozenSashSkill>();
+                if (frozenSash != null)
                 {
-                    lightsaber.Setup(damage);
+                    frozenSash.Setup(damage);
                 }
                 else
                 {
-                    var projectile = skillObj.GetComponent<SkillProjectile>();
-                    if (projectile != null)
+                    var lightsaber = skillObj.GetComponent<LightsaberSkill>();
+                    if (lightsaber != null)
                     {
-                        projectile.Setup(damage);
+                        lightsaber.Setup(damage);
+                    }
+                    else
+                    {
+                        var projectile = skillObj.GetComponent<SkillProjectile>();
+                        if (projectile != null)
+                        {
+                            projectile.Setup(damage);
+                        }
                     }
                 }
             }

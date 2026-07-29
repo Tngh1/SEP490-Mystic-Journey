@@ -130,6 +130,9 @@ MonoBehaviour:
   damage: 34
   lifeTime: 3
   destroyOnHit: 0
+  castSound: {fileID: 8300000, guid: fbc1cfe2b47e6fc4db84f376de167311, type: 3}
+  hitSound: {fileID: 0}
+  soundVolume: 0.602
 --- !u!61 &111394259450674552
 BoxCollider2D:
   m_ObjectHideFlags: 0

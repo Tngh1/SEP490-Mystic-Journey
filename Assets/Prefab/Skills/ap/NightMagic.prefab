@@ -129,7 +129,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillAoE
   duration: 3
-  castSound: {fileID: 0}
+  castSound: {fileID: 8300000, guid: 9849fbbda00a3924d8c611ff20a956d0, type: 3}
+  soundVolume: 0.333
 --- !u!61 &8225712103725967936
 BoxCollider2D:
   m_ObjectHideFlags: 0

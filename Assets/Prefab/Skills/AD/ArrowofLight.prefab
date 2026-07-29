@@ -132,6 +132,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillProjectile
   speed: 10
+  castSound: {fileID: 8300000, guid: 08820f65d080900438c525b76b463fbb, type: 3}
+  hitSound: {fileID: 0}
+  soundVolume: 0.417
 --- !u!50 &8338525443051509826
 Rigidbody2D:
   serializedVersion: 5

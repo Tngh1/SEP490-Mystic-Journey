@@ -5,6 +5,7 @@ public class SkillProjectile : MonoBehaviour
     [SerializeField] protected float speed = 10f;
     [SerializeField] protected AudioClip castSound;
     [SerializeField] protected AudioClip hitSound;
+    [SerializeField, Range(0f, 1f)] protected float soundVolume = 1f;
     protected float _damage;
 
     public virtual void Setup(float damage)
@@ -14,7 +15,7 @@ public class SkillProjectile : MonoBehaviour
 
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
-            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound);
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
     }
 
@@ -25,6 +26,12 @@ public class SkillProjectile : MonoBehaviour
 
     protected virtual void OnTriggerEnter2D(Collider2D collision)
     {
+        // Bỏ qua va chạm với Player (người tung skill hoặc đồng đội)
+        if (collision.CompareTag("Player")) return;
+
+        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
+        if (collision.isTrigger && !collision.CompareTag("Monster")) return;
+
         if (collision.CompareTag("Monster"))
         {
             EnemyEntity enemy = collision.GetComponent<EnemyEntity>();
@@ -43,16 +50,22 @@ public class SkillProjectile : MonoBehaviour
                     DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
                 }
             }
-
-            OnHitTarget();
         }
+
+        // Đạn va chạm bất kỳ vật thể nào trên bản đồ (Monster, tường, địa hình, chướng ngại vật...) đều nổ / biến mất
+        OnHitTarget();
+    }
+
+    protected virtual void OnCollisionEnter2D(Collision2D collision)
+    {
+        OnTriggerEnter2D(collision.collider);
     }
 
     protected virtual void OnHitTarget()
     {
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
-            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound);
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
         }
         Destroy(gameObject); // Chạm quái thì đạn nổ biến mất
     }

@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -14.32911, y: -3.0461292, z: 0}
-  m_LocalScale: {x: 1.8530816, y: 1.6348068, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -202,6 +202,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodySlashSkill
   speed: 10
-  castSound: {fileID: 0}
+  castSound: {fileID: 8300000, guid: 720ad9080679195489596c92433856d4, type: 3}
   hitSound: {fileID: 0}
+  soundVolume: 0.407
   duration: 0.5
