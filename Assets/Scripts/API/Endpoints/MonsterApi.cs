@@ -30,7 +30,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetById FAIL | monsterId={monsterId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
         // ── Lấy quái vật theo ID cho player ───────────────

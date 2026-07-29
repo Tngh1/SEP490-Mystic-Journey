@@ -30,7 +30,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetById FAIL | gachaBannerId={gachaBannerId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
         // ── Thực hiện quay gacha ─────────────────────────────

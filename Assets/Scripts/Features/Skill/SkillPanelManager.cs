@@ -146,12 +146,11 @@ public class SkillPanelManager : MonoBehaviour
                 }
             }
 
-            int pLevel = GameStateService.Instance?.PlayerLevel ?? 1;
+            // RefreshLockState làm đúng việc này (ổ khóa theo level) và còn cập nhật
+            // nhãn "Lv 5" / "Empty" — vòng lặp tự set lockImage ở đây sẽ để lại nhãn cũ.
             foreach (var s in skillSlots)
             {
-                if (s == null) continue;
-                if (s.lockImage != null)
-                    s.lockImage.SetActive(pLevel < s.requiredLevel);
+                if (s != null) s.RefreshLockState();
             }
 
             if (playerSkills != null)

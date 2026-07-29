@@ -15,6 +15,11 @@ public class WorldInteractable : MonoBehaviour
     private Canvas overheadCanvas;
     private TextMeshProUGUI overheadText;
     private Coroutine overheadCoroutine;
+    // True while ShowInvestigationText owns the overhead label. Not derived from
+    // overheadCoroutine: StartCoroutine runs the body up to the first yield BEFORE it
+    // returns the handle, so a body that bails out early would be overwritten by a
+    // stale non-null handle and block the label forever.
+    private bool investigationTextActive;
 
     [SerializeField] private WorldInteractableKind kind = WorldInteractableKind.Object;
     [SerializeField] private int npcId;
@@ -174,6 +179,11 @@ public class WorldInteractable : MonoBehaviour
     {
         if (overheadText == null) return;
 
+        // Interact raises QuestsChanged -> RefreshFromApi -> ConfigureQuestItem -> here.
+        // That round-trip can land while ShowInvestigationText is on screen and would
+        // overwrite the line with "?" again. The coroutine owns the label until it ends.
+        if (investigationTextActive) return;
+
         // Move text higher for NPCs so it doesn't overlap their sprite
         float heightOffset = (kind == WorldInteractableKind.Npc) ? 2.3f : 1.2f;
         overheadCanvas.transform.localPosition = new Vector3(0, heightOffset, 0);
@@ -214,7 +224,15 @@ public class WorldInteractable : MonoBehaviour
 
     private System.Collections.IEnumerator ShowInvestigationText()
     {
-        if (overheadText == null) yield break;
+        // Bailing out early must also release the label, otherwise UpdateOverheadUI
+        // stays blocked and the "?" never comes back.
+        if (overheadText == null)
+        {
+            investigationTextActive = false;
+            yield break;
+        }
+
+        investigationTextActive = true;
 
         overheadText.text = "Why is there a corpse? What happened...";
         overheadText.color = Color.white;
@@ -222,11 +240,14 @@ public class WorldInteractable : MonoBehaviour
         overheadCanvas.gameObject.SetActive(true);
 
         yield return new WaitForSeconds(3.5f);
-        
+
         if (overheadCanvas != null)
         {
             overheadCanvas.gameObject.SetActive(false);
         }
+
+        // Release the label back to UpdateOverheadUI (it early-returns while this runs).
+        investigationTextActive = false;
     }
 
     public string GetPromptText()
@@ -292,8 +313,26 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
+            // Vật phẩm "điều tra" (xác, hộp sọ): PHẢI ở lại hiện trường sau khi tương tác.
+            // WorldSceneInteractableBootstrap tự gắn WorldRespawnable cho mọi object tag
+            // "QuestItem", và WorldRespawnable tắt toàn bộ Renderer 30s -> "xác bị biến mất".
+            // Chặn trước nhánh respawner/Collect để xác chỉ tắt collider và hiện thoại.
+            if (IsInvestigationItem())
+            {
+                var invCol = GetComponent<UnityEngine.Collider>();
+                if (invCol != null) invCol.enabled = false;
+                var invCol2D = GetComponent<UnityEngine.Collider2D>();
+                if (invCol2D != null) invCol2D.enabled = false;
+
+                WorldInteractionPromptRuntime.Hide();
+
+                if (overheadCoroutine != null) StopCoroutine(overheadCoroutine);
+                overheadCoroutine = StartCoroutine(ShowInvestigationText());
+                return;
+            }
+
             var respawner = GetComponent<WorldRespawnable>();
-            
+
             if (respawner != null)
             {
                 Debug.Log($"[WorldInteractable] Calling ConsumeAndRespawn on {gameObject.name}");
@@ -324,12 +363,6 @@ public class WorldInteractable : MonoBehaviour
                     if (col2D != null) col2D.enabled = false;
                     
                     WorldInteractionPromptRuntime.Hide();
-
-                    if (IsInvestigationItem())
-                    {
-                        if (overheadCoroutine != null) StopCoroutine(overheadCoroutine);
-                        overheadCoroutine = StartCoroutine(ShowInvestigationText());
-                    }
                 }
             }
         }

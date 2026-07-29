@@ -28,7 +28,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetCurrentMonth FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
         // ── Nhận thưởng đăng nhập ────────────────
