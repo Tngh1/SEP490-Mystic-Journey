@@ -41,7 +41,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetAll FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
 
         public void GetMyAchievements(Action<PlayerMeAchievementsResponse> onSuccess, Action<ApiException> onError)
