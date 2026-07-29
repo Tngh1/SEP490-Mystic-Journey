@@ -6,6 +6,7 @@ using UnityEngine;
 /// <summary>
 /// Script mở rộng kỹ năng cho Boss/Quái vật (Skill 3, Skill 4, Skill 5...).
 /// Cho phép gán thêm nhiều kỹ năng mà không bị giới hạn bởi 2 ô mặc định trong EnemyBehaviour.
+/// CHỈ THI TRIỂN SKILL KHI BOSS ĐANG TRONG TRẠNG THÁI GIAO TRANH VỚI PLAYER!
 /// </summary>
 public class ExtraEnemySkillSpawner : MonoBehaviour
 {
@@ -34,6 +35,10 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
     [Header("Extra Skills List")]
     [SerializeField] private List<ExtraSkillData> extraSkills = new List<ExtraSkillData>();
 
+    [Header("Combat Settings")]
+    [Tooltip("Phạm vi nhận diện giao tranh với Player (mét) - Chỉ thi triển skill khi Player trong phạm vi này")]
+    [SerializeField] private float combatDetectionRange = 8.0f;
+
     [Header("Spawn Settings")]
     [Tooltip("Vị trí xuất hiện skill (nếu để None sẽ tự động chọn bản thân Boss hoặc vị trí Player)")]
     [SerializeField] private Transform spawnPoint;
@@ -51,12 +56,12 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
 
     private void Start()
     {
-        // Khởi tạo thời gian thi triển lần đầu cho các skill
+        // Khởi tạo thời gian thi triển lần đầu cho các skill khi bắt đầu giao tranh
         foreach (var skill in extraSkills)
         {
             if (skill != null)
             {
-                skill.nextCastTime = Time.time + skill.cooldown;
+                skill.nextCastTime = Time.time + 2f; // Lần đầu dùng skill sau 2s khi vào giao tranh
             }
         }
     }
@@ -66,9 +71,11 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
         // Nếu Boss đã chết thì dừng thi triển skill
         if (_enemyEntity != null && _enemyEntity.IsDead) return;
 
-        // Chỉ dùng skill khi Boss đang phát hiện / giao tranh với Player
         Transform targetPlayer = FindPlayerTarget();
         if (targetPlayer == null) return;
+
+        // CHỈ THI TRIỂN SKILL KHI BOSS ĐANG TRONG TRẠNG THÁI GIAO TRANH
+        if (!IsInCombat(targetPlayer)) return;
 
         foreach (var skill in extraSkills)
         {
@@ -83,12 +90,30 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
         }
     }
 
+    private bool IsInCombat(Transform targetPlayer)
+    {
+        if (targetPlayer == null) return false;
+
+        // 1. Kiểm tra khoảng cách giữa Boss và Player
+        float distance = Vector3.Distance(transform.position, targetPlayer.position);
+        if (distance > combatDetectionRange) return false;
+
+        return true;
+    }
+
     private void CastExtraSkill(ExtraSkillData skill, Transform targetPlayer)
     {
         // Kích hoạt animation dùng skill nếu có
-        if (_animator != null && _animator.HasParameter("CastSkill"))
+        if (_animator != null)
         {
-            _animator.SetTrigger("CastSkill");
+            if (_animator.HasParameter("CastSkill"))
+            {
+                _animator.SetTrigger("CastSkill");
+            }
+            else if (_animator.HasParameter("Attack"))
+            {
+                _animator.SetTrigger("Attack");
+            }
         }
 
         StartCoroutine(SpawnSkillRoutine(skill, targetPlayer));

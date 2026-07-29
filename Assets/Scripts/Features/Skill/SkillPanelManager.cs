@@ -1,8 +1,13 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using MysticJourney.Core.Services;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class SkillPanelManager : MonoBehaviour
 {
@@ -16,6 +21,35 @@ public class SkillPanelManager : MonoBehaviour
 
     [Header("Slots")]
     public SkillSlot[] skillSlots; // assign 3 slots in inspector
+
+#if UNITY_EDITOR
+    [ContextMenu("Load All Skills In Project")]
+    public void LoadAllSkillsInProject()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:SkillData");
+        var list = new List<SkillData>();
+
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            SkillData skill = AssetDatabase.LoadAssetAtPath<SkillData>(path);
+            if (skill != null && !list.Contains(skill))
+            {
+                list.Add(skill);
+            }
+        }
+
+        list.Sort((a, b) => a.skillId.CompareTo(b.skillId));
+        allSkillsInGame = list.ToArray();
+
+        EditorUtility.SetDirty(this);
+        if (!Application.isPlaying)
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
+        Debug.Log($"<color=green>[SkillPanelManager] Đã tự động nạp thành công {allSkillsInGame.Length} SkillData vào allSkillsInGame!</color>");
+    }
+#endif
 
     private void OnEnable()
     {
