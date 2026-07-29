@@ -27,5 +27,13 @@ namespace MysticJourney.Core.Services
             // (các world scene được load/active động qua GameBootstrap).
             AudioManager.Instance.PlayMusic(musicClip, restartIfSame);
         }
+
+        private void OnDisable()
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopMusic();
+            }
+        }
     }
 }
