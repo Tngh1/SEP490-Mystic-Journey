@@ -29,7 +29,7 @@ namespace MysticJourney.API.Endpoints
                     SafeDebugError($"GetById FAIL | questId={questId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
                     onError?.Invoke(error);
                 },
-                requiresAuth: false);
+                requiresAuth: true);
         }
     }
 }

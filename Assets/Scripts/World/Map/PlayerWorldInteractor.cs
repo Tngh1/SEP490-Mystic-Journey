@@ -255,6 +255,9 @@ public class PlayerWorldInteractor : MonoBehaviour
             if (kind.HasValue && item.Kind != kind.Value)
                 continue;
 
+            if (item.Kind == WorldInteractableKind.Npc && !IsNpcReachable(item))
+                continue;
+
             var distance = Vector2.Distance(position, item.transform.position);
             if (distance > item.InteractionRadius || distance >= bestDistance)
                 continue;
@@ -264,6 +267,65 @@ public class PlayerWorldInteractor : MonoBehaviour
         }
 
         return nearest;
+    }
+
+    /// <summary>
+    /// An NPC that only carries quests the player has not reached yet must not be
+    /// talkable — otherwise the player can walk up to a later chapter's quest giver
+    /// and open a dialogue panel that has nothing to offer ("No linked quest
+    /// available."). The server is the gate: PlayerQuestService.GetMyQuests only
+    /// materialises a PlayerQuest row once the main chain unlocks it, so "the
+    /// QuestManager has no response for this id" == "quest not reached yet".
+    /// NPCs with no linked quest at all stay talkable (flavour/vendor NPCs), and the
+    /// QuestsChanged → RefreshSceneLinks loop re-opens the NPC the moment the quest
+    /// unlocks.
+    /// </summary>
+    private static bool IsNpcReachable(WorldInteractable npc)
+    {
+        var linked = npc.LinkedQuestIds;
+        if (linked == null || linked.Count == 0)
+            return true;
+
+        var manager = QuestManager.Instance;
+        // No quest state loaded (offline / still loading): don't lock the player out.
+        if (manager == null)
+            return true;
+
+        var responses = manager.GetAllResponses();
+        if (responses == null || responses.Count == 0)
+            return true;
+
+        foreach (var questId in linked)
+        {
+            if (questId > 0 && responses.ContainsKey(questId))
+                return true;
+        }
+
+        // The server links a quest to an NPC by dialogue id OR by QuestGiverName /
+        // ObjectiveTarget (WorldService.TalkToNpc). LinkedQuestIds only carries the
+        // dialogue ids, so an NPC whose reached quest is matched by name would be
+        // locked out by the id check alone. Match on name too before refusing.
+        var npcName = npc.DisplayName;
+        var goName = npc.gameObject.name;
+        foreach (var quest in responses.Values)
+        {
+            if (quest == null) continue;
+            if (NameMatches(quest.QuestGiverName, npcName, goName) ||
+                NameMatches(quest.ObjectiveTarget, npcName, goName))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool NameMatches(string questName, string displayName, string goName)
+    {
+        if (string.IsNullOrWhiteSpace(questName)) return false;
+        var wanted = questName.Trim();
+        return (!string.IsNullOrWhiteSpace(displayName) &&
+                string.Equals(displayName.Trim(), wanted, System.StringComparison.OrdinalIgnoreCase)) ||
+               (!string.IsNullOrWhiteSpace(goName) &&
+                goName.IndexOf(wanted, System.StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
 

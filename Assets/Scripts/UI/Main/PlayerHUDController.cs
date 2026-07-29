@@ -769,7 +769,15 @@ public class PlayerHUDController : MonoBehaviour
         if (quests == null) return;
 
         var active = MysticJourney.Core.Utilities.QuestUtils.PickPreferredQuest(quests);
-        if (active == null || MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed")) 
+        if (active == null || MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed"))
+        {
+            ClearAllQuestPointers();
+            return;
+        }
+
+        // Chỉ nhắc nút UI khi quest đã ĐƯỢC NHẬN (InProgress). Quest NotStarted vẫn đang chờ
+        // nói chuyện với NPC — nếu nhắc sớm thì ô Skill nảy lên ngay ở nhiệm vụ Talk trước đó.
+        if (!MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "InProgress"))
         {
             ClearAllQuestPointers();
             return;

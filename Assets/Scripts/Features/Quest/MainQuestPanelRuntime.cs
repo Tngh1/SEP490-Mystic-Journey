@@ -400,7 +400,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         if (QuestUtils.IsStatus(active, "Completed"))
         {
-            SetText(trackerStatus, "<color=#55FF55>Completed! Return to Quest Giver</color>");
+            SetText(trackerStatus, "<color=#55FF55>Completed</color>");
         }
         else if (QuestUtils.IsStatus(active, "NotStarted"))
         {
@@ -1074,7 +1074,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     // Tracker và panel chi tiết dùng chung câu này để không nói hai điều khác nhau về cùng một quest.
     private static string AcceptPromptLine(PlayerQuestResponse quest)
     {
-        return $"Talk to {Safe(quest?.QuestGiverName, "Quest Giver")} to accept";
+        return $"Talk to {Safe(quest?.QuestGiverName, "Quest Giver")}";
     }
 
     private static string ObjectiveTextLine(PlayerQuestResponse quest)
