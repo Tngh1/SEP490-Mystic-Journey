@@ -16,8 +16,17 @@ public class LineSkillSpawner : MonoBehaviour
     [Tooltip("Thời gian trễ giữa mỗi lần sinh ra khối băng tiếp theo (để tạo hiệu ứng chạy tới)")]
     [SerializeField] private float spawnDelay = 0.1f;
 
+    [Header("Audio Settings")]
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     private void Start()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         StartCoroutine(SpawnLineCoroutine());
     }
 

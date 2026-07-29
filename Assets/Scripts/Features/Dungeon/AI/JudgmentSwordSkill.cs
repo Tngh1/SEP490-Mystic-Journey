@@ -20,8 +20,18 @@ public class JudgmentSwordSkill : MonoBehaviour
     [Tooltip("Layer của người chơi để check va chạm")]
     [SerializeField] private LayerMask playerLayer;
 
+    [Header("Audio Settings")]
+    [SerializeField] private AudioClip castSound;
+    [SerializeField] private AudioClip hitSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     private void Start()
     {
+        if (castSound != null && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         // Khi vừa sinh ra, bắt đầu quá trình giáng đòn
         StartCoroutine(JudgmentRoutine());
     }
@@ -38,6 +48,11 @@ public class JudgmentSwordSkill : MonoBehaviour
         {
             if (hit.CompareTag("Player"))
             {
+                if (hitSound != null && AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlaySfx(hitSound, soundVolume);
+                }
+
                 // Lấy chỉ số Hắc hoá từ API/GameState toàn cục
                 float currentDarkness = 0f;
                 if (GameStateService.Instance != null)

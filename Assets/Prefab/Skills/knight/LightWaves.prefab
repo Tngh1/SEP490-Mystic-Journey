@@ -131,7 +131,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ca09a2127ccaff40934f29d5d906926, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillProjectile
-  speed: 10
+  speed: 2
+  castSound: {fileID: 8300000, guid: 720ad9080679195489596c92433856d4, type: 3}
+  hitSound: {fileID: 0}
+  soundVolume: 0.481
 --- !u!61 &7526775142046513966
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -254,5 +257,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecfaff85ce049784ebc44f33639e76d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkSkillProjectile
-  speed: 10
-  lifeSeconds: 2
+  speed: 2
+  lifeSeconds: 1

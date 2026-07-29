@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -21.976019, y: -2.7492688, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -201,7 +201,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1950888993e02fb488b54c77f112c19f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FrozenSashSkill
-  speed: 10
-  castSound: {fileID: 0}
-  hitSound: {fileID: 0}
   duration: 0.5
+  castSound: {fileID: 8300000, guid: 720ad9080679195489596c92433856d4, type: 3}
+  hitSound: {fileID: 0}
+  soundVolume: 0.5

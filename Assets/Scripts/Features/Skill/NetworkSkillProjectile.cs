@@ -59,18 +59,33 @@ public class NetworkSkillProjectile : NetworkBehaviour
         if (Object == null || !Object.IsValid) return;
         // Only the authority resolves hits so damage is applied exactly once.
         if (!HasStateAuthority) return;
-        if (!collision.CompareTag("Monster")) return;
 
-        var enemy = collision.GetComponent<EnemyEntity>();
-        if (enemy == null) return;
+        // Bỏ qua va chạm với Player (người tung skill hoặc đồng đội)
+        if (collision.CompareTag("Player")) return;
 
-        bool isCrit = Random.Range(0f, 100f) <= 20f;
-        int dmg = Mathf.RoundToInt(isCrit ? Damage * 1.5f : Damage);
+        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
+        if (collision.isTrigger && !collision.CompareTag("Monster")) return;
 
-        enemy.TakeDamage(dmg);
-        RPC_ShowPopup(enemy.transform.position, dmg, isCrit);
+        if (collision.CompareTag("Monster"))
+        {
+            var enemy = collision.GetComponent<EnemyEntity>();
+            if (enemy != null)
+            {
+                bool isCrit = Random.Range(0f, 100f) <= 20f;
+                int dmg = Mathf.RoundToInt(isCrit ? Damage * 1.5f : Damage);
 
+                enemy.TakeDamage(dmg);
+                RPC_ShowPopup(enemy.transform.position, dmg, isCrit);
+            }
+        }
+
+        // Đạn va chạm bất kỳ vật thể nào trên bản đồ (Monster, tường, địa hình, chướng ngại vật...) đều nổ / biến mất
         Runner.Despawn(Object);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        OnTriggerEnter2D(collision.collider);
     }
 
     // Broadcast so the floating damage number appears on every client, not just

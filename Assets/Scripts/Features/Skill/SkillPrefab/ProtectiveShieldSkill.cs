@@ -5,9 +5,17 @@ public class ProtectiveShieldSkill : MonoBehaviour
     [SerializeField] private float radius = 5f;
     [SerializeField] private float duration = 5f;
     [SerializeField] private float defenseShareRatio = 0.5f;
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
+    private Transform _targetToFollow;
 
     private void Start()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
         PlayerCombat casterCombat = null;
         
         // Find the caster (the local player where this was spawned)
@@ -20,6 +28,21 @@ public class ProtectiveShieldSkill : MonoBehaviour
                 casterCombat = combat;
                 break;
             }
+        }
+
+        if (casterCombat == null && PlayerEntity.Instance != null)
+        {
+            casterCombat = PlayerEntity.Instance.GetComponent<PlayerCombat>();
+        }
+
+        if (casterCombat != null)
+        {
+            _targetToFollow = casterCombat.transform;
+        }
+        else
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null) _targetToFollow = playerObj.transform;
         }
 
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;
@@ -46,6 +69,14 @@ public class ProtectiveShieldSkill : MonoBehaviour
             }
         }
 
-        Destroy(gameObject, 2f);
+        Destroy(gameObject, duration);
+    }
+
+    private void Update()
+    {
+        if (_targetToFollow != null)
+        {
+            transform.position = _targetToFollow.position;
+        }
     }
 }

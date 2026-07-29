@@ -22,8 +22,17 @@ public class RandomAoESpawner : MonoBehaviour
     [Tooltip("Nếu tick: Sẽ sinh ngẫu nhiên xung quanh khu vực Player đang đứng. Nếu không tick: Sẽ sinh quanh con Boss.")]
     [SerializeField] private bool spawnAroundPlayer = true;
 
+    [Header("Audio Settings")]
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     private void Start()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         StartCoroutine(SpawnRandomAoECoroutine());
     }
 

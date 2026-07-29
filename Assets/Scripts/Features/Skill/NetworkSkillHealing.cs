@@ -19,6 +19,10 @@ public class NetworkSkillHealing : NetworkBehaviour
     [Tooltip("Radius to search for an allied player around the spawn point")]
     [SerializeField] private float searchRadius = 2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
+
     public override void Spawned()
     {
         if (Object.HasStateAuthority)
@@ -41,6 +45,11 @@ public class NetworkSkillHealing : NetworkBehaviour
 
     private void ApplyHeal()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         // Calculate final heal amount based on the caster's ATK
         int finalHeal = baseHealAmount;
         if (scaleWithAtk && PlayerEntity.Instance != null && PlayerEntity.Instance.GetComponent<PlayerCombat>() != null)

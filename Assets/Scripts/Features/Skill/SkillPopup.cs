@@ -12,6 +12,7 @@ public class SkillPopup : MonoBehaviour
     public TextMeshProUGUI popupName;
     public TextMeshProUGUI popupDesc;
     public TextMeshProUGUI popupStats;
+    public TextMeshProUGUI errorMessageText; // Dedicated error text at bottom of panel
     public Button upgradeButton;
     public Button dismantleButton;
     public TMP_Dropdown targetDropdown;
@@ -19,52 +20,67 @@ public class SkillPopup : MonoBehaviour
     // maps dropdown index -> PlayerSkillId (0 = None)
     private List<int> _dropdownPlayerSkillIds = new List<int>();
 
-    // 👇 MỚI THÊM: Biến chứa Danh sách kỹ năng để Tắt/Bật
     public GameObject skillListArea;
 
     private PlayerSkillResponse currentServerData;
 
+    private void ClearError()
+    {
+        if (errorMessageText != null)
+        {
+            errorMessageText.text = "";
+            errorMessageText.gameObject.SetActive(false);
+        }
+    }
+
+    private void ShowError(string msg)
+    {
+        if (errorMessageText != null)
+        {
+            errorMessageText.text = $"<color=#FF4444><b>Error:</b> {msg}</color>";
+            errorMessageText.gameObject.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning($"[SkillPopup Error] {msg}");
+        }
+    }
+
     public void ShowPopup(SkillData visual, PlayerSkillResponse server)
     {
         currentServerData = server;
+        ClearError();
 
-        // Ảnh lấy từ Client (Lúc nào cũng có nên không sợ lỗi)
         if (visual != null && visual.skillIcon != null)
         {
             popupIcon.sprite = visual.skillIcon;
+            popupIcon.preserveAspect = true;
         }
 
-        // KIỂM TRA AN TOÀN: Nếu kỹ năng ĐÃ MỞ KHÓA
         if (server != null)
         {
-            popupName.text = server.SkillName;
-            popupDesc.text = server.SkillDescription;
-            popupStats.text = $"Cấp độ: {server.Level} \nSát thương: {server.EffectiveDamage} \nHồi chiêu: {server.CooldownSeconds}s";
+            popupName.text = $"<size=125%><color=#3D2314><b>{server.SkillName}</b></color></size>";
+            popupDesc.text = $"<color=#4A3B32><i>\"{server.SkillDescription}\"</i></color>";
+            popupStats.text = $"<b><color=#8B4513>✦ Level:</color></b>  <color=#000000><b>{server.Level}</b></color>\n\n" +
+                              $"<b><color=#B22222>⚔️ Damage:</color></b>  <color=#8B0000><b>{server.EffectiveDamage}</b></color>\n\n" +
+                              $"<b><color=#1E90FF>⏱️ Cooldown:</color></b>  <color=#006400><b>{server.CooldownSeconds}s</b></color>";
 
-            // Bật nút nâng cấp
             if (upgradeButton != null) upgradeButton.gameObject.SetActive(true);
 
-            // 👇 ĐÃ SỬA: Xử lý nút Phân rã (Khóa nếu kỹ năng đang được trang bị)
             if (dismantleButton != null)
             {
                 dismantleButton.gameObject.SetActive(true);
-                // Nếu đang trang bị (IsEquipped == true) -> interactable = false (Khóa nút mờ đi)
-                // Nếu chưa trang bị (IsEquipped == false) -> interactable = true (Bấm được bình thường)
                 dismantleButton.interactable = !server.IsEquipped;
             }
 
-            // Prepare target dropdown (load player's owned skills)
             if (targetDropdown != null)
             {
-                // reset
                 targetDropdown.ClearOptions();
                 _dropdownPlayerSkillIds.Clear();
 
-                // Add default 'None' option
                 var options = new List<string> { "None" };
                 _dropdownPlayerSkillIds.Add(0);
 
-                // Load player's skills from server and populate options (exclude current skill)
                 SkillApi.Instance.GetMySkills(
                     response =>
                     {
@@ -72,8 +88,7 @@ public class SkillPopup : MonoBehaviour
                         foreach (var s in mySkills)
                         {
                             if (s == null) continue;
-                            if (s.PlayerSkillId == server.PlayerSkillId) continue; // skip source
-                            // Only include skills usable by player's class (client-side check)
+                            if (s.PlayerSkillId == server.PlayerSkillId) continue;
                             options.Add($"{s.SkillName} (Lv.{s.Level})");
                             _dropdownPlayerSkillIds.Add(s.PlayerSkillId);
                         }
@@ -89,14 +104,12 @@ public class SkillPopup : MonoBehaviour
                 );
             }
         }
-        // NẾU KỸ NĂNG CHƯA MỞ KHÓA (server == null)
         else
         {
-            popupName.text = "Kỹ năng bị khóa";
-            popupDesc.text = "Bạn chưa sở hữu kỹ năng này. Hãy làm nhiệm vụ hoặc đạt cấp độ yêu cầu để mở khóa.";
-            popupStats.text = "Cấp độ: 0 \nSát thương: 0 \nHồi chiêu: 0s";
+            popupName.text = "<size=125%><color=#708090><b>🔒 Skill Locked</b></color></size>";
+            popupDesc.text = "<color=#696969><i>You do not own this skill yet. Complete quests or reach the required level to unlock it.</i></color>";
+            popupStats.text = "<b><color=#708090>✦ Level:</color></b>  <color=#555555>0</color>\n\n<b><color=#708090>⚔️ Damage:</color></b>  <color=#555555>0</color>\n\n<b><color=#708090>⏱️ Cooldown:</color></b>  <color=#555555>0s</color>";
 
-            // Ẩn nút nâng cấp đi để người chơi không bấm được
             if (upgradeButton != null) upgradeButton.gameObject.SetActive(false);
             if (dismantleButton != null) dismantleButton.gameObject.SetActive(false);
             if (targetDropdown != null)
@@ -105,7 +118,6 @@ public class SkillPopup : MonoBehaviour
             }
         }
 
-        // 👇 ẨN DANH SÁCH KỸ NĂNG KHI MỞ POPUP
         if (skillListArea != null)
         {
             skillListArea.SetActive(false);
@@ -116,7 +128,7 @@ public class SkillPopup : MonoBehaviour
 
     public void HidePopup()
     {
-        // 👇 HIỆN LẠI DANH SÁCH KỸ NĂNG KHI ĐÓNG POPUP
+        ClearError();
         if (skillListArea != null)
         {
             skillListArea.SetActive(true);
@@ -125,27 +137,26 @@ public class SkillPopup : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    // Gắn hàm này vào OnClick của nút Upgrade trên UI
     public void OnClickUpgrade()
     {
         if (currentServerData == null) return;
+        ClearError();
 
-        // Tắt nút để tránh user bấm spam (Double click)
         upgradeButton.interactable = false;
 
         SkillApi.Instance.UpgradePlayerSkill(
             currentServerData.PlayerSkillId,
             onSuccess: (updatedSkill) =>
             {
-                Debug.Log("Nâng cấp thành công lên Level " + updatedSkill.Level);
+                Debug.Log("Upgrade successful to Level " + updatedSkill.Level);
 
-                // Cập nhật lại Text trên UI ngay lập tức
                 currentServerData = updatedSkill;
-                popupStats.text = $"Cấp độ: {updatedSkill.Level} \nSát thương: {updatedSkill.EffectiveDamage} \nHồi chiêu: {updatedSkill.CooldownSeconds}s";
+                popupStats.text = $"<b><color=#8B4513>✦ Level:</color></b>  <color=#000000><b>{updatedSkill.Level}</b></color>\n\n" +
+                                  $"<b><color=#B22222>⚔️ Damage:</color></b>  <color=#8B0000><b>{updatedSkill.EffectiveDamage}</b></color>\n\n" +
+                                  $"<b><color=#1E90FF>⏱️ Cooldown:</color></b>  <color=#006400><b>{updatedSkill.CooldownSeconds}s</b></color>";
 
                 upgradeButton.interactable = true;
 
-                // TÌM CẢ OBJECT BỊ ẨN VÀ GỌI REFRESH AN TOÀN
                 var panelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
                 if (panelManager != null)
                 {
@@ -160,8 +171,8 @@ public class SkillPopup : MonoBehaviour
             },
             onError: (error) =>
             {
-                Debug.LogError("Lỗi nâng cấp: " + error.Message);
-                popupDesc.text = $"<color=red>Lỗi: {error.Message}</color>";
+                Debug.LogError("Upgrade failed: " + error.Message);
+                ShowError(error.Message);
                 upgradeButton.interactable = true;
             }
         );
@@ -170,6 +181,7 @@ public class SkillPopup : MonoBehaviour
     public void OnClickDismantle()
     {
         if (currentServerData == null) return;
+        ClearError();
 
         dismantleButton.interactable = false;
 
@@ -192,7 +204,6 @@ public class SkillPopup : MonoBehaviour
                 Debug.Log("Dismantle success");
                 dismantleButton.interactable = true;
 
-                // Refresh skill list
                 var panelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
                 if (panelManager != null)
                 {
@@ -203,6 +214,7 @@ public class SkillPopup : MonoBehaviour
             onError: (error) =>
             {
                 Debug.LogError("Dismantle failed: " + error.Message);
+                ShowError(error.Message);
                 dismantleButton.interactable = true;
             }
         );

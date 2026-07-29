@@ -5,6 +5,7 @@ public class SkillAoE : MonoBehaviour
 {
     [SerializeField] private float duration = 3f;
     [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
     private float _damage;
 
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
@@ -16,7 +17,7 @@ public class SkillAoE : MonoBehaviour
 
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
-            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound);
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
     }
 

@@ -12,6 +12,8 @@ using UnityEngine;
 public class NetworkSkillAoE : NetworkBehaviour
 {
     [SerializeField] private float duration = 3f;
+    [SerializeField] private AudioClip castSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
 
     [Networked] private float Damage { get; set; }
     [Networked] private TickTimer Life { get; set; }
@@ -23,6 +25,11 @@ public class NetworkSkillAoE : NetworkBehaviour
 
     public override void Spawned()
     {
+        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
+        }
+
         // The prefab also carries the legacy SkillAoE for offline play. Online,
         // THIS component owns lifetime + damage, so silence the legacy one.
         var legacy = GetComponent<SkillAoE>();
