@@ -112,9 +112,32 @@ public class EnemyEntity : MonoBehaviour
     /// the enemy's state authority (applied once, replicated to all). Offline it
     /// applies immediately.
     /// </summary>
+    /// <summary>
+    /// Restores current HP by amount (up to maxHealth).
+    /// </summary>
+    public void Heal(int amount)
+    {
+        if (isDead || amount <= 0) return;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
+    /// <summary>
+    /// Public damage entry point. Projectiles / AoE / melee call this without
+    /// knowing whether we are online. When networked, the request is routed to
+    /// the enemy's state authority (applied once, replicated to all). Offline it
+    /// applies immediately.
+    /// </summary>
     public void TakeDamage(int damage)
     {
         if (isDead) return;
+
+        // Block hit if Resurrection Cocoon Shield is active
+        var cocoonShield = GetComponent<ResurrectionCocoonShield>();
+        if (cocoonShield != null && cocoonShield.TryBlockHit())
+        {
+            return;
+        }
 
         if (_network != null && _network.IsNetworkActive)
         {
@@ -132,6 +155,12 @@ public class EnemyEntity : MonoBehaviour
     public void ApplyDamageAuthoritative(int damage)
     {
         if (isDead) return;
+
+        var cocoonShield = GetComponent<ResurrectionCocoonShield>();
+        if (cocoonShield != null && cocoonShield.TryBlockHit())
+        {
+            return;
+        }
 
         currentHealth -= damage;
         if (currentHealth < 0) currentHealth = 0;
