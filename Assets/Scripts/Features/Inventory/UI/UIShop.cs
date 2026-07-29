@@ -27,6 +27,8 @@ public class UIShop : MonoBehaviour
     [Header("Categories & Confirm Popup")]
     public UITabGroup categoryTabGroup;
     public UIConfirmPurchase confirmPurchasePanel;
+    [SerializeField] private Image flagTagImage;
+    [SerializeField] private Sprite[] categoryFlags;
 
     [Header("Daily Refresh")]
     [SerializeField] private Button refreshButton;
@@ -311,7 +313,45 @@ public class UIShop : MonoBehaviour
             ? NormalizeCategory(categoryMapping[index])
             : AllCategory;
 
+        UpdateFlagTag(index);
+
         LoadCurrentCategory();
+    }
+
+    private void UpdateFlagTag(int index)
+    {
+        if (flagTagImage == null)
+        {
+            var t = transform.Find("LeftPanel/FlagTag") ?? transform.Find("FlagTag");
+            if (t == null)
+            {
+                var children = GetComponentsInChildren<Image>(true);
+                for (int i = 0; i < children.Length; i++)
+                {
+                    if (children[i] != null && children[i].name.Equals("FlagTag", StringComparison.OrdinalIgnoreCase))
+                    {
+                        flagTagImage = children[i];
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                flagTagImage = t.GetComponent<Image>();
+            }
+        }
+
+        if (flagTagImage == null)
+            return;
+
+        if (categoryFlags != null && index >= 0 && index < categoryFlags.Length)
+        {
+            if (categoryFlags[index] != null)
+            {
+                flagTagImage.sprite = categoryFlags[index];
+                flagTagImage.enabled = true;
+            }
+        }
     }
 
     private void DisplayItems(List<UIItemDisplayData> items)
