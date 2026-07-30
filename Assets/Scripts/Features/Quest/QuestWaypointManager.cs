@@ -491,9 +491,9 @@ namespace MysticJourney.Features.Quest
                 return null;
             }
 
-            // 0a. Xử lý đặc biệt cho Quest 17 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
+            // 0a. Xử lý đặc biệt cho Quest 16 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
             // CHỈ dẫn ra Thuyền SAU KHI lữ khách đã nói chuyện xong với Arthur (Completed/Claimed hoặc Progress >= 1)
-            if (quest.QuestId == 17)
+            if (quest.QuestId == 16)
             {
                 bool isFinishedWithArthur = QuestUtils.IsStatus(quest, "Completed") ||
                                             QuestUtils.IsStatus(quest, "Claimed") ||
@@ -505,9 +505,9 @@ namespace MysticJourney.Features.Quest
                 }
             }
 
-            // 0b. Xử lý đặc biệt cho Quest 22 (Quest cuối map FrozenMountain — đánh GolemBoss):
+            // 0b. Xử lý đặc biệt cho Quest 21 (Quest cuối map FrozenMountain — đánh GolemBoss):
             // Sau khi GolemBoss bị giết (Completed/Claimed), chỉ đến portal/gate để thoát FrozenMountain.
-            if (quest.QuestId == 22)
+            if (quest.QuestId == 21)
             {
                 bool isFinishedWithGolem = QuestUtils.IsStatus(quest, "Completed") ||
                                            QuestUtils.IsStatus(quest, "Claimed") ||
@@ -519,9 +519,9 @@ namespace MysticJourney.Features.Quest
                 }
             }
 
-            // 0c. Quest 28 (Ask for the Way Home — quest cuối map AbandonedCastle):
+            // 0c. Quest 27 (Ask for the Way Home — quest cuối map AbandonedCastle):
             // khi Completed/Claimed → Elf Guard đã mở portal, chỉ đến portal về ElfForest.
-            if (quest.QuestId == 28)
+            if (quest.QuestId == 27)
             {
                 bool isFinishedWithElfGuard = QuestUtils.IsStatus(quest, "Completed") ||
                                               QuestUtils.IsStatus(quest, "Claimed") ||

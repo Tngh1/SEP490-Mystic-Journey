@@ -30,7 +30,7 @@ public class NpcDatabaseSO : ScriptableObject
         if (mapping != null && mapping.prefab != null)
             return mapping.prefab;
 
-        // 2. Partial / fuzzy match (e.g. "Elder Rowan (Pumpkin)" matches "Elder Rowan")
+        // 2. Partial / fuzzy match (e.g. "Drake (Clone)" matches "Drake")
         mapping = npcMappings.Find(m => m != null && !string.IsNullOrWhiteSpace(m.npcName) && (
             name.IndexOf(m.npcName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
             m.npcName.IndexOf(name, System.StringComparison.OrdinalIgnoreCase) >= 0 ||

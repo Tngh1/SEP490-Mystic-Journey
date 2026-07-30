@@ -337,7 +337,7 @@ namespace MysticJourney.API.Core
                     // Body không phải JSON → dùng raw text
                 }
 
-                Debug.LogError($"[ApiClient] ❌ HTTP {request.responseCode} | ErrorCode={errorCode} | Message={errorMsg}");
+                Debug.LogError($"[ApiClient] ❌ HTTP {request.responseCode} on {request.url} | ErrorCode={errorCode} | Message={errorMsg}");
                 Debug.LogError($"[ApiClient] Raw body: {rawBody}");
 
                 onError?.Invoke(new ApiException

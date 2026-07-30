@@ -21,7 +21,7 @@ public class LockedBridgeGate : MonoBehaviour
 
     [Header("Gate Settings")]
     [Tooltip("Quest ID yêu cầu hoàn thành để mở cầu (Quest 26 - Deserted Island).")]
-    [SerializeField] private int requiredQuestId = 26;
+    [SerializeField] private int requiredQuestId = 25;
 
     [Tooltip("Object key dùng cho tương tác cầu.")]
     [SerializeField] private string objectKey = "AbandonedCastle.LockedBridgeGate";

@@ -9,7 +9,7 @@ public class OriginTreeInteractable : MonoBehaviour
 {
     [Header("Quest Link")]
     [Tooltip("Quest ID for healing the Origin Tree (e.g. 30).")]
-    [SerializeField] private int linkedQuestId = 30;
+    [SerializeField] private int linkedQuestId = 29;
 
     [Tooltip("ObjectKey gửi lên API.")]
     [SerializeField] private string objectKey = "ElfForest.OriginTree";

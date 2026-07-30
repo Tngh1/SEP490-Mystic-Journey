@@ -92,15 +92,30 @@ public class MainQuestPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged += RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
         WorldRuntimeEvents.MapChanged += OnMapChanged;
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+        }
     }
 
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
+        
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+        }
 
         if (Instance == this)
             Instance = null;
+    }
+
+    private void OnQuestProgressChangedHandler(int questId)
+    {
+        RefreshWorldAndQuests();
     }
 
     public void OpenQuestPanel()

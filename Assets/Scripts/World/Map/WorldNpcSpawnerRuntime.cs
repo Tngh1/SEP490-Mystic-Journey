@@ -139,7 +139,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     {
         var quests = QuestManager.Instance?.GetMainQuests();
         return quests != null && quests.Any(q =>
-            q != null && q.QuestId == 24 &&
+            q != null && q.QuestId == 23 &&
             (string.Equals(q.Status, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
              string.Equals(q.Status, "Claimed", System.StringComparison.OrdinalIgnoreCase)));
     }
