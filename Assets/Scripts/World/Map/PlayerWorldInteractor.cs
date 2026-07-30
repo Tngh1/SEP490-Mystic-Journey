@@ -343,6 +343,12 @@ public class PlayerWorldInteractor : MonoBehaviour
             if (item.Kind != WorldInteractableKind.Object && item.Kind != WorldInteractableKind.QuestItem)
                 continue;
 
+            // Xác/hộp sọ (Corpse_1, Corpse_2) KHÔNG có Collider nào, nên bộ lọc collider
+            // dưới đây không chặn được chúng -> cùng một xác có thể khám nhiều lần.
+            // InvestigationConsumed là cổng chặn thật sự.
+            if (item.InvestigationConsumed)
+                continue;
+
             // Bỏ qua nếu collider đã bị tắt (đã tương tác xong)
             var col2D = item.GetComponent<UnityEngine.Collider2D>();
             var col = item.GetComponent<UnityEngine.Collider>();

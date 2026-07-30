@@ -18,7 +18,7 @@ public class DiggingInteractable : MonoBehaviour
 
     [Header("Quest Link")]
     [Tooltip("QuestId của nhiệm vụ cần đào (ví dụ: Quest 24 — The Abandoned Village).")]
-    [SerializeField] private int linkedQuestId = 24;
+    [SerializeField] private int linkedQuestId = 23;
 
     [Tooltip("ObjectKey gửi lên API. Phải khớp với ObjectKey mà backend nhận ra (ví dụ: 'AbandonedCastle.Skull').")]
     [SerializeField] private string objectKey = "AbandonedCastle.Skull";

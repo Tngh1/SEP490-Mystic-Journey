@@ -21,6 +21,30 @@ public class WorldInteractable : MonoBehaviour
     // stale non-null handle and block the label forever.
     private bool investigationTextActive;
 
+    // Corpse/skull prefabs (Corpse_1, Corpse_2) ship with NO Collider at all, so the
+    // "disable the collider so it can't be re-used" trick below silently did nothing and
+    // the same body could be examined until the quest completed off one corpse. This flag
+    // is the real one-shot gate; PlayerWorldInteractor skips consumed investigation items.
+    private bool investigationConsumed;
+    public bool InvestigationConsumed => investigationConsumed;
+
+    // One line per body examined, so 5 corpses read as 5 discoveries instead of the same
+    // sentence five times. Advances per examine (static) rather than per object: several
+    // instances share the name "Corpse", so anything keyed off name/DisplayName would
+    // repeat itself. Order builds the Q12 -> Q13 reveal: not bandits, not even human.
+    private static readonly string[] InvestigationLines =
+    {
+        "A city guard, cut down before he could draw his blade.",
+        "Not a mark on this one. Whatever killed him never needed steel.",
+        "A mother, curled around her child. Neither of them cried out.",
+        "The blood has gone black and cold. No bandit leaves a street like this.",
+        "Four deep furrows across the ribs. Nothing human has claws.",
+        "He fell running toward the gate, not away from it.",
+        "Her lantern is still burning. This happened only hours ago.",
+        "None of them have begun to rot. Something here is holding them."
+    };
+    private static int investigationLineCursor;
+
     [SerializeField] private WorldInteractableKind kind = WorldInteractableKind.Object;
     [SerializeField] private int npcId;
     [SerializeField] private string displayName = "Interactable";
@@ -197,6 +221,15 @@ public class WorldInteractable : MonoBehaviour
         }
         else if (IsInvestigationItem())
         {
+            // An examined body keeps its sprite (it must stay on the street) but must not
+            // keep advertising "?" — otherwise the QuestsChanged -> RefreshFromApi round-trip
+            // re-lights every corpse the player already read.
+            if (investigationConsumed)
+            {
+                overheadCanvas.gameObject.SetActive(false);
+                return;
+            }
+
             overheadText.text = "?";
             overheadText.color = Color.yellow;
             overheadText.fontSize = 160;
@@ -234,7 +267,10 @@ public class WorldInteractable : MonoBehaviour
 
         investigationTextActive = true;
 
-        overheadText.text = "Why is there a corpse? What happened...";
+        // Modulo so a scene reload (cursor is static and survives it) wraps instead of
+        // running off the end.
+        overheadText.text = InvestigationLines[investigationLineCursor % InvestigationLines.Length];
+        investigationLineCursor++;
         overheadText.color = Color.white;
         overheadText.fontSize = 80;
         overheadCanvas.gameObject.SetActive(true);
@@ -313,12 +349,31 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
+            // Thuyền (BoatVideoTeleporter): ủy quyền SỚM, trước nhánh respawner bên dưới.
+            // Boat được tag "QuestItem" trong scene nên WorldSceneInteractableBootstrap
+            // .ConfigureTaggedQuestItems tự gắn WorldRespawnable cho nó → nhánh
+            // `respawner != null` chạy trước và ConsumeAndRespawn() tắt hết Renderer rồi
+            // return, nên thuyền BIẾN MẤT mà InteractWithBoat() (video + teleport) không bao
+            // giờ được gọi. Thuyền tự quản lý vòng đời của nó (ẩn player, chiếu video, đổi
+            // scene) nên không được để respawner/collider logic chạm vào.
+            var boatTeleporter = GetComponent<BoatVideoTeleporter>();
+            if (boatTeleporter != null)
+            {
+                boatTeleporter.InteractWithBoat();
+                WorldInteractionPromptRuntime.Hide();
+                return;
+            }
+
             // Vật phẩm "điều tra" (xác, hộp sọ): PHẢI ở lại hiện trường sau khi tương tác.
             // WorldSceneInteractableBootstrap tự gắn WorldRespawnable cho mọi object tag
             // "QuestItem", và WorldRespawnable tắt toàn bộ Renderer 30s -> "xác bị biến mất".
             // Chặn trước nhánh respawner/Collect để xác chỉ tắt collider và hiện thoại.
             if (IsInvestigationItem())
             {
+                // The corpse prefabs carry no Collider, so these two lines are a no-op on
+                // them; investigationConsumed is what actually stops a second examine.
+                investigationConsumed = true;
+
                 var invCol = GetComponent<UnityEngine.Collider>();
                 if (invCol != null) invCol.enabled = false;
                 var invCol2D = GetComponent<UnityEngine.Collider2D>();
@@ -353,9 +408,6 @@ public class WorldInteractable : MonoBehaviour
                 else
                 {
                     Debug.Log($"[WorldInteractable] Not Collect/Gather. Disabling colliders on {gameObject.name} instead of hiding.");
-                    
-                    var boat = GetComponent<BoatVideoTeleporter>();
-                    if (boat != null) boat.InteractWithBoat();
 
                     var col = GetComponent<UnityEngine.Collider>();
                     if (col != null) col.enabled = false;

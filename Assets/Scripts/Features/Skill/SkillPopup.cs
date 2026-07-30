@@ -65,7 +65,19 @@ public class SkillPopup : MonoBehaviour
                               $"<b><color=#B22222>⚔️ Damage:</color></b>  <color=#8B0000><b>{server.EffectiveDamage}</b></color>\n\n" +
                               $"<b><color=#1E90FF>⏱️ Cooldown:</color></b>  <color=#006400><b>{server.CooldownSeconds}s</b></color>";
 
-            if (upgradeButton != null) upgradeButton.gameObject.SetActive(true);
+            if (upgradeButton != null)
+            {
+                upgradeButton.gameObject.SetActive(true);
+                if (server.Level >= WorldState.PlayerLevel)
+                {
+                    upgradeButton.interactable = false;
+                    ShowError("Skill level cannot exceed player level.");
+                }
+                else
+                {
+                    upgradeButton.interactable = true;
+                }
+            }
 
             if (dismantleButton != null)
             {

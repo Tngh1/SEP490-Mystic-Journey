@@ -60,6 +60,9 @@ namespace MysticJourney.API.Models.Response
         public string ItemDescription { get; set; }
         public string ItemType { get; set; }       // "Weapon", "Armor", "Consumable"...
         public string ItemRarity { get; set; }     // "Common", "Rare", "Epic", "Legendary"
+        // Ô trang bị theo định nghĩa của Item (BE Item.Slot): None, Weapon, Helmet, Armor,
+        // Gloves, Boots, Ring, Necklace. Dùng để xếp icon vào đúng ô ở CharacterPreviewArea.
+        public string ItemSlot { get; set; }
         public string IconUrl { get; set; }
         public float CorruptionReduction { get; set; }
         public int Quantity { get; set; }

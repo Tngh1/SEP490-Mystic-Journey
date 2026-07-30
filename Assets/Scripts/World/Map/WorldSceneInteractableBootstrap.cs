@@ -149,6 +149,15 @@ public static class WorldSceneInteractableBootstrap
     {
         foreach (var obj in FindSceneObjectsByTag(scene, "QuestItem"))
         {
+            // Cổng dịch chuyển (Boat) cũng bị tag "QuestItem" trong scene, nhưng nó KHÔNG phải
+            // vật phẩm thu thập: nó tự quản lý vòng đời (ẩn player, chiếu video, đổi scene) và đã
+            // được cấu hình sẵn trong scene (kind Object, objectKey "Boat", type Interact).
+            // Nếu để chạy tiếp: (1) AddComponent<WorldRespawnable> khiến nhánh respawner trong
+            // OnSuccessfulInteraction tắt hết Renderer → thuyền biến mất mà video không chạy;
+            // (2) ConfigureQuestItem ghi đè kind/objectKey thành QuestItem/"ElfForest.Boat".
+            if (obj.GetComponent<MapTeleportPortal>() != null)
+                continue;
+
             var itemName = ResolveQuestItemName(obj.name);
             var objectKey = BuildObjectKey(itemName);
             var questId = FindCollectQuestId(state, itemName);

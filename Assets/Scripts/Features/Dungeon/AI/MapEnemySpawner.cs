@@ -20,8 +20,15 @@ public class MapEnemySpawner : MonoBehaviour
     [Tooltip("Thời gian chờ giữa mỗi lần gọi 1 con quái lúc mới bắt đầu (tránh giật lag).")]
     [SerializeField] private float initialSpawnDelay = 0.5f;
 
+    [Header("Object Settings")]
+    [Tooltip("Tên của GameObject sau khi sinh ra. Để trống sẽ giữ nguyên tên Prefab.")]
+    [SerializeField] private string objectName = "";
+
     // Danh sách lưu trữ những con quái đang sống
-    private List<GameObject> aliveEnemies = new List<GameObject>();
+    private readonly List<GameObject> aliveEnemies = new();
+
+    // Dùng để đánh số nếu đặt Object Name
+    private int spawnCounter = 0;
 
     private void Start()
     {
@@ -48,25 +55,34 @@ public class MapEnemySpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Hàm sinh ra 1 con quái
+    /// Sinh ra một con quái
     /// </summary>
     private void SpawnSingleEnemy()
     {
-        if (enemyPrefabs.Count == 0) return;
+        if (enemyPrefabs == null || enemyPrefabs.Count == 0)
+            return;
 
-        // Chọn 1 loại quái ngẫu nhiên
+        // Chọn ngẫu nhiên một prefab
         int randomIndex = Random.Range(0, enemyPrefabs.Count);
         GameObject prefabToSpawn = enemyPrefabs[randomIndex];
 
-        // Tìm một vị trí ngẫu nhiên trong vòng tròn bán kính spawnRadius
+        // Tạo vị trí ngẫu nhiên trong bán kính
         Vector2 randomPoint = Random.insideUnitCircle * spawnRadius;
         Vector3 spawnPosition = transform.position + new Vector3(randomPoint.x, randomPoint.y, 0f);
 
-        // Sinh ra quái
+        // Sinh quái
         GameObject newEnemy = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+
+        // Đổi tên nếu có nhập Object Name
+        if (!string.IsNullOrWhiteSpace(objectName))
+        {
+            spawnCounter++;
+            newEnemy.name = $"{objectName} {spawnCounter}";
+        }
+
         aliveEnemies.Add(newEnemy);
 
-        // Đăng ký theo dõi sự kiện chết của quái
+        // Đăng ký sự kiện chết
         EnemyEntity entity = newEnemy.GetComponent<EnemyEntity>();
         if (entity != null)
         {
@@ -74,43 +90,47 @@ public class MapEnemySpawner : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"[MapEnemySpawner] Prefab {prefabToSpawn.name} không có component EnemyEntity, hệ thống không thể biết khi nào nó chết!");
+            Debug.LogWarning(
+                $"[MapEnemySpawner] Prefab {prefabToSpawn.name} không có component EnemyEntity, hệ thống không thể biết khi nào nó chết!");
         }
     }
 
     /// <summary>
-    /// Hàm được gọi tự động khi 1 con quái do Spawner này tạo ra bị chết
+    /// Được gọi khi một con quái chết
     /// </summary>
     private void HandleEnemyDeath(object sender, System.EventArgs e)
     {
         EnemyEntity deadEntity = sender as EnemyEntity;
-        if (deadEntity != null)
-        {
-            // Hủy theo dõi sự kiện để tránh lỗi bộ nhớ (memory leak)
-            deadEntity.OnDeath -= HandleEnemyDeath;
-            aliveEnemies.Remove(deadEntity.gameObject);
 
-            // Bắt đầu đếm ngược để sinh con mới thay thế
-            StartCoroutine(RespawnRoutine());
-        }
+        if (deadEntity == null)
+            return;
+
+        // Hủy đăng ký sự kiện
+        deadEntity.OnDeath -= HandleEnemyDeath;
+
+        // Xóa khỏi danh sách
+        aliveEnemies.Remove(deadEntity.gameObject);
+
+        // Chờ rồi sinh lại
+        StartCoroutine(RespawnRoutine());
     }
 
     /// <summary>
-    /// Chờ một khoảng thời gian rồi sinh bù 1 con quái mới
+    /// Chờ rồi sinh bù 1 con quái
     /// </summary>
     private IEnumerator RespawnRoutine()
     {
         yield return new WaitForSeconds(respawnCooldown);
 
-        // Kiểm tra xem số lượng quái còn sống có đang thấp hơn mức tối đa không
-        // (đề phòng trường hợp maxEnemies bị giảm đi trong lúc đang chơi)
         if (aliveEnemies.Count < maxEnemies)
         {
             SpawnSingleEnemy();
         }
     }
 
-    // Vẽ một vòng tròn màu đỏ trong Editor để bạn dễ hình dung vùng mọc quái
+    /// <summary>
+    /// Vẽ vùng spawn trong Scene View
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;

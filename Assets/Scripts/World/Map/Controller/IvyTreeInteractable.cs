@@ -11,7 +11,7 @@ public class IvyTreeInteractable : MonoBehaviour
 
     [Header("Quest Link")]
     [Tooltip("Quest ID for Rest in Peace (e.g. 25).")]
-    [SerializeField] private int linkedQuestId = 25;
+    [SerializeField] private int linkedQuestId = 24;
 
     [Tooltip("ObjectKey gửi lên API.")]
     [SerializeField] private string objectKey = "AbandonedCastle.IvyTree";

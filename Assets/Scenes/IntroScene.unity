@@ -347,7 +347,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 229018cf2712c754082bd6c40620d3d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FadeInLogo
-  fadeDuration: 2
+  duration: 2
+  enableZoom: 1
+  startScaleMultiplier: 0.5
 --- !u!1 &799029407
 GameObject:
   m_ObjectHideFlags: 0
@@ -577,8 +579,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baed40fe385bfe24fa7c4075f9b91dbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IntroManager
-  delayTime: 3
   nextSceneName: MainMenuScene
+  delayTime: 3
+  videoPlayer: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

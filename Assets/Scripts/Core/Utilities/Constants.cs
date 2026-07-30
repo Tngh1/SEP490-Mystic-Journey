@@ -8,7 +8,9 @@ namespace MysticJourney.Core.Utilities
         {
             public const string Bootstrap = "Bootstrap";
             public const string Intro = "Intro";
-            public const string MainMenu = "MainMenu";
+            // Tên scene THẬT trong Build Settings là "MainMenuScene" (không phải "MainMenu").
+            // Hằng cũ ghi "MainMenu" nên bất kỳ LoadScene dùng nó đều fail im lặng.
+            public const string MainMenu = "MainMenuScene";
             public const string Loading = "Loading";
             public const string CharacterCreation = "CharacterCreation";
             public const string Main = "Main";

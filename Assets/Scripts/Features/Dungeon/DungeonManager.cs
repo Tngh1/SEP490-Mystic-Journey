@@ -417,11 +417,24 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                     rb.position = spawnPos;
                 }
                 
+                var np = player.GetComponent<NetworkPlayer>();
                 var nt = player.GetComponent<Fusion.NetworkTransform>();
-                if (nt != null)
-                    nt.Teleport(spawnPos);
+                var entity = player.GetComponent<PlayerEntity>();
+
+                if (np != null && NetworkPlayer.Local == np && np.Object != null && np.Object.IsValid)
+                {
+                    np.RPC_DungeonRespawn(spawnPos);
+                }
+                else if (entity != null)
+                {
+                    entity.DungeonRespawn(spawnPos);
+                    if (nt != null) nt.Teleport(spawnPos);
+                }
                 else
-                    player.transform.position = spawnPos;
+                {
+                    if (nt != null) nt.Teleport(spawnPos);
+                    else player.transform.position = spawnPos;
+                }
 
                 WorldState.LastPosition = spawnPos;
             }
@@ -1393,13 +1406,24 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         }
         if (sp != null) finalSpawnPos = sp.transform.position;
 
-        if (NetworkPlayer.All != null)
+        if (NetworkPlayer.All != null && NetworkPlayer.All.Count > 0)
         {
             foreach (var p in NetworkPlayer.All)
             {
                 if (p != null)
                 {
                     p.ResetForRestart(finalSpawnPos);
+                }
+            }
+        }
+        else
+        {
+            if (player != null)
+            {
+                var entity = player.GetComponent<PlayerEntity>();
+                if (entity != null)
+                {
+                    entity.DungeonRespawn(finalSpawnPos);
                 }
             }
         }

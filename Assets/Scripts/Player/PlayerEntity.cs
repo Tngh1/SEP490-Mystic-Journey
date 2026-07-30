@@ -43,6 +43,16 @@ public class PlayerEntity : MonoBehaviour
     private int _lastBroadcastMaxHp = -1;
     private bool _lastBroadcastAlive = true;
 
+    // List of all active players for environment scripts (e.g. TilemapAutoFader)
+    public static System.Collections.Generic.List<PlayerEntity> AllPlayers = new System.Collections.Generic.List<PlayerEntity>();
+
+    // For dynamic sorting
+    private struct SpriteOrder {
+        public SpriteRenderer renderer;
+        public int initialOrder;
+    }
+    private SpriteOrder[] _spriteOrders;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Unity lifecycle
     // ─────────────────────────────────────────────────────────────────────────
@@ -57,6 +67,54 @@ public class PlayerEntity : MonoBehaviour
         {
             gameObject.AddComponent<BuffManager>();
         }
+
+        // Cache initial sorting orders
+        SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
+        _spriteOrders = new SpriteOrder[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            _spriteOrders[i] = new SpriteOrder { renderer = renderers[i], initialOrder = renderers[i].sortingOrder };
+        }
+    }
+
+    private int _wallOverlapCount = 0;
+
+    public void AddWallOverlap()
+    {
+        _wallOverlapCount++;
+        UpdateSortingOrder();
+    }
+
+    public void RemoveWallOverlap()
+    {
+        _wallOverlapCount = Mathf.Max(0, _wallOverlapCount - 1);
+        UpdateSortingOrder();
+    }
+
+    private void UpdateSortingOrder()
+    {
+        if (_spriteOrders == null) return;
+        
+        bool isBehindWall = _wallOverlapCount > 0;
+        int offset = isBehindWall ? -14 : 0; // If initially 15, goes down to 1 (behind wall which is 2)
+        
+        for (int i = 0; i < _spriteOrders.Length; i++)
+        {
+            if (_spriteOrders[i].renderer != null)
+            {
+                _spriteOrders[i].renderer.sortingOrder = _spriteOrders[i].initialOrder + offset;
+            }
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (!AllPlayers.Contains(this)) AllPlayers.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        AllPlayers.Remove(this);
     }
 
     private void OnDestroy()
@@ -259,6 +317,18 @@ public class PlayerEntity : MonoBehaviour
         currentHealth = Mathf.Max(1, maxHealth / 10);
         transform.position = pos;
         Debug.Log($"[PlayerEntity] Player respawned in world at {pos} with 10% HP.");
+        
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        if (syncHpCoroutine != null) StopCoroutine(syncHpCoroutine);
+        syncHpCoroutine = StartCoroutine(SyncHpRoutine());
+    }
+
+    public void DungeonRespawn(Vector3 pos)
+    {
+        currentHealth = maxHealth;
+        transform.position = pos;
+        Debug.Log($"[PlayerEntity] Player respawned in dungeon at {pos} with FULL HP.");
         
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 

@@ -23,6 +23,8 @@ namespace UI.Friend
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text friendsCountText;
         [SerializeField] private Button closeButton;
+        [Tooltip("PlayerProfilePanel/RightPanel/LogoutButton. Bỏ trống thì tự tìm theo tên.")]
+        [SerializeField] private Button logoutButton;
 
         [Header("Class Art")]
         [Tooltip("Cờ lớn bên ngoài panel (PlayerProfilePanel/ClassDeco).")]
@@ -736,6 +738,46 @@ namespace UI.Friend
                 headerExitBtn.onClick.RemoveListener(ClosePanel);
                 headerExitBtn.onClick.AddListener(ClosePanel);
             }
+
+            BindLogoutButton();
+        }
+
+        // LogoutButton nằm trong panel này (RightPanel/LogoutButton) nhưng onClick trong scene
+        // RỖNG và không script nào tham chiếu tới nó → bấm vào không có gì xảy ra. Bind bằng code
+        // để không phụ thuộc việc gán tay trong Inspector.
+        private void BindLogoutButton()
+        {
+            if (logoutButton == null)
+            {
+                logoutButton = transform.Find("RightPanel/LogoutButton")?.GetComponent<Button>();
+
+                if (logoutButton == null)
+                {
+                    var buttons = GetComponentsInChildren<Button>(true);
+                    for (var i = 0; i < buttons.Length; i++)
+                    {
+                        if (buttons[i] != null &&
+                            buttons[i].name.IndexOf("Logout", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            logoutButton = buttons[i];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (logoutButton == null)
+                return;
+
+            logoutButton.onClick.RemoveListener(OnLogoutClicked);
+            logoutButton.onClick.AddListener(OnLogoutClicked);
+        }
+
+        // Chỉ cho tài khoản đang đăng nhập: panel này cũng dùng để xem hồ sơ người chơi khác,
+        // ở đó nút Logout vô nghĩa (và dễ bấm nhầm).
+        private void OnLogoutClicked()
+        {
+            MysticJourney.Core.Services.SessionService.Logout();
         }
 
         public void ClosePanel()

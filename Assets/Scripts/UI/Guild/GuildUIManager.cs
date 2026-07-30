@@ -197,7 +197,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
-        private UIGuildDonatePopup oldDonatePopup; // Deprecated
+
         public UIGuildDonatePanel donatePanel; // The new UI panel
 
         private void OpenDonatePopup()
@@ -212,15 +212,6 @@ namespace MysticJourney.UI.Guild
                 donatePanel.Open(currentGuild.guildId, () => 
                 {
                     OpenGuildDetail(currentGuild.guildId); // Refresh after donate
-                });
-            }
-            else
-            {
-                // Fallback to old popup if the new panel isn't set up yet
-                if (oldDonatePopup == null) oldDonatePopup = UIGuildDonatePopup.CreateRuntime(mainGuildPanel.transform);
-                oldDonatePopup.Open(currentGuild.guildId, () => 
-                {
-                    OpenGuildDetail(currentGuild.guildId);
                 });
             }
         }
@@ -1009,20 +1000,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
-        public void Donate()
-        {
-            if (currentGuild == null) return;
 
-            GuildApi.Donate(currentGuild.guildId, "Gold", 10000, 
-                onSuccess: (result) => {
-                    Debug.Log($"Donate success! Gained {result.guildExpGained} EXP. New Level: {result.newGuildLevel}");
-                    // Refresh data
-                    OpenGuildDetail(currentGuild.guildId);
-                },
-                onError: (err) => {
-                    Debug.LogError("Donate failed: " + err.Message);
-                });
-        }
 
         public void LevelUp()
         {

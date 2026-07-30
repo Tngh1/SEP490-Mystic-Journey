@@ -22,11 +22,11 @@ namespace MysticJourney.Core.Services
         {
             get
             {
-                if (_instance == null)
+                if (_instance == null && Application.isPlaying)
                 {
                     var go = new GameObject("[AudioManager]");
                     _instance = go.AddComponent<AudioManager>();
-                    if (Application.isPlaying) DontDestroyOnLoad(go);
+                    DontDestroyOnLoad(go);
                 }
                 return _instance;
             }

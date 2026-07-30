@@ -92,15 +92,30 @@ public class MainQuestPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged += RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
         WorldRuntimeEvents.MapChanged += OnMapChanged;
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+        }
     }
 
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
+        
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+        }
 
         if (Instance == this)
             Instance = null;
+    }
+
+    private void OnQuestProgressChangedHandler(int questId)
+    {
+        RefreshWorldAndQuests();
     }
 
     public void OpenQuestPanel()
@@ -1074,6 +1089,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
     // Tracker và panel chi tiết dùng chung câu này để không nói hai điều khác nhau về cùng một quest.
     private static string AcceptPromptLine(PlayerQuestResponse quest)
     {
+        // Quest kế tiếp có thể ở map khác (claim 20 ở AutumnPumpkin → 21 ở FrozenMountain).
+        // Nói "Talk to Roselyn Aurora Queen" khi bà ở map khác là chỉ sai đường: việc cần làm
+        // trước là ra Thuyền/cổng để sang map đó — đúng thứ mũi tên đang chỉ vào.
+        if (QuestUtils.IsQuestOnDifferentMap(quest))
+            return $"Travel to {Safe(quest?.MapName, "the next area")}";
+
         return $"Talk to {Safe(quest?.QuestGiverName, "Quest Giver")}";
     }
 

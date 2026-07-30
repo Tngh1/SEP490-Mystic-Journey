@@ -391,6 +391,10 @@ public class NetworkPlayer : NetworkBehaviour
                     // Force death UI if they spawned dead, as OnChanged might not fire or fired early
                     hud.ShowDeathPopup();
                 }
+                else
+                {
+                    hud.HideDeathPopup();
+                }
             }
 
             var pEntityLocal = GetComponent<PlayerEntity>();
@@ -761,7 +765,7 @@ public class NetworkPlayer : NetworkBehaviour
         Debug.Log($"[NetworkPlayer] {PlayerName} reset for restart at {spawnPos}.");
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_WorldRespawn(Vector3 position)
     {
         if (!Object.HasStateAuthority) return;
@@ -772,6 +776,18 @@ public class NetworkPlayer : NetworkBehaviour
         IsReadyToRestart = false;
         TeleportTo(position);
         Debug.Log($"[NetworkPlayer] {PlayerName} respawned in world at {position} with 10% HP.");
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_DungeonRespawn(Vector3 position)
+    {
+        if (!Object.HasStateAuthority) return;
+        
+        CurrentHp = MaxHp; // Full HP
+        IsAlive = true;
+        IsReadyToRestart = false;
+        TeleportTo(position);
+        Debug.Log($"[NetworkPlayer] {PlayerName} respawned in dungeon at {position} with FULL HP.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
