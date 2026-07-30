@@ -10,8 +10,10 @@ public class IvyTreeInteractable : MonoBehaviour
     private const string CompletionMessage = "In the letter, she thanks you for bringing her remains back to her homeland and asks you to bury her beneath the ivy tree in her courtyard. In return, she reveals the cause of the ancient power leak and rewards you with the Mystic Key, which opens the castle on the abandoned island.";
 
     [Header("Quest Link")]
-    [Tooltip("Quest ID for Rest in Peace (e.g. 25).")]
-    [SerializeField] private int linkedQuestId = 24;
+    // Default trỏ tới quest "[Chapter 4] Lay Natalie to Rest" (AbandonedCastle,
+    // ObjectiveTarget = "Ivy Tree"). Không ghi số quest vào tooltip vì số lệch mỗi lần chèn quest.
+    [Tooltip("QuestId của nhiệm vụ an nghỉ Natalie. Scene sẽ override giá trị này.")]
+    [SerializeField] private int linkedQuestId = 30;
 
     [Tooltip("ObjectKey gửi lên API.")]
     [SerializeField] private string objectKey = "AbandonedCastle.IvyTree";

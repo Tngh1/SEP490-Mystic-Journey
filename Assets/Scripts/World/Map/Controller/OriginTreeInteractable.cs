@@ -8,8 +8,10 @@ using UnityEngine.Video;
 public class OriginTreeInteractable : MonoBehaviour
 {
     [Header("Quest Link")]
-    [Tooltip("Quest ID for healing the Origin Tree (e.g. 30).")]
-    [SerializeField] private int linkedQuestId = 29;
+    // Default trỏ tới quest "[Chapter 5] Heal the Origin Tree" (ElfForest,
+    // ObjectiveTarget = "Origin Tree"). Không ghi số quest vào tooltip vì số lệch mỗi lần chèn quest.
+    [Tooltip("QuestId của nhiệm vụ chữa lành Cây Khởi Nguyên. Scene sẽ override giá trị này.")]
+    [SerializeField] private int linkedQuestId = 35;
 
     [Tooltip("ObjectKey gửi lên API.")]
     [SerializeField] private string objectKey = "ElfForest.OriginTree";

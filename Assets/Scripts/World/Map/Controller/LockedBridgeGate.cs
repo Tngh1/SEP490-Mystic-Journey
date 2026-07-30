@@ -10,7 +10,7 @@ using UnityEngine;
 /// Gắn script này vào Cổng / Chướng ngại vật / Collider chặn trên Cầu (BridgeOldLong) ở map AbandonedCastle.
 /// 
 /// Cơ chế:
-///   - Yêu cầu người chơi hoàn thành nhiệm vụ Natalie (Quest 25 - Rest in Peace) để có chìa khóa Mystic Key (ItemId 33).
+///   - Yêu cầu người chơi hoàn thành nhiệm vụ mở đường ở AbandonedCastle (quest ID lấy từ scene) để có chìa khóa Mystic Key (ItemId 33).
 ///   - Nếu chưa mở khóa: Collider bật (chặn người chơi), bấm E hoặc va chạm sẽ hiện thông báo cần chìa khóa.
 ///   - Nếu đã mở khóa: Collider tự động tắt, cho phép người chơi đi qua cầu sang đảo hoang!
 /// </summary>
@@ -20,8 +20,11 @@ public class LockedBridgeGate : MonoBehaviour
     private const string GateUnlockedPrefsKey = "mj_abandonedcastle_bridge_unlocked";
 
     [Header("Gate Settings")]
-    [Tooltip("Quest ID yêu cầu hoàn thành để mở cầu (Quest 26 - Deserted Island).")]
-    [SerializeField] private int requiredQuestId = 25;
+    // Giá trị thật lấy từ override trong scene AbandonedCastle (đang là quest "Break the Skeleton
+    // Army"), KHÔNG phải default này. Không ghi số quest vào tooltip nữa: mỗi lần chèn quest mới là
+    // số lại lệch, và trước đây tooltip/comment/field đã nói 3 số khác nhau.
+    [Tooltip("Quest ID yêu cầu hoàn thành để mở cầu. Scene sẽ override giá trị này.")]
+    [SerializeField] private int requiredQuestId = 26;
 
     [Tooltip("Object key dùng cho tương tác cầu.")]
     [SerializeField] private string objectKey = "AbandonedCastle.LockedBridgeGate";

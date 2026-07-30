@@ -79,7 +79,7 @@ namespace MysticJourney.Screen.Login
 
             if (string.IsNullOrEmpty(emailOrUser) || string.IsNullOrEmpty(password))
             {
-                ShowErrorPopup("Vui lòng nhập Username/Email và mật khẩu.");
+                ShowErrorPopup("Please enter your Username/Email and password.");
                 return;
             }
 
@@ -135,7 +135,7 @@ namespace MysticJourney.Screen.Login
                     SetInteractable(true);
 
                     // Hiển thị lỗi lên Popup UI
-                    ShowErrorPopup(!string.IsNullOrEmpty(error.Message) ? error.Message : "Đăng nhập thất bại. Vui lòng thử lại!");
+                    ShowErrorPopup(!string.IsNullOrEmpty(error.Message) ? error.Message : "Login failed. Please try again.");
 
                     Debug.LogError("========== [LoginUIManager] LOGIN FAIL ==========");
                     Debug.LogError($"  StatusCode : {error.StatusCode}");
@@ -149,6 +149,9 @@ namespace MysticJourney.Screen.Login
 
         // ── Failed Popup Helpers ──────────────────────────────────
 
+        // Popup này hiện `message` NGUYÊN VĂN, không dịch. Nên mọi nguồn chảy vào đây phải là
+        // tiếng Anh: chuỗi hardcode ở file này, `ApiException.Message` do ApiClient tự tạo
+        // (SESSION_EXPIRED / PARSE_ERROR), và `message` trong envelope lỗi của BE.
         private void ShowErrorPopup(string message)
         {
             if (failedPopup == null || errorText == null) return;
