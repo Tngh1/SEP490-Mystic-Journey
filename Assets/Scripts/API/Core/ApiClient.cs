@@ -213,7 +213,9 @@ namespace MysticJourney.API.Core
                             {
                                 StatusCode = 401,
                                 ErrorCode = "SESSION_EXPIRED",
-                                Message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                                // Message đi thẳng ra popup UI (LoginUIManager.ShowErrorPopup hiện
+                                // error.Message nguyên văn) nên phải là tiếng Anh.
+                                Message = "Your session has expired. Please log in again."
                             });
                             yield break;
                         }
@@ -390,7 +392,7 @@ namespace MysticJourney.API.Core
                 {
                     StatusCode = request.responseCode,
                     ErrorCode = "PARSE_ERROR",
-                    Message = $"Không thể parse JSON sang {typeof(T).Name}: {ex.Message}",
+                    Message = $"Failed to parse JSON into {typeof(T).Name}: {ex.Message}",
                     RawBody = rawBody
                 });
                 return; // Stop execution if parsing fails

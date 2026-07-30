@@ -276,6 +276,13 @@ public class QuestManager : MonoBehaviour
         state.version++;
         state.isDirty = true;
 
+        // Đẩy luôn sang _responses: UI (tracker + quest panel) render từ GetMainQuests() tức
+        // _responses, KHÔNG phải _cache. Nếu chỉ ghi _cache thì progress chỉ hiện sau khi
+        // BatchSyncLoop round-trip xong -> tracker luôn chậm ĐÚNG MỘT MẠNG, và khi 2 mạng cùng
+        // rơi vào 1 tick 1s thì lần repaint kế tiếp nhảy +2 (nhìn như "giết 1 mà tính 2", thực ra
+        // đếm vẫn đúng, chỉ là hiển thị bị trễ rồi bù một cục).
+        MirrorProgressToResponse(questId, state.progress, targetAmount);
+
         // KHÔNG complete/claim tại đây. Progress này mới ở local — server chưa nhận (BatchSyncLoop
         // sync sau). Nếu gọi CompleteQuest ngay, server thấy Progress < target → 400, và tệ hơn là
         // giữ lock _completing khiến cú CompleteQuest của batch sync bị skip → quest kẹt InProgress
@@ -285,6 +292,15 @@ public class QuestManager : MonoBehaviour
         // Collect là ngoại lệ: hoàn thành qua turn-in ở NPC, không tính từ world progress.
         _pendingBatch[questId] = state.progress;
         OnQuestProgressChanged?.Invoke(questId);
+    }
+
+    // Giữ _responses (nguồn dữ liệu của UI) khớp với progress local trong _cache.
+    // Chỉ đi LÊN: rollback batch và server response đi qua UpsertQuestState, không qua đây.
+    private void MirrorProgressToResponse(int questId, int progress, int targetAmount)
+    {
+        if (!_responses.TryGetValue(questId, out var response) || response == null) return;
+        response.TargetAmount = targetAmount;
+        if (progress > response.Progress) response.Progress = progress;
     }
 
     // silent=true: claim nền lúc load (không popup, không LoadMyQuests). Dùng khi dọn các quest
@@ -428,6 +444,12 @@ public class QuestManager : MonoBehaviour
                     foreach (var r in responses)
                         if (r != null) UpsertQuestState(r);
 
+                    // Server vừa xác nhận -> repaint. UpsertQuestState chỉ ghi dictionary, không tự
+                    // bắn event, nên thiếu dòng này thì mọi hiệu chỉnh từ server (kể cả trường hợp
+                    // server kẹp progress thấp hơn client) chỉ hiện ra ở lần AddProgress kế tiếp.
+                    if (responses != null && responses.Count > 0)
+                        OnQuestProgressChanged?.Invoke(-1);
+
                     // Auto-complete Collect/Defeat quests that reached target —
                     // player should not need to press Complete manually.
                     foreach (var r in responses)
@@ -483,6 +505,11 @@ public class QuestManager : MonoBehaviour
                         if (_snapshot.TryGetValue(key, out var snap))
                         {
                             _cache[key] = snap;
+                            // Rollback phải kéo _responses về theo, nếu không UI vẫn giữ con số lạc
+                            // quan mà server đã từ chối. Đây là đường DUY NHẤT progress đi xuống,
+                            // nên set thẳng chứ không dùng MirrorProgressToResponse (hàm đó chỉ tăng).
+                            if (_responses.TryGetValue(key, out var resp) && resp != null)
+                                resp.Progress = snap.progress;
                             _snapshot.Remove(key);
                         }
                     }
