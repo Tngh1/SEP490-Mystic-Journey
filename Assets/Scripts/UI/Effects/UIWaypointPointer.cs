@@ -9,6 +9,12 @@ namespace MysticJourney.UI.Effects
         public TextMesh distanceLabel;
         public float radius = 2.5f;
 
+        // Tới gần hơn mức này thì ẩn mũi tên — người chơi đã thấy mục tiêu bằng mắt.
+        private const float HideDistance = 1.5f;
+        // Khoảng chừa trước mục tiêu: mũi tên không bao giờ tiến sát hơn mức này, để không
+        // đè lên NPC/vật thể đang được chỉ.
+        private const float TargetClearance = 1.2f;
+
         private Transform target;
         private Transform player;
 
@@ -71,7 +77,7 @@ namespace MysticJourney.UI.Effects
 
             float dist = Vector2.Distance(player.position, target.position);
 
-            if (dist < 1.5f)
+            if (dist < HideDistance)
             {
                 if (gameObject.activeSelf) gameObject.SetActive(false);
                 return;
@@ -85,7 +91,13 @@ namespace MysticJourney.UI.Effects
             // Đặt mũi tên quanh người chơi theo khoảng cách radius, cộng bounce dao động
             // dọc theo hướng chỉ để mũi tên "nảy" thu hút mắt.
             float bounce = Mathf.Sin(Time.time * 6f) * 0.2f;
-            transform.position = player.position + worldDir * (radius + bounce);
+
+            // Kẹp theo khoảng cách tới mục tiêu: mũi tên luôn đứng ở giữa đường, KHÔNG được
+            // chạm tới mục tiêu. Trước đây luôn đặt ở đúng radius (2.5) quanh người chơi, nên khi
+            // mục tiêu cách ~2.5-3.5m thì mũi tên rơi trúng đầu NPC/vật thể và che mất nó
+            // (sortingOrder 9999 vẽ trên mọi thứ). Chừa TargetClearance để còn thấy mục tiêu.
+            float arrowDist = Mathf.Min(radius + bounce, dist - TargetClearance);
+            transform.position = player.position + worldDir * arrowDist;
 
             // Xoay mũi tên hướng đến mục tiêu (sprite mặc định hướng lên - up)
             float angle = Mathf.Atan2(worldDir.y, worldDir.x) * Mathf.Rad2Deg - 90f;

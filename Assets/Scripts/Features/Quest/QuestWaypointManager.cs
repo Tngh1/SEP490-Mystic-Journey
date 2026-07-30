@@ -140,22 +140,28 @@ namespace MysticJourney.Features.Quest
 
             if (active == null) return null;
 
-            if (MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "Claimed"))
+            playerTransform = GetPlayerTransform();
+            return ResolveTarget(active);
+        }
+
+        // Nguồn duy nhất quyết định mũi tên chỉ vào đâu — RefreshWaypoint và
+        // GetTargetForActiveQuest phải luôn trả cùng một target.
+        private Transform ResolveTarget(PlayerQuestResponse active)
+        {
+            if (QuestUtils.IsStatus(active, "Claimed"))
+                return FindMapExit(active.MapName);
+
+            // Quest tới lượt nằm ở map khác (vd claim xong quest 20 ở AutumnPumpkin thì quest 21
+            // ở FrozenMountain): phải chỉ đường RA khỏi map trước. KHÔNG gọi FindTargetForQuest
+            // ở đây — fallback 4a của nó bám vào cổng Dungeon có sẵn trên map hiện tại
+            // (Abandoned Mines ở AutumnPumpkin) nên nó luôn trả về non-null và mũi tên chỉ vào
+            // dungeon thay vì Boat → người chơi không biết đường sang map kế.
+            if (QuestUtils.IsQuestOnDifferentMap(active))
             {
-                // Chỉ dùng boat trên AutumnPumpkin; FrozenMountain và các map khác dùng portal trực tiếp.
-                string currentSceneGet = WorldState.CurrentMapName ?? string.Empty;
-                bool isOnBoatMapGet = currentSceneGet.IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                if (isOnBoatMapGet)
-                {
-                    var boat = FindBoatTransform();
-                    if (boat != null) return boat;
-                }
-                var portal = FindAnyMapPortal();
-                if (portal != null) return portal;
-                return null;
+                Debug.Log($"[QuestWaypointManager] Quest {active.QuestId} belongs to map '{active.MapName}' but player is on '{WorldState.CurrentMapName}'. Pointing to map exit.");
+                return FindMapExit(active.MapName);
             }
 
-            playerTransform = GetPlayerTransform();
             return FindTargetForQuest(active);
         }
 
@@ -178,39 +184,7 @@ namespace MysticJourney.Features.Quest
             }
 
             playerTransform = GetPlayerTransform();
-            Transform target = null;
-
-            if (QuestUtils.IsStatus(active, "Claimed"))
-            {
-                // Boat chỉ là exit hợp lệ khi player đang ở AutumnPumpkin (map có thuyền đi Frozen).
-                // Ở FrozenMountain và các map khác, BoatA là thuyền đến (arrival) — không phải exit.
-                // Chỉ dùng boat trên AutumnPumpkin; map khác dùng portal/gate trực tiếp.
-                string currentSceneClaimed = WorldState.CurrentMapName ?? string.Empty;
-                bool isOnBoatMap = currentSceneClaimed.IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                if (isOnBoatMap)
-                    target = FindBoatTransform() ?? FindAnyMapPortal();
-                else
-                    target = FindAnyMapPortal();
-            }
-            else
-            {
-                target = FindTargetForQuest(active);
-
-                // Nếu target không tìm được và quest thuộc map khác (player cần di chuyển sang map mới),
-                // chỉ đến portal/gate gần nhất để dẫn đường thay vì để mũi tên biến mất.
-                if (target == null && !string.IsNullOrWhiteSpace(active.MapName))
-                {
-                    string currentScene = WorldState.CurrentMapName ?? string.Empty;
-                    bool isQuestOnDifferentMap = currentScene.Length > 0 &&
-                        active.MapName.IndexOf(currentScene, System.StringComparison.OrdinalIgnoreCase) < 0 &&
-                        currentScene.IndexOf(active.MapName, System.StringComparison.OrdinalIgnoreCase) < 0;
-                    if (isQuestOnDifferentMap)
-                    {
-                        Debug.Log($"[QuestWaypointManager] Quest {active.QuestId} belongs to map '{active.MapName}' but player is on '{currentScene}'. Pointing to portal.");
-                        target = FindPortalToMap(active.MapName) ?? FindAnyMapPortal();
-                    }
-                }
-            }
+            Transform target = ResolveTarget(active);
 
             if (target != null && playerTransform != null)
             {
@@ -491,49 +465,11 @@ namespace MysticJourney.Features.Quest
                 return null;
             }
 
-            // 0a. Xử lý đặc biệt cho Quest 16 (Quest cuối map Autumn / đi thuyền sang FrozenMountain):
-            // CHỈ dẫn ra Thuyền SAU KHI lữ khách đã nói chuyện xong với Arthur (Completed/Claimed hoặc Progress >= 1)
-            if (quest.QuestId == 16)
-            {
-                bool isFinishedWithArthur = QuestUtils.IsStatus(quest, "Completed") ||
-                                            QuestUtils.IsStatus(quest, "Claimed") ||
-                                            quest.Progress >= Mathf.Max(1, quest.TargetAmount);
-                if (isFinishedWithArthur)
-                {
-                    var boat = FindBoatTransform();
-                    if (boat != null) return boat;
-                }
-            }
-
-            // 0b. Xử lý đặc biệt cho Quest 21 (Quest cuối map FrozenMountain — đánh GolemBoss):
-            // Sau khi GolemBoss bị giết (Completed/Claimed), chỉ đến portal/gate để thoát FrozenMountain.
-            if (quest.QuestId == 21)
-            {
-                bool isFinishedWithGolem = QuestUtils.IsStatus(quest, "Completed") ||
-                                           QuestUtils.IsStatus(quest, "Claimed") ||
-                                           quest.Progress >= Mathf.Max(1, quest.TargetAmount);
-                if (isFinishedWithGolem)
-                {
-                    var portal = FindAnyMapPortal();
-                    if (portal != null) return portal;
-                }
-            }
-
-            // 0c. Quest 27 (Ask for the Way Home — quest cuối map AbandonedCastle):
-            // khi Completed/Claimed → Elf Guard đã mở portal, chỉ đến portal về ElfForest.
-            if (quest.QuestId == 27)
-            {
-                bool isFinishedWithElfGuard = QuestUtils.IsStatus(quest, "Completed") ||
-                                              QuestUtils.IsStatus(quest, "Claimed") ||
-                                              quest.Progress >= Mathf.Max(1, quest.TargetAmount);
-                if (isFinishedWithElfGuard)
-                {
-                    // Elf Guard đã mở portal về ElfForest — chỉ đến portal đó.
-                    var elfPortal = FindPortalToMap("ElfForest") ?? FindAnyMapPortal();
-                    if (elfPortal != null) return elfPortal;
-                }
-            }
-
+            // KHÔNG hardcode "quest cuối map" theo QuestId ở đây. QuestId bị đánh số lại mỗi lần
+            // chèn main quest mới, và 3 khối cũ (16/21/27) đã trỏ sai hẳn: quest 16 giờ là
+            // "Trial II: Haunted Quarter" giữa chương, nên vừa giết đủ 10 con là mũi tên bắn ra
+            // Thuyền thay vì quay về Arthur. Việc "hết việc ở map này thì đi map khác" đã do
+            // ResolveTarget lo: nó so MapName của quest tới lượt với map hiện tại rồi chỉ ra exit.
             bool isTalkQuest = string.Equals(objType, "Talk", System.StringComparison.OrdinalIgnoreCase);
 
             // 1. Nhiệm vụ chưa nhận (NotStarted): luôn chỉ đường tới NPC giao quest, bất kể ObjectiveType —
@@ -757,13 +693,35 @@ namespace MysticJourney.Features.Quest
             return null;
         }
 
+        // NormalizeMapName / IsSameMap / IsQuestOnDifferentMap nằm ở QuestUtils (dùng chung với
+        // MainQuestPanelRuntime để tracker và mũi tên luôn nói cùng một chuyện).
+
+        // Đường RA khỏi map hiện tại để đi tới destinationMap. Trên AutumnPumpkin, exit là chiếc
+        // Boat — BoatVideoTeleporter kế thừa MapTeleportPortal nên FindPortalToMap tự tìm ra nó.
+        private Transform FindMapExit(string destinationMapName)
+        {
+            var portal = FindPortalToMap(destinationMapName);
+            if (portal != null) return portal;
+
+            // Boat chỉ là exit hợp lệ khi player đang ở AutumnPumpkin (map có thuyền đi Frozen).
+            // Ở FrozenMountain và các map khác, BoatA là thuyền đến (arrival) — không phải exit.
+            if ((WorldState.CurrentMapName ?? string.Empty).IndexOf("Autumn", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                var boat = FindBoatTransform();
+                if (boat != null) return boat;
+            }
+
+            return FindAnyMapPortal();
+        }
+
         private Transform FindPortalToMap(string mapName)
         {
             if (string.IsNullOrWhiteSpace(mapName)) return null;
             var portals = FindObjectsOfType<MapTeleportPortal>();
             foreach (var p in portals)
             {
-                if (p.targetMapData != null && p.targetMapData.mapName.IndexOf(mapName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (p != null && p.gameObject.activeInHierarchy &&
+                    p.targetMapData != null && QuestUtils.IsSameMap(p.targetMapData.mapName, mapName))
                     return p.transform;
             }
             return null;

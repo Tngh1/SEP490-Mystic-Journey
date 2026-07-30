@@ -63,6 +63,9 @@ public class InventoryManager : MonoBehaviour
     [SerializeField] private Sprite archerIdleSprite;
     [SerializeField] private Sprite mageIdleSprite;
 
+    [Header("Battle Power (tuỳ chọn)")]
+    [SerializeField] private TMP_Text battlePowerText;
+
     [Header("State")]
     [SerializeField] private GameObject loadingIndicator;
     [SerializeField] private TMP_Text errorText;
@@ -665,6 +668,12 @@ public class InventoryManager : MonoBehaviour
         if (errorText == null)
             errorText = FindText("ErrorText", "MessageText", "StatusText");
 
+        // Tên object trong scene có DẤU CÁCH ở cuối ("BattlePowerText ") — Unity cho phép và
+        // FindObject so sánh chuỗi chính xác nên phải liệt kê cả 2 biến thể, nếu không sẽ không
+        // bao giờ tìm thấy và Lực chiến mãi trống.
+        if (battlePowerText == null)
+            battlePowerText = FindText("BattlePowerText ", "BattlePowerText", "BattlePower", "PowerText");
+
         // FIX: Remove broken TMP_Dropdown components that cause "template not assigned" errors when clicked
         // (This happens if a Button like SkinTab or SortBtn accidentally has a TMP_Dropdown component added to it)
         var allDropdowns = GetComponentsInChildren<TMP_Dropdown>(true);
@@ -848,23 +857,64 @@ public class InventoryManager : MonoBehaviour
 
     private TMP_Text FindText(params string[] names)
     {
-        var obj = FindObject(names);
-        return obj == null ? null : obj.GetComponent<TMP_Text>();
+        // FindComponent, KHÔNG phải FindObject: FindObject quét theo thứ tự hierarchy (children
+        // ngoài, names trong) nên object CHA khớp tên trước con. Ví dụ "BattlePower" (container,
+        // không có TMP) khớp trước con "BattlePowerText " → GetComponent<TMP_Text>() trả null và
+        // lực chiến không bao giờ được ghi. Bản này đòi object phải THỰC SỰ có TMP_Text.
+        return FindComponent<TMP_Text>(names);
     }
 
-    private GameObject FindObject(params string[] names)
+    // Tìm theo (tên, loại component): duyệt names theo ĐÚNG thứ tự ưu tiên đã truyền vào, và chỉ
+    // nhận object nào có sẵn component T. Tránh bẫy "cha cùng tên nhưng không mang component".
+    private T FindComponent<T>(params string[] names) where T : Component
+    {
+        var roots = CollectSearchRoots();
+
+        for (var j = 0; j < names.Length; j++)
+        {
+            foreach (var root in roots)
+            {
+                if (root == null) continue;
+                var children = root.GetComponentsInChildren<Transform>(true);
+                for (var i = 0; i < children.Length; i++)
+                {
+                    if (children[i] == null || children[i].name != names[j]) continue;
+                    var comp = children[i].GetComponent<T>();
+                    if (comp != null) return comp;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // Danh sách gốc để quét tìm object theo tên. Dùng chung cho FindObject và FindComponent.
+    private List<Transform> CollectSearchRoots()
     {
         List<Transform> roots = new List<Transform>();
         roots.Add(transform);
+        // Gốc InventoryPanel: script này nằm trên GameObject "Managers" NGOÀI panel, còn
+        // uiInventory nằm ở InventoryPanel > RightSection > InventoryGridArea. Tìm từ transform
+        // hoặc từ uiInventory chỉ quét XUỐNG nên không bao giờ với tới LeftSection (avatar, ô
+        // trang bị, lực chiến) ở nhánh bên cạnh. Phải thêm gốc panel để quét được cả 2 nhánh.
+        var panelRoot = ResolvePanelRoot();
+        if (panelRoot != null) roots.Add(panelRoot);
         if (itemFilterBar != null) roots.Add(itemFilterBar.transform);
         if (skinFilterBar != null) roots.Add(skinFilterBar.transform);
         if (uiInventory != null) roots.Add(uiInventory.transform);
         if (uiSkinInventory != null) roots.Add(uiSkinInventory.transform);
         if (itemDetailPopup != null) roots.Add(itemDetailPopup.transform);
         if (skinDetailPopup != null) roots.Add(skinDetailPopup.transform);
+        return roots;
+    }
+
+    private GameObject FindObject(params string[] names)
+    {
+        var roots = CollectSearchRoots();
 
         foreach (var root in roots)
         {
+            if (root == null) continue;
             var children = root.GetComponentsInChildren<Transform>(true);
             for (var i = 0; i < children.Length; i++)
             {
@@ -884,6 +934,35 @@ public class InventoryManager : MonoBehaviour
         var obj = FindObject(names);
         return obj == null ? null : obj.GetComponent<TMP_Dropdown>();
     }
+
+    // Gốc "InventoryPanel" trong scene. Leo lên từ uiInventory (nằm trong panel) để không phụ
+    // thuộc vào việc script này được gắn ở đâu; fallback quét cả scene (kể cả object đang tắt —
+    // InventoryPanel mặc định m_IsActive=0).
+    private Transform _panelRootCache;
+    private Transform ResolvePanelRoot()
+    {
+        if (_panelRootCache != null) return _panelRootCache;
+
+        var probe = uiInventory != null ? uiInventory.transform
+                  : uiSkinInventory != null ? uiSkinInventory.transform
+                  : null;
+
+        for (var t = probe; t != null; t = t.parent)
+        {
+            if (t.name == "InventoryPanel") { _panelRootCache = t; return t; }
+        }
+
+        foreach (var t in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (t != null && t.name == "InventoryPanel" && t.gameObject.scene.IsValid())
+            {
+                _panelRootCache = t;
+                return t;
+            }
+        }
+
+        return null;
+    }
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -893,6 +972,9 @@ public class InventoryManager : MonoBehaviour
         if (totalItemsText) totalItemsText.text = $"Items: {_summary.TotalItems}";
         if (totalSkinsText) totalSkinsText.text = $"Skins: {_summary.TotalSkins}";
         if (bagCapacityText) bagCapacityText.text = $"Bag: {(_summary.BagItems?.Length ?? 0)}/{_summary.BagCapacity}";
+
+        // Icon trang bị đang mặc phụ thuộc _summary.EquippedItems nên refresh cùng lúc với summary.
+        UpdateEquipmentSlots();
     }
 
     private void SetLoading(bool isLoading)
@@ -950,20 +1032,22 @@ public class InventoryManager : MonoBehaviour
         var row = statsPanel.Find(rowName);
         if (row != null)
         {
-            var labelText = row.Find("Text (TMP)")?.GetComponent<TMP_Text>();
+            // Nhãn là TUỲ CHỌN: các row trong scene chỉ có con "icon" + "ValueText" (tên chỉ số
+            // nằm trong sprite icon), nên không tìm thấy "Text (TMP)" là bình thường — trước đây
+            // chỗ này log warning mỗi lần refresh cho cả 8 row.
+            var labelText = row.Find("Text (TMP)")?.GetComponent<TMP_Text>()
+                         ?? row.Find("LabelText")?.GetComponent<TMP_Text>();
             var valueText = row.Find("ValueText")?.GetComponent<TMP_Text>();
 
-            if (labelText != null) 
+            if (labelText != null)
                 labelText.text = label;
-            else 
-                Debug.LogWarning($"[InventoryManager] Text (TMP) not found in {rowName}");
 
-            if (valueText != null) 
+            if (valueText != null)
             {
                 valueText.enableWordWrapping = false;
                 valueText.text = value;
             }
-            else 
+            else
                 Debug.LogWarning($"[InventoryManager] ValueText not found or missing TMP_Text component in {rowName}");
         }
         else
@@ -974,6 +1058,13 @@ public class InventoryManager : MonoBehaviour
 
     private void UpdatePlayerStatsUI(PlayerStatsResponse stats)
     {
+        if (stats == null) return;
+
+        // Lực chiến ghi TRƯỚC và nằm NGOÀI cửa ải StatsPanel: nó là object riêng
+        // (LeftSection > BattlePower), không nằm trong StatsPanel. Nếu để ở cuối hàm thì mỗi khi
+        // không tìm thấy StatsPanel, hàm return sớm và lực chiến cũng mất theo dù chẳng liên quan.
+        UpdateBattlePower(stats);
+
         var statsPanel = FindStatsPanel();
         if (statsPanel == null)
         {
@@ -993,16 +1084,151 @@ public class InventoryManager : MonoBehaviour
 
     private void UpdatePlayerAvatar()
     {
+        if (playerAvatarImage == null)
+            playerAvatarImage = FindImage("Character", "PlayerAvatar", "AvatarImage");
         if (playerAvatarImage == null) return;
+
         playerAvatarImage.preserveAspect = true;
 
-        string pClass = MysticJourney.Core.Services.GameStateService.Instance.PlayerClass;
-        if (pClass == "Knight" && knightIdleSprite != null)
-            playerAvatarImage.sprite = knightIdleSprite;
-        else if (pClass == "Archer" && archerIdleSprite != null)
-            playerAvatarImage.sprite = archerIdleSprite;
-        else if (pClass == "Mage" && mageIdleSprite != null)
-            playerAvatarImage.sprite = mageIdleSprite;
+        // GameObject "Character" trong scene đang tắt (m_IsActive=0) và không có sprite, nên dù
+        // reference đã gán thì hình nhân vật vẫn không bao giờ hiện. Bật lại ở đây sau khi đã
+        // chọn được sprite.
+        string pClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
+
+        // So sánh KHÔNG phân biệt hoa/thường + Trim: PlayerClass đi từ BE (profile.Class) nên có
+        // thể là "knight"/"Knight " — so bằng == sẽ trượt hết và avatar trống.
+        var sprite = ResolveClassSprite(pClass);
+        if (sprite != null)
+            playerAvatarImage.sprite = sprite;
+
+        bool hasSprite = playerAvatarImage.sprite != null;
+        playerAvatarImage.enabled = hasSprite;
+        if (hasSprite && !playerAvatarImage.gameObject.activeSelf)
+            playerAvatarImage.gameObject.SetActive(true);
+
+        if (!hasSprite)
+            Debug.LogWarning($"[InventoryManager] No avatar sprite for class '{pClass}'. Assign knight/archer/mage idle sprites in the Inspector.");
+    }
+
+    private Sprite ResolveClassSprite(string playerClass)
+    {
+        var c = (playerClass ?? string.Empty).Trim();
+        if (c.Equals("Knight", System.StringComparison.OrdinalIgnoreCase)) return knightIdleSprite;
+        if (c.Equals("Archer", System.StringComparison.OrdinalIgnoreCase)) return archerIdleSprite;
+        if (c.Equals("Mage", System.StringComparison.OrdinalIgnoreCase)) return mageIdleSprite;
+        // Class lạ/chưa set: dùng Knight làm mặc định thay vì để trống hẳn.
+        return knightIdleSprite;
+    }
+
+    // ── Ô trang bị (CharacterPreviewArea > EquipSlots) ───────────────────────────
+    // Mỗi ô có 1 Image nền (chính nó) + 1 con tên "Image" để vẽ icon món đang mặc.
+    // Không có code nào chạm tới khu này trước đây nên trang bị đang mặc không hiện gì.
+    private static readonly (string slotObject, string[] slotKeys)[] EquipSlotMap =
+    {
+        ("WeaponSlot",    new[] { "Weapon" }),
+        ("HelmetSlot",    new[] { "Helmet" }),
+        ("ArmorSlot",     new[] { "Armor" }),
+        ("GlovesSlot",    new[] { "Gloves" }),
+        ("BootsSlot",     new[] { "Boots" }),
+        ("PantsSlot",     new[] { "Pants", "Legs" }),
+        ("ShieldSlot",    new[] { "Shield", "OffHand" }),
+        ("AccessorySlot", new[] { "Accessory", "Ring", "Necklace" }),
+    };
+
+    private void UpdateEquipmentSlots()
+    {
+        var equipped = _summary?.EquippedItems;
+
+        foreach (var (slotObject, slotKeys) in EquipSlotMap)
+        {
+            var iconImage = FindEquipSlotIcon(slotObject);
+            if (iconImage == null)
+                continue;
+
+            var item = FindEquippedForSlot(equipped, slotKeys);
+            if (item == null)
+            {
+                // Ô rỗng: ẩn icon để lộ nền ô, KHÔNG tắt cả ô (nền phải luôn thấy).
+                iconImage.sprite = null;
+                iconImage.enabled = false;
+                continue;
+            }
+
+            var icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
+            iconImage.sprite = icon;
+            iconImage.enabled = icon != null;
+            iconImage.preserveAspect = true;
+        }
+    }
+
+    private Image FindEquipSlotIcon(string slotObjectName)
+    {
+        var slot = FindObject(slotObjectName);
+        if (slot == null) return null;
+
+        // Con tên "Image" là lớp vẽ icon; nếu prefab không có thì dùng luôn Image của ô.
+        var child = slot.transform.Find("Image");
+        var image = child != null ? child.GetComponent<Image>() : null;
+        return image != null ? image : slot.GetComponent<Image>();
+    }
+
+    private static InventoryItemResponse FindEquippedForSlot(InventoryItemResponse[] equipped, string[] slotKeys)
+    {
+        if (equipped == null) return null;
+
+        foreach (var item in equipped)
+        {
+            if (item == null || !item.IsEquipped) continue;
+
+            // Ưu tiên EquippedSlot/ItemSlot (BE Item.Slot) rồi mới tới ItemType — Ring/Necklace
+            // có ItemType riêng nhưng cùng dồn vào ô Accessory.
+            foreach (var key in slotKeys)
+            {
+                if (Matches(item.EquippedSlot, key) || Matches(item.ItemSlot, key) || Matches(item.ItemType, key))
+                    return item;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool Matches(string value, string key)
+    {
+        return !string.IsNullOrWhiteSpace(value) &&
+               value.Trim().Equals(key, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Lực chiến ────────────────────────────────────────────────────────────────
+    // BE chưa có endpoint/field lực chiến (FriendDTO.Power chỉ là Level*100 tạm), nên tính ở
+    // client từ đúng bộ stats mà panel đã tải. Đổi công thức thì sửa một chỗ này.
+    private void UpdateBattlePower(PlayerStatsResponse stats)
+    {
+        if (battlePowerText == null)
+            battlePowerText = FindText("BattlePowerText ", "BattlePowerText", "BattlePower", "PowerText");
+        if (battlePowerText == null || stats == null) return;
+
+        battlePowerText.text = CalculateBattlePower(stats).ToString("N0");
+    }
+
+    // ponytail: công thức tuyến tính đơn giản (ATK nặng nhất, HP nhẹ nhất) — đủ để so sánh
+    // tương đối giữa các bộ trang bị. Nâng cấp: chuyển sang BE tính và trả về cùng PlayerStats
+    // để client/web/mobile hiện cùng một số.
+    private static int CalculateBattlePower(PlayerStatsResponse s)
+    {
+        float power = s.Atk * 4f
+                    + s.Def * 3f
+                    + s.MaxHp * 0.5f
+                    + s.CritRate * 2f
+                    + s.CritDamage * 1f
+                    + s.DamageBonus * 2f;
+        return Mathf.Max(0, Mathf.RoundToInt(power));
+    }
+
+    private Image FindImage(params string[] names)
+    {
+        // FindComponent: cùng lý do như FindText — object cha có thể trùng tên nhưng không mang
+        // Image, khiến GetComponent<Image>() trả null dù con đúng vẫn tồn tại.
+        return FindComponent<Image>(names);
     }
 
     private static bool ShouldShowInventoryItem(InventoryItemResponse item)

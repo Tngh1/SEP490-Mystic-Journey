@@ -74,6 +74,33 @@ namespace MysticJourney.Core.Utilities
             return source?.FirstOrDefault(q => q != null && q.QuestId == target.QuestId);
         }
 
+        // Tên map tồn tại ở 2 định dạng: BE Quest.MapName / WorldState.CurrentMapName là tên scene
+        // liền ("FrozenMountain"), còn MapData.mapName có dấu cách ("Frozen Mountain"). So thô luôn
+        // trượt, nên bỏ dấu cách/gạch trước khi so.
+        public static string NormalizeMapName(string name)
+        {
+            return string.IsNullOrWhiteSpace(name)
+                ? string.Empty
+                : name.Replace(" ", string.Empty).Replace("_", string.Empty).Replace("-", string.Empty);
+        }
+
+        public static bool IsSameMap(string a, string b)
+        {
+            string na = NormalizeMapName(a), nb = NormalizeMapName(b);
+            if (na.Length == 0 || nb.Length == 0) return false;
+            return na.IndexOf(nb, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   nb.IndexOf(na, System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        // true nếu quest thuộc map KHÁC map người chơi đang đứng (phải đi sang map khác mới làm được).
+        public static bool IsQuestOnDifferentMap(PlayerQuestResponse quest)
+        {
+            if (quest == null || string.IsNullOrWhiteSpace(quest.MapName)) return false;
+            string currentMap = WorldState.CurrentMapName ?? string.Empty;
+            if (currentMap.Length == 0) return false;
+            return !IsSameMap(quest.MapName, currentMap);
+        }
+
         public static bool IsMainQuest(PlayerQuestResponse quest)
         {
             if (quest == null) return false;

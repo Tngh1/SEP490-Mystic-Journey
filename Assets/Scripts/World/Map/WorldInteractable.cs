@@ -349,6 +349,21 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
+            // Thuyền (BoatVideoTeleporter): ủy quyền SỚM, trước nhánh respawner bên dưới.
+            // Boat được tag "QuestItem" trong scene nên WorldSceneInteractableBootstrap
+            // .ConfigureTaggedQuestItems tự gắn WorldRespawnable cho nó → nhánh
+            // `respawner != null` chạy trước và ConsumeAndRespawn() tắt hết Renderer rồi
+            // return, nên thuyền BIẾN MẤT mà InteractWithBoat() (video + teleport) không bao
+            // giờ được gọi. Thuyền tự quản lý vòng đời của nó (ẩn player, chiếu video, đổi
+            // scene) nên không được để respawner/collider logic chạm vào.
+            var boatTeleporter = GetComponent<BoatVideoTeleporter>();
+            if (boatTeleporter != null)
+            {
+                boatTeleporter.InteractWithBoat();
+                WorldInteractionPromptRuntime.Hide();
+                return;
+            }
+
             // Vật phẩm "điều tra" (xác, hộp sọ): PHẢI ở lại hiện trường sau khi tương tác.
             // WorldSceneInteractableBootstrap tự gắn WorldRespawnable cho mọi object tag
             // "QuestItem", và WorldRespawnable tắt toàn bộ Renderer 30s -> "xác bị biến mất".
@@ -393,9 +408,6 @@ public class WorldInteractable : MonoBehaviour
                 else
                 {
                     Debug.Log($"[WorldInteractable] Not Collect/Gather. Disabling colliders on {gameObject.name} instead of hiding.");
-                    
-                    var boat = GetComponent<BoatVideoTeleporter>();
-                    if (boat != null) boat.InteractWithBoat();
 
                     var col = GetComponent<UnityEngine.Collider>();
                     if (col != null) col.enabled = false;
