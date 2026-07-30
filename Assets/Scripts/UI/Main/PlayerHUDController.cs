@@ -1178,7 +1178,12 @@ public class PlayerHUDController : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[PlayerHUDController] NetworkPlayer.Local is null, cannot respawn.");
+            Debug.Log("[PlayerHUDController] Single-player restart.");
+            HideDeathPopup();
+            if (DungeonManager.Instance != null)
+            {
+                DungeonManager.Instance.RestartDungeon();
+            }
         }
     }
 
@@ -1190,14 +1195,7 @@ public class PlayerHUDController : MonoBehaviour
         Debug.Log("[PlayerHUDController] OnQuitClicked - leaving dungeon...");
 
         // Hide death popup
-        if (deathPopupPanel != null)
-        {
-            deathPopupPanel.SetActive(false);
-        }
-        if (_deathRedOverlay != null)
-        {
-            _deathRedOverlay.SetActive(false);
-        }
+        HideDeathPopup();
 
         // Disconnect and return to world
         var photon = PhotonManager.Instance;
@@ -1209,6 +1207,10 @@ public class PlayerHUDController : MonoBehaviour
         // Return to previous map via DungeonManager if in dungeon
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
         {
+            if (PlayerEntity.Instance != null && PlayerEntity.Instance.CurrentHealth <= 0)
+            {
+                PlayerEntity.Instance.WorldRespawn(WorldState.LastPosition);
+            }
             DungeonManager.Instance.ReturnToWorldMap();
         }
     }
