@@ -77,23 +77,34 @@ public class HealBossSkill : MonoBehaviour
     {
         // Ưu tiên lấy từ Parent nếu Prefab được Instantiate làm con của Boss
         EnemyEntity parentBoss = GetComponentInParent<EnemyEntity>();
-        if (parentBoss != null) return parentBoss;
+        if (parentBoss != null && parentBoss.GetComponent<IceFairySupportAI>() == null) return parentBoss;
 
-        // Tìm quái gần nhất trong bán kính 4m
+        // Tìm quái gần nhất trong bán kính 6m (bỏ qua IceFairy)
         EnemyEntity[] enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
         EnemyEntity nearestBoss = null;
         float minDistance = float.MaxValue;
 
         foreach (var enemy in enemies)
         {
-            if (enemy.gameObject != this.gameObject && !enemy.IsDead)
+            if (enemy == null || enemy.gameObject == this.gameObject || enemy.IsDead) continue;
+
+            // Bỏ qua chính IceFairy
+            if (enemy.GetComponent<IceFairySupportAI>() != null || enemy.gameObject.name.Contains("IceFairy")) continue;
+
+            float dist = Vector3.Distance(transform.position, enemy.transform.position);
+
+            // Ưu tiên Boss có tên chứa "Golem" hoặc "Boss"
+            bool isBossCandidate = enemy.gameObject.name.IndexOf("Golem", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                  enemy.gameObject.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (isBossCandidate && dist < 6f && dist < minDistance)
             {
-                float dist = Vector3.Distance(transform.position, enemy.transform.position);
-                if (dist < 4f && dist < minDistance)
-                {
-                    minDistance = dist;
-                    nearestBoss = enemy;
-                }
+                minDistance = dist;
+                nearestBoss = enemy;
+            }
+            else if (nearestBoss == null && dist < 5f)
+            {
+                nearestBoss = enemy;
             }
         }
 
