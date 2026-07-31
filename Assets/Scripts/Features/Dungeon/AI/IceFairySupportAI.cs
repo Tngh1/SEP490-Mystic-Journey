@@ -16,8 +16,11 @@ using UnityEngine;
 public class IceFairySupportAI : MonoBehaviour
 {
     [Header("Leader Settings (GolemBoss)")]
-    [Tooltip("Tên Boss cần đi theo hỗ trợ")]
-    [SerializeField] private string targetBossName = "GolemBoss";
+    [Tooltip("Gắn trực tiếp Transform của Boss cần đi theo hỗ trợ (Kéo thả từ Hierarchy vào đây)")]
+    [SerializeField] private Transform targetBossTransform;
+
+    [Tooltip("Tên Boss cần đi theo hỗ trợ (Dùng khi không kéo thả trực tiếp targetBossTransform)")]
+    [SerializeField] private string targetBossName = "Golem Boss";
 
     [Tooltip("Khoảng cách nấp phía sau GolemBoss (mét)")]
     [SerializeField] private float coverDistance = 2.5f;
@@ -82,6 +85,16 @@ public class IceFairySupportAI : MonoBehaviour
         _myEntity = GetComponent<EnemyEntity>();
         _animator = GetComponent<Animator>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // Tắt NavMeshAgent và EnemyBehaviour nếu có trên IceFairy để tránh xung đột di chuyển 2D trên không
+        var navAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (navAgent != null) navAgent.enabled = false;
+
+        var enemyBehaviour = GetComponent<EnemyBehaviour>();
+        if (enemyBehaviour != null) enemyBehaviour.enabled = false;
+
+        var enemyAnim = GetComponent<EnemyAnimations>();
+        if (enemyAnim != null) enemyAnim.enabled = false;
     }
 
     private void OnEnable()
@@ -109,8 +122,24 @@ public class IceFairySupportAI : MonoBehaviour
         }
 
         FindGolemBoss();
+        SnapToBossPosition();
+
         _nextAttackTime = Time.time + 2f;
         _nextHealTime = Time.time + 4f;
+    }
+
+    [ContextMenu("Snap To Boss Position")]
+    public void SnapToBossPosition()
+    {
+        if (_golemTransform == null)
+        {
+            FindGolemBoss();
+        }
+
+        if (_golemTransform != null)
+        {
+            transform.position = GetGolemCenterPos() + new Vector3(0f, 0.5f, 0f);
+        }
     }
 
     private void Update()
@@ -193,6 +222,8 @@ public class IceFairySupportAI : MonoBehaviour
         return _golemTransform.position + bossCenterOffset;
     }
 
+    private Vector3 _wanderOffset = Vector3.zero;
+
     private void HandleSmartMovement(Transform playerTransform)
     {
         // Khi đang thi triển skill -> ĐỨNG YÊN HOÀN TOÀN không di chuyển!
@@ -204,11 +235,23 @@ public class IceFairySupportAI : MonoBehaviour
 
         if (_golemTransform == null)
         {
-            SetRunningAnim(false);
-            return;
+            FindGolemBoss();
+            if (_golemTransform == null)
+            {
+                SetRunningAnim(false);
+                return;
+            }
         }
 
         Vector3 golemCenterPos = GetGolemCenterPos();
+
+        // Nếu vị trí xa GolemBoss (trên 8m, ví dụ vị trí đặt prefab gốc tít trên cao (163, 104)), lập tức tự biến về bên cạnh Boss
+        float distToGolem = Vector3.Distance(transform.position, golemCenterPos);
+        if (distToGolem > 8f)
+        {
+            transform.position = golemCenterPos + new Vector3(0f, 1f, 0f);
+        }
+
         Vector3 targetPos;
         bool isPlayerInCombatRange = false;
 
@@ -231,14 +274,16 @@ public class IceFairySupportAI : MonoBehaviour
         }
         else
         {
-            // === CHẾ ĐỘ BÌNH THƯỜNG: Bay lượn ngẫu nhiên quanh tâm GolemBoss ===
-            if (Time.time >= _nextWanderTime || Vector3.Distance(transform.position, _wanderTargetPos) < 0.3f)
+            // === CHẾ ĐỘ BÌNH THƯỜNG: Bay lượn ngẫu nhiên quanh tâm GolemBoss (dùng Offset tương đối) ===
+            if (Time.time >= _nextWanderTime || _wanderOffset == Vector3.zero)
             {
-                _nextWanderTime = Time.time + Random.Range(2.5f, 4.0f);
+                _nextWanderTime = Time.time + Random.Range(2.0f, 3.5f);
                 Vector2 randomCircle = Random.insideUnitCircle * wanderRadius;
-                _wanderTargetPos = golemCenterPos + new Vector3(randomCircle.x, randomCircle.y, 0f);
+                _wanderOffset = new Vector3(randomCircle.x, randomCircle.y, 0f);
             }
-            targetPos = _wanderTargetPos;
+            
+            // targetPos liên tục di chuyển THEO GolemBoss mỗi frame
+            targetPos = golemCenterPos + _wanderOffset;
         }
 
         // Di chuyển mượt mà tới targetPos
@@ -289,7 +334,16 @@ public class IceFairySupportAI : MonoBehaviour
                 MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(attackSound, soundVolume);
             }
 
-            Instantiate(fairyDustPrefab, playerTransform.position, Quaternion.identity);
+            Vector3 spawnPos = new Vector3(playerTransform.position.x, playerTransform.position.y, 0f);
+            GameObject dustObj = Instantiate(fairyDustPrefab, spawnPos, Quaternion.identity);
+            if (dustObj != null)
+            {
+                var dustSkill = dustObj.GetComponent<FairyDustSkill>();
+                if (dustSkill != null)
+                {
+                    dustSkill.SetTarget(playerTransform);
+                }
+            }
         }
 
         float remainingAnimTime = Mathf.Max(0.1f, attackAnimDuration - 0.25f);
@@ -303,7 +357,7 @@ public class IceFairySupportAI : MonoBehaviour
     {
         if (!canHealLeader || _isCastingSkill || _golemEntity == null || _golemEntity.IsDead) return;
 
-        if (_golemEntity.CurrentHealth < _golemEntity.MaxHealth && Time.time >= _nextHealTime)
+        if (_golemEntity.CurrentHealth > 0 && _golemEntity.CurrentHealth < _golemEntity.MaxHealth - 5 && Time.time >= _nextHealTime)
         {
             _nextHealTime = Time.time + healCooldown;
             StartCoroutine(PerformHealRoutine());
@@ -387,16 +441,81 @@ public class IceFairySupportAI : MonoBehaviour
 
     private void FindGolemBoss()
     {
+        // 1. Kiểm tra nếu targetBossTransform được gán và thực sự nằm trong Scene (không phải Prefab Asset dưới cửa sổ Project)
+        if (targetBossTransform != null && targetBossTransform.gameObject.scene.IsValid())
+        {
+            _golemTransform = targetBossTransform;
+            _golemEntity = targetBossTransform.GetComponent<EnemyEntity>() ?? targetBossTransform.GetComponentInParent<EnemyEntity>();
+            if (_golemEntity != null)
+            {
+                _golemSpriteRenderer = _golemEntity.GetComponentInChildren<SpriteRenderer>();
+            }
+            else
+            {
+                _golemSpriteRenderer = targetBossTransform.GetComponentInChildren<SpriteRenderer>();
+            }
+            return;
+        }
+
+        // Nếu targetBossTransform bị null hoặc bị kéo nhầm Prefab từ cửa sổ Project -> Tự tìm con Golem Boss ĐANG ĐỨNG TRONG HIERARCHY
+        _golemTransform = null;
+        _golemEntity = null;
+
+        // 2. Thử tìm qua EnemyEntity đang nằm trong Scene
         EnemyEntity[] enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
+        string cleanTargetName = string.IsNullOrEmpty(targetBossName) ? "" : targetBossName.Replace("(Clone)", "").Replace(" ", "").Trim();
+
         foreach (var enemy in enemies)
         {
-            if (enemy != null && enemy.gameObject != this.gameObject && enemy.gameObject.name.Contains(targetBossName))
+            if (enemy == null || enemy.gameObject == this.gameObject || !enemy.gameObject.scene.IsValid()) continue;
+
+            string enemyName = enemy.gameObject.name;
+            string cleanEnemyName = enemyName.Replace("(Clone)", "").Replace(" ", "").Trim();
+
+            bool isMatch = false;
+
+            if (!string.IsNullOrEmpty(cleanTargetName) && cleanEnemyName.IndexOf(cleanTargetName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                isMatch = true;
+            }
+            else if (cleanEnemyName.IndexOf("Golem", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                isMatch = true;
+            }
+            else if (enemyName.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0 && !enemyName.Contains("IceFairy"))
+            {
+                isMatch = true;
+            }
+
+            if (isMatch)
             {
                 _golemEntity = enemy;
                 _golemTransform = enemy.transform;
                 _golemSpriteRenderer = enemy.GetComponentInChildren<SpriteRenderer>();
-                break;
+                return;
             }
+        }
+
+        // 3. Fallback: Tìm GameObject trực tiếp trong Hierarchy/Scene theo tên nếu EnemyEntity chưa đăng ký
+        GameObject bossObj = GameObject.Find("Golem Boss") ?? GameObject.Find("GolemBoss") ?? GameObject.Find("Golem");
+        if (bossObj == null)
+        {
+            GameObject[] allObjs = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            foreach (var go in allObjs)
+            {
+                if (go != null && go != this.gameObject && go.scene.IsValid() && go.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0 && !go.name.Contains("IceFairy"))
+                {
+                    bossObj = go;
+                    break;
+                }
+            }
+        }
+
+        if (bossObj != null)
+        {
+            _golemTransform = bossObj.transform;
+            _golemEntity = bossObj.GetComponent<EnemyEntity>() ?? bossObj.GetComponentInParent<EnemyEntity>();
+            _golemSpriteRenderer = bossObj.GetComponentInChildren<SpriteRenderer>();
         }
     }
 }
