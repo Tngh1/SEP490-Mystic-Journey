@@ -243,8 +243,6 @@ public class IvyTreeInteractable : MonoBehaviour
         if (col != null) col.enabled = false;
 
         _interactable.UpdateOverheadUI();
-
-        RemoveQuestItemFromInventory("Spirit Skull");
     }
 
     private void RemoveQuestItemFromInventory(string itemName)

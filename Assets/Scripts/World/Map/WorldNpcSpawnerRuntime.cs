@@ -196,7 +196,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     // Trước đây hằng này là 23, một quest ở FrozenMountain ("Dragons of Snow") hoàn toàn không liên
     // quan: Natalie bị ẩn ngay khi người chơi hạ rồng băng ở map khác, còn quest an nghỉ của cô thì
     // không ẩn được ai. Số cũ đã lệch từ trước lần chèn quest này.
-    private const int NatalieRestQuestId = 30;
+    private const int NatalieRestQuestId = 33;
 
     private static bool ShouldHideNatalie()
     {

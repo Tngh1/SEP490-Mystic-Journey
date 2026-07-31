@@ -28,6 +28,11 @@ public static class WorldSceneInteractableBootstrap
 
         ConfigureFallback(scene);
 
+        // UnderKing is the Q39 objective. Keep the scene instance dormant until that quest is
+        // actually in progress so killing it early cannot permanently strand the main chain.
+        if (string.Equals(scene.name, "AbandonedCastle", StringComparison.OrdinalIgnoreCase))
+            SetSceneObjectActive(scene, "UnderKing", false);
+
         if (bootstrappedScenes.Contains(scene.handle))
             return;
 
@@ -80,7 +85,15 @@ public static class WorldSceneInteractableBootstrap
 
         var allInteractables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
         var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
-        var hideNatalie = IsQuestCompletedOrClaimed(state, 24);
+        var hideNatalie = IsQuestCompletedOrClaimed(state, 33);
+
+        if (string.Equals(scene.name, "AbandonedCastle", StringComparison.OrdinalIgnoreCase))
+        {
+            var underKingActive = state.Quests?.Any(q =>
+                q != null && q.QuestId == 39 &&
+                string.Equals(q.Status, "InProgress", StringComparison.OrdinalIgnoreCase)) == true;
+            SetSceneObjectActive(scene, "UnderKing", underKingActive);
+        }
 
         // Standardized NPC configuration pipeline for ALL map NPCs
         foreach (var apiNpc in mapNpcs)
@@ -218,7 +231,7 @@ public static class WorldSceneInteractableBootstrap
     private static string BuildObjectKey(string displayName)
     {
         var compact = PrettyName(displayName).Replace(" ", string.Empty);
-        return string.IsNullOrWhiteSpace(compact) ? "ElfForest.QuestItem" : $"ElfForest.{compact}";
+        return string.IsNullOrWhiteSpace(compact) ? "QuestItem" : compact;
     }
 
     private static string PrettyName(string objectName)
@@ -257,6 +270,13 @@ public static class WorldSceneInteractableBootstrap
     private static bool Contains(string source, string value)
     {
         return !string.IsNullOrWhiteSpace(source) && !string.IsNullOrWhiteSpace(value) && source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static void SetSceneObjectActive(Scene scene, string objectName, bool active)
+    {
+        var target = FindSceneObject(scene, objectName);
+        if (target != null && target.activeSelf != active)
+            target.SetActive(active);
     }
 
     private static GameObject FindSceneObject(Scene scene, string objectName)
