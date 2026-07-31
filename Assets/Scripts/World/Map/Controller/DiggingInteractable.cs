@@ -17,8 +17,11 @@ public class DiggingInteractable : MonoBehaviour
     // ─── Inspector ─────────────────────────────────────────────────────────────
 
     [Header("Quest Link")]
-    [Tooltip("QuestId của nhiệm vụ cần đào (ví dụ: Quest 24 — The Abandoned Village).")]
-    [SerializeField] private int linkedQuestId = 23;
+    // Default trỏ tới quest "[Chapter 4] The Skull by the Well" (AbandonedCastle,
+    // ObjectiveTarget = "Skull"). KHÔNG ghi số quest vào tooltip: mỗi lần chèn quest mới là số lệch,
+    // và trước đây tooltip nói "Quest 24" trong khi field là 23 và quest thật lại là số khác nữa.
+    [Tooltip("QuestId của nhiệm vụ cần đào. Scene sẽ override giá trị này.")]
+    [SerializeField] private int linkedQuestId = 29;
 
     [Tooltip("ObjectKey gửi lên API. Phải khớp với ObjectKey mà backend nhận ra (ví dụ: 'AbandonedCastle.Skull').")]
     [SerializeField] private string objectKey = "AbandonedCastle.Skull";
