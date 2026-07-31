@@ -19,7 +19,7 @@ public class EnemyBehaviour : MonoBehaviour
     private Vector3 roamPosition;
     private Vector3 startingPosition;
 
-    [SerializeField] private float chasingDistance = 4f;
+    [SerializeField] private float chasingDistance = 10f;
     [SerializeField] private float chasingSpeedMultiplier = 2f;
     [SerializeField] private float attackDistance = 2f;
     [SerializeField] private float attackRate = 2f;
@@ -403,7 +403,18 @@ public class EnemyBehaviour : MonoBehaviour
     private Transform FindNearestPlayer()
     {
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-        if (players == null || players.Length == 0) return null;
+        if (players == null || players.Length == 0)
+        {
+            if (PlayerMovement.Instance != null && PlayerMovement.Instance.gameObject.activeInHierarchy)
+            {
+                return PlayerMovement.Instance.transform;
+            }
+            if (PlayerEntity.Instance != null && PlayerEntity.Instance.gameObject.activeInHierarchy)
+            {
+                return PlayerEntity.Instance.transform;
+            }
+            return null;
+        }
 
         Vector3 from = transform.position;
         Transform best = null;

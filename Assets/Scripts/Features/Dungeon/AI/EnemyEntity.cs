@@ -36,6 +36,11 @@ public class EnemyEntity : MonoBehaviour
     public event EventHandler OnDeath;
     public event Action<int, int> OnHealthChanged;
 
+    private void Awake()
+    {
+        currentHealth = maxHealth;
+    }
+
     private void Start()
     {
         polyColl = GetComponent<PolygonCollider2D>();
@@ -228,7 +233,7 @@ public class EnemyEntity : MonoBehaviour
             if (polyColl != null) polyColl.enabled = false;
             if (capsuleColl != null) capsuleColl.enabled = false;
 
-            enemyBehaviour.SetDeathState();
+            if (enemyBehaviour != null) enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");
 
             // Báo server khi hạ quái (XP, gold, drop random, khám phá bestiary)
@@ -245,6 +250,8 @@ public class EnemyEntity : MonoBehaviour
                 int spaceIndex = cleanName.IndexOf(" (");
                 if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex);
 
+                string normCleanName = cleanName.Replace(" ", "").Trim();
+
                 foreach (var quest in QuestManager.Instance.GetMainQuests())
                 {
                     if (!QuestManager.IsStatus(quest, "InProgress")) continue;
@@ -256,8 +263,24 @@ public class EnemyEntity : MonoBehaviour
                     foreach (var target in quest.ObjectiveTarget.Split('/'))
                     {
                         string t = target.Trim();
-                        if (t.Length == 0) continue;
-                        if (cleanName.IndexOf(t, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                        string normTarget = t.Replace(" ", "").Trim();
+
+                        bool isMatch = cleanName.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                       normCleanName.IndexOf(normTarget, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                       normTarget.IndexOf(normCleanName, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        // Fallback đặc biệt cho Quest 26 "[Chapter 3] The Sealed Guardians" (yêu cầu hạ 2 Boss: GolemBoss & IceFairy)
+                        if (!isMatch && quest.QuestId == 26)
+                        {
+                            if (cleanName.IndexOf("Ice", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                cleanName.IndexOf("Fairy", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                cleanName.IndexOf("Golem", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                isMatch = true;
+                            }
+                        }
+
+                        if (!isMatch) continue;
 
                         Debug.Log($"[EnemyEntity] Adding progress to Quest {quest.QuestId} for killing {cleanName}");
                         QuestManager.Instance.AddProgress(quest.QuestId, 1);
