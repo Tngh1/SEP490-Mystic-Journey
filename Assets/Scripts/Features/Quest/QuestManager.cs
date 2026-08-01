@@ -264,17 +264,19 @@ public class QuestManager : MonoBehaviour
         if (!_cache.TryGetValue(questId, out var state)) return;
         if (state.status != "InProgress") return;
 
+        var response = GetQuestResponse(questId);
+        var isCollect = string.Equals(response?.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase);
         var quest = questDatabase != null ? questDatabase.GetById(questId) : null;
         var targetAmount = state.targetAmount > 0 ? state.targetAmount : (quest != null ? quest.targetAmount : 1);
         targetAmount = Mathf.Max(1, targetAmount);
 
-        if (!_snapshot.ContainsKey(questId))
+        if (!isCollect && !_snapshot.ContainsKey(questId))
             _snapshot[questId] = state.Clone();
 
         state.targetAmount = targetAmount;
         state.progress = Mathf.Min(state.progress + amount, targetAmount);
         state.version++;
-        state.isDirty = true;
+        state.isDirty = !isCollect;
 
         // Đẩy luôn sang _responses: UI (tracker + quest panel) render từ GetMainQuests() tức
         // _responses, KHÔNG phải _cache. Nếu chỉ ghi _cache thì progress chỉ hiện sau khi
@@ -290,7 +292,10 @@ public class QuestManager : MonoBehaviour
         // BatchSyncLoop là đường DUY NHẤT hoàn thành quest in-world: nó đẩy progress lên server
         // TRƯỚC, rồi auto CompleteQuest + ClaimReward khi server xác nhận Progress >= target.
         // Collect là ngoại lệ: hoàn thành qua turn-in ở NPC, không tính từ world progress.
-        _pendingBatch[questId] = state.progress;
+        // Collect progress chỉ tồn tại trong phiên chơi. Không đưa vào batch/offline queue:
+        // thoát trước khi đủ thì phiên sau bắt đầu lại từ progress trên server (luôn là 0).
+        if (!isCollect)
+            _pendingBatch[questId] = state.progress;
         OnQuestProgressChanged?.Invoke(questId);
     }
 
@@ -551,6 +556,10 @@ public class QuestManager : MonoBehaviour
 
             foreach (var entry in wrapper.entries)
             {
+                var response = GetQuestResponse(entry.questId);
+                if (string.Equals(response?.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 if (_cache.TryGetValue(entry.questId, out var state))
                 {
                     if (entry.progress > state.progress)
@@ -591,6 +600,13 @@ public class QuestManager : MonoBehaviour
         _snapshot.Clear();
         foreach (var response in responses ?? new List<PlayerQuestResponse>())
         {
+            // Collect dở dang chỉ tồn tại trong RAM của phiên chơi. Dữ liệu cũ từng được lưu
+            // bởi client trước đây cũng phải hiển thị lại từ 0, nhưng không ghi ngược xuống DB.
+            if (string.Equals(response.Status, "InProgress", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(response.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase)
+                && response.Progress < Mathf.Max(1, response.TargetAmount))
+                response.Progress = 0;
+
             UpsertQuestState(response);
             
             var objectiveType = response.ObjectiveType ?? string.Empty;

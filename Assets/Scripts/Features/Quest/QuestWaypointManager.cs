@@ -452,6 +452,19 @@ namespace MysticJourney.Features.Quest
                    string.Equals(a.Trim(), b.Trim(), System.StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool IsAvailableWaypointTarget(WorldInteractable interactable)
+        {
+            if (interactable == null || !interactable.gameObject.activeInHierarchy || interactable.InvestigationConsumed)
+                return false;
+
+            var collider2D = interactable.GetComponent<UnityEngine.Collider2D>();
+            if (collider2D != null && !collider2D.enabled)
+                return false;
+
+            var collider = interactable.GetComponent<UnityEngine.Collider>();
+            return collider == null || collider.enabled;
+        }
+
         private Transform FindTargetForQuest(PlayerQuestResponse quest)
         {
             string objType = quest.ObjectiveType ?? "";
@@ -513,10 +526,6 @@ namespace MysticJourney.Features.Quest
 
                 WorldInteractable bestItem = null;
                 float minDistance = float.MaxValue;
-                // Vật phẩm đang tắt Collider (vừa hái, đang chờ WorldRespawnable mọc lại):
-                // vẫn là mục tiêu đúng, chỉ ưu tiên sau vật phẩm còn sống.
-                WorldInteractable bestHidden = null;
-                float minHiddenDistance = float.MaxValue;
                 Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
 
                 string cleanTarget = (targetName ?? "").Trim();
@@ -527,12 +536,7 @@ namespace MysticJourney.Features.Quest
 
                 foreach (var i in interactables)
                 {
-                    if (i == null || !i.gameObject.activeInHierarchy) continue;
-
-                    // Object đã bị tắt Collider = vừa thu thập, đang chờ hồi sinh.
-                    var col2D = i.GetComponent<UnityEngine.Collider2D>();
-                    var col = i.GetComponent<UnityEngine.Collider>();
-                    bool isHidden = (col2D != null && !col2D.enabled) || (col != null && !col.enabled);
+                    if (i == null || !IsAvailableWaypointTarget(i)) continue;
 
                     bool isMatch = false;
                     if (i.QuestId.HasValue && i.QuestId.Value == quest.QuestId && quest.QuestId > 0)
@@ -558,15 +562,7 @@ namespace MysticJourney.Features.Quest
                     if (isMatch)
                     {
                         float dist = Vector3.Distance(playerPos, i.transform.position);
-                        if (isHidden)
-                        {
-                            if (dist < minHiddenDistance)
-                            {
-                                minHiddenDistance = dist;
-                                bestHidden = i;
-                            }
-                        }
-                        else if (dist < minDistance)
+                        if (dist < minDistance)
                         {
                             minDistance = dist;
                             bestItem = i;
@@ -575,7 +571,6 @@ namespace MysticJourney.Features.Quest
                 }
 
                 if (bestItem != null) return bestItem.transform;
-                if (bestHidden != null) return bestHidden.transform;
 
                 // If not found in interactables, search scene GameObjects matching cleanTarget
                 var allObjs = FindObjectsOfType<GameObject>();
@@ -597,6 +592,10 @@ namespace MysticJourney.Features.Quest
 
                     if (matchGo)
                     {
+                        var parentInteractable = go.GetComponentInParent<WorldInteractable>();
+                        if (parentInteractable != null && !IsAvailableWaypointTarget(parentInteractable))
+                            continue;
+
                         float d = Vector3.Distance(playerPos, go.transform.position);
                         if (d < minGoDist)
                         {

@@ -21,7 +21,7 @@ public class DiggingInteractable : MonoBehaviour
     // ObjectiveTarget = "Skull"). KHÔNG ghi số quest vào tooltip: mỗi lần chèn quest mới là số lệch,
     // và trước đây tooltip nói "Quest 24" trong khi field là 23 và quest thật lại là số khác nữa.
     [Tooltip("QuestId của nhiệm vụ cần đào. Scene sẽ override giá trị này.")]
-    [SerializeField] private int linkedQuestId = 29;
+    [SerializeField] private int linkedQuestId = 30;
 
     [Tooltip("ObjectKey gửi lên API. Phải khớp với ObjectKey mà backend nhận ra (ví dụ: 'AbandonedCastle.Skull').")]
     [SerializeField] private string objectKey = "AbandonedCastle.Skull";
@@ -109,31 +109,13 @@ public class DiggingInteractable : MonoBehaviour
             return;
         }
 
-        WorldInteractionPromptRuntime.Hide();
-
-        if (QuestManager.Instance != null &&
-            !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
         {
-            _isDigging = true;
-            QuestManager.Instance.AcceptQuest(
-                linkedQuestId,
-                onSuccess: () =>
-                {
-                    _isDigging = false;
-                    WorldRuntimeEvents.RaiseQuestsChanged();
-                    BeginDigSequence();
-                },
-                onError: error =>
-                {
-                    Debug.LogWarning($"[DiggingInteractable] AcceptQuest failed: {error}");
-                    _isDigging = false;
-                    WorldRuntimeEvents.RaiseMessage("You need to complete and claim the reward for the previous quest first!");
-
-                }
-            );
+            WorldRuntimeEvents.RaiseMessage("Accept the digging quest from Natalie first.");
             return;
         }
 
+        WorldInteractionPromptRuntime.Hide();
         BeginDigSequence();
     }
 
@@ -159,13 +141,11 @@ public class DiggingInteractable : MonoBehaviour
         }
 
         // 2. Chiếu video đào
-        bool videoPlayed = false;
         if (videoPlayer != null && videoPlayer.clip != null)
         {
             MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
             videoPlayer.gameObject.SetActive(true);
             videoPlayer.Play();
-            videoPlayed = true;
 
             // Chờ video xong hoặc hết thời gian tối đa
             float elapsed = 0f;
@@ -203,7 +183,7 @@ public class DiggingInteractable : MonoBehaviour
         if (!ApiClient.Instance.HasToken())
         {
             Debug.LogWarning("[DiggingInteractable] No API token.");
-            FinalizeAfterDig();
+            _isDigging = false;
             return;
         }
 
@@ -217,8 +197,10 @@ public class DiggingInteractable : MonoBehaviour
                 Debug.Log($"[DiggingInteractable] Interact success: {response?.Message}");
                 WorldRuntimeEvents.RaiseMessage(response?.Message ?? $"{displayName}: bạn đã đào được vật phẩm!");
 
-                // Cập nhật quest progress trong client
-                QuestManager.Instance?.AddProgress(linkedQuestId, 1);
+                if (response?.Quest != null)
+                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
+                if (response != null && response.CollectedItemId.HasValue)
+                    InventoryManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
 
                 FinalizeAfterDig();
@@ -226,7 +208,8 @@ public class DiggingInteractable : MonoBehaviour
             error =>
             {
                 Debug.LogWarning($"[DiggingInteractable] InteractObject failed: {error.Message}");
-                FinalizeAfterDig();
+                _isDigging = false;
+                WorldRuntimeEvents.RaiseMessage("Digging failed. Please try again.");
             }
 
         );

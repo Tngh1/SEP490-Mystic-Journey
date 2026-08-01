@@ -2,169 +2,65 @@ using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
-using UnityEngine.Video;
 
 [RequireComponent(typeof(WorldInteractable))]
 public class OriginTreeInteractable : MonoBehaviour
 {
     [Header("Quest Link")]
-    // Default trỏ tới quest "[Chapter 5] Heal the Origin Tree" (ElfForest,
-    // ObjectiveTarget = "Origin Tree"). Không ghi số quest vào tooltip vì số lệch mỗi lần chèn quest.
-    [Tooltip("QuestId của nhiệm vụ chữa lành Cây Khởi Nguyên. Scene sẽ override giá trị này.")]
-    [SerializeField] private int linkedQuestId = 35;
-
-    [Tooltip("ObjectKey gửi lên API.")]
+    [SerializeField] private int linkedQuestId = 45;
     [SerializeField] private string objectKey = "ElfForest.OriginTree";
-
-    [Tooltip("Tên hiển thị khi player đứng gần.")]
     [SerializeField] private string displayName = "Origin Tree";
 
-    [Header("Video")]
-    [Tooltip("Video to play when healing the tree.")]
-    [SerializeField] private VideoPlayer videoPlayer;
-
-    [Tooltip("Maximum time to wait for the video.")]
-    [SerializeField] private float maxVideoWait = 10f;
+    [Header("Healing Visual")]
+    [SerializeField] private float healingDuration = 2.5f;
+    [SerializeField] private Color healedColor = new Color(0.72f, 1f, 0.72f, 1f);
+    [SerializeField] private float pulseScale = 1.04f;
 
     private WorldInteractable _interactable;
+    private SpriteRenderer _treeRenderer;
+    private Vector3 _baseScale;
     private bool _isHealing;
     private bool _healed;
-    private bool _videoFinished;
 
     private void Awake()
     {
         _interactable = GetComponent<WorldInteractable>();
+        _treeRenderer = GetComponent<SpriteRenderer>();
+        _baseScale = transform.localScale;
     }
 
     private void Start()
     {
-        _interactable.ConfigureObject(
-            key: objectKey,
-            objectName: displayName,
-            type: "Heal",
-            linkedQuestId: linkedQuestId,
-            delta: 1,
-            radius: 3.5f
-        );
-
         _interactable.ConfigureQuestItem(objectKey, displayName, linkedQuestId, 1, 3.5f);
-
         RefreshVisibility();
         WorldRuntimeEvents.QuestsChanged += RefreshVisibility;
-
-        if (videoPlayer != null)
-        {
-            videoPlayer.playOnAwake = false;
-            videoPlayer.loopPointReached += OnVideoFinished;
-        }
     }
 
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshVisibility;
-        if (videoPlayer != null)
-            videoPlayer.loopPointReached -= OnVideoFinished;
     }
 
     public void StartHeal()
     {
         if (_isHealing || _healed) return;
 
-        var questState = QuestManager.Instance != null ? QuestManager.Instance.GetQuestState(linkedQuestId) : null;
-        var questStatus = questState != null ? questState.status : string.Empty;
-
-        if (string.Equals(questStatus, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(questStatus, "Claimed", System.StringComparison.OrdinalIgnoreCase))
+        var questState = QuestManager.Instance?.GetQuestState(linkedQuestId);
+        if (questState == null ||
+            !string.Equals(questState.status, "InProgress", System.StringComparison.OrdinalIgnoreCase))
         {
+            WorldRuntimeEvents.RaiseMessage("Speak with Lyra and accept the healing rite first.");
             return;
         }
 
-        WorldInteractionPromptRuntime.Hide();
-
-        if (QuestManager.Instance != null &&
-            !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
-        {
-            _isHealing = true;
-            QuestManager.Instance.AcceptQuest(
-                linkedQuestId,
-                onSuccess: () =>
-                {
-                    _isHealing = false;
-                    WorldRuntimeEvents.RaiseQuestsChanged();
-                    BeginHealSequence();
-                },
-                onError: error =>
-                {
-                    Debug.LogWarning($"[OriginTreeInteractable] AcceptQuest failed: {error}");
-                    _isHealing = false;
-                    WorldRuntimeEvents.RaiseMessage("You need to complete and claim the reward for the previous quest first!");
-
-                }
-            );
-            return;
-        }
-
-        BeginHealSequence();
-    }
-
-    private void BeginHealSequence()
-    {
-        if (_healed) return;
-        _isHealing = true;
-        StartCoroutine(HealSequence());
-    }
-
-
-    private IEnumerator HealSequence()
-    {
-        var player = GameObject.FindGameObjectWithTag("Player");
-        SpriteRenderer[] playerSprites = null;
-        if (player != null)
-        {
-            playerSprites = player.GetComponentsInChildren<SpriteRenderer>();
-            foreach (var sp in playerSprites) sp.enabled = false;
-        }
-
-        if (videoPlayer != null && videoPlayer.clip != null)
-        {
-            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
-            videoPlayer.gameObject.SetActive(true);
-            videoPlayer.Play();
-
-            float elapsed = 0f;
-            while (!_videoFinished && elapsed < maxVideoWait)
-            {
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            _videoFinished = false;
-
-            videoPlayer.Stop();
-            videoPlayer.gameObject.SetActive(false);
-            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(videoPlayer);
-        }
-
-        else
-        {
-            yield return new WaitForSeconds(2f);
-        }
-
-        if (playerSprites != null)
-            foreach (var sp in playerSprites) sp.enabled = true;
-
-        SendInteractApi();
-    }
-
-    private void OnVideoFinished(VideoPlayer vp) => _videoFinished = true;
-
-    private void SendInteractApi()
-    {
         if (!ApiClient.Instance.HasToken())
         {
-            FinalizeAfterHeal();
+            WorldRuntimeEvents.RaiseMessage("The healing rite requires a connection to the world.");
             return;
         }
 
+        _isHealing = true;
+        WorldInteractionPromptRuntime.Hide();
         WorldApi.Instance.InteractObject(
             objectKey,
             "Interact",
@@ -172,51 +68,74 @@ public class OriginTreeInteractable : MonoBehaviour
             1,
             response =>
             {
-                WorldRuntimeEvents.RaiseMessage(response?.Message ?? "The Origin Tree is cleansed! Talk to Lyra.");
-                QuestManager.Instance?.AddProgress(linkedQuestId, 1);
+                if (response?.Quest != null)
+                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
+                InventoryManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
-                FinalizeAfterHeal();
+                StartCoroutine(HealingSequence());
             },
             error =>
             {
+                _isHealing = false;
                 Debug.LogWarning($"[OriginTreeInteractable] InteractObject failed: {error.Message}");
-                FinalizeAfterHeal();
-            }
-
-        );
+                WorldRuntimeEvents.RaiseMessage(error.Message);
+                RefreshVisibility();
+            });
     }
 
-    private void FinalizeAfterHeal()
+    private IEnumerator HealingSequence()
     {
+        var startColor = _treeRenderer != null ? _treeRenderer.color : Color.white;
+        var elapsed = 0f;
+        while (elapsed < healingDuration)
+        {
+            elapsed += Time.deltaTime;
+            var t = Mathf.Clamp01(elapsed / healingDuration);
+            var pulse = Mathf.Sin(t * Mathf.PI) * (pulseScale - 1f);
+            transform.localScale = _baseScale * (1f + pulse);
+            if (_treeRenderer != null)
+                _treeRenderer.color = Color.Lerp(startColor, healedColor, t);
+            yield return null;
+        }
+
+        transform.localScale = _baseScale;
+        ApplyHealedVisual();
         _isHealing = false;
         _healed = true;
-
-        var col2D = GetComponent<Collider2D>();
-        if (col2D != null) col2D.enabled = false;
-        var col = GetComponent<Collider>();
-        if (col != null) col.enabled = false;
-
+        SetColliderEnabled(false);
         _interactable.UpdateOverheadUI();
+        WorldRuntimeEvents.RaiseMessage("The Origin Tree is healing. Talk to Lyra.");
     }
 
     private void RefreshVisibility()
     {
         if (QuestManager.Instance == null) return;
 
-        var quests = QuestManager.Instance.GetMainQuests();
-        bool shouldShow = false;
-        foreach (var q in quests)
-        {
-            if (q.QuestId == linkedQuestId && QuestManager.IsStatus(q, "InProgress"))
-            {
-                shouldShow = true;
-                break;
-            }
-        }
+        var state = QuestManager.Instance.GetQuestState(linkedQuestId);
+        var status = state?.status ?? string.Empty;
+        _healed = string.Equals(status, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(status, "Claimed", System.StringComparison.OrdinalIgnoreCase);
 
-        var col2D = GetComponent<Collider2D>();
-        if (col2D != null) col2D.enabled = shouldShow && !_healed;
+        if (_healed)
+            ApplyHealedVisual();
 
+        var inProgress = string.Equals(status, "InProgress", System.StringComparison.OrdinalIgnoreCase);
+        SetColliderEnabled(inProgress && !_healed && !_isHealing);
         _interactable.UpdateOverheadUI();
+    }
+
+    private void ApplyHealedVisual()
+    {
+        transform.localScale = _baseScale;
+        if (_treeRenderer != null)
+            _treeRenderer.color = healedColor;
+    }
+
+    private void SetColliderEnabled(bool enabled)
+    {
+        var col2D = GetComponent<Collider2D>();
+        if (col2D != null) col2D.enabled = enabled;
+        var col = GetComponent<Collider>();
+        if (col != null) col.enabled = enabled;
     }
 }

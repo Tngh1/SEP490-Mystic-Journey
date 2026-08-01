@@ -204,39 +204,52 @@ public class PlayerWorldInteractor : MonoBehaviour
             }
         }
 
+        var progressDeltaToSend = target.ProgressDelta;
+        if (questIdToSend.HasValue && QuestManager.Instance != null)
+        {
+            var quest = QuestManager.Instance.GetQuestResponse(questIdToSend.Value);
+            if (quest != null && string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase))
+            {
+                QuestManager.Instance.AddProgress(quest.QuestId, target.ProgressDelta);
+                var localState = QuestManager.Instance.GetQuestState(quest.QuestId);
+                var targetAmount = Mathf.Max(1, quest.TargetAmount);
+
+                if (localState == null || localState.progress < targetAmount)
+                {
+                    target.OnSuccessfulInteraction();
+                    return;
+                }
+
+                // Chỉ lần nhặt cuối mới gọi BE; gửi toàn bộ target để BE ghi progress và inventory một lần.
+                progressDeltaToSend = targetAmount;
+            }
+        }
+
         WorldApi.Instance.InteractObject(
             target.ObjectKey,
             target.InteractionType,
             questIdToSend,
-            target.ProgressDelta,
+            progressDeltaToSend,
             response =>
             {
-                // target is captured across a network round-trip. A dungeon restart/exit
-                // unloads the scene meanwhile, so by the time this lands the component can
-                // be destroyed — touching it then throws MissingReferenceException
-                // ("WorldInteractable has been destroyed"). Unity's == override treats a
-                // destroyed object as null, so this guard covers it.
-                if (target == null) return;
-
-                Debug.Log($"[PlayerWorldInteractor] Interacted with '{target.DisplayName}'. QuestId: {questIdToSend}. Response: {response?.Message}");
-
-                // Server là nguồn sự thật cho progress: áp Quest đã cộng progress vào cache
-                // (nếu không UI vẫn hiện 0/3 dù server đã ghi nhận).
+                // Áp state server trước: scene có thể unload trong lúc request nhưng QuestManager
+                // sống xuyên scene và vẫn phải nhận lần commit cuối thành công.
                 if (response?.Quest != null && QuestManager.Instance != null)
                     QuestManager.Instance.ApplyServerQuestState(response.Quest);
 
-                // Server đã thêm item vào túi (CollectedItemId) → refresh inventory để hoa hiện ra.
                 if (response != null && response.CollectedItemId.HasValue && response.CollectedItemId.Value > 0)
                     InventoryManager.RefreshAny(refreshStats: false);
 
                 WorldRuntimeEvents.RaiseQuestsChanged();
+                if (target == null) return;
+
+                Debug.Log($"[PlayerWorldInteractor] Interacted with '{target.DisplayName}'. QuestId: {questIdToSend}. Response: {response?.Message}");
                 target.OnSuccessfulInteraction();
             },
             error =>
             {
                 Debug.LogWarning($"[PlayerWorldInteractor] InteractObject failed: {error.Message}");
-                if (target == null) return;
-                target.OnSuccessfulInteraction();
+                WorldRuntimeEvents.RaiseMessage(error.Message);
             }
         );
     }

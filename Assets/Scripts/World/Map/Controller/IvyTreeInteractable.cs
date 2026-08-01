@@ -13,7 +13,7 @@ public class IvyTreeInteractable : MonoBehaviour
     // Default trỏ tới quest "[Chapter 4] Lay Natalie to Rest" (AbandonedCastle,
     // ObjectiveTarget = "Ivy Tree"). Không ghi số quest vào tooltip vì số lệch mỗi lần chèn quest.
     [Tooltip("QuestId của nhiệm vụ an nghỉ Natalie. Scene sẽ override giá trị này.")]
-    [SerializeField] private int linkedQuestId = 30;
+    [SerializeField] private int linkedQuestId = 33;
 
     [Tooltip("ObjectKey gửi lên API.")]
     [SerializeField] private string objectKey = "AbandonedCastle.IvyTree";
@@ -81,75 +81,15 @@ public class IvyTreeInteractable : MonoBehaviour
             return;
         }
 
-        _isInteracting = true;
-        WorldInteractionPromptRuntime.Hide();
-
-        CheckHasSkullItem(hasSkull =>
+        if (!string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
         {
-            if (!hasSkull)
-            {
-                _isInteracting = false;
-                WorldRuntimeEvents.RaiseMessage("You need Natalie's remains (Spirit Skull) from the old well before burying her!");
-                return;
-            }
-
-            if (QuestManager.Instance != null &&
-                !string.Equals(questStatus, "InProgress", System.StringComparison.OrdinalIgnoreCase))
-            {
-                QuestManager.Instance.AcceptQuest(
-                    linkedQuestId,
-                    onSuccess: () =>
-                    {
-                        _isInteracting = false;
-                        WorldRuntimeEvents.RaiseQuestsChanged();
-                        BeginInteractionSequence();
-                    },
-                    onError: error =>
-                    {
-                        Debug.LogWarning($"[IvyTreeInteractable] AcceptQuest failed: {error}");
-                        _isInteracting = false;
-                        WorldRuntimeEvents.RaiseMessage("You need to complete and claim the reward for the previous quest first!");
-                    }
-                );
-                return;
-            }
-
-            BeginInteractionSequence();
-        });
-    }
-
-    private void CheckHasSkullItem(System.Action<bool> callback)
-    {
-        if (!ApiClient.Instance.HasToken())
-        {
-            callback?.Invoke(true);
+            WorldRuntimeEvents.RaiseMessage("Accept Natalie's burial quest first.");
             return;
         }
 
-        InventoryApi.Instance.GetInventory(
-            onSuccess: inv =>
-            {
-                if (inv?.BagItems != null)
-                {
-                    foreach (var item in inv.BagItems)
-                    {
-                        bool isSkull = (item.ItemId == 32) ||
-                                       (item.ItemName != null && item.ItemName.IndexOf("Skull", System.StringComparison.OrdinalIgnoreCase) >= 0);
-                        if (isSkull && item.Quantity > 0)
-                        {
-                            callback?.Invoke(true);
-                            return;
-                        }
-                    }
-                }
-                callback?.Invoke(false);
-            },
-            onError: err =>
-            {
-                Debug.LogWarning($"[IvyTreeInteractable] CheckHasSkullItem error: {err.Message}");
-                callback?.Invoke(true);
-            }
-        );
+        _isInteracting = true;
+        WorldInteractionPromptRuntime.Hide();
+        BeginInteractionSequence();
     }
 
     private void BeginInteractionSequence()
@@ -204,7 +144,8 @@ public class IvyTreeInteractable : MonoBehaviour
     {
         if (!ApiClient.Instance.HasToken())
         {
-            FinalizeAfterInteraction();
+            _isInteracting = false;
+            WorldRuntimeEvents.RaiseMessage("Cannot bury Natalie while offline.");
             return;
         }
 
@@ -216,15 +157,17 @@ public class IvyTreeInteractable : MonoBehaviour
             response =>
             {
                 WorldRuntimeEvents.RaiseMessage(CompletionMessage);
-                QuestManager.Instance?.AddProgress(linkedQuestId, 1);
+                if (response?.Quest != null)
+                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
+                InventoryManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
                 FinalizeAfterInteraction();
             },
             error =>
             {
                 Debug.LogWarning($"[IvyTreeInteractable] InteractObject failed: {error.Message}");
-                WorldRuntimeEvents.RaiseMessage("Cannot interact. You must accept the quest first!");
-                FinalizeAfterInteraction();
+                _isInteracting = false;
+                WorldRuntimeEvents.RaiseMessage(error.Message);
             }
         );
     }
@@ -244,41 +187,6 @@ public class IvyTreeInteractable : MonoBehaviour
 
         _interactable.UpdateOverheadUI();
     }
-
-    private void RemoveQuestItemFromInventory(string itemName)
-    {
-        if (!ApiClient.Instance.HasToken()) return;
-
-        InventoryApi.Instance.GetInventory(
-            onSuccess: inv =>
-            {
-                if (inv?.BagItems == null) return;
-
-                foreach (var item in inv.BagItems)
-                {
-                    bool isSkull = (item.ItemId == 32) ||
-                                   (item.ItemName != null &&
-                                    (item.ItemName.IndexOf("Skull", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                     item.ItemName.IndexOf(itemName, System.StringComparison.OrdinalIgnoreCase) >= 0));
-                    if (isSkull && item.Quantity > 0)
-                    {
-                        InventoryApi.Instance.ConsumeItem(
-                            item.InventoryItemId, 1,
-                            _ =>
-                            {
-                                Debug.Log($"[IvyTreeInteractable] Consumed skull item '{item.ItemName}' (ID {item.ItemId}) from inventory.");
-                                InventoryManager.RefreshAny(refreshStats: false);
-                            },
-                            err => Debug.LogWarning($"[IvyTreeInteractable] Failed to consume skull item: {err.Message}")
-                        );
-                        break;
-                    }
-                }
-            },
-            onError: err => Debug.LogWarning($"[IvyTreeInteractable] GetInventory failed: {err.Message}")
-        );
-    }
-
 
     private void RefreshVisibility()
     {
