@@ -13,8 +13,15 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
     [Header("UI Components")]
     public Image backgroundImage;
     public Image myIcon;
-    public TextMeshProUGUI levelText;// (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
+    public TextMeshProUGUI levelText; // (Tùy chọn) Thêm 1 Text góc nhỏ để hiện Level
     public GameObject lockOverlay;
+
+    [Header("Class Background Sprites")]
+    public Sprite knightBackground;
+    public Sprite archerBackground;
+    public Sprite mageBackground;
+    public Sprite allClassBackground; // Dynamic/general background for all-class skills
+
     private SkillPopup popupManager;
     private Transform originalParent;
     private CanvasGroup canvasGroup;
@@ -32,13 +39,33 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         visualData = vData;
         serverData = sData;
 
-        // 1. Loại bỏ ô nền hình chữ nhật màu trắng
+        bool isUnlocked = (serverData != null);
+
+        // 1. Gán Background theo Class (Knight, Archer, Mage, All/General)
+        if (backgroundImage != null)
+        {
+            Sprite bgSprite = GetBackgroundForSkill(visualData);
+            if (bgSprite != null)
+            {
+                backgroundImage.sprite = bgSprite;
+                backgroundImage.enabled = true;
+                backgroundImage.color = isUnlocked ? Color.white : new Color(0.6f, 0.6f, 0.6f, 0.8f);
+            }
+            else
+            {
+                if (backgroundImage.sprite == null || backgroundImage.sprite.name == "UISprite")
+                {
+                    backgroundImage.color = new Color(1f, 1f, 1f, 0f);
+                }
+            }
+        }
+
         Image rootImage = GetComponent<Image>();
-        if (rootImage != null)
+        if (rootImage != null && rootImage != backgroundImage)
         {
             if (rootImage.sprite == null || rootImage.sprite.name == "UISprite" || rootImage.sprite.name == "Background")
             {
-                rootImage.color = new Color(1f, 1f, 1f, 0f); // Làm nền trắng hoàn toàn trong suốt
+                rootImage.color = new Color(1f, 1f, 1f, 0f);
             }
             else
             {
@@ -46,21 +73,12 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
             }
         }
 
-        if (backgroundImage != null)
-        {
-            if (backgroundImage.sprite == null || backgroundImage.sprite.name == "UISprite")
-            {
-                backgroundImage.color = new Color(1f, 1f, 1f, 0f);
-            }
-        }
-
-        // 2. Định dạng Icon Kỹ năng nằm gọn gàng bên trong khung (chống lọt/tràn ra ngoài)
+        // 2. Icon Kỹ năng
         if (myIcon != null && visualData != null)
         {
             myIcon.sprite = visualData.skillIcon;
-            myIcon.preserveAspect = true; // Giữ tỉ lệ chuẩn của skill icon
+            myIcon.preserveAspect = true;
 
-            // Căn lề icon nằm lùi vào trong khung 15% để không đè đè lên viền vàng
             RectTransform iconRect = myIcon.rectTransform;
             if (iconRect != null)
             {
@@ -71,54 +89,88 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
             }
         }
 
-        // 3. Trạng thái Đã mở khóa / Chưa sở hữu (Khóa)
-        if (serverData == null)
+        // 3. Trạng thái Đã mở khóa / Chưa mở khóa (Block / Lock overlay)
+        if (lockOverlay != null)
         {
-            if (levelText != null) levelText.text = "";
-            if (lockOverlay != null) lockOverlay.SetActive(true);
-            if (myIcon != null) myIcon.color = new Color(0.5f, 0.5f, 0.5f, 0.6f);
+            lockOverlay.SetActive(!isUnlocked);
         }
-        else
+
+        if (levelText != null)
         {
-            if (levelText != null) levelText.text = "Lv." + serverData.Level;
-            if (lockOverlay != null) lockOverlay.SetActive(false);
-            if (myIcon != null) myIcon.color = Color.white;
+            levelText.text = isUnlocked ? "Lv." + serverData.Level : "";
         }
+
+        if (myIcon != null)
+        {
+            myIcon.color = isUnlocked ? Color.white : new Color(0.4f, 0.4f, 0.4f, 0.6f);
+        }
+    }
+
+    private Sprite GetBackgroundForSkill(SkillData skill)
+    {
+        if (skill == null) return allClassBackground;
+
+        if (skill.customBackground != null) return skill.customBackground;
+
+        string req = skill.classRequirement != null ? skill.classRequirement.Trim() : "";
+
+        if (string.IsNullOrEmpty(req) || req.Equals("All", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return allClassBackground;
+        }
+
+        if (req.Equals("Knight", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return knightBackground;
+        }
+
+        if (req.Equals("Archer", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return archerBackground;
+        }
+
+        if (req.Equals("Mage", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return mageBackground;
+        }
+
+        return allClassBackground;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // Truyền CẢ HAI loại dữ liệu sang Popup
-        popupManager.ShowPopup(visualData, serverData);
+        if (popupManager != null)
+        {
+            popupManager.ShowPopup(visualData, serverData);
+        }
     }
 
-    // 1. Khi bắt đầu KÉO -> Đưa skill lên trên cùng để không bị che
     public void OnBeginDrag(PointerEventData eventData)
     {
+        // Chặn không cho kéo skill chưa mở khóa
+        if (serverData == null) return;
+
         originalParent = transform.parent;
-        // Bật ra ngoài Canvas (transform.root thường là Canvas cao nhất)
         transform.SetParent(transform.root);
 
-        // Tắt chặn chuột để chuột có thể xuyên qua hình này chạm vào Slot ở dưới
         if (canvasGroup != null)
         {
             canvasGroup.blocksRaycasts = false;
         }
     }
 
-    // 2. Đang KÉO -> Hình chạy theo vị trí chuột
     public void OnDrag(PointerEventData eventData)
     {
+        if (serverData == null) return;
         transform.position = Input.mousePosition;
     }
 
-    // 3. Thả tay ra (Dừng KÉO)
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Trả object về lại chỗ cũ trong danh sách (Scroll View)
+        if (serverData == null) return;
+
         transform.SetParent(originalParent);
 
-        // Bật lại chức năng chặn chuột
         if (canvasGroup != null)
         {
             canvasGroup.blocksRaycasts = true;
