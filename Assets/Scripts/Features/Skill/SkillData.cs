@@ -8,7 +8,8 @@ public class SkillData : ScriptableObject
 
     [Header("Visual & Client Assets")]
     public Sprite skillIcon;
+    public Sprite customBackground; // (Tùy chọn) Background riêng nếu muốn
     public GameObject skillPrefab; // Hiệu ứng tung chiêu
     [Header("Gameplay")]
-    public string classRequirement = ""; // "Knight", "Archer", "Mage" - use empty for any class
+    public string classRequirement = ""; // "Knight", "Archer", "Mage" - use empty or "All" for any class
 }
