@@ -11,6 +11,12 @@ public static class WorldSceneInteractableBootstrap
 {
     private static readonly HashSet<int> bootstrappedScenes = new();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetRuntimeState()
+    {
+        bootstrappedScenes.Clear();
+    }
+
     public static void EnsureForScene(Scene scene)
     {
         if (!scene.IsValid())
@@ -177,11 +183,6 @@ public static class WorldSceneInteractableBootstrap
             var interactable = obj.GetComponent<WorldInteractable>();
             if (interactable == null)
                 interactable = obj.AddComponent<WorldInteractable>();
-
-            // Tự động thêm WorldRespawnable để item tự ẩn và mọc lại (giống Pumpkin)
-            var respawner = obj.GetComponent<WorldRespawnable>();
-            if (respawner == null)
-                respawner = obj.AddComponent<WorldRespawnable>();
 
             interactable.ConfigureQuestItem(objectKey, itemName, questId, 1, 2.25f);
         }
