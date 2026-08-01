@@ -35,6 +35,9 @@ public class LockedBridgeGate : MonoBehaviour
     [Tooltip("Collider2D dùng để chặn người chơi khi cầu bị khóa.")]
     [SerializeField] private Collider2D blockingCollider2D;
 
+    [Tooltip("Collider2D phụ cũng phải được tắt khi cầu mở (ví dụ collider trên BridgeOldLong).")]
+    [SerializeField] private Collider2D additionalBlockingCollider2D;
+
     [Tooltip("Collider 3D dùng để chặn (nếu dùng 3D).")]
     [SerializeField] private Collider blockingCollider;
 
@@ -114,6 +117,7 @@ public class LockedBridgeGate : MonoBehaviour
         PlayerPrefs.Save();
 
         if (blockingCollider2D != null) blockingCollider2D.enabled = false;
+        if (additionalBlockingCollider2D != null) additionalBlockingCollider2D.enabled = false;
         if (blockingCollider != null) blockingCollider.enabled = false;
 
         if (visualBarrier != null) visualBarrier.SetActive(false);
@@ -131,6 +135,7 @@ public class LockedBridgeGate : MonoBehaviour
         _isUnlocked = false;
 
         if (blockingCollider2D != null) blockingCollider2D.enabled = true;
+        if (additionalBlockingCollider2D != null) additionalBlockingCollider2D.enabled = true;
         if (blockingCollider != null) blockingCollider.enabled = true;
 
         if (visualBarrier != null) visualBarrier.SetActive(true);
@@ -228,7 +233,7 @@ public class LockedBridgeGate : MonoBehaviour
                     {
                         Debug.Log("[LockedBridgeGate] Found Mystic Key!");
                         foundKey = true;
-                        ConsumeMysticKey(item.InventoryItemId);
+                        ProgressQuestThenConsumeKey(item.InventoryItemId);
                         return;
                     }
                 }
@@ -245,6 +250,28 @@ public class LockedBridgeGate : MonoBehaviour
                 NotifyLocked();
             }
         );
+    }
+
+    private void ProgressQuestThenConsumeKey(int inventoryItemId)
+    {
+        WorldApi.Instance.InteractObject(
+            objectKey,
+            "Interact",
+            requiredQuestId,
+            1,
+            response =>
+            {
+                if (response?.Quest != null)
+                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
+                QuestManager.Instance?.AddProgress(requiredQuestId, 1);
+                WorldRuntimeEvents.RaiseQuestsChanged();
+                ConsumeMysticKey(inventoryItemId);
+            },
+            error =>
+            {
+                Debug.LogWarning($"[LockedBridgeGate] Quest progress failed: {error.Message}");
+                NotifyLocked();
+            });
     }
 
     private void ConsumeMysticKey(int inventoryItemId)

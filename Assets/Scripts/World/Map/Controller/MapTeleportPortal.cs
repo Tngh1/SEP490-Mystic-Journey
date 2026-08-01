@@ -13,6 +13,9 @@ public class MapTeleportPortal : MonoBehaviour
     [Tooltip("Reference tới MapSceneController (nếu để trống sẽ tự tìm trong scene)")]
     public MapSceneController mapSceneController;
 
+    [Tooltip("Quest phải hoàn thành trước khi portal hoạt động. 0 = không khóa theo quest.")]
+    [SerializeField] private int requiredQuestId;
+
     private bool isTeleporting = false;
 
     private void Start()
@@ -44,6 +47,20 @@ public class MapTeleportPortal : MonoBehaviour
     private void HandleTeleport()
     {
         if (isTeleporting) return;
+
+        if (requiredQuestId > 0)
+        {
+            var requiredQuest = QuestManager.Instance?.GetMainQuests()
+                ?.Find(q => q != null && q.QuestId == requiredQuestId);
+            if (requiredQuest == null ||
+                (!QuestManager.IsStatus(requiredQuest, "Completed") &&
+                 !QuestManager.IsStatus(requiredQuest, "Claimed")))
+            {
+                WorldRuntimeEvents.RaiseMessage("Speak with the Elf Guard and finish your business on the island first.");
+                return;
+            }
+        }
+
         isTeleporting = true;
         
         if (targetMapData == null)
