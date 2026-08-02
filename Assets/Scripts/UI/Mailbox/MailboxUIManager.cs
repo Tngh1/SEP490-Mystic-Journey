@@ -56,6 +56,7 @@ namespace MysticJourney.Screen.Mail
 
         private MailboxSummaryResponse _currentSelectedMailboxSummary;
         private MailboxItemUI _currentSelectedMailboxUI;
+        private Scrollbar _rewardsScrollbar;
 
         private int _currentPage = 1;
         private int _totalPages = 1;
@@ -88,7 +89,7 @@ namespace MysticJourney.Screen.Mail
             if (titleText != null) titleText.gameObject.SetActive(false);
             if (typeText != null) typeText.gameObject.SetActive(false);
             if (bodyContainer != null) bodyContainer.SetActive(false);
-            if (rewardsContainer != null) rewardsContainer.SetActive(false);
+            SetRewardsVisible(false);
             if (claimButton != null) claimButton.gameObject.SetActive(false);
             if (deleteButton != null) deleteButton.gameObject.SetActive(false);
             if (claimedStamp != null) claimedStamp.SetActive(false);
@@ -100,6 +101,36 @@ namespace MysticJourney.Screen.Mail
             if (typeText != null) typeText.gameObject.SetActive(true);
             if (bodyContainer != null) bodyContainer.SetActive(true);
             if (deleteButton != null) deleteButton.gameObject.SetActive(true);
+        }
+
+        // Scrollbar của Rewards là SIBLING của rewardsContainer (không phải con), nên
+        // rewardsContainer.SetActive(false) không ẩn được nó. Thêm nữa, ScrollRect khi bị
+        // disable sẽ ngừng chạy layout pass, nên cơ chế AutoHideAndExpandViewport của Unity
+        // cũng không kịp tự ẩn -> scrollbar treo lại ở trạng thái bật trong scene.
+        // Vì vậy phải tắt scrollbar tường minh cùng lúc với container.
+        private void SetRewardsVisible(bool visible)
+        {
+            if (rewardsContainer != null) rewardsContainer.SetActive(visible);
+
+            var scrollbar = GetRewardsScrollbar();
+            if (scrollbar != null) scrollbar.gameObject.SetActive(visible);
+        }
+
+        // Lấy scrollbar từ chính ScrollRect của rewardsContainer để không phải wire thêm
+        // reference trong Inspector; hỗ trợ cả trục ngang lẫn dọc.
+        private Scrollbar GetRewardsScrollbar()
+        {
+            if (_rewardsScrollbar != null) return _rewardsScrollbar;
+            if (rewardsContainer == null) return null;
+
+            var scrollRect = rewardsContainer.GetComponent<ScrollRect>();
+            if (scrollRect == null) return null;
+
+            _rewardsScrollbar = scrollRect.horizontalScrollbar != null
+                ? scrollRect.horizontalScrollbar
+                : scrollRect.verticalScrollbar;
+
+            return _rewardsScrollbar;
         }
 
         private void LoadMailboxesFromBackend()
@@ -278,8 +309,7 @@ namespace MysticJourney.Screen.Mail
             bool hasItems = mailboxData.AttachedItems != null && mailboxData.AttachedItems.Length > 0;
             bool hasRewards = hasGold || hasGems || hasItems;
 
-            if (rewardsContainer != null)
-                rewardsContainer.SetActive(hasRewards);
+            SetRewardsVisible(hasRewards);
 
             // Build combined list: gold + gems + items
             var allRewards = new List<UIItemDisplayData>();
@@ -433,7 +463,7 @@ namespace MysticJourney.Screen.Mail
                 mailboxId: _currentSelectedMailboxSummary.MailboxId,
                 onSuccess: response =>
                 {
-                    if (rewardsContainer != null) rewardsContainer.SetActive(false);
+                    SetRewardsVisible(false);
                     if (claimButton != null) claimButton.gameObject.SetActive(false);
                     claimButton.interactable = true;
                     if (claimedStamp != null) claimedStamp.SetActive(true);
