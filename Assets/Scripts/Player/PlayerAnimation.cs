@@ -65,6 +65,23 @@ public class PlayerAnimation : MonoBehaviour
 
         if (sqrMag > 0.01f)
         {
+            // Prioritize animations based on diagonal direction:
+            if (moveX > 0.1f && Mathf.Abs(moveY) > 0.1f)
+            {
+                if (moveY < -0.1f)
+                {
+                    // Diagonal Down -> prioritize horizontal slide
+                    moveX = 1f;
+                    moveY = 0f;
+                }
+                else if (moveY > 0.1f)
+                {
+                    // Diagonal Up -> prioritize vertical up (North)
+                    moveX = 0f;
+                    moveY = 1f;
+                }
+            }
+
             animator.SetFloat(HashMoveX, moveX);
             animator.SetFloat(HashMoveY, moveY);
         }
