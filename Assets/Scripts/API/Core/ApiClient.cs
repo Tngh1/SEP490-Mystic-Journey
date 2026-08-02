@@ -206,16 +206,15 @@ namespace MysticJourney.API.Core
                         }
                         else
                         {
-                            // Refresh thất bại → clear session, thông báo cần login lại
-                            Debug.LogWarning("[ApiClient] Refresh token failed. Session expired. Clearing token.");
+                            // Refresh thất bại (do đã bị đè session hoặc token hết hạn) → clear token và logout về MainMenu
+                            Debug.LogWarning("[ApiClient] Refresh token failed. Session expired or overridden. Clearing token and logging out.");
                             ClearToken();
+                            MysticJourney.Core.Services.SessionService.Logout();
                             onError?.Invoke(new ApiException
                             {
                                 StatusCode = 401,
                                 ErrorCode = "SESSION_EXPIRED",
-                                // Message đi thẳng ra popup UI (LoginUIManager.ShowErrorPopup hiện
-                                // error.Message nguyên văn) nên phải là tiếng Anh.
-                                Message = "Your session has expired. Please log in again."
+                                Message = "Your account has been logged in on another device. Please log in again."
                             });
                             yield break;
                         }
@@ -341,6 +340,13 @@ namespace MysticJourney.API.Core
 
                 Debug.LogError($"[ApiClient] ❌ HTTP {request.responseCode} on {request.url} | ErrorCode={errorCode} | Message={errorMsg}");
                 Debug.LogError($"[ApiClient] Raw body: {rawBody}");
+
+                if (request.responseCode == 401 || string.Equals(errorCode, "SESSION_OVERRIDDEN", StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogWarning("[ApiClient] Session overridden or unauthorized. Clearing token and logging out to MainMenu.");
+                    ClearToken();
+                    MysticJourney.Core.Services.SessionService.Logout();
+                }
 
                 onError?.Invoke(new ApiException
                 {
