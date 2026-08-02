@@ -35,6 +35,21 @@ TextureImporter:
   - first:
       213: 8848703685377722772
     second: Knight_BasicAttack_North_10
+  - first:
+      213: -2316047681640722180
+    second: Knight_BasicAttack_North_11
+  - first:
+      213: -4437051906332581914
+    second: Knight_BasicAttack_North_12
+  - first:
+      213: -8381207997079449497
+    second: Knight_BasicAttack_North_13
+  - first:
+      213: -932540183609427775
+    second: Knight_BasicAttack_North_14
+  - first:
+      213: -5946183805033703560
+    second: Knight_BasicAttack_North_15
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -81,7 +96,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 200
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -133,10 +148,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_0
       rect:
         serializedVersion: 2
-        x: 30
-        y: 28
-        width: 41
-        height: 48
+        x: 28
+        y: 391
+        width: 99
+        height: 100
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -155,10 +170,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_1
       rect:
         serializedVersion: 2
-        x: 135
-        y: 28
-        width: 43
-        height: 48
+        x: 155
+        y: 392
+        width: 91
+        height: 99
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -177,10 +192,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_2
       rect:
         serializedVersion: 2
-        x: 239
-        y: 28
-        width: 52
-        height: 48
+        x: 280
+        y: 391
+        width: 85
+        height: 110
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -199,10 +214,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_3
       rect:
         serializedVersion: 2
-        x: 343
-        y: 28
-        width: 54
-        height: 48
+        x: 405
+        y: 392
+        width: 83
+        height: 111
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -221,10 +236,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_4
       rect:
         serializedVersion: 2
-        x: 447
-        y: 29
-        width: 31
-        height: 47
+        x: 26
+        y: 265
+        width: 81
+        height: 124
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -243,10 +258,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_5
       rect:
         serializedVersion: 2
-        x: 545
-        y: 29
-        width: 38
-        height: 47
+        x: 153
+        y: 265
+        width: 78
+        height: 116
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -265,10 +280,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_6
       rect:
         serializedVersion: 2
-        x: 640
-        y: 29
-        width: 47
-        height: 47
+        x: 281
+        y: 265
+        width: 77
+        height: 117
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -287,10 +302,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_7
       rect:
         serializedVersion: 2
-        x: 752
-        y: 29
-        width: 39
-        height: 47
+        x: 407
+        y: 265
+        width: 84
+        height: 105
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -309,10 +324,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_8
       rect:
         serializedVersion: 2
-        x: 852
-        y: 29
-        width: 43
-        height: 47
+        x: 30
+        y: 139
+        width: 72
+        height: 117
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -331,10 +346,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_9
       rect:
         serializedVersion: 2
-        x: 968
-        y: 29
-        width: 32
-        height: 47
+        x: 158
+        y: 140
+        width: 66
+        height: 99
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -353,10 +368,10 @@ TextureImporter:
       name: Knight_BasicAttack_North_10
       rect:
         serializedVersion: 2
-        x: 1073
-        y: 29
-        width: 54
-        height: 46
+        x: 283
+        y: 139
+        width: 97
+        height: 100
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -371,11 +386,77 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Knight_BasicAttack_North_11
+      rect:
+        serializedVersion: 2
+        x: 408
+        y: 139
+        width: 100
+        height: 100
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf010fc87eebbdfd0800000000000000
+      internalID: -2316047681640722180
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_BasicAttack_North_12
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 13
+        width: 97
+        height: 100
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ef9319bccc6c62c0800000000000000
+      internalID: -4437051906332581914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Knight_BasicAttack_North_13
+      rect:
+        serializedVersion: 2
+        x: 154
+        y: 13
+        width: 99
+        height: 100
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7609a617bb7ffab80800000000000000
+      internalID: -8381207997079449497
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 9bc8fb575f63d1c4bbb34a8f08b5650f
+    spriteID: 6f210b0cf922a6244ac606604866dad2
     internalID: 0
     vertices: []
     indices: 
@@ -383,13 +464,16 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
       Knight_BasicAttack_North_0: 2749968640396759108
       Knight_BasicAttack_North_1: -2681076793271800453
       Knight_BasicAttack_North_10: 8848703685377722772
+      Knight_BasicAttack_North_11: -2316047681640722180
+      Knight_BasicAttack_North_12: -4437051906332581914
+      Knight_BasicAttack_North_13: -8381207997079449497
+      Knight_BasicAttack_North_14: -932540183609427775
+      Knight_BasicAttack_North_15: -5946183805033703560
       Knight_BasicAttack_North_2: -553580282265231746
       Knight_BasicAttack_North_3: 4878286522119731029
       Knight_BasicAttack_North_4: -6901100278806064103
