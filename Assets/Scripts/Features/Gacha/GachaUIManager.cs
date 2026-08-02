@@ -39,6 +39,26 @@ public class GachaUIManager : MonoBehaviour
     public GameObject historyPanel;
     public Transform historyItemContainer;
     public GameObject historyItemPrefab;
+    public GameObject noHistoryText;
+
+    [Header("--- History Pagination ---")]
+    public Button btnPrevPage;
+    public Button btnNextPage;
+    public TextMeshProUGUI pageNumberText;
+    [Tooltip("Số dòng lịch sử hiển thị trên mỗi trang")]
+    public int historyPageSize = 5;
+
+    [Header("--- Rarity Icons ---")]
+    public Sprite iconCommon;
+    public Sprite iconUncommon;
+    public Sprite iconRare;
+    public Sprite iconEpic;
+    public Sprite iconLegendary;
+    public Sprite iconMythic;
+
+    private int _historyPage = 1;
+    private int _historyTotalPages = 1;
+    private bool _isLoadingHistory;
 
     // 👇 KHU VỰC MỚI BỔ SUNG: WARNING POPUP
     [Header("--- Warning Popup ---")]
@@ -66,6 +86,9 @@ public class GachaUIManager : MonoBehaviour
         if (btnOpenHistory != null) btnOpenHistory.onClick.AddListener(OpenHistoryPanel);
         if (btnCloseHistory != null) btnCloseHistory.onClick.AddListener(() => historyPanel.SetActive(false));
 
+        if (btnPrevPage != null) btnPrevPage.onClick.AddListener(() => ChangeHistoryPage(-1));
+        if (btnNextPage != null) btnNextPage.onClick.AddListener(() => ChangeHistoryPage(1));
+
         // Bật lắng nghe nút đóng cảnh báo
         if (btnCloseWarning != null) btnCloseWarning.onClick.AddListener(CloseWarningPopup);
 
@@ -88,6 +111,8 @@ public class GachaUIManager : MonoBehaviour
         if (btnCloseDetail != null) btnCloseDetail.onClick.RemoveAllListeners();
         if (btnOpenHistory != null) btnOpenHistory.onClick.RemoveAllListeners();
         if (btnCloseHistory != null) btnCloseHistory.onClick.RemoveAllListeners();
+        if (btnPrevPage != null) btnPrevPage.onClick.RemoveAllListeners();
+        if (btnNextPage != null) btnNextPage.onClick.RemoveAllListeners();
         if (btnCloseWarning != null) btnCloseWarning.onClick.RemoveAllListeners();
     }
 
@@ -175,17 +200,70 @@ public class GachaUIManager : MonoBehaviour
 
     private void OpenHistoryPanel()
     {
-        if (historyPanel == null || historyItemContainer == null || historyItemPrefab == null) return;
-        foreach (Transform child in historyItemContainer) Destroy(child.gameObject);
+        if (historyPanel == null || historyItemContainer == null || historyItemPrefab == null)
+        {
+            Debug.LogWarning("[GachaUI] HistoryPanel chưa được gán đủ (historyItemContainer/historyItemPrefab).");
+            return;
+        }
 
-        GachaApi.Instance.GetHistory(1, 20,
+        _historyPage = 1;
+        historyPanel.SetActive(true);
+        LoadHistoryPage(_historyPage);
+    }
+
+    private void ChangeHistoryPage(int delta)
+    {
+        if (_isLoadingHistory) return;
+        int target = Mathf.Clamp(_historyPage + delta, 1, _historyTotalPages);
+        if (target == _historyPage) return;
+        _historyPage = target;
+        LoadHistoryPage(_historyPage);
+    }
+
+    private void LoadHistoryPage(int page)
+    {
+        _isLoadingHistory = true;
+        SetHistoryButtonsInteractable(false);
+
+        GachaApi.Instance.GetHistory(page, historyPageSize,
             onSuccess: (response) =>
             {
-                if (response.Items != null)
+                _isLoadingHistory = false;
+
+                if (response == null || response.Items == null)
                 {
-                    foreach (var history in response.Items)
+                    Debug.LogWarning("[GachaUI] GetHistory trả về dữ liệu rỗng.");
+                    SetHistoryButtonsInteractable(false);
+                    return;
+                }
+
+                foreach (Transform child in historyItemContainer) Destroy(child.gameObject);
+
+                int totalCount = response.TotalCount;
+                int totalPages = Mathf.Max(1, (totalCount + historyPageSize - 1) / historyPageSize);
+                if (_historyTotalPages != totalPages) _historyTotalPages = totalPages;
+                _historyPage = Mathf.Clamp(page, 1, _historyTotalPages);
+
+                int shown = 0;
+                foreach (var history in response.Items)
+                {
+                    GameObject go = Instantiate(historyItemPrefab, historyItemContainer);
+                    GachaHistoryItemUI binder = go != null ? go.GetComponent<GachaHistoryItemUI>() : null;
+                    if (binder != null)
                     {
-                        GameObject go = Instantiate(historyItemPrefab, historyItemContainer);
+                        string rarityColor = GetRarityColorHex(history.RewardItemRarity);
+                        if (binder.typeText != null) binder.typeText.text = string.IsNullOrEmpty(history.RewardItemRarity) ? "" : history.RewardItemRarity;
+                        if (binder.itemNameText != null) binder.itemNameText.text = $"<color={rarityColor}>{history.RewardItemName}</color>";
+                        if (binder.dateTimeText != null) binder.dateTimeText.text = history.PulledAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                        if (binder.rarityIconImage != null)
+                        {
+                            Sprite icon = GetRarityIcon(history.RewardItemRarity);
+                            binder.rarityIconImage.sprite = icon;
+                            binder.rarityIconImage.enabled = icon != null;
+                        }
+                    }
+                    else
+                    {
                         TextMeshProUGUI txt = go.GetComponentInChildren<TextMeshProUGUI>();
                         if (txt != null)
                         {
@@ -193,11 +271,45 @@ public class GachaUIManager : MonoBehaviour
                             txt.text = $"[{history.PulledAt.ToLocalTime():dd/MM HH:mm}] Quay ra: <color={rarityColor}>{history.RewardItemName}</color>";
                         }
                     }
+                    shown++;
                 }
-                historyPanel.SetActive(true);
+
+                if (noHistoryText != null)
+                {
+                    noHistoryText.SetActive(shown == 0);
+                }
+
+                SetHistoryButtonsInteractable(true);
             },
-            onError: (error) => { Debug.LogError("[GachaUI] Lỗi tải lịch sử: " + error.Message); }
+            onError: (error) =>
+            {
+                _isLoadingHistory = false;
+                Debug.LogError("[GachaUI] Lỗi tải lịch sử: " + error.Message);
+                SetHistoryButtonsInteractable(false);
+            }
         );
+    }
+
+    private void SetHistoryButtonsInteractable(bool state)
+    {
+        if (btnPrevPage != null) btnPrevPage.interactable = state && _historyPage > 1;
+        if (btnNextPage != null) btnNextPage.interactable = state && _historyPage < _historyTotalPages;
+        if (pageNumberText != null) pageNumberText.text = $"{_historyPage}/{_historyTotalPages}";
+    }
+
+    private Sprite GetRarityIcon(string rarity)
+    {
+        if (string.IsNullOrEmpty(rarity)) return iconCommon;
+        switch (rarity.ToLower())
+        {
+            case "common": return iconCommon;
+            case "uncommon": return iconUncommon;
+            case "rare": return iconRare;
+            case "epic": return iconEpic;
+            case "legendary": return iconLegendary;
+            case "mythic": return iconMythic;
+            default: return iconCommon;
+        }
     }
 
     private void LoadCurrentPityFromHistory()
