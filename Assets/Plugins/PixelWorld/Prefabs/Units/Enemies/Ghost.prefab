@@ -466,7 +466,9 @@ MonoBehaviour:
   roamingTimeMax: 4
   isChasingEnemy: 1
   isAttackingEnemy: 1
-  attackDamage: 10
+  attackDamage: 30
+  critRate: 0
+  critDamageMultiplier: 1.5
   chasingDistance: 4
   chasingSpeedMultiplier: 2
   attackDistance: 2
@@ -493,10 +495,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 3
+  maxHealth: 380
   monsterId: 14
   monsterSpawnId: 0
   useApiStats: 1
+  def: 10
 --- !u!114 &2082104616018284130
 MonoBehaviour:
   m_ObjectHideFlags: 0

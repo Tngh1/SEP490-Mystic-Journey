@@ -255,10 +255,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 8
+  maxHealth: 120
   monsterId: 1
   monsterSpawnId: 0
   useApiStats: 1
+  def: 2
 --- !u!114 &1996363148228235290
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -277,11 +278,23 @@ MonoBehaviour:
   roamingTimeMax: 6
   isChasingEnemy: 1
   isAttackingEnemy: 1
-  attackDamage: 10
+  attackDamage: 12
+  critRate: 0
+  critDamageMultiplier: 1.5
   chasingDistance: 4
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
+  leashDistance: 15
+  canCastSkill: 0
+  skillPrefab: {fileID: 0}
+  skillCooldown: 7
+  skillSpawnDelay: 0.5
+  skillSpawnPoint: {fileID: 0}
+  canCastSkill2: 0
+  skill2Prefab: {fileID: 0}
+  skill2Cooldown: 20
+  skill2SpawnDelay: 0.5
 --- !u!195 &7358432576889712334
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -643,4 +656,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 43884312887666281, guid: 1beaec2692c65bc43896190656be3ec5, type: 3}
   m_PrefabInstance: {fileID: 2158266177842227017}
   m_PrefabAsset: {fileID: 0}
-

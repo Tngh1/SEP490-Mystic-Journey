@@ -228,19 +228,31 @@ public class PlayerEntity : MonoBehaviour
     /// Apply damage to the player. In multiplayer this delegates to
     /// <see cref="NetworkPlayer.ApplyDamage"/>, which is server-authoritative.
     /// In single-player fallback it directly mutates local HP.
+    ///
+    /// attackerCrit/attackerCritMultiplier cho phép NGUỒN tấn công tự quyết định cú đánh
+    /// có crit hay không (quái đọc CritRate/CritDamage từ Monster table). Để null nghĩa là
+    /// "không có dữ liệu crit của attacker" → giữ nguyên hành vi cũ: tự roll 10%.
+    /// KHÔNG được roll thêm một lần nữa khi attackerCrit != null, nếu không một cú đánh sẽ
+    /// bị tính crit hai lần (quái crit rồi player lại roll crit đè lên).
     /// </summary>
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, bool? attackerCrit = null, float attackerCritMultiplier = 1.5f)
     {
         if (_networkPlayer != null)
         {
-            _networkPlayer.ApplyDamage(damage);
+            // Networked: nhân crit TRƯỚC khi gửi đi, vì NetworkPlayer.ApplyDamage là
+            // server-authoritative và không biết gì về CritRate của quái.
+            int networkedDamage = attackerCrit == true
+                ? Mathf.RoundToInt(damage * Mathf.Max(1f, attackerCritMultiplier))
+                : damage;
+            _networkPlayer.ApplyDamage(networkedDamage);
             return;
         }
 
         if (currentHealth <= 0) return; // Prevent multiple death triggers in single-player
 
-        bool isCrit = UnityEngine.Random.Range(0f, 100f) <= 10f;
-        int initialDamage = isCrit ? Mathf.RoundToInt(damage * 1.5f) : damage;
+        bool isCrit = attackerCrit ?? (UnityEngine.Random.Range(0f, 100f) <= 10f);
+        float critMultiplier = attackerCrit.HasValue ? Mathf.Max(1f, attackerCritMultiplier) : 1.5f;
+        int initialDamage = isCrit ? Mathf.RoundToInt(damage * critMultiplier) : damage;
 
         // Giảm trừ sát thương bằng Def
         float currentDef = 0f;
