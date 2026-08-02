@@ -14,6 +14,11 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private bool isAttackingEnemy = false;
     // Thêm biến này lên đầu class
     [SerializeField] private int attackDamage = 10;
+
+    // Crit của quái, nhận từ Monster table qua UpdateStatsFromAPI.
+    // 0 = không bao giờ crit (giữ nguyên hành vi cũ cho prefab chưa gắn MonsterId).
+    [SerializeField] private int critRate = 0;
+    [SerializeField] private float critDamageMultiplier = 1.5f;
     private NavMeshAgent navMeshAgent;
     private State currentState;
     private Vector3 roamPosition;
@@ -89,9 +94,19 @@ public class EnemyBehaviour : MonoBehaviour
         chasingSpeed = navMeshAgent.speed * chasingSpeedMultiplier;
     }
 
-    public void UpdateStatsFromAPI(int apiAttack, float apiMoveSpeed)
+    public void UpdateStatsFromAPI(int apiAttack, float apiMoveSpeed, int apiCritRate = 0, int apiCritDamage = 0)
     {
         attackDamage = apiAttack;
+
+        // CritRate/CritDamage của Monster table trước đây không được đọc ở bất kỳ đâu trong
+        // Unity, nên mọi cú đánh của quái đều là sát thương thường. Nhận ở đây để
+        // AttackingTarget tự roll crit thay vì để PlayerEntity roll cứng 10% cho mọi nguồn.
+        critRate = Mathf.Clamp(apiCritRate, 0, 100);
+
+        // CritDamage là PHẦN TRĂM (150 = 1.5x). Chặn sàn ở 100 để một cú "crit" không bao giờ
+        // yếu hơn cú đánh thường — UnderKing từng có CritDamage=20, tức crit chỉ gây 0.2x.
+        critDamageMultiplier = Mathf.Max(100, apiCritDamage) / 100f;
+
         if (navMeshAgent != null && apiMoveSpeed > 0)
         {
             // Base API speed 100 ~ 3.5f Unity speed
@@ -276,29 +291,38 @@ public class EnemyBehaviour : MonoBehaviour
             // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
 
+            // Roll crit MỘT LẦN cho cú đánh này rồi truyền xuống, thay vì để mỗi nhánh
+            // dưới đây tự roll (sẽ ra kết quả khác nhau) hoặc để PlayerEntity roll cứng 10%
+            // (bỏ qua CritRate riêng của từng con quái).
+            bool isCrit = critRate > 0 && UnityEngine.Random.Range(0f, 100f) <= critRate;
+
             if (currentTarget != null)
             {
                 var networkPlayer = currentTarget.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null)
                 {
-                    networkPlayer.RequestDamage(attackDamage);
+                    // RequestDamage là server-authoritative và không biết crit, nên nhân sẵn.
+                    int netDamage = isCrit
+                        ? Mathf.RoundToInt(attackDamage * critDamageMultiplier)
+                        : attackDamage;
+                    networkPlayer.RequestDamage(netDamage);
                 }
                 else
                 {
                     var playerEntity = currentTarget.GetComponent<PlayerEntity>();
                     if (playerEntity != null)
                     {
-                        playerEntity.TakeDamage(attackDamage);
+                        playerEntity.TakeDamage(attackDamage, isCrit, critDamageMultiplier);
                     }
                     else if (PlayerEntity.Instance != null)
                     {
-                        PlayerEntity.Instance.TakeDamage(attackDamage);
+                        PlayerEntity.Instance.TakeDamage(attackDamage, isCrit, critDamageMultiplier);
                     }
                 }
             }
             else if (PlayerEntity.Instance != null)
             {
-                PlayerEntity.Instance.TakeDamage(attackDamage);
+                PlayerEntity.Instance.TakeDamage(attackDamage, isCrit, critDamageMultiplier);
             }
 
             nextAttackTime = Time.time + attackRate;

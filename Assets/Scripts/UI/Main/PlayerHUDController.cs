@@ -593,27 +593,33 @@ public class PlayerHUDController : MonoBehaviour
 
     private void ApplyLevelGating(int playerLevel)
     {
-        bool level10 = playerLevel >= 10;
+        // Toàn bộ HUD mở khi bước sang Chương 2 (AutumnPumpkin).
+        // Cấp 3 là cấp người chơi đạt được khi VÀO Chương 2 theo đường cong exp
+        // trong seed, nên đây chính là mốc "vừa qua Chương 1". Chương 1 là phần
+        // hướng dẫn (Talk/Collect/EquipSkill), giữ HUD gọn để không rối người mới.
+        //
+        // Trước đây mọi nút mở ở cấp 10 — rơi vào giữa Chương 4, tức là đi gần hết
+        // game mới có Shop/Gacha/Chat/Bestiary.
+        bool unlocked = playerLevel >= 3;
 
-        // Always unlock: Mail
+        // Luôn mở: Mail
         if (mailButtonObj != null) mailButtonObj.SetActive(true);
 
-        // Level 10 unlock: Daily (Achievement), Chat, Friend, Gacha, Shop, Guild, Bestiary
-        if (dailyButtonObj != null) dailyButtonObj.SetActive(level10);
-        if (chatButtonObj != null) chatButtonObj.SetActive(level10);
-        if (friendButtonObj != null) friendButtonObj.SetActive(level10);
-        if (gachaButtonObj != null) gachaButtonObj.SetActive(level10);
-        if (shopButtonObj != null) shopButtonObj.SetActive(level10);
-        if (guildButtonObj != null) guildButtonObj.SetActive(level10);
-        if (bestiaryButtonObj != null) bestiaryButtonObj.SetActive(level10);
+        if (shopButtonObj != null) shopButtonObj.SetActive(unlocked);
+        if (bestiaryButtonObj != null) bestiaryButtonObj.SetActive(unlocked);
+        if (dailyButtonObj != null) dailyButtonObj.SetActive(unlocked);
+        if (chatButtonObj != null) chatButtonObj.SetActive(unlocked);
+        if (friendButtonObj != null) friendButtonObj.SetActive(unlocked);
+        if (gachaButtonObj != null) gachaButtonObj.SetActive(unlocked);
+        if (guildButtonObj != null) guildButtonObj.SetActive(unlocked);
 
-        EnsureUnlockHighlight(dailyButtonObj, level10);
-        EnsureUnlockHighlight(chatButtonObj, level10);
-        EnsureUnlockHighlight(friendButtonObj, level10);
-        EnsureUnlockHighlight(gachaButtonObj, level10);
-        EnsureUnlockHighlight(shopButtonObj, level10);
-        EnsureUnlockHighlight(guildButtonObj, level10);
-        EnsureUnlockHighlight(bestiaryButtonObj, level10);
+        EnsureUnlockHighlight(shopButtonObj, unlocked);
+        EnsureUnlockHighlight(bestiaryButtonObj, unlocked);
+        EnsureUnlockHighlight(dailyButtonObj, unlocked);
+        EnsureUnlockHighlight(chatButtonObj, unlocked);
+        EnsureUnlockHighlight(friendButtonObj, unlocked);
+        EnsureUnlockHighlight(gachaButtonObj, unlocked);
+        EnsureUnlockHighlight(guildButtonObj, unlocked);
     }
 
     private static void AddHoverEffect(Transform t)

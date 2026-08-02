@@ -225,10 +225,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyEntity
-  maxHealth: 300
+  maxHealth: 640
   monsterId: 9
   monsterSpawnId: 0
   useApiStats: 1
+  def: 18
 --- !u!114 &6926630927339201214
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,7 +248,9 @@ MonoBehaviour:
   roamingTimeMax: 2
   isChasingEnemy: 1
   isAttackingEnemy: 1
-  attackDamage: 10
+  attackDamage: 44
+  critRate: 0
+  critDamageMultiplier: 1.5
   chasingDistance: 8
   chasingSpeedMultiplier: 2
   attackDistance: 5

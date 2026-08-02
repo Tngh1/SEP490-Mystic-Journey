@@ -16,6 +16,14 @@ public class EnemyEntity : MonoBehaviour
     [SerializeField] private bool useApiStats = true;
     private bool isDead = false;
 
+    // Def của quái từ Monster table. Trước đây bị bỏ hoàn toàn: ApplyApiStats chỉ đọc
+    // MaxHp/Atk/MoveSpeed, nên Def=300 của UnderKing hay Def=150 của Ghost không có tác
+    // dụng gì — mọi con quái đều nhận đúng 100% sát thương. Giữ cùng công thức với
+    // PlayerEntity.TakeDamage (giảm Def/5, chặn sàn ở 50%) để hai phía đọc như nhau.
+    [SerializeField] private int def = 0;
+
+    public int Def => def;
+
     public int MonsterId => monsterId;
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
@@ -60,7 +68,7 @@ public class EnemyEntity : MonoBehaviour
             Debug.Log($"[EnemyEntity] Cached for {monsterId} is null? {cached == null}");
             if (cached != null)
             {
-                ApplyApiStats(cached.MaxHp, cached.Atk, cached.MoveSpeed);
+                ApplyApiStats(cached.MaxHp, cached.Atk, cached.MoveSpeed, cached.Def, cached.CritRate, cached.CritDamage);
             }
             else
             {
@@ -70,21 +78,22 @@ public class EnemyEntity : MonoBehaviour
                     Debug.Log($"[EnemyEntity] LoadMonsterDetail callback for {monsterId}. detail is null? {detail == null}");
                     if (detail != null && !isDead)
                     {
-                        ApplyApiStats(detail.MaxHp, detail.Atk, detail.MoveSpeed);
+                        ApplyApiStats(detail.MaxHp, detail.Atk, detail.MoveSpeed, detail.Def, detail.CritRate, detail.CritDamage);
                     }
                 });
             }
         }
     }
 
-    private void ApplyApiStats(int apiMaxHp, int apiAtk, int apiMoveSpeed)
+    private void ApplyApiStats(int apiMaxHp, int apiAtk, int apiMoveSpeed, int apiDef, int apiCritRate, int apiCritDamage)
     {
-        Debug.Log($"[EnemyEntity] {gameObject.name} ApplyApiStats: HP={apiMaxHp}, ATK={apiAtk}, SPD={apiMoveSpeed}");
+        Debug.Log($"[EnemyEntity] {gameObject.name} ApplyApiStats: HP={apiMaxHp}, ATK={apiAtk}, SPD={apiMoveSpeed}, DEF={apiDef}, CRIT={apiCritRate}/{apiCritDamage}");
         maxHealth = apiMaxHp;
         currentHealth = maxHealth;
+        def = Mathf.Max(0, apiDef);
         if (enemyBehaviour != null)
         {
-            enemyBehaviour.UpdateStatsFromAPI(apiAtk, apiMoveSpeed);
+            enemyBehaviour.UpdateStatsFromAPI(apiAtk, apiMoveSpeed, apiCritRate, apiCritDamage);
         }
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
@@ -167,7 +176,17 @@ public class EnemyEntity : MonoBehaviour
             return;
         }
 
-        currentHealth -= damage;
+        // Def giảm sát thương nhận vào, cùng công thức với PlayerEntity.TakeDamage:
+        // trừ Def/5 điểm nhưng luôn ăn tối thiểu 50% đòn đánh. Đặt ở ĐÂY (không phải
+        // TakeDamage) vì đây là điểm duy nhất tính HP thật: online thì proxy gọi
+        // RequestDamage rồi authority mới vào hàm này, nên Def chỉ áp dụng đúng 1 lần.
+        // Sàn 50% là chủ ý: nếu trừ thẳng thì quái Def cao thành bất tử với người chơi
+        // sát thương thấp, còn boss Def=35 vẫn phải chết trong số nhát hữu hạn.
+        int reduced = Mathf.RoundToInt(def / 5f);
+        int finalDamage = Mathf.Max(Mathf.RoundToInt(damage * 0.5f), damage - reduced);
+        if (finalDamage < 1) finalDamage = 1;
+
+        currentHealth -= finalDamage;
         if (currentHealth < 0) currentHealth = 0;
 
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
