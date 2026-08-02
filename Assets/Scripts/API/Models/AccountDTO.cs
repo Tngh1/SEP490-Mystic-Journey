@@ -6,6 +6,10 @@ namespace MysticJourney.API.Models.Request
     {
         public string EmailOrUsername { get; set; }
         public string Password { get; set; }
+
+        // Server phân biệt client game với web admin portal qua trường này: chỉ client game
+        // bị chặn khi tài khoản đang được chơi ở máy khác, và chỉ client game ghi mốc online.
+        public string ClientType { get; set; } = "Game";
     }
 }
 
