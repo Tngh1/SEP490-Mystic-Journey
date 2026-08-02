@@ -28,7 +28,8 @@ namespace MysticJourney.API.Endpoints
             var body = new LoginGameRequest
             {
                 EmailOrUsername = emailOrUsername,
-                Password = password
+                Password = password,
+                ClientType = "Game"
             };
 
             ApiClient.Instance.Post<LoginGameRequest, LoginGameResponse>(

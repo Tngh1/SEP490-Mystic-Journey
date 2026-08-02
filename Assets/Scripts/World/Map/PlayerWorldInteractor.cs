@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
+using MysticJourney.API.Models.Response;
 using UnityEngine;
 
 public class PlayerWorldInteractor : MonoBehaviour
@@ -342,6 +343,131 @@ public class PlayerWorldInteractor : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// A quest object must not be usable before the player has actually reached the
+    /// quest it belongs to — otherwise a level-1 player can walk past the pumpkin field
+    /// and harvest Chapter 2's crop, or examine Chapter 2's corpses, and the progress is
+    /// silently thrown away (the server refuses a questId that is not InProgress, so the
+    /// item is consumed for nothing).
+    ///
+    /// The gate is: if we can name a quest that governs this object, that quest has to be
+    /// InProgress. Objects no quest claims (dungeon chests, flavour props) stay usable, and
+    /// so does everything while quest state is still loading — the same "don't lock the
+    /// player out on a missing response" rule <see cref="IsNpcReachable"/> follows.
+    ///
+    /// Controllers that already run their own quest check are skipped: they answer with a
+    /// spoken hint ("Accept the digging quest from Natalie first.") which is better than
+    /// silence, and gating them here would swallow it.
+    /// </summary>
+    private static bool IsWorldObjectReachable(WorldInteractable item)
+    {
+        if (item.GetComponent<IvyTreeInteractable>() != null ||
+            item.GetComponent<LockedBridgeGate>() != null ||
+            item.GetComponent<DiggingInteractable>() != null ||
+            item.GetComponent<OriginTreeInteractable>() != null ||
+            item.GetComponent<BoatVideoTeleporter>() != null ||
+            item.GetComponent<MapTeleportPortal>() != null)
+            return true;
+
+        // Dungeon interactables (reward chest) are resolved locally, never against world
+        // quests — InteractWithObject short-circuits the API for them too.
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return true;
+
+        var manager = QuestManager.Instance;
+        if (manager == null)
+            return true;
+
+        var responses = manager.GetAllResponses();
+        if (responses == null || responses.Count == 0)
+            return true;
+
+        var governed = false;
+
+        // 1) Explicit link (scene questId / ConfigureQuestItem). A linked id with no
+        //    response at all means the main chain has not unlocked that quest yet.
+        var linked = item.LinkedQuestIds;
+        if (linked != null)
+        {
+            foreach (var questId in linked)
+            {
+                if (questId <= 0)
+                    continue;
+
+                governed = true;
+                if (responses.TryGetValue(questId, out var linkedQuest) &&
+                    QuestManager.IsStatus(linkedQuest, "InProgress"))
+                    return true;
+            }
+        }
+
+        // 2) Name link. ConfigureTaggedQuestItems rewrites questId from the API and only
+        //    matches ObjectiveType "Collect", so an Interact objective (Corpse, Cursed Root)
+        //    comes back with questId 0 and would otherwise slip through ungated.
+        foreach (var quest in responses.Values)
+        {
+            if (!IsWorldObjective(quest))
+                continue;
+
+            if (!TargetMatches(quest.ObjectiveTarget, item.ObjectKey, item.DisplayName))
+                continue;
+
+            governed = true;
+            if (QuestManager.IsStatus(quest, "InProgress"))
+                return true;
+        }
+
+        return !governed;
+    }
+
+    /// <summary>
+    /// Only objectives a world object can actually satisfy. Talk/Defeat/Explore targets are
+    /// NPC and monster names, and matching those would gate props by coincidence.
+    /// </summary>
+    private static bool IsWorldObjective(PlayerQuestResponse quest)
+    {
+        if (quest == null)
+            return false;
+
+        return string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(quest.ObjectiveType, "Interact", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(quest.ObjectiveType, "Gather", System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// ObjectiveTarget is prose ("Natalie's Memory", "Tide-Knell Remembrance") while ObjectKey
+    /// is compacted ("AbandonedCastle.Natalie'sMemory"), so a plain Contains misses on the
+    /// space alone. Compare with punctuation and spacing stripped.
+    /// </summary>
+    private static bool TargetMatches(string objectiveTarget, string objectKey, string displayName)
+    {
+        var target = Normalize(objectiveTarget);
+        // Guard against a target so short it matches half the scene.
+        if (target.Length < 4)
+            return false;
+
+        var key = Normalize(objectKey);
+        var name = Normalize(displayName);
+
+        return (key.Length > 0 && (key.Contains(target) || target.Contains(key))) ||
+               (name.Length > 0 && (name.Contains(target) || target.Contains(name)));
+    }
+
+    private static string Normalize(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var builder = new System.Text.StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (char.IsLetterOrDigit(c))
+                builder.Append(char.ToLowerInvariant(c));
+        }
+
+        return builder.ToString();
+    }
+
     private WorldInteractable FindNearestWorldObject()
     {
         WorldInteractable nearest = null;
@@ -366,6 +492,9 @@ public class PlayerWorldInteractor : MonoBehaviour
             var col2D = item.GetComponent<UnityEngine.Collider2D>();
             var col = item.GetComponent<UnityEngine.Collider>();
             if ((col2D != null && !col2D.enabled) || (col != null && !col.enabled))
+                continue;
+
+            if (!IsWorldObjectReachable(item))
                 continue;
 
             var distance = Vector2.Distance(position, item.transform.position);
