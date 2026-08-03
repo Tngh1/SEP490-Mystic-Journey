@@ -158,7 +158,7 @@ public class UIItemDetailPopup : MonoBehaviour
         }
 
         if (itemNameText)        itemNameText.text        = item.ItemName ?? "Unknown";
-        if (itemTypeText)        itemTypeText.text        = item.ItemType ?? "";
+        if (itemTypeText)        itemTypeText.text        = !string.IsNullOrEmpty(item.ItemSlot) ? item.ItemSlot : (item.ItemType ?? "");
         if (itemRarityText)      itemRarityText.text      = item.ItemRarity ?? "";
         if (itemDescriptionText) 
         {
@@ -261,7 +261,7 @@ public class UIItemDetailPopup : MonoBehaviour
         if (equippedItem != null)
         {
             if (oldItemName) oldItemName.text = equippedItem.ItemName;
-            if (oldItemType) oldItemType.text = equippedItem.ItemType;
+            if (oldItemType) oldItemType.text = !string.IsNullOrEmpty(equippedItem.ItemSlot) ? equippedItem.ItemSlot : (equippedItem.ItemType ?? "");
             if (oldItemStats) oldItemStats.text = BuildStatsString(equippedItem);
             if (oldItemEffect) oldItemEffect.text = "None"; // Or fetch from item if applicable
             if (oldItemIcon) {
@@ -282,7 +282,7 @@ public class UIItemDetailPopup : MonoBehaviour
         if (_currentItem != null)
         {
             if (newItemName) newItemName.text = _currentItem.ItemName;
-            if (newItemType) newItemType.text = _currentItem.ItemType;
+            if (newItemType) newItemType.text = !string.IsNullOrEmpty(_currentItem.ItemSlot) ? _currentItem.ItemSlot : (_currentItem.ItemType ?? "");
             if (newItemStats) newItemStats.text = BuildStatsString(_currentItem, equippedItem);
             if (newItemEffect) newItemEffect.text = "None";
             if (newItemIcon) {
