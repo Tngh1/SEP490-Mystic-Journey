@@ -181,6 +181,18 @@ namespace MysticJourney.Screen.Login
                 yield break;
             }
 
+            // Tạo camera tạm DontDestroyOnLoad để lấp khoảng trống giữa 2 scene.
+            // Nếu không có camera nào tồn tại trong khoảng chuyển scene thì Unity
+            // sẽ hiển thị "Display 1 No cameras rendering" trên màn hình.
+            // Camera này render solid black (clearFlags = SolidColor, background = black)
+            // và sẽ tự mất khi scene mới load xong.
+            var placeholderCamGO = new GameObject("__TransitionCamera__");
+            var placeholderCam   = placeholderCamGO.AddComponent<Camera>();
+            placeholderCam.clearFlags       = CameraClearFlags.SolidColor;
+            placeholderCam.backgroundColor  = Color.black;
+            placeholderCam.depth            = -100; // Nằm dưới mọi camera thật
+            DontDestroyOnLoad(placeholderCamGO);
+
             SceneManager.LoadScene(sceneName);
         }
 
