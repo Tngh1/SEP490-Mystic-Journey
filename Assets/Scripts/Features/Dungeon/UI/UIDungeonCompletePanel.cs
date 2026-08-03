@@ -88,6 +88,14 @@ namespace MysticJourney.Features.Dungeon.UI
         /// </summary>
         private IEnumerator ClaimWithRetry(int sessionId)
         {
+            if (sessionId <= 0)
+            {
+                Debug.LogWarning("[UIDungeonCompletePanel] Session ID is invalid (offline fallback). Skipping claim API.");
+                if (goldText != null) goldText.text = "+0";
+                if (expText != null) expText.text = "+0";
+                yield break;
+            }
+
             const int maxAttempts = 6;
 
             for (int attempt = 1; attempt <= maxAttempts; attempt++)

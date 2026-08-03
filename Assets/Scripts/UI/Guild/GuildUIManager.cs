@@ -27,6 +27,7 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private TextMeshProUGUI txtPreviewName;
         [SerializeField] private TextMeshProUGUI txtPreviewMember;
         [SerializeField] private TextMeshProUGUI txtPreviewLeader;
+        [SerializeField] private Image imgPreviewLeaderAvatar;
         [SerializeField] private TextMeshProUGUI txtPreviewNotice;
         [SerializeField] private Button btnPreviewApply;
 
@@ -211,7 +212,9 @@ namespace MysticJourney.UI.Guild
             {
                 donatePanel.Open(currentGuild.guildId, () => 
                 {
-                    OpenGuildDetail(currentGuild.guildId); // Refresh after donate
+                    GuildApi.GetGuildDetail(currentGuild.guildId, 
+                        onSuccess: (detail) => OpenMyGuildDashboard(detail), 
+                        onError: (err) => Debug.LogError("Error refreshing guild after donate: " + err.Message));
                 });
             }
         }
@@ -502,6 +505,17 @@ namespace MysticJourney.UI.Guild
                     if (txtPreviewMember != null) txtPreviewMember.text = $"Members: {detail.memberCount}/{detail.maxMembers}";
                     if (txtPreviewLeader != null) txtPreviewLeader.text = $"Leader: {detail.leaderName}";
                     if (txtPreviewNotice != null) txtPreviewNotice.text = detail.notice;
+
+                    if (imgPreviewLeaderAvatar != null)
+                    {
+                        imgPreviewLeaderAvatar.enabled = true;
+                        string avatarUrl = string.IsNullOrWhiteSpace(detail.leaderAvatarUrl) ? "avatar_1" : detail.leaderAvatarUrl;
+                        Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+                        if (avatarSprite != null)
+                        {
+                            imgPreviewLeaderAvatar.sprite = avatarSprite;
+                        }
+                    }
 
                     if (btnPreviewApply != null)
                     {

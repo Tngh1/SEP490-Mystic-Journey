@@ -58,6 +58,11 @@ namespace MysticJourney.API.Core
         public const string CharacterAllocateStat = "/api/characters/allocate-stat";
 
         // ═══════════════════════════════════════════════════════════════════════
+        // WIKI CONTROLLER
+        // ═══════════════════════════════════════════════════════════════════════
+        public const string WikiClasses = "/api/wiki/classes";
+
+        // ═══════════════════════════════════════════════════════════════════════
         // INVENTORY CONTROLLER - Hành trang
         // ═══════════════════════════════════════════════════════════════════════
         public const string InventoryMe = "/api/inventory/me";

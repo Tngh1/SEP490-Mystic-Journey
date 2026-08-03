@@ -137,6 +137,20 @@ public static class WorldSceneInteractableBootstrap
         if (flowerQuest != null)
             ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", flowerQuest.QuestId, 2.25f);
 
+        var wardenQuest = state.Quests?.FirstOrDefault(q =>
+            q != null &&
+            string.Equals(q.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase) &&
+            Contains(q.ObjectiveTarget, "Warden Relic"));
+        if (wardenQuest != null)
+            ConfigureQuestItemByName(scene, "Warden Relic", "AbandonedCastle.WardenRelic", "Warden Relic", "Collect", wardenQuest.QuestId, 2.25f);
+
+        var aderynQuest = state.Quests?.FirstOrDefault(q =>
+            q != null &&
+            string.Equals(q.ObjectiveType, "Interact", StringComparison.OrdinalIgnoreCase) &&
+            Contains(q.ObjectiveTarget, "Aderyn Memory"));
+        if (aderynQuest != null)
+            ConfigureQuestItemByName(scene, "Aderyn Memory", "AbandonedCastle.AderynMemory", "Aderyn Memory", "Interact", aderynQuest.QuestId, 2.25f);
+
         ConfigureTaggedQuestItems(scene, state);
         ConfigureRespawnableCollectItems(scene, state);
     }
@@ -169,6 +183,23 @@ public static class WorldSceneInteractableBootstrap
             if (interactable == null)
                 interactable = target.AddComponent<WorldInteractable>();
             interactable.ConfigureObject(objectKey, displayName, interactionType, questId, 1, radius);
+        }
+    }
+
+    private static void ConfigureQuestItemByName(Scene scene, string sceneObjectName, string objectKey, string itemName, string interactionType, int questId, float radius)
+    {
+        var targets = FindSceneObjects(scene, sceneObjectName);
+        if (targets.Count == 0) return;
+
+        foreach (var target in targets)
+        {
+            var interactable = target.GetComponent<WorldInteractable>();
+            if (interactable == null)
+            {
+                interactable = target.AddComponent<WorldInteractable>();
+                interactable.GetType().GetField("interactionType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.SetValue(interactable, interactionType);
+            }
+            interactable.ConfigureQuestItem(objectKey, itemName, questId, 1, radius);
         }
     }
 

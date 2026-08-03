@@ -33,10 +33,19 @@ public class DungeonChest : MonoBehaviour
     {
         if (hasOpened) return;
 
-        // Find Local Player properly
-        var localPlayer = NetworkPlayer.Local;
-        if (localPlayer == null || localPlayer.gameObject == null) return;
-        GameObject player = localPlayer.gameObject;
+        // Find Local Player properly (supports both multiplayer and single-player fallback)
+        GameObject player = null;
+        if (NetworkPlayer.Local != null && NetworkPlayer.Local.gameObject != null)
+        {
+            player = NetworkPlayer.Local.gameObject;
+        }
+        else
+        {
+            var pm = FindFirstObjectByType<PlayerMovement>();
+            if (pm != null) player = pm.gameObject;
+        }
+
+        if (player == null) return;
 
         // Check distance to player
         float dist = Vector3.Distance(transform.position, player.transform.position);
@@ -66,9 +75,7 @@ public class DungeonChest : MonoBehaviour
         int sessionId = DungeonManager.Instance.CurrentSessionId;
         if (sessionId <= 0)
         {
-            Debug.LogWarning($"[DungeonChest] Session ID is {sessionId} (testing/fallback). Cannot claim reward on backend.");
-            DungeonManager.Instance.ReturnToWorldMap();
-            return;
+            Debug.LogWarning($"[DungeonChest] Session ID is {sessionId} (testing/fallback). Will show complete panel without claiming rewards.");
         }
 
         Debug.Log($"[DungeonChest] Opening chest for session: {sessionId}...");
