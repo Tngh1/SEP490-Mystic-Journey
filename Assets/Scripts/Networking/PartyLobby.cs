@@ -55,6 +55,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         public int PlayerClass;
         public int Level;
         public NetworkBool Ready;
+        public int SkinId;                // equipped skin — drives the slot portrait
 
         public bool IsOccupied => Player != default;
     }
@@ -185,6 +186,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             PlayerClass = (int)parsed,
             Level = Mathf.Max(1, WorldState.PlayerLevel),
             Ready = ready,
+            SkinId = WorldState.EquippedSkinId,
         });
     }
 
@@ -401,7 +403,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     /// here as arguments.
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_Join(PlayerRef player, int profileId, NetworkString<_32> name, int playerClass, int level)
+    public void RPC_Join(PlayerRef player, int profileId, NetworkString<_32> name, int playerClass, int level, int skinId)
     {
         if (!HasStateAuthority) return;
         if (State != PartyState.Lobby) return; // cannot join a party already entering the dungeon
@@ -419,6 +421,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             PlayerClass = playerClass,
             Level = level,
             Ready = false,
+            SkinId = skinId,
         });
 
         // The joiner filled a pending invite slot.

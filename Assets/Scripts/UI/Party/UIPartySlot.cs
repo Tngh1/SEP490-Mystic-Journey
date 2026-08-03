@@ -10,7 +10,7 @@ using TMPro;
 ///   • Name        — class name-plate IMAGE; sprite also swaps per class. Its TMP
 ///                   child shows the player's display name + level.
 ///   • LeaderIcon  — crown shown only on the host slot.
-///   • Avatar      — optional portrait (kept hidden; no per-class portrait art yet).
+///   • Avatar      — portrait of the member's equipped skin (hidden when unresolved).
 ///   • Ready       — check badge shown when a member is ready (member slots only).
 ///   • KickButton  — remove a member (shown to the host on member slots only).
 ///
@@ -93,7 +93,7 @@ public class UIPartySlot : MonoBehaviour
 
     /// <summary>Render the host (leader): class art + name, crown on, no ready badge / kick.</summary>
     public void RenderHost(string displayName, int level, CharacterClass cls,
-                           Sprite classFlag, Sprite classNameplate)
+                           Sprite classFlag, Sprite classNameplate, Sprite skinPortrait = null)
     {
         ResolveReferences();
         Show(podium, true);
@@ -101,7 +101,7 @@ public class UIPartySlot : MonoBehaviour
         Show(readyIcon, false);   // host has no ready badge (always ready implicitly)
         Show(kickButton, false);
         ClearListeners();
-        SetClassArt(cls, classFlag, classNameplate);
+        SetClassArt(cls, classFlag, classNameplate, skinPortrait);
         SetName($"{displayName}\n<size=70%>Lv.{level}</size>");
     }
 
@@ -109,12 +109,12 @@ public class UIPartySlot : MonoBehaviour
     /// visible only when the local player is the host.</summary>
     public void RenderMember(string displayName, int level, CharacterClass cls,
                              Sprite classFlag, Sprite classNameplate,
-                             bool ready, bool canKick, Action onKick)
+                             bool ready, bool canKick, Action onKick, Sprite skinPortrait = null)
     {
         ResolveReferences();
         Show(podium, true);
         Show(leaderIcon, false);
-        SetClassArt(cls, classFlag, classNameplate);
+        SetClassArt(cls, classFlag, classNameplate, skinPortrait);
         SetName($"{displayName}\n<size=70%>Lv.{level}</size>");
 
         Show(readyIcon, ready);
@@ -152,8 +152,9 @@ public class UIPartySlot : MonoBehaviour
         if (kickButton != null) kickButton.onClick.RemoveAllListeners();
     }
 
-    /// <summary>Swap the Flag + Name-plate sprites to the member's class art.</summary>
-    private void SetClassArt(CharacterClass cls, Sprite classFlag, Sprite classNameplate)
+    /// <summary>Swap the Flag + Name-plate sprites to the member's class art, and the
+    /// portrait to their equipped skin (same preview sprite the inventory shows).</summary>
+    private void SetClassArt(CharacterClass cls, Sprite classFlag, Sprite classNameplate, Sprite skinPortrait)
     {
         if (flagImage != null)
         {
@@ -165,12 +166,29 @@ public class UIPartySlot : MonoBehaviour
             Show(nameplateImage, true);
             if (classNameplate != null) { nameplateImage.sprite = classNameplate; nameplateImage.color = Color.white; }
         }
-        HideAvatar(); // no per-class portrait art yet
+
+        if (avatarImage != null)
+        {
+            avatarImage.gameObject.SetActive(skinPortrait != null);
+            avatarImage.enabled = skinPortrait != null;
+            if (skinPortrait != null)
+            {
+                avatarImage.sprite = skinPortrait;
+                avatarImage.color = Color.white;
+                // Skin previews are tall character frames; without this they stretch
+                // to fill the square Avatar rect.
+                avatarImage.preserveAspect = true;
+            }
+        }
     }
 
     private void HideAvatar()
     {
-        if (avatarImage != null) avatarImage.enabled = false;
+        if (avatarImage != null)
+        {
+            avatarImage.enabled = false;
+            avatarImage.gameObject.SetActive(false);
+        }
     }
 
     private void SetName(string text)

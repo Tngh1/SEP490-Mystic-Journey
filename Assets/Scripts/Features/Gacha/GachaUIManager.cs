@@ -65,6 +65,14 @@ public class GachaUIManager : MonoBehaviour
     public Sprite iconLegendary;
     public Sprite iconMythic;
 
+    [Header("--- Rarity Backgrounds (Result Cards) ---")]
+    public Sprite bgCommon;
+    public Sprite bgUncommon;
+    public Sprite bgRare;
+    public Sprite bgEpic;
+    public Sprite bgLegendary;
+    public Sprite bgMythic;
+
     private int _historyPage = 1;
     private int _historyTotalPages = 1;
     private bool _isLoadingHistory;
@@ -554,6 +562,25 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Khung nền của thẻ kết quả đổi theo độ hiếm.
+    /// Sprite lấy từ các ô kéo trong Inspector nên đổi ảnh không cần sửa code.
+    /// </summary>
+    private Sprite GetRarityBackground(string rarity)
+    {
+        if (string.IsNullOrEmpty(rarity)) return bgCommon;
+        switch (rarity.ToLower())
+        {
+            case "common": return bgCommon;
+            case "uncommon": return bgUncommon;
+            case "rare": return bgRare;
+            case "epic": return bgEpic;
+            case "legendary": return bgLegendary;
+            case "mythic": return bgMythic;
+            default: return bgCommon;
+        }
+    }
+
     private void LoadCurrentPityFromHistory()
     {
         GachaApi.Instance.GetHistory(1, 100,
@@ -700,55 +727,47 @@ public class GachaUIManager : MonoBehaviour
         foreach (Transform child in resultItemContainer) Destroy(child.gameObject);
 
         int currentPity = 0;
-        MonsterSlotUI currentSelectedSlot = null;
 
         if (result.PulledItems != null)
         {
             foreach (var item in result.PulledItems)
             {
                 GameObject newItemUI = Instantiate(pulledItemPrefab, resultItemContainer);
-                TextMeshProUGUI itemNameText = newItemUI.GetComponentInChildren<TextMeshProUGUI>();
-                if (itemNameText != null)
+
+                GachaResultItemUI ui = newItemUI.GetComponent<GachaResultItemUI>();
+                if (ui == null)
                 {
-                    string hexColor = GetRarityColorHex(item.PulledItemRarity);
-                    itemNameText.text = $"<color={hexColor}>{item.PulledItemName}</color>";
+                    Debug.LogWarning("[GachaUI] pulledItemPrefab thiếu component GachaResultItemUI.");
                 }
-
-                Image itemImage = newItemUI.GetComponentInChildren<Image>(true);
-                if (itemImage != null)
+                else
                 {
-                    Sprite icon = null;
-                    if (ItemIconDatabase.Instance != null)
+                    // Khung nền đổi theo độ hiếm của vật phẩm vừa quay được
+                    if (ui.typeBgImage != null)
                     {
-                        icon = ItemIconDatabase.Instance.GetIcon(item.PulledItemName, item.PulledItemRarity);
+                        Sprite bg = GetRarityBackground(item.PulledItemRarity);
+                        if (bg != null) ui.typeBgImage.sprite = bg;
                     }
 
-                    if (icon == null)
+                    if (ui.itemIconImage != null)
                     {
-                        icon = Resources.Load<Sprite>($"Icons/{item.PulledItemName}") ?? Resources.Load<Sprite>($"Icons/{item.PulledItemRarity}");
-                    }
-
-                    if (icon != null)
-                    {
-                        itemImage.sprite = icon;
-                        itemImage.enabled = true;
-                    }
-                }
-
-                // Nếu prefab dùng chung MonsterSlotUI, tắt viền sáng mặc định và thêm sự kiện click
-                MonsterSlotUI slotUI = newItemUI.GetComponent<MonsterSlotUI>();
-                if (slotUI != null)
-                {
-                    slotUI.SetSelected(false);
-                    Button btn = newItemUI.GetComponent<Button>();
-                    if (btn != null)
-                    {
-                        btn.onClick.AddListener(() => 
+                        Sprite icon = null;
+                        if (ItemIconDatabase.Instance != null)
                         {
-                            if (currentSelectedSlot != null) currentSelectedSlot.SetSelected(false);
-                            currentSelectedSlot = slotUI;
-                            slotUI.SetSelected(true);
-                        });
+                            icon = ItemIconDatabase.Instance.GetIcon(item.PulledItemName, item.PulledItemRarity);
+                        }
+
+                        if (icon != null)
+                        {
+                            ui.itemIconImage.sprite = icon;
+                            ui.itemIconImage.enabled = true;
+                        }
+                    }
+
+                    // Prefab hiện tại không còn TMP tên vật phẩm, để trống thì bỏ qua
+                    if (ui.itemNameText != null)
+                    {
+                        string hexColor = GetRarityColorHex(item.PulledItemRarity);
+                        ui.itemNameText.text = $"<color={hexColor}>{item.PulledItemName}</color>";
                     }
                 }
 
