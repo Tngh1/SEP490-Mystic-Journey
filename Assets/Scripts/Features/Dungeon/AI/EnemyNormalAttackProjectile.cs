@@ -53,7 +53,7 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
     private void HandleHit(GameObject hitObj, bool isTrigger)
     {
         // 1. Bỏ qua va chạm với quái/kẻ địch/spawner
-        if (hitObj.GetComponent<EnemyEntity>() != null || hitObj.GetComponent<EnemyBehaviour>() != null || hitObj.CompareTag("IgnoreRaycast")) return;
+        if (hitObj.GetComponent<EnemyEntity>() != null || hitObj.GetComponent<EnemyBehaviour>() != null || hitObj.layer == LayerMask.NameToLayer("Ignore Raycast")) return;
 
         // 2. Nếu là Player -> Gây sát thương, tạo hiệu ứng va chạm và huỷ đạn
         if (hitObj.CompareTag("Player"))

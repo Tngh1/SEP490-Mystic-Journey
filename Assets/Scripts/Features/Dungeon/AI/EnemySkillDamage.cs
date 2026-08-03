@@ -46,7 +46,7 @@ public class EnemySkillDamage : MonoBehaviour
 
     private void HandleHit(GameObject hitObj, bool isTrigger)
     {
-        if (hitObj.GetComponent<EnemyEntity>() != null || hitObj.GetComponent<EnemyBehaviour>() != null || hitObj.CompareTag("IgnoreRaycast")) return;
+        if (hitObj.GetComponent<EnemyEntity>() != null || hitObj.GetComponent<EnemyBehaviour>() != null || hitObj.layer == LayerMask.NameToLayer("Ignore Raycast")) return;
 
         if (hitObj.CompareTag("Player"))
         {

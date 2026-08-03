@@ -48,6 +48,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
         WorldApi.Instance.GetState(
             state => 
             {
+                if (this == null) return;
                 if (state != null && state.Npcs != null)
                 {
                     ClearCurrentNpcs();
@@ -56,6 +57,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
             },
             error => 
             {
+                if (this == null) return;
                 Debug.LogError($"[WorldNpcSpawner] Lỗi tải NPC: {error.Message}");
             }
         );
@@ -63,7 +65,8 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
 
     private void SpawnNpcList(List<NPCResponse> npcList)
     {
-        Transform parentTransform = npcContainer != null ? npcContainer : this.transform;
+        if (this == null) return;
+        Transform parentTransform = (npcContainer != null) ? npcContainer : this.transform;
         var hideNatalie = ShouldHideNatalie();
 
         foreach (var npc in npcList)
