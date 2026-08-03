@@ -268,6 +268,12 @@ public class EnemyEntity : MonoBehaviour
             if (enemyBehaviour != null) enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");
 
+            // Lưu vị trí chết để hiển thị hiệu ứng rớt Vàng, EXP, Item
+            if (MysticJourney.Features.Monster.MonsterDropVisualManager.Instance != null)
+            {
+                MysticJourney.Features.Monster.MonsterDropVisualManager.Instance.RegisterMonsterDeathPosition(monsterId, transform.position);
+            }
+
             // Báo server khi hạ quái (XP, gold, drop random, khám phá bestiary)
             if (monsterId > 0 && MonsterManager.Instance != null && ApiClient.Instance.HasToken())
             {

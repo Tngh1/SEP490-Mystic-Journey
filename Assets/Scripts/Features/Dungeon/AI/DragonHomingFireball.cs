@@ -107,7 +107,7 @@ public class DragonHomingFireball : MonoBehaviour
     {
         if (_isHit || col == null) return;
 
-        if (col.GetComponent<EnemyEntity>() != null || col.GetComponent<EnemyBehaviour>() != null || col.CompareTag("IgnoreRaycast")) return;
+        if (col.GetComponent<EnemyEntity>() != null || col.GetComponent<EnemyBehaviour>() != null || col.gameObject.layer == LayerMask.NameToLayer("Ignore Raycast")) return;
 
         if (col.CompareTag("Player"))
         {
