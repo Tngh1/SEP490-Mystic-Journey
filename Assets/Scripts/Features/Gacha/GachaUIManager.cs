@@ -15,6 +15,7 @@ public class GachaUIManager : MonoBehaviour
     public TextMeshProUGUI ticketCountText;
 
     [Header("--- Action Buttons ---")]
+    public Button btnCloseMain;
     public Button btnPull1;
     public TextMeshProUGUI pull1CostText;
     public Button btnPull10;
@@ -32,6 +33,14 @@ public class GachaUIManager : MonoBehaviour
     public GameObject detailPanel;
     public Transform detailItemContainer;
     public GameObject detailItemPrefab;
+    public GameObject noDetailText;
+
+    [Header("--- Detail Pagination ---")]
+    public Button btnDetailPrevPage;
+    public Button btnDetailNextPage;
+    public TextMeshProUGUI detailPageNumberText;
+    [Tooltip("Number of rate rows displayed per page")]
+    public int detailPageSize = 5;
 
     [Header("--- Gacha History ---")]
     public Button btnOpenHistory;
@@ -45,7 +54,7 @@ public class GachaUIManager : MonoBehaviour
     public Button btnPrevPage;
     public Button btnNextPage;
     public TextMeshProUGUI pageNumberText;
-    [Tooltip("Số dòng lịch sử hiển thị trên mỗi trang")]
+    [Tooltip("Number of history rows displayed per page")]
     public int historyPageSize = 5;
 
     [Header("--- Rarity Icons ---")]
@@ -59,6 +68,9 @@ public class GachaUIManager : MonoBehaviour
     private int _historyPage = 1;
     private int _historyTotalPages = 1;
     private bool _isLoadingHistory;
+
+    private int _detailPage = 1;
+    private int _detailTotalPages = 1;
 
     // 👇 KHU VỰC MỚI BỔ SUNG: WARNING POPUP
     [Header("--- Warning Popup ---")]
@@ -74,23 +86,138 @@ public class GachaUIManager : MonoBehaviour
     private int _pityLimit = 90;
     private List<GachaBannerItemResponse> _cachedBannerItems = new List<GachaBannerItemResponse>();
 
+    private void Awake()
+    {
+        SetupHoverEffects();
+    }
+
+    /// <summary>
+    /// Gắn hiệu ứng phóng to khi rê chuột cho toàn bộ nút của GachaPanel,
+    /// dùng đúng component UIHoverScaleEffect mà HUD đang dùng.
+    /// </summary>
+    private void SetupHoverEffects()
+    {
+        AddHoverEffect(btnCloseMain);
+        AddHoverEffect(btnPull1);
+        AddHoverEffect(btnPull10);
+        AddHoverEffect(btnCloseResult);
+
+        AddHoverEffect(btnOpenDetail);
+        AddHoverEffect(btnCloseDetail);
+        AddHoverEffect(btnDetailPrevPage);
+        AddHoverEffect(btnDetailNextPage);
+
+        AddHoverEffect(btnOpenHistory);
+        AddHoverEffect(btnCloseHistory);
+        AddHoverEffect(btnPrevPage);
+        AddHoverEffect(btnNextPage);
+
+        AddHoverEffect(btnCloseWarning);
+    }
+
+    private static void AddHoverEffect(Button btn)
+    {
+        if (btn == null) return;
+        if (btn.GetComponent<UIHoverScaleEffect>() == null)
+            btn.gameObject.AddComponent<UIHoverScaleEffect>();
+    }
+
     private void OnEnable()
     {
-        btnPull1.onClick.AddListener(() => PerformPull(1));
-        btnPull10.onClick.AddListener(() => PerformPull(10));
-        if (btnCloseResult != null) btnCloseResult.onClick.AddListener(CloseResultPopup);
+        if (btnCloseMain == null)
+        {
+            Transform mainCloseTr = transform.Find("Header/CloseButton");
+            if (mainCloseTr != null) btnCloseMain = mainCloseTr.GetComponent<Button>();
+        }
 
-        if (btnOpenDetail != null) btnOpenDetail.onClick.AddListener(OpenDetailPanel);
-        if (btnCloseDetail != null) btnCloseDetail.onClick.AddListener(() => detailPanel.SetActive(false));
+        if (btnCloseMain != null)
+        {
+            btnCloseMain.onClick.RemoveAllListeners();
+            btnCloseMain.onClick.AddListener(CloseMainPanel);
+            AddHoverEffect(btnCloseMain);
+        }
 
-        if (btnOpenHistory != null) btnOpenHistory.onClick.AddListener(OpenHistoryPanel);
-        if (btnCloseHistory != null) btnCloseHistory.onClick.AddListener(() => historyPanel.SetActive(false));
+        if (btnPull1 != null)
+        {
+            btnPull1.onClick.RemoveAllListeners();
+            btnPull1.onClick.AddListener(() => PerformPull(1));
+        }
+        
+        if (btnPull10 != null)
+        {
+            btnPull10.onClick.RemoveAllListeners();
+            btnPull10.onClick.AddListener(() => PerformPull(10));
+        }
+        
+        if (btnCloseResult != null) 
+        {
+            btnCloseResult.onClick.RemoveAllListeners();
+            btnCloseResult.onClick.AddListener(CloseResultPopup);
+            btnCloseResult.transform.SetAsLastSibling();
+        }
 
-        if (btnPrevPage != null) btnPrevPage.onClick.AddListener(() => ChangeHistoryPage(-1));
-        if (btnNextPage != null) btnNextPage.onClick.AddListener(() => ChangeHistoryPage(1));
+        if (btnOpenDetail != null) 
+        {
+            btnOpenDetail.onClick.RemoveAllListeners();
+            btnOpenDetail.onClick.AddListener(OpenDetailPanel);
+        }
+        
+        if (btnCloseDetail != null) 
+        {
+            btnCloseDetail.onClick.RemoveAllListeners();
+            btnCloseDetail.onClick.AddListener(() => detailPanel.SetActive(false));
+            btnCloseDetail.transform.SetAsLastSibling();
+        }
+
+        if (btnOpenHistory != null) 
+        {
+            btnOpenHistory.onClick.RemoveAllListeners();
+            btnOpenHistory.onClick.AddListener(OpenHistoryPanel);
+        }
+        
+        if (btnCloseHistory != null) 
+        {
+            btnCloseHistory.onClick.RemoveAllListeners();
+            btnCloseHistory.onClick.AddListener(() => 
+            {
+                Debug.Log("[GachaUIManager] History CloseButton clicked!");
+                if (historyPanel != null) historyPanel.SetActive(false);
+            });
+            // Giúp nút close không bị các element khác đè lên (nếu có)
+            btnCloseHistory.transform.SetAsLastSibling();
+        }
+
+        if (btnPrevPage != null) 
+        {
+            btnPrevPage.onClick.RemoveAllListeners();
+            btnPrevPage.onClick.AddListener(() => ChangeHistoryPage(-1));
+        }
+        
+        if (btnNextPage != null) 
+        {
+            btnNextPage.onClick.RemoveAllListeners();
+            btnNextPage.onClick.AddListener(() => ChangeHistoryPage(1));
+        }
+
+        if (btnDetailPrevPage != null) 
+        {
+            btnDetailPrevPage.onClick.RemoveAllListeners();
+            btnDetailPrevPage.onClick.AddListener(() => ChangeDetailPage(-1));
+        }
+        
+        if (btnDetailNextPage != null) 
+        {
+            btnDetailNextPage.onClick.RemoveAllListeners();
+            btnDetailNextPage.onClick.AddListener(() => ChangeDetailPage(1));
+        }
 
         // Bật lắng nghe nút đóng cảnh báo
-        if (btnCloseWarning != null) btnCloseWarning.onClick.AddListener(CloseWarningPopup);
+        if (btnCloseWarning != null) 
+        {
+            btnCloseWarning.onClick.RemoveAllListeners();
+            btnCloseWarning.onClick.AddListener(CloseWarningPopup);
+            btnCloseWarning.transform.SetAsLastSibling();
+        }
 
         // Ẩn tất cả các bảng phụ
         if (resultPopupPanel != null) resultPopupPanel.SetActive(false);
@@ -104,7 +231,8 @@ public class GachaUIManager : MonoBehaviour
 
     private void OnDisable()
     {
-        btnPull1.onClick.RemoveAllListeners();
+        if (btnCloseMain != null) btnCloseMain.onClick.RemoveAllListeners();
+        if (btnPull1 != null) btnPull1.onClick.RemoveAllListeners();
         btnPull10.onClick.RemoveAllListeners();
         if (btnCloseResult != null) btnCloseResult.onClick.RemoveAllListeners();
         if (btnOpenDetail != null) btnOpenDetail.onClick.RemoveAllListeners();
@@ -113,7 +241,21 @@ public class GachaUIManager : MonoBehaviour
         if (btnCloseHistory != null) btnCloseHistory.onClick.RemoveAllListeners();
         if (btnPrevPage != null) btnPrevPage.onClick.RemoveAllListeners();
         if (btnNextPage != null) btnNextPage.onClick.RemoveAllListeners();
+        if (btnDetailPrevPage != null) btnDetailPrevPage.onClick.RemoveAllListeners();
+        if (btnDetailNextPage != null) btnDetailNextPage.onClick.RemoveAllListeners();
         if (btnCloseWarning != null) btnCloseWarning.onClick.RemoveAllListeners();
+    }
+
+    private void CloseMainPanel()
+    {
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ClosePanel(gameObject);
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     private void LoadBannerData(int bannerId)
@@ -137,7 +279,7 @@ public class GachaUIManager : MonoBehaviour
                 LoadCurrentPityFromHistory();
                 SetButtonsInteractable(true);
             },
-            onError: (error) => { Debug.LogError("[GachaUI] Lỗi tải Banner: " + error.Message); }
+            onError: (error) => { Debug.LogError("[GachaUI] Failed to load Banner: " + error.Message); }
         );
     }
 
@@ -168,7 +310,7 @@ public class GachaUIManager : MonoBehaviour
             },
             onError: (error) =>
             {
-                Debug.LogWarning("[GachaUI] Không lấy được số vé quay: " + error.Message);
+                Debug.LogWarning("[GachaUI] Failed to get ticket count: " + error.Message);
                 if (ticketCountText != null) ticketCountText.text = "x0";
             }
         );
@@ -182,27 +324,127 @@ public class GachaUIManager : MonoBehaviour
 
     private void OpenDetailPanel()
     {
-        if (detailPanel == null || detailItemContainer == null || detailItemPrefab == null) return;
+        if (detailPanel == null || detailItemContainer == null || detailItemPrefab == null)
+        {
+            Debug.LogWarning("[GachaUI] DetailPanel missing references (detailItemContainer/detailItemPrefab).");
+            return;
+        }
+
+        _detailPage = 1;
+        detailPanel.SetActive(true);
+        RenderDetailPage(_detailPage);
+    }
+
+    private void ChangeDetailPage(int delta)
+    {
+        int target = Mathf.Clamp(_detailPage + delta, 1, _detailTotalPages);
+        if (target == _detailPage) return;
+        _detailPage = target;
+        RenderDetailPage(_detailPage);
+    }
+
+    /// <summary>
+    /// Tỉ lệ rơi đã nằm sẵn trong _cachedBannerItems nên phân trang hoàn toàn ở client,
+    /// không gọi lại API như bên lịch sử.
+    /// </summary>
+    private void RenderDetailPage(int page)
+    {
         foreach (Transform child in detailItemContainer) Destroy(child.gameObject);
 
-        foreach (var item in _cachedBannerItems)
+        int totalCount = _cachedBannerItems.Count;
+        _detailTotalPages = Mathf.Max(1, (totalCount + detailPageSize - 1) / detailPageSize);
+        _detailPage = Mathf.Clamp(page, 1, _detailTotalPages);
+
+        // Bảng tỉ lệ xếp theo độ hiếm giảm dần, vật phẩm nổi bật lên đầu.
+        var ordered = new List<GachaBannerItemResponse>(_cachedBannerItems);
+        ordered.Sort((a, b) =>
         {
+            if (a.IsFeatured != b.IsFeatured) return b.IsFeatured.CompareTo(a.IsFeatured);
+            int rankCompare = GetRarityRank(b.ItemRarity).CompareTo(GetRarityRank(a.ItemRarity));
+            if (rankCompare != 0) return rankCompare;
+            return a.DropRate.CompareTo(b.DropRate);
+        });
+
+        int startIndex = (_detailPage - 1) * detailPageSize;
+        int endIndex = Mathf.Min(startIndex + detailPageSize, totalCount);
+
+        for (int i = startIndex; i < endIndex; i++)
+        {
+            var item = ordered[i];
             GameObject go = Instantiate(detailItemPrefab, detailItemContainer);
-            TextMeshProUGUI txt = go.GetComponentInChildren<TextMeshProUGUI>();
-            if (txt != null)
+            GachaDetailItemUI binder = go != null ? go.GetComponent<GachaDetailItemUI>() : null;
+            if (binder == null)
             {
-                string rarityColor = GetRarityColorHex(item.ItemRarity);
-                txt.text = $"<color={rarityColor}>[{item.ItemRarity}] {item.ItemName}</color> - Tỉ lệ: <color=orange>{item.DropRate}%</color>";
+                Debug.LogWarning("[GachaUI] detailItemPrefab is missing GachaDetailItemUI component.");
+                continue;
+            }
+
+            string rarityColor = GetRarityColorHex(item.ItemRarity);
+
+            if (binder.typeText != null)
+                binder.typeText.text = string.IsNullOrEmpty(item.ItemRarity)
+                    ? ""
+                    : $"<color={rarityColor}>{item.ItemRarity}</color>";
+
+            if (binder.itemNameText != null)
+                binder.itemNameText.text = $"<color={rarityColor}>{item.ItemName}</color>";
+
+            if (binder.rateText != null)
+                binder.rateText.text = $"{item.DropRate}%";
+
+            if (binder.rarityIconImage != null)
+            {
+                Sprite gem = GetRarityIcon(item.ItemRarity);
+                binder.rarityIconImage.sprite = gem;
+                binder.rarityIconImage.enabled = gem != null;
+            }
+
+            if (binder.itemIconImage != null)
+            {
+                Sprite icon = null;
+                if (ItemIconDatabase.Instance != null)
+                    icon = ItemIconDatabase.Instance.GetIcon(item.ItemName, item.ItemRarity);
+
+                if (icon == null)
+                    icon = Resources.Load<Sprite>($"Icons/{item.ItemName}") ?? Resources.Load<Sprite>($"Icons/{item.ItemRarity}");
+
+                binder.itemIconImage.sprite = icon;
+                binder.itemIconImage.enabled = icon != null;
             }
         }
-        detailPanel.SetActive(true);
+
+        if (noDetailText != null) noDetailText.SetActive(totalCount == 0);
+
+        SetDetailButtonsInteractable(true);
+    }
+
+    private void SetDetailButtonsInteractable(bool state)
+    {
+        if (btnDetailPrevPage != null) btnDetailPrevPage.interactable = state && _detailPage > 1;
+        if (btnDetailNextPage != null) btnDetailNextPage.interactable = state && _detailPage < _detailTotalPages;
+        if (detailPageNumberText != null) detailPageNumberText.text = $"{_detailPage}/{_detailTotalPages}";
+    }
+
+    private int GetRarityRank(string rarity)
+    {
+        if (string.IsNullOrEmpty(rarity)) return 0;
+        switch (rarity.ToLower())
+        {
+            case "mythic": return 6;
+            case "legendary": return 5;
+            case "epic": return 4;
+            case "rare": return 3;
+            case "uncommon": return 2;
+            case "common": return 1;
+            default: return 0;
+        }
     }
 
     private void OpenHistoryPanel()
     {
         if (historyPanel == null || historyItemContainer == null || historyItemPrefab == null)
         {
-            Debug.LogWarning("[GachaUI] HistoryPanel chưa được gán đủ (historyItemContainer/historyItemPrefab).");
+            Debug.LogWarning("[GachaUI] HistoryPanel missing references (historyItemContainer/historyItemPrefab).");
             return;
         }
 
@@ -232,7 +474,7 @@ public class GachaUIManager : MonoBehaviour
 
                 if (response == null || response.Items == null)
                 {
-                    Debug.LogWarning("[GachaUI] GetHistory trả về dữ liệu rỗng.");
+                    Debug.LogWarning("[GachaUI] GetHistory returned empty data.");
                     SetHistoryButtonsInteractable(false);
                     return;
                 }
@@ -268,7 +510,7 @@ public class GachaUIManager : MonoBehaviour
                         if (txt != null)
                         {
                             string rarityColor = GetRarityColorHex(history.RewardItemRarity);
-                            txt.text = $"[{history.PulledAt.ToLocalTime():dd/MM HH:mm}] Quay ra: <color={rarityColor}>{history.RewardItemName}</color>";
+                            txt.text = $"[{history.PulledAt.ToLocalTime():dd/MM HH:mm}] Pulled: <color={rarityColor}>{history.RewardItemName}</color>";
                         }
                     }
                     shown++;
@@ -284,7 +526,7 @@ public class GachaUIManager : MonoBehaviour
             onError: (error) =>
             {
                 _isLoadingHistory = false;
-                Debug.LogError("[GachaUI] Lỗi tải lịch sử: " + error.Message);
+                Debug.LogError("[GachaUI] Failed to load history: " + error.Message);
                 SetHistoryButtonsInteractable(false);
             }
         );
@@ -345,7 +587,7 @@ public class GachaUIManager : MonoBehaviour
             },
             onError: (error) =>
             {
-                Debug.LogWarning("[GachaUI] Không lấy được pity từ lịch sử: " + error.Message);
+                Debug.LogWarning("[GachaUI] Failed to get pity from history: " + error.Message);
                 UpdatePityUI(0);
             }
         );
@@ -423,7 +665,7 @@ public class GachaUIManager : MonoBehaviour
             },
             onError: (error) =>
             {
-                Debug.LogWarning("[GachaUI] Quay thất bại: " + error.Message);
+                Debug.LogWarning("[GachaUI] Pull failed: " + error.Message);
 
                 // Nếu có lỗi, hoàn lại lượt free (tuỳ logic, tạm thời có thể hoàn lại nếu server từ chối)
                 if (isFreePull)
@@ -433,7 +675,7 @@ public class GachaUIManager : MonoBehaviour
                 }
 
                 // 👇 HIỂN THỊ POPUP NẾU QUAY LỖI (Ví dụ: Server báo không đủ vé)
-                ShowWarningPopup("Không đủ vé quay hoặc có lỗi xảy ra!\n" + error.Message);
+                ShowWarningPopup("Not enough tickets or an error occurred!\n" + error.Message);
 
                 SetButtonsInteractable(true);
             }
@@ -458,6 +700,7 @@ public class GachaUIManager : MonoBehaviour
         foreach (Transform child in resultItemContainer) Destroy(child.gameObject);
 
         int currentPity = 0;
+        MonsterSlotUI currentSelectedSlot = null;
 
         if (result.PulledItems != null)
         {
@@ -492,6 +735,23 @@ public class GachaUIManager : MonoBehaviour
                     }
                 }
 
+                // Nếu prefab dùng chung MonsterSlotUI, tắt viền sáng mặc định và thêm sự kiện click
+                MonsterSlotUI slotUI = newItemUI.GetComponent<MonsterSlotUI>();
+                if (slotUI != null)
+                {
+                    slotUI.SetSelected(false);
+                    Button btn = newItemUI.GetComponent<Button>();
+                    if (btn != null)
+                    {
+                        btn.onClick.AddListener(() => 
+                        {
+                            if (currentSelectedSlot != null) currentSelectedSlot.SetSelected(false);
+                            currentSelectedSlot = slotUI;
+                            slotUI.SetSelected(true);
+                        });
+                    }
+                }
+
                 // Ưu tiên dùng pity trả về từ backend
                 if (item.CurrentPity >= 0)
                 {
@@ -520,7 +780,7 @@ public class GachaUIManager : MonoBehaviour
         // Càng gần số 0 thì màu càng đỏ rực lên
         string colorTag = pullsLeft <= 10 ? "<color=red>" : "<color=yellow>";
 
-        pityText.text = $"Chắc chắn nhận vật phẩm quý sau: {colorTag}{pullsLeft}</color> lượt";
+        pityText.text = $"Guaranteed rare item in: {colorTag}{pullsLeft}</color> pulls";
     }
 
     private void SetButtonsInteractable(bool state)
