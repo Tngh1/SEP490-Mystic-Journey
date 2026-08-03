@@ -56,6 +56,19 @@ public class EnemyEntity : MonoBehaviour
         boxColl = GetComponent<BoxCollider2D>();
         enemyBehaviour = GetComponent<EnemyBehaviour>();
 
+        if (monsterId <= 0)
+        {
+            string nameForId = gameObject.name.Replace("(Clone)", "").Replace(" ", "").Trim();
+            if (nameForId.IndexOf("IceFairy", StringComparison.OrdinalIgnoreCase) >= 0 || nameForId.IndexOf("Fairy", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                monsterId = 21;
+            }
+            else if (nameForId.IndexOf("GolemBoss", StringComparison.OrdinalIgnoreCase) >= 0 || nameForId.IndexOf("Golem", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                monsterId = 10;
+            }
+        }
+
         Debug.Log($"[EnemyEntity] Start: {gameObject.name} | UseApi={useApiStats} | ID={monsterId} | ManagerNull?={MonsterManager.Instance == null}");
 
         // Fallback to inspector stats initially
@@ -231,14 +244,14 @@ public class EnemyEntity : MonoBehaviour
 
     public void PolyCollTurnOff()
     {
-        Debug.Log("Disabled");
-
-        if (polyColl != null) polyColl.enabled = false;
+        // Đảm bảo quái không bị mất hoàn toàn collider va chạm với tường khi thực hiện animation đánh
+        if (polyColl != null && (capsuleColl != null || boxColl != null))
+        {
+            polyColl.enabled = false;
+        }
     }
     public void PolyCollTurnOn()
     {
-        Debug.Log("Enabled");
-
         if (polyColl != null) polyColl.enabled = true;
     }
 

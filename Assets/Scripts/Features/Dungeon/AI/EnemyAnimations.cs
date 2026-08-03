@@ -45,25 +45,46 @@ public class EnemyAnimations : MonoBehaviour
     private void Awake()
     {
         anim = GetComponent<Animator>();
+        if (anim == null) anim = GetComponentInChildren<Animator>();
+
+        if (enemyBehaviour == null)
+            enemyBehaviour = GetComponent<EnemyBehaviour>() ?? GetComponentInParent<EnemyBehaviour>() ?? GetComponentInChildren<EnemyBehaviour>();
+
+        if (enemyEntity == null)
+            enemyEntity = GetComponent<EnemyEntity>() ?? GetComponentInParent<EnemyEntity>() ?? GetComponentInChildren<EnemyEntity>();
     }
 
     private void Start()
     {
-        enemyBehaviour.OnEnemyAttack += enemyBehaviour_OnEnemyAttack;
-        enemyBehaviour.OnEnemyCastSkill += enemyBehaviour_OnEnemyCastSkill;
-        enemyEntity.OnTakeHit += enemyEntity_OnTakeHit;
-        enemyEntity.OnDeath += enemyEntity_OnDeath;
+        if (enemyBehaviour == null)
+            enemyBehaviour = GetComponent<EnemyBehaviour>() ?? GetComponentInParent<EnemyBehaviour>() ?? GetComponentInChildren<EnemyBehaviour>();
+
+        if (enemyEntity == null)
+            enemyEntity = GetComponent<EnemyEntity>() ?? GetComponentInParent<EnemyEntity>() ?? GetComponentInChildren<EnemyEntity>();
+
+        if (enemyBehaviour != null)
+        {
+            enemyBehaviour.OnEnemyAttack += enemyBehaviour_OnEnemyAttack;
+            enemyBehaviour.OnEnemyCastSkill += enemyBehaviour_OnEnemyCastSkill;
+        }
+
+        if (enemyEntity != null)
+        {
+            enemyEntity.OnTakeHit += enemyEntity_OnTakeHit;
+            enemyEntity.OnDeath += enemyEntity_OnDeath;
+        }
+
         spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     public void TriggerAttAnimTurnOff()
     {
-        enemyEntity.PolyCollTurnOff();
+        if (enemyEntity != null) enemyEntity.PolyCollTurnOff();
     }
 
     public void TriggerAttAnimTurnOn()
     {
-        enemyEntity.PolyCollTurnOn();
+        if (enemyEntity != null) enemyEntity.PolyCollTurnOn();
     }
 
     private void OnDestroy()
@@ -73,10 +94,18 @@ public class EnemyAnimations : MonoBehaviour
             enemyBehaviour.OnEnemyAttack -= enemyBehaviour_OnEnemyAttack;
             enemyBehaviour.OnEnemyCastSkill -= enemyBehaviour_OnEnemyCastSkill;
         }
+
+        if (enemyEntity != null)
+        {
+            enemyEntity.OnTakeHit -= enemyEntity_OnTakeHit;
+            enemyEntity.OnDeath -= enemyEntity_OnDeath;
+        }
     }
 
     void Update()
     {
+        if (enemyBehaviour == null || anim == null) return;
+
         if (enemyBehaviour.IsRunning)
         {
             stopTimer = stopDelay;
@@ -93,7 +122,6 @@ public class EnemyAnimations : MonoBehaviour
         float roamingSpeed = enemyBehaviour.GetRoamingAnimationSpeed();
         if (roamingSpeed > 0f)
         {
-            // Kiểm tra parameter tồn tại trước khi set để tránh warning mỗi frame
             if (anim.HasParameter(CHASING_SPEED_MULTIPLIIER))
             {
                 anim.SetFloat(CHASING_SPEED_MULTIPLIIER, roamingSpeed);
@@ -103,21 +131,21 @@ public class EnemyAnimations : MonoBehaviour
 
     private void enemyBehaviour_OnEnemyAttack(object sender, System.EventArgs e)
     {
-        anim.SetTrigger(ATTACK);
+        if (anim != null) anim.SetTrigger(ATTACK);
     }
 
     private void enemyBehaviour_OnEnemyCastSkill(object sender, System.EventArgs e)
     {
-        anim.SetTrigger(CAST_SKILL);
+        if (anim != null) anim.SetTrigger(CAST_SKILL);
     }
 
     private void enemyEntity_OnTakeHit(object sender, EventArgs e)
     {
-        anim.SetTrigger(TAKEHIT);
+        if (anim != null) anim.SetTrigger(TAKEHIT);
     }
 
     private void enemyEntity_OnDeath(object sender, EventArgs e)
     {
-        anim.SetBool(DIED, true);
+        if (anim != null) anim.SetBool(DIED, true);
     }
 }

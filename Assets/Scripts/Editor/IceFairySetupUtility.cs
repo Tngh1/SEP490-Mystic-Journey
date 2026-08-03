@@ -29,6 +29,8 @@ public static class IceFairySetupUtility
                     entity = go.AddComponent<EnemyEntity>();
                     Debug.Log($"[IceFairySetupUtility] Added missing EnemyEntity to '{go.name}'");
                 }
+                entity.SetSpawnData(21, 0);
+
 
                 // 2. Ensure IceFairySupportAI component
                 var supportAI = go.GetComponent<IceFairySupportAI>();

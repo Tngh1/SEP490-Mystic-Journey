@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3188645044407647611
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5915618339460610584}
+  m_Layer: 3
+  m_Name: SpawmPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5915618339460610584
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3188645044407647611}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3225109827504599866}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3864756362806540376
 GameObject:
   m_ObjectHideFlags: 0
@@ -191,11 +222,18 @@ MonoBehaviour:
   attackDamage: 34
   critRate: 0
   critDamageMultiplier: 1.5
-  chasingDistance: 4
+  chasingDistance: 8
   chasingSpeedMultiplier: 2
-  attackDistance: 2
+  attackDistance: 4
   attackRate: 2
   leashDistance: 15
+  isRanged: 1
+  iconHeightOffset: 1.8
+  useProjectileAttack: 1
+  attackProjectilePrefab: {fileID: 7319072069979323473, guid: 6a384fc4693fac1439b188942df9f08e, type: 3}
+  projectileSpawnPoint: {fileID: 5915618339460610584}
+  projectileSpeed: 8
+  attackDelay: 0.2
   canCastSkill: 0
   skillPrefab: {fileID: 0}
   skillCooldown: 7
@@ -456,6 +494,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7363126768157796914}
+  - {fileID: 5915618339460610584}
   m_Father: {fileID: 1246076799217324882}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &762875760635075046

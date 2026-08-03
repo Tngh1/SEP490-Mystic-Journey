@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &743047347008640348
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7128424640340949518}
+  m_Layer: 3
+  m_Name: SpawmPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7128424640340949518
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 743047347008640348}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1479291623148782163}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &828550900308267856
 GameObject:
   m_ObjectHideFlags: 0
@@ -33,6 +64,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2317333367920202580}
+  - {fileID: 7128424640340949518}
   m_Father: {fileID: 5641475110347885839}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3684950314156620078
@@ -325,6 +357,13 @@ MonoBehaviour:
   attackDistance: 2
   attackRate: 2
   leashDistance: 15
+  isRanged: 1
+  iconHeightOffset: 1.8
+  useProjectileAttack: 1
+  attackProjectilePrefab: {fileID: 7319072069979323473, guid: 6a384fc4693fac1439b188942df9f08e, type: 3}
+  projectileSpawnPoint: {fileID: 7128424640340949518}
+  projectileSpeed: 8
+  attackDelay: 0.2
   canCastSkill: 0
   skillPrefab: {fileID: 0}
   skillCooldown: 7
