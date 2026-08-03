@@ -34,30 +34,34 @@ public class EnemySkillDamage : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Kiểm tra xem đối tượng va chạm có phải là Player không
-        if (collision.CompareTag("Player"))
-        {
-            DealDamage(collision.gameObject);
-            
-            // Huỷ cục băng nếu được thiết lập
-            if (destroyOnHit)
-            {
-                Destroy(gameObject);
-            }
-        }
+        if (collision == null) return;
+        HandleHit(collision.gameObject, collision.isTrigger);
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Xử lý tương tự nếu dùng va chạm vật lý (không tick Is Trigger)
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            DealDamage(collision.gameObject);
+        if (collision == null) return;
+        HandleHit(collision.gameObject, false);
+    }
 
+    private void HandleHit(GameObject hitObj, bool isTrigger)
+    {
+        if (hitObj.GetComponent<EnemyEntity>() != null || hitObj.GetComponent<EnemyBehaviour>() != null || hitObj.CompareTag("IgnoreRaycast")) return;
+
+        if (hitObj.CompareTag("Player"))
+        {
+            DealDamage(hitObj);
             if (destroyOnHit)
             {
                 Destroy(gameObject);
             }
+            return;
+        }
+
+        // Nếu đâm vào vật cản tường/môi trường (không phải trigger)
+        if (!isTrigger && destroyOnHit)
+        {
+            Destroy(gameObject);
         }
     }
 

@@ -131,6 +131,7 @@ Transform:
   m_Children:
   - {fileID: 9187985327752005274}
   - {fileID: 6094922710227231227}
+  - {fileID: 170289045296801380}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &7729502371382436196
@@ -253,9 +254,16 @@ MonoBehaviour:
   critDamageMultiplier: 1.5
   chasingDistance: 8
   chasingSpeedMultiplier: 2
-  attackDistance: 5
+  attackDistance: 4
   attackRate: 2
   leashDistance: 15
+  isRanged: 1
+  iconHeightOffset: 1.8
+  useProjectileAttack: 1
+  attackProjectilePrefab: {fileID: 7319072069979323473, guid: 6a384fc4693fac1439b188942df9f08e, type: 3}
+  projectileSpawnPoint: {fileID: 170289045296801380}
+  projectileSpeed: 8
+  attackDelay: 0.2
   canCastSkill: 0
   skillPrefab: {fileID: 0}
   skillCooldown: 7
@@ -400,6 +408,37 @@ MonoBehaviour:
   _MaxHp: 0
   _IsAlive:
     _value: 0
+--- !u!1 &7133816041317481692
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 170289045296801380}
+  m_Layer: 3
+  m_Name: SpawmPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &170289045296801380
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7133816041317481692}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5611424999557996042}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &9158544236139340019
 PrefabInstance:
   m_ObjectHideFlags: 0

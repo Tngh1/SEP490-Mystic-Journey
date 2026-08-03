@@ -105,24 +105,27 @@ public class DragonHomingFireball : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D col)
     {
-        if (_isHit) return;
+        if (_isHit || col == null) return;
+
+        if (col.GetComponent<EnemyEntity>() != null || col.GetComponent<EnemyBehaviour>() != null || col.CompareTag("IgnoreRaycast")) return;
 
         if (col.CompareTag("Player"))
         {
             _isHit = true;
             DealDamage(col.gameObject);
+            return;
+        }
+
+        // Đâm vào tường / vật thể cản môi trường (không phải trigger) -> Kích hoạt nổ và huỷ cầu lửa
+        if (!col.isTrigger)
+        {
+            _isHit = true;
+            TriggerExplosion();
         }
     }
 
     private void DealDamage(GameObject playerObj)
     {
-        // 1. Phát âm thanh khi nổ trúng
-        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
-        {
-            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
-        }
-
-        // 2. Gây 15 sát thương
         var networkPlayer = playerObj.GetComponent<NetworkPlayer>();
         if (networkPlayer != null && networkPlayer.Object != null && networkPlayer.Object.IsValid)
         {
@@ -141,13 +144,21 @@ public class DragonHomingFireball : MonoBehaviour
             }
         }
 
-        // 3. Chuyển animation nổ (fireboom)
+        TriggerExplosion();
+    }
+
+    private void TriggerExplosion()
+    {
+        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
+        }
+
         if (_animator != null && !string.IsNullOrEmpty(boomAnimState))
         {
             _animator.Play(boomAnimState);
         }
 
-        // 4. Hủy quả cầu lửa sau khi animation nổ chạy xong
         Destroy(gameObject, destroyDelay);
     }
 

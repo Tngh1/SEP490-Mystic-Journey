@@ -1042,7 +1042,7 @@ public class PlayerHUDController : MonoBehaviour
             }
             else
             {
-                GameObject targetSpawnPoint = GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
+                GameObject targetSpawnPoint = GameObject.FindGameObjectWithTag("PlayerSpawn") ?? GameObject.Find("PlayerSpawn") ?? GameObject.Find("SceneTransitionGoblinMine");
                 if (targetSpawnPoint != null) spawnPos = targetSpawnPoint.transform.position;
             }
         }
