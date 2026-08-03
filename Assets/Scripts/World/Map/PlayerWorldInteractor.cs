@@ -509,7 +509,10 @@ public class PlayerWorldInteractor : MonoBehaviour
     }
     private void RefreshSceneLinks()
     {
-        WorldSceneInteractableBootstrap.RefreshFromApi(gameObject.scene);
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+        {
+            WorldSceneInteractableBootstrap.RefreshFromApi(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i));
+        }
     }
 
     private void RefreshInteractables()
