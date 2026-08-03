@@ -65,7 +65,13 @@ namespace MysticJourney.Screen.Mail
 
         private void Start()
         {
-            if (closeButton != null) closeButton.onClick.AddListener(() => gameObject.SetActive(false));
+            if (closeButton != null)
+            {
+                closeButton.onClick.AddListener(() => gameObject.SetActive(false));
+                // Same hover-scale the HUD/party buttons use.
+                if (closeButton.GetComponent<UIHoverScaleEffect>() == null)
+                    closeButton.gameObject.AddComponent<UIHoverScaleEffect>();
+            }
             if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
             if (deleteButton != null) deleteButton.onClick.AddListener(OnDeleteClicked);
             if (confirmPanel != null) confirmPanel.SetActive(false);

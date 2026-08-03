@@ -93,7 +93,33 @@ public class InventoryManager : MonoBehaviour
     {
         BindUiReferences();
         BindEvents();
+        AddHoverEffects();
         ShowTab(_showingSkins);
+    }
+
+    // Script này nằm trên GameObject "InventoryManager" RỖNG (0 con), nên
+    // GetComponentsInChildren<Button> từ đây không với tới nút nào. Phải quét theo
+    // CollectSearchRoots (đã gồm panel root + filter bar + 2 popup) mới đủ.
+    // Toggle cũng cần: tab và filter trong panel là Toggle, không phải Button.
+    private void AddHoverEffects()
+    {
+        foreach (var root in CollectSearchRoots())
+        {
+            if (root == null) continue;
+
+            foreach (var selectable in root.GetComponentsInChildren<Selectable>(true))
+            {
+                if (selectable == null) continue;
+                if (!(selectable is Button || selectable is Toggle)) continue;
+                // Item trong Template của Dropdown sinh/huỷ theo lần mở — bỏ qua.
+                if (selectable.GetComponentInParent<TMP_Dropdown>(true) != null) continue;
+                // DimBackground là lớp phủ mờ toàn màn hình (bấm ra ngoài để đóng), phóng to nó
+                // sẽ kéo giãn cả mảng tối mỗi khi chuột đi qua vùng trống.
+                if (selectable.name == "DimBackground") continue;
+                if (selectable.GetComponent<UIHoverScaleEffect>() == null)
+                    selectable.gameObject.AddComponent<UIHoverScaleEffect>();
+            }
+        }
     }
 
     private void OnEnable()

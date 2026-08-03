@@ -39,6 +39,9 @@ public class UIPartyPanel : MonoBehaviour
     [Tooltip("Class → avatar sprite mapping. Auto-loaded from Resources/ClassAvatarDatabase if empty.")]
     [SerializeField] private ClassAvatarDatabaseSO avatarDatabase;
 
+    [Tooltip("Skin → portrait mapping. Auto-loaded from Resources/SkinDatabase if empty.")]
+    [SerializeField] private SkinDatabaseSO skinDatabase;
+
     [Header("Runtime Info")]
     private int selectedConfigId = 1;
     private string selectedSceneName = "AbandonedMines";
@@ -404,12 +407,13 @@ public class UIPartyPanel : MonoBehaviour
         // ── Slot 0: host ─────────────────────────────────────────────────────
         if (slots.Length > 0 && slots[0] != null)
         {
-            string hostName; int hostLevel; CharacterClass hostCls;
+            string hostName; int hostLevel; CharacterClass hostCls; int hostSkin;
             if (party != null && TryGetHostMember(party, out var hostMember))
             {
                 hostName = hostMember.Name.Value;
                 hostLevel = hostMember.Level;
                 hostCls = (CharacterClass)hostMember.PlayerClass;
+                hostSkin = hostMember.SkinId;
             }
             else
             {
@@ -417,8 +421,9 @@ public class UIPartyPanel : MonoBehaviour
                 hostLevel = localPlayerLevel;
                 if (!Enum.TryParse(WorldState.PlayerClass ?? "Knight", true, out hostCls))
                     hostCls = CharacterClass.Knight;
+                hostSkin = WorldState.EquippedSkinId;
             }
-            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls));
+            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls), SkinPortraitFor(hostSkin));
         }
 
         // ── Slots 1..N: other members / invite buttons ───────────────────────
@@ -446,7 +451,8 @@ public class UIPartyPanel : MonoBehaviour
                 var cls = (CharacterClass)m.PlayerClass;
                 var target = m.Player;
                 slot.RenderMember(m.Name.Value, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
-                    canKick: localIsHost, onKick: () => PartyService.KickMember(target));
+                    canKick: localIsHost, onKick: () => PartyService.KickMember(target),
+                    skinPortrait: SkinPortraitFor(m.SkinId));
             }
             else
             {
@@ -523,6 +529,15 @@ public class UIPartyPanel : MonoBehaviour
     private Sprite NameplateFor(CharacterClass cls)
     {
         return avatarDatabase != null ? avatarDatabase.GetNameplate(cls) : null;
+    }
+
+    /// <summary>Portrait for a member's equipped skin — the same preview sprite the
+    /// inventory's skin tab renders, so a slot matches what that player is wearing.</summary>
+    private Sprite SkinPortraitFor(int skinId)
+    {
+        if (skinId <= 0) return null;
+        if (skinDatabase == null) skinDatabase = SkinDatabaseSO.LoadDefault();
+        return skinDatabase != null ? skinDatabase.GetPreviewSprite(skinId) : null;
     }
 
     private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)

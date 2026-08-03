@@ -117,7 +117,7 @@ public static class PartyService
         var me = PlayerPresence.Local;
         if (runner == null || me == null) return false;
 
-        party.RPC_Join(runner.LocalPlayer, me.ProfileId, me.DisplayName, me.PlayerClass, me.Level);
+        party.RPC_Join(runner.LocalPlayer, me.ProfileId, me.DisplayName, me.PlayerClass, me.Level, WorldState.EquippedSkinId);
         return true;
     }
 
