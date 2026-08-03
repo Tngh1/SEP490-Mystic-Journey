@@ -7,6 +7,7 @@ using TMPro;
 public class UIConfirmPurchase : MonoBehaviour
 {
     [Header("UI Elements")]
+    public TMP_Text titleText;
     public TMP_Text itemNameText;
     public Image itemIcon;
     public TMP_Text itemPriceText;
@@ -33,11 +34,11 @@ public class UIConfirmPurchase : MonoBehaviour
 
     private void Awake()
     {
-        if (plusButton != null) plusButton.onClick.AddListener(IncreaseQuantity);
-        if (minusButton != null) minusButton.onClick.AddListener(DecreaseQuantity);
-        if (maxButton != null) maxButton.onClick.AddListener(SetMaxQuantity);
-        if (confirmButton != null) confirmButton.onClick.AddListener(Confirm);
-        if (cancelButton != null) cancelButton.onClick.AddListener(Cancel);
+        if (plusButton != null) { plusButton.onClick.RemoveAllListeners(); plusButton.onClick.AddListener(IncreaseQuantity); }
+        if (minusButton != null) { minusButton.onClick.RemoveAllListeners(); minusButton.onClick.AddListener(DecreaseQuantity); }
+        if (maxButton != null) { maxButton.onClick.RemoveAllListeners(); maxButton.onClick.AddListener(SetMaxQuantity); }
+        if (confirmButton != null) { confirmButton.onClick.RemoveAllListeners(); confirmButton.onClick.AddListener(Confirm); }
+        if (cancelButton != null) { cancelButton.onClick.RemoveAllListeners(); cancelButton.onClick.AddListener(Cancel); }
     }
 
     public void Setup(UIItemDisplayData itemData)
@@ -45,6 +46,8 @@ public class UIConfirmPurchase : MonoBehaviour
         currentItem = itemData;
         maxQuantity = currentItem?.GetMaxPurchaseQuantity() ?? 0;
         currentQuantity = maxQuantity > 0 ? 1 : 0;
+
+        if (titleText != null) titleText.text = "Confirm Purchase";
 
         if (itemNameText != null) 
         {
@@ -129,7 +132,6 @@ public class UIConfirmPurchase : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
-
 
     private static string FormatDisplayPrice(UIItemDisplayData item)
     {

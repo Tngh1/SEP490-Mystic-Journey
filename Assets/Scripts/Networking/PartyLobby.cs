@@ -283,11 +283,11 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             ? WorldState.PlayerName
             : message.SenderName;
 
-        NetworkString<_128> networkSenderName = TrimForFusion(senderName, 120);
-        NetworkString<_512> networkContent = TrimForFusion(message.Content, 500);
-        NetworkString<_64> networkSentAt = TrimForFusion(
+        NetworkString<_32> networkSenderName = TrimForFusion(senderName, 30);
+        NetworkString<_128> networkContent = TrimForFusion(message.Content, 120);
+        NetworkString<_32> networkSentAt = TrimForFusion(
             string.IsNullOrWhiteSpace(message.SentAt) ? DateTime.UtcNow.ToString("O") : message.SentAt,
-            60);
+            30);
 
         RPC_PartyMessageReceived(senderId, networkSenderName, networkContent, networkSentAt);
         return true;
@@ -296,9 +296,9 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     [Rpc(RpcSources.All, RpcTargets.All)]
     private void RPC_PartyMessageReceived(
         int senderId,
-        NetworkString<_128> senderName,
-        NetworkString<_512> content,
-        NetworkString<_64> sentAt)
+        NetworkString<_32> senderName,
+        NetworkString<_128> content,
+        NetworkString<_32> sentAt)
     {
         RefreshLocalMembership();
 

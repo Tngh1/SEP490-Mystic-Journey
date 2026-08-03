@@ -43,7 +43,7 @@ public class UIShop : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
 
     [Header("Category Mapping")]
-    [SerializeField] private string[] categoryMapping = { DailyDealsCategory, AllCategory, "Weapon", "Armor", "Consumable", "Gacha" };
+    [SerializeField] private string[] categoryMapping = { DailyDealsCategory, AllCategory, "Weapon", "Armor", "Consumable", "Material", "Gacha" };
 
     private readonly List<UIShopSlot> slots = new List<UIShopSlot>();
     private List<UIItemDisplayData> allCurrentItems = new List<UIItemDisplayData>();
@@ -62,6 +62,17 @@ public class UIShop : MonoBehaviour
             Instance = this;
         else if (Instance != this)
             Destroy(gameObject);
+            
+        // Force Grid Layout Group to Fixed Column Count = 3
+        if (contentParent != null)
+        {
+            var grid = contentParent.GetComponent<GridLayoutGroup>();
+            if (grid != null)
+            {
+                grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                grid.constraintCount = 3;
+            }
+        }
     }
 
     private void OnEnable()

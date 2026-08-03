@@ -215,14 +215,19 @@ public class UIChatMessage : MonoBehaviour
         {
             return;
         }
-        var buttonObject = new GameObject("ReportButton", typeof(RectTransform), typeof(Image), typeof(Button));
+
+        var buttonObject = new GameObject("ReportButton", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+        var dynamicLe = buttonObject.GetComponent<LayoutElement>();
+        dynamicLe.ignoreLayout = true;
+
         var rect = buttonObject.GetComponent<RectTransform>();
         rect.SetParent(transform, false);
-        rect.anchorMin = new Vector2(1f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(1f, 1f);
-        rect.anchoredPosition = new Vector2(-6f, -4f);
+        rect.anchorMin = new Vector2(1f, 0.5f);
+        rect.anchorMax = new Vector2(1f, 0.5f);
+        rect.pivot = new Vector2(1f, 0.5f);
+        rect.anchoredPosition = new Vector2(-4f, 0f);
         rect.sizeDelta = new Vector2(58f, 24f);
+        rect.localScale = Vector3.one;
 
         var image = buttonObject.GetComponent<Image>();
         image.color = new Color(0.55f, 0.16f, 0.16f, 0.88f);
@@ -245,6 +250,7 @@ public class UIChatMessage : MonoBehaviour
         label.color = Color.white;
         label.raycastTarget = false;
 
+        buttonObject.transform.SetAsLastSibling();
         BindReportButton();
     }
 
