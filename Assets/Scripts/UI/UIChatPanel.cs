@@ -614,7 +614,7 @@ public class UIChatPanel : MonoBehaviour
         bool isMe = IsCurrentPlayer(message.senderId);
         string sender = ResolveSenderName(message.senderId, message.senderName, isMe);
         Color senderColor = isMe ? myNameColor : otherNameColor;
-        AddMessage(sender, message.content, senderColor, 0, message.senderId, isMe, false);
+        AddMessage(sender, message.content, senderColor, message.messageId, message.senderId, isMe, false);
     }
 
     private void AddPartyMessage(PartyChatMessageResponse message)
@@ -695,7 +695,7 @@ public class UIChatPanel : MonoBehaviour
 
     private void HandleWorldReportClicked(UIChatMessage item)
     {
-        if (currentChannel != ChatChannel.World || item == null || item.ChatMessageId <= 0 || pendingReportIds.Contains(item.ChatMessageId))
+        if (item == null || item.ChatMessageId <= 0 || pendingReportIds.Contains(item.ChatMessageId))
         {
             return;
         }
@@ -721,7 +721,7 @@ public class UIChatPanel : MonoBehaviour
         pendingReportIds.Add(item.ChatMessageId);
         ChatApi.Instance.ReportWorldMessage(
             item.ChatMessageId,
-            "Reported from world chat UI",
+            "Reported from chat UI",
             response =>
             {
                 pendingReportIds.Remove(item.ChatMessageId);

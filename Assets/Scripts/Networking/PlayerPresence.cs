@@ -193,7 +193,7 @@ public class PlayerPresence : NetworkBehaviour
     private const float MinChatInterval = 0.5f;
 
     /// <summary>Must match the NetworkString width used by <see cref="RPC_WorldMessage"/>.</summary>
-    private const int MaxChatChars = 256;
+    private const int MaxChatChars = 120;
 
     private float _lastChatAccepted = float.NegativeInfinity;
 
@@ -222,7 +222,7 @@ public class PlayerPresence : NetworkBehaviour
     /// is read from this object's networked fields, never from the payload.
     /// </summary>
     [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
-    public void RPC_WorldMessage(int chatMessageId, NetworkString<_256> content)
+    public void RPC_WorldMessage(int chatMessageId, NetworkString<_128> content)
     {
         string body = content.ToString();
         if (chatMessageId <= 0 || string.IsNullOrWhiteSpace(body)) return;

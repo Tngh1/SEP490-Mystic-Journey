@@ -7,6 +7,7 @@ using TMPro;
 public class UIConfirmPurchase : MonoBehaviour
 {
     [Header("UI Elements")]
+    public TMP_Text titleText;
     public TMP_Text itemNameText;
     public Image itemIcon;
     public TMP_Text itemPriceText;
@@ -45,6 +46,8 @@ public class UIConfirmPurchase : MonoBehaviour
         currentItem = itemData;
         maxQuantity = currentItem?.GetMaxPurchaseQuantity() ?? 0;
         currentQuantity = maxQuantity > 0 ? 1 : 0;
+
+        if (titleText != null) titleText.text = "Confirm Purchase";
 
         if (itemNameText != null) 
         {
@@ -129,7 +132,6 @@ public class UIConfirmPurchase : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
-
 
     private static string FormatDisplayPrice(UIItemDisplayData item)
     {
