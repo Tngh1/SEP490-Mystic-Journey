@@ -153,14 +153,23 @@ public static class WorldSceneInteractableBootstrap
 
     private static void ConfigureObject(Scene scene, string sceneObjectName, string objectKey, string displayName, string interactionType, int questId, float radius)
     {
-        var target = FindSceneObject(scene, sceneObjectName);
-        if (target == null)
+        // Tìm tất cả object có tên chứa sceneObjectName (case-insensitive, partial match).
+        // FindSceneObject (exact) hay bị miss khi Unity spawn prefab tạo tên "flower(Clone)",
+        // "Flower_1", "WhiteFlower" v.v. -- dẫn đến hoa không bao giờ được configure.
+        var targets = FindSceneObjects(scene, sceneObjectName);
+        if (targets.Count == 0)
+        {
+            Debug.LogWarning($"[WorldSceneInteractableBootstrap] ConfigureObject: no objects found matching '{sceneObjectName}' in scene '{scene.name}'");
             return;
+        }
 
-        var interactable = target.GetComponent<WorldInteractable>();
-        if (interactable == null)
-            interactable = target.AddComponent<WorldInteractable>();
-        interactable.ConfigureObject(objectKey, displayName, interactionType, questId, 1, radius);
+        foreach (var target in targets)
+        {
+            var interactable = target.GetComponent<WorldInteractable>();
+            if (interactable == null)
+                interactable = target.AddComponent<WorldInteractable>();
+            interactable.ConfigureObject(objectKey, displayName, interactionType, questId, 1, radius);
+        }
     }
 
 
@@ -290,6 +299,27 @@ public static class WorldSceneInteractableBootstrap
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Tìm tất cả GameObject trong scene có tên CHỨA <paramref name="nameFragment"/> (case-insensitive).
+    /// Trả về exact-match trước rồi mới partial-match để ưu tiên đúng object khi có nhiều kết quả.
+    /// </summary>
+    private static List<GameObject> FindSceneObjects(Scene scene, string nameFragment)
+    {
+        var exact   = new List<GameObject>();
+        var partial = new List<GameObject>();
+        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        foreach (var obj in objects)
+        {
+            if (obj == null || obj.scene != scene) continue;
+            if (string.Equals(obj.name, nameFragment, StringComparison.OrdinalIgnoreCase))
+                exact.Add(obj);
+            else if (obj.name.IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                partial.Add(obj);
+        }
+        exact.AddRange(partial);
+        return exact;
     }
 }
 

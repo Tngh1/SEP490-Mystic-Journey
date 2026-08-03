@@ -154,9 +154,29 @@ public class CharacterFactory : MonoBehaviour
             return;
         }
 
+        RuntimeAnimatorController defaultClassController = GetClassController(characterClass);
+
         foreach (var animator in animators)
         {
             animator.runtimeAnimatorController = controller;
+
+            // Fallback nếu Controller của Skin rỗng / thiếu Parameter (MoveX, MoveY, Speed, v.v.)
+            if (animator.parameterCount == 0 && defaultClassController != null && controller != defaultClassController)
+            {
+                Debug.LogWarning($"[CharacterFactory] Controller '{controller.name}' on skin {skinId} has 0 parameters. Overriding with class controller '{defaultClassController.name}'.");
+                animator.runtimeAnimatorController = defaultClassController;
+            }
+        }
+    }
+
+    private RuntimeAnimatorController GetClassController(CharacterClass characterClass)
+    {
+        switch (characterClass)
+        {
+            case CharacterClass.Archer: return archerController;
+            case CharacterClass.Knight: return knightController;
+            case CharacterClass.Mage: return mageController;
+            default: return null;
         }
     }
 }
