@@ -37,6 +37,11 @@ public class EnemyBehaviour : MonoBehaviour
     [Tooltip("Độ cao hiển thị dấu chấm cảm trên đầu quái (mét).")]
     [SerializeField] private float iconHeightOffset = 1.8f;
 
+    [Header("Out of Combat Health Regeneration")]
+    [Tooltip("Tỷ lệ % máu hồi phục mỗi giây khi rời khỏi giao tranh hoặc quay về điểm xuất phát.")]
+    [SerializeField] private float healthRegenPercentPerSecond = 20f;
+    private float regenAccumulator = 0f;
+
     [Header("Ranged Attack / Projectile Settings")]
     [Tooltip("Nếu tích chọn hoặc có gán attackProjectilePrefab, quái sẽ bắn chiêu thay vì gây sát thương trực tiếp.")]
     [SerializeField] private bool useProjectileAttack = false;
@@ -97,6 +102,10 @@ public class EnemyBehaviour : MonoBehaviour
         startingPosition = transform.position;
         nextSkillTime = Time.time + skillCooldown;
         nextSkill2Time = Time.time + skill2Cooldown;
+
+        // Bật mặc định cơ chế tự động đuổi và đánh người chơi
+        isChasingEnemy = true;
+        isAttackingEnemy = true;
 
         // CHỈ các quái trong ảnh chụp (SkeletonArcher, BlueDragonFrost, Dragon, GreenDragonForest, Ice_Dragon)
         // hoặc khi dev cố tình tích chọn isRanged / useProjectileAttack / gán attackProjectilePrefab trên Inspector mới là quái đánh xa.
@@ -291,6 +300,47 @@ public class EnemyBehaviour : MonoBehaviour
         MovementDirection();
         CheckSkillCasting();
         UpdateAggroIcon();
+        RegenerateHealthOutOfCombat();
+    }
+
+    private void RegenerateHealthOutOfCombat()
+    {
+        if (_enemyEntity == null || _enemyEntity.IsDead || currentState == State.Death)
+        {
+            regenAccumulator = 0f;
+            return;
+        }
+
+        // Nếu quái đã đầy máu thì không cần hồi
+        if (_enemyEntity.CurrentHealth >= _enemyEntity.MaxHealth)
+        {
+            regenAccumulator = 0f;
+            return;
+        }
+
+        // Quái thoát giao tranh khi: đang đi về (isReturning), không có player, hoặc player nằm ngoài bán kính đuổi (chasingDistance)
+        bool isOutOfCombat = isReturning || currentTarget == null;
+        if (!isOutOfCombat && currentTarget != null)
+        {
+            float dist = Vector3.Distance(transform.position, currentTarget.position);
+            isOutOfCombat = dist > chasingDistance || (currentState != State.Chasing && currentState != State.Attack);
+        }
+
+        if (isOutOfCombat)
+        {
+            float healPerSec = _enemyEntity.MaxHealth * (healthRegenPercentPerSecond / 100f);
+            regenAccumulator += healPerSec * Time.deltaTime;
+            if (regenAccumulator >= 1f)
+            {
+                int healAmount = Mathf.FloorToInt(regenAccumulator);
+                regenAccumulator -= healAmount;
+                _enemyEntity.Heal(healAmount);
+            }
+        }
+        else
+        {
+            regenAccumulator = 0f;
+        }
     }
 
     public void SetDeathState()

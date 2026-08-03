@@ -128,7 +128,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyBehaviour: {fileID: 5878566306471395702}
-  enemyEntity: {fileID: 7562245700906294335}
+  enemyEntity: {fileID: 0}
 --- !u!1 &5981320874830281310
 GameObject:
   m_ObjectHideFlags: 0
@@ -142,7 +142,6 @@ GameObject:
   - component: {fileID: 8305687098847936965}
   - component: {fileID: 3162875743900973454}
   - component: {fileID: 5878566306471395702}
-  - component: {fileID: 7562245700906294335}
   - component: {fileID: 8483219416076306860}
   - component: {fileID: 2096032387585516192}
   - component: {fileID: -2532925696169976470}
@@ -307,6 +306,7 @@ MonoBehaviour:
   leashDistance: 15
   isRanged: 0
   iconHeightOffset: 1.8
+  healthRegenPercentPerSecond: 20
   useProjectileAttack: 0
   attackProjectilePrefab: {fileID: 0}
   projectileSpawnPoint: {fileID: 0}
@@ -321,23 +321,6 @@ MonoBehaviour:
   skill2Prefab: {fileID: 0}
   skill2Cooldown: 20
   skill2SpawnDelay: 0.5
---- !u!114 &7562245700906294335
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5981320874830281310}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 14
-  monsterId: 0
-  monsterSpawnId: 0
-  useApiStats: 1
-  def: 0
 --- !u!195 &8483219416076306860
 NavMeshAgent:
   m_ObjectHideFlags: 0
