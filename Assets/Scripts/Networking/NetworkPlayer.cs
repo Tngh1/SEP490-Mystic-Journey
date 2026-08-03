@@ -293,14 +293,8 @@ public class NetworkPlayer : NetworkBehaviour
         WorldState.EquippedSkinId = normalizedSkinId;
         WorldState.SaveToPlayerPrefs();
 
-        if (Object != null)
+        if (Object != null && Object.HasStateAuthority)
         {
-            if (!Object.HasStateAuthority)
-            {
-                Debug.LogWarning("[NetworkPlayer] Ignoring local skin apply without StateAuthority; waiting for network sync.");
-                return;
-            }
-
             EquippedSkinId = normalizedSkinId;
         }
 

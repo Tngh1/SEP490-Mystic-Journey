@@ -154,6 +154,7 @@ public class InventoryManager : MonoBehaviour
                 _summary = response;
                 _lastLoadedAt = Time.unscaledTime;
                 UpdateStatsDisplay();
+                UpdatePlayerAvatar();
                 RefreshCurrentTab();
             },
             onError: error =>
@@ -235,7 +236,7 @@ public class InventoryManager : MonoBehaviour
         {
             foreach (var eq in _summary.EquippedItems)
             {
-                if (eq.ItemType == newItem.ItemType)
+                if (eq != null && eq.IsEquipped && IsSameEquipSlot(eq, newItem))
                 {
                     oldItem = eq;
                     break;
@@ -253,6 +254,46 @@ public class InventoryManager : MonoBehaviour
             Sprite oldIcon = oldItem != null ? ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType) : null;
             itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
         }
+    }
+
+    private static bool IsSameEquipSlot(InventoryItemResponse a, InventoryItemResponse b)
+    {
+        if (a == null || b == null) return false;
+
+        string slotA = GetEquipSlotCategory(a);
+        string slotB = GetEquipSlotCategory(b);
+
+        if (!string.IsNullOrEmpty(slotA) && !string.IsNullOrEmpty(slotB))
+            return string.Equals(slotA, slotB, System.StringComparison.OrdinalIgnoreCase);
+
+        return false;
+    }
+
+    private static string GetEquipSlotCategory(InventoryItemResponse item)
+    {
+        if (item == null) return string.Empty;
+
+        // 1. Ưu tiên ItemSlot hoặc EquippedSlot (như "Helmet", "Armor", "Gloves", "Boots", "Weapon"...)
+        foreach (var (slotObject, slotKeys) in EquipSlotMap)
+        {
+            foreach (var key in slotKeys)
+            {
+                if (Matches(item.EquippedSlot, key) || Matches(item.ItemSlot, key))
+                    return slotObject;
+            }
+        }
+
+        // 2. Fallback sang ItemType nếu ItemSlot/EquippedSlot không có
+        foreach (var (slotObject, slotKeys) in EquipSlotMap)
+        {
+            foreach (var key in slotKeys)
+            {
+                if (Matches(item.ItemType, key))
+                    return slotObject;
+            }
+        }
+
+        return item.ItemType ?? string.Empty;
     }
 
     // =========================================================================
@@ -507,6 +548,8 @@ public class InventoryManager : MonoBehaviour
             var skins = _summary.PlayerSkins;
             if (skins == null) { uiSkinInventory.Refresh(displayList); return; }
 
+            string pClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
+
             // Lọc skin
             var filteredSkins = new List<PlayerSkinSummaryResponse>();
             foreach (var skin in skins)
@@ -516,6 +559,8 @@ public class InventoryManager : MonoBehaviour
                 if (_currentSkinFilter == "Owned" && !isOwned) continue;
                 if (_currentSkinFilter == "Unowned" && isOwned) continue;
                 
+                if (IsSkinForAnotherClass(skin.SkinId, skin.SkinName, pClass)) continue;
+
                 filteredSkins.Add(skin);
             }
 
@@ -1090,14 +1135,31 @@ public class InventoryManager : MonoBehaviour
 
         playerAvatarImage.preserveAspect = true;
 
-        // GameObject "Character" trong scene đang tắt (m_IsActive=0) và không có sprite, nên dù
-        // reference đã gán thì hình nhân vật vẫn không bao giờ hiện. Bật lại ở đây sau khi đã
-        // chọn được sprite.
         string pClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
+        Sprite sprite = null;
 
-        // So sánh KHÔNG phân biệt hoa/thường + Trim: PlayerClass đi từ BE (profile.Class) nên có
-        // thể là "knight"/"Knight " — so bằng == sẽ trượt hết và avatar trống.
-        var sprite = ResolveClassSprite(pClass);
+        // Ưu tiên hiển thị sprite của Skin đang được trang bị (Equipped)
+        if (_summary != null && _summary.PlayerSkins != null)
+        {
+            foreach (var skin in _summary.PlayerSkins)
+            {
+                if (skin != null && skin.IsEquipped && skin.SkinId > 0)
+                {
+                    bool isDefault = skin.SkinName != null && skin.SkinName.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (!isDefault)
+                    {
+                        sprite = ResolveIcon(skin.SkinId, skin.IconUrl);
+                        if (sprite != null)
+                            break;
+                    }
+                }
+            }
+        }
+
+        // Fallback về sprite mặc định theo Class nếu không mặc skin tùy chỉnh
+        if (sprite == null)
+            sprite = ResolveClassSprite(pClass);
+
         if (sprite != null)
             playerAvatarImage.sprite = sprite;
 
@@ -1122,14 +1184,13 @@ public class InventoryManager : MonoBehaviour
 
     // ── Ô trang bị (CharacterPreviewArea > EquipSlots) ───────────────────────────
     // Mỗi ô có 1 Image nền (chính nó) + 1 con tên "Image" để vẽ icon món đang mặc.
-    // Không có code nào chạm tới khu này trước đây nên trang bị đang mặc không hiện gì.
     private static readonly (string slotObject, string[] slotKeys)[] EquipSlotMap =
     {
-        ("WeaponSlot",    new[] { "Weapon" }),
-        ("HelmetSlot",    new[] { "Helmet" }),
-        ("ArmorSlot",     new[] { "Armor" }),
-        ("GlovesSlot",    new[] { "Gloves" }),
-        ("BootsSlot",     new[] { "Boots" }),
+        ("WeaponSlot",    new[] { "Weapon", "MainHand" }),
+        ("HelmetSlot",    new[] { "Helmet", "Head" }),
+        ("ArmorSlot",     new[] { "Armor", "Body", "Chest" }),
+        ("GlovesSlot",    new[] { "Gloves", "Hands" }),
+        ("BootsSlot",     new[] { "Boots", "Feet" }),
         ("PantsSlot",     new[] { "Pants", "Legs" }),
         ("ShieldSlot",    new[] { "Shield", "OffHand" }),
         ("AccessorySlot", new[] { "Accessory", "Ring", "Necklace" }),
@@ -1145,7 +1206,7 @@ public class InventoryManager : MonoBehaviour
             if (iconImage == null)
                 continue;
 
-            var item = FindEquippedForSlot(equipped, slotKeys);
+            var item = FindEquippedForSlot(equipped, slotObject);
             if (item == null)
             {
                 // Ô rỗng: ẩn icon để lộ nền ô, KHÔNG tắt cả ô (nền phải luôn thấy).
@@ -1172,7 +1233,7 @@ public class InventoryManager : MonoBehaviour
         return image != null ? image : slot.GetComponent<Image>();
     }
 
-    private static InventoryItemResponse FindEquippedForSlot(InventoryItemResponse[] equipped, string[] slotKeys)
+    private static InventoryItemResponse FindEquippedForSlot(InventoryItemResponse[] equipped, string slotObject)
     {
         if (equipped == null) return null;
 
@@ -1180,13 +1241,8 @@ public class InventoryManager : MonoBehaviour
         {
             if (item == null || !item.IsEquipped) continue;
 
-            // Ưu tiên EquippedSlot/ItemSlot (BE Item.Slot) rồi mới tới ItemType — Ring/Necklace
-            // có ItemType riêng nhưng cùng dồn vào ô Accessory.
-            foreach (var key in slotKeys)
-            {
-                if (Matches(item.EquippedSlot, key) || Matches(item.ItemSlot, key) || Matches(item.ItemType, key))
-                    return item;
-            }
+            if (string.Equals(GetEquipSlotCategory(item), slotObject, System.StringComparison.OrdinalIgnoreCase))
+                return item;
         }
 
         return null;
@@ -1302,5 +1358,43 @@ public class InventoryManager : MonoBehaviour
             return previewSprite;
 
         return null;
+    }
+
+    private bool IsSkinForAnotherClass(int skinId, string skinName, string playerClass)
+    {
+        if (string.IsNullOrWhiteSpace(playerClass))
+            return false;
+
+        string pClassClean = playerClass.Trim();
+
+        if (_skinDatabase == null)
+            _skinDatabase = SkinDatabaseSO.LoadDefault();
+
+        if (_skinDatabase != null && _skinDatabase.TryGetSkinData(skinId, out var skinData))
+        {
+            string skinClassStr = skinData.characterClass.ToString();
+            if (!string.Equals(skinClassStr, pClassClean, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(skinName))
+        {
+            string nameClean = skinName.Trim();
+            bool isDefault = nameClean.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (isDefault)
+            {
+                if (nameClean.IndexOf("Knight", System.StringComparison.OrdinalIgnoreCase) >= 0 && !pClassClean.Equals("Knight", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (nameClean.IndexOf("Archer", System.StringComparison.OrdinalIgnoreCase) >= 0 && !pClassClean.Equals("Archer", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (nameClean.IndexOf("Mage", System.StringComparison.OrdinalIgnoreCase) >= 0 && !pClassClean.Equals("Mage", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+        }
+
+        return false;
     }
 }

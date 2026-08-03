@@ -242,6 +242,7 @@ MonoBehaviour:
   monsterId: 0
   monsterSpawnId: 0
   useApiStats: 1
+  def: 0
 --- !u!114 &2123901405834860483
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -261,11 +262,20 @@ MonoBehaviour:
   isChasingEnemy: 0
   isAttackingEnemy: 0
   attackDamage: 10
+  critRate: 0
+  critDamageMultiplier: 1.5
   chasingDistance: 4
   chasingSpeedMultiplier: 2
   attackDistance: 2
   attackRate: 2
   leashDistance: 15
+  isRanged: 0
+  iconHeightOffset: 1.8
+  useProjectileAttack: 0
+  attackProjectilePrefab: {fileID: 0}
+  projectileSpawnPoint: {fileID: 0}
+  projectileSpeed: 8
+  attackDelay: 0.2
   canCastSkill: 0
   skillPrefab: {fileID: 0}
   skillCooldown: 7
@@ -298,7 +308,7 @@ MonoBehaviour:
   questId: 0
   progressDelta: 1
   linkedQuestIds: 
-  portraitSprite: {fileID: 0}
+  portraitSprite: {fileID: -7712860815588938566, guid: 9df73ba816589a64cbb7f458675a3f24, type: 3}
 --- !u!1 &1896223014412543372
 GameObject:
   m_ObjectHideFlags: 0

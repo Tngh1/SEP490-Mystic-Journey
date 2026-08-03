@@ -193,6 +193,17 @@ public class PlayerSpawner : MonoBehaviour
             : fallbackSpawn;
 
         GameObject player = Instantiate(prefab, spawnPosition, Quaternion.identity);
+
+        // Safeguard: Fallback Animator Controller nếu Controller của Skin rỗng (0 parameters)
+        var animator = player.GetComponentInChildren<Animator>();
+        if (animator != null && animator.parameterCount == 0 && basePrefab != null)
+        {
+            var baseAnim = basePrefab.GetComponentInChildren<Animator>();
+            if (baseAnim != null && baseAnim.runtimeAnimatorController != null)
+            {
+                animator.runtimeAnimatorController = baseAnim.runtimeAnimatorController;
+            }
+        }
         var mainScene = SceneManager.GetSceneByName("Main");
         if (mainScene.isLoaded)
         {
