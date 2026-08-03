@@ -26,3 +26,20 @@ CrashReports/
 # OS
 .DS_Store
 Thumbs.db
+
+# Bỏ qua thư mục mẫu và ví dụ của TextMesh Pro
+Assets/TextMesh Pro/Examples & Extras/
+
+# Bỏ qua toàn bộ font trong thư mục UI
+Assets/UI/Fonts/
+
+# Bỏ qua các file font định dạng gốc và file .meta đi kèm
+*.ttf
+*.ttf.meta
+*.otf
+*.otf.meta
+*.ttc
+*.ttc.meta
+
+# Bỏ qua font fallback mặc định của TextMesh Pro
+Assets/TextMesh Pro/Resources/Fonts & Materials/
