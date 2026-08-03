@@ -128,10 +128,9 @@ public class SkillPanelManager : MonoBehaviour
         foreach (var data in allSkillsInGame)
         {
             if (data == null || data.skillIcon == null) continue;
-            if (processedSkillIds.Contains(data.skillId) || processedIcons.Contains(data.skillIcon)) continue;
+            if (processedSkillIds.Contains(data.skillId)) continue;
             
             processedSkillIds.Add(data.skillId);
-            processedIcons.Add(data.skillIcon);
 
             // 3. TÍNH NĂNG LỌC: Bỏ qua các kỹ năng không thuộc Class của mình (hoặc không phải All)
             bool isAllClass = string.IsNullOrWhiteSpace(data.classRequirement) || data.classRequirement.Equals("All", System.StringComparison.OrdinalIgnoreCase);

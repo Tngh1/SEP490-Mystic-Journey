@@ -42,6 +42,23 @@ public class MapEnemySpawner : MonoBehaviour
         StartCoroutine(InitialSpawnRoutine());
     }
 
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
+        foreach (var enemy in aliveEnemies)
+        {
+            if (enemy != null)
+            {
+                EnemyEntity entity = enemy.GetComponent<EnemyEntity>();
+                if (entity != null)
+                {
+                    entity.OnDeath -= HandleEnemyDeath;
+                }
+            }
+        }
+        aliveEnemies.Clear();
+    }
+
     /// <summary>
     /// Routine sinh ra đợt quái đầu tiên một cách từ từ
     /// </summary>
@@ -49,6 +66,9 @@ public class MapEnemySpawner : MonoBehaviour
     {
         for (int i = 0; i < maxEnemies; i++)
         {
+            if (this == null || !gameObject.activeInHierarchy || !enabled)
+                yield break;
+
             SpawnSingleEnemy();
             yield return new WaitForSeconds(initialSpawnDelay);
         }
@@ -59,19 +79,34 @@ public class MapEnemySpawner : MonoBehaviour
     /// </summary>
     private void SpawnSingleEnemy()
     {
+        if (this == null || !gameObject.activeInHierarchy || !enabled)
+            return;
+
         if (enemyPrefabs == null || enemyPrefabs.Count == 0)
             return;
 
         // Chọn ngẫu nhiên một prefab
         int randomIndex = Random.Range(0, enemyPrefabs.Count);
         GameObject prefabToSpawn = enemyPrefabs[randomIndex];
+        if (prefabToSpawn == null) return;
 
-        // Tạo vị trí ngẫu nhiên trong bán kính
-        Vector2 randomPoint = Random.insideUnitCircle * spawnRadius;
-        Vector3 spawnPosition = transform.position + new Vector3(randomPoint.x, randomPoint.y, 0f);
+        // Lấy vị trí sinh quái hợp lệ (không bị kẹt trong vật thể / tường và nằm trên NavMesh đi được)
+        Vector3 spawnPosition = GetValidSpawnPosition();
 
-        // Sinh quái
-        GameObject newEnemy = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        // Sinh quái GẮN LÀM CON CỦA SPAWNER (transform) để quái thuộc cùng Scene với Spawner.
+        // Nhờ đó khi Unload Scene map cũ, toàn bộ quái do spawner sinh ra sẽ tự động bị huỷ theo scene,
+        // không bị sót lại hay rơi sang scene persistent (Main) làm xuất hiện ở map khác.
+        GameObject newEnemy = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity, transform);
+
+        // Snap NavMeshAgent của quái vào vị trí NavMesh chuẩn để tránh kẹt
+        var navAgent = newEnemy.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (navAgent != null && navAgent.enabled)
+        {
+            if (UnityEngine.AI.NavMesh.SamplePosition(spawnPosition, out var navHit, 2.5f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                navAgent.Warp(navHit.position);
+            }
+        }
 
         // Đổi tên nếu có nhập Object Name
         if (!string.IsNullOrWhiteSpace(objectName))
@@ -100,6 +135,9 @@ public class MapEnemySpawner : MonoBehaviour
     /// </summary>
     private void HandleEnemyDeath(object sender, System.EventArgs e)
     {
+        if (this == null || !gameObject.activeInHierarchy || !enabled)
+            return;
+
         EnemyEntity deadEntity = sender as EnemyEntity;
 
         if (deadEntity == null)
@@ -111,8 +149,11 @@ public class MapEnemySpawner : MonoBehaviour
         // Xóa khỏi danh sách
         aliveEnemies.Remove(deadEntity.gameObject);
 
-        // Chờ rồi sinh lại
-        StartCoroutine(RespawnRoutine());
+        // Chờ rồi sinh lại (chỉ chạy coroutine nếu spawner vẫn đang sống và active)
+        if (gameObject.activeInHierarchy && enabled)
+        {
+            StartCoroutine(RespawnRoutine());
+        }
     }
 
     /// <summary>
@@ -122,10 +163,62 @@ public class MapEnemySpawner : MonoBehaviour
     {
         yield return new WaitForSeconds(respawnCooldown);
 
+        if (this == null || !gameObject.activeInHierarchy || !enabled)
+            yield break;
+
         if (aliveEnemies.Count < maxEnemies)
         {
             SpawnSingleEnemy();
         }
+    }
+
+    /// <summary>
+    /// Tìm vị trí sinh quái hợp lệ: Không bị đè lên vật cản (Colliders) và nằm trên NavMesh đi được
+    /// </summary>
+    private Vector3 GetValidSpawnPosition()
+    {
+        Vector3 bestPosition = transform.position;
+        int maxAttempts = 15;
+        float checkRadius = 0.4f;
+
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            Vector2 randomPoint = Random.insideUnitCircle * spawnRadius;
+            Vector3 candidatePos = transform.position + new Vector3(randomPoint.x, randomPoint.y, 0f);
+
+            // 1. Kiểm tra va chạm Physics2D với các vật thể cản cứng (không tính Trigger, Player, Enemy)
+            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(candidatePos, checkRadius);
+            bool isBlocked = false;
+
+            foreach (var col in hitColliders)
+            {
+                if (col == null || col.isTrigger) continue;
+                if (col.gameObject.CompareTag("Player") || col.GetComponent<EnemyEntity>() != null || col.transform.IsChildOf(transform)) continue;
+
+                isBlocked = true;
+                break;
+            }
+
+            if (isBlocked) continue;
+
+            // 2. Kiểm tra vị trí candidate xem có nằm trên vùng NavMesh chuẩn không
+            if (UnityEngine.AI.NavMesh.SamplePosition(candidatePos, out UnityEngine.AI.NavMeshHit navHit, 1.5f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                return navHit.position;
+            }
+            else if (hitColliders.Length == 0)
+            {
+                return candidatePos;
+            }
+        }
+
+        // Fallback: nếu sau 15 lần lấy vị trí ngẫu nhiên không được, lấy vị trí NavMesh gần nhất xung quanh Spawner
+        if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out UnityEngine.AI.NavMeshHit fallbackHit, spawnRadius + 3f, UnityEngine.AI.NavMesh.AllAreas))
+        {
+            return fallbackHit.position;
+        }
+
+        return bestPosition;
     }
 
     /// <summary>

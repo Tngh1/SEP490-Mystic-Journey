@@ -178,13 +178,16 @@ public class PlayerSpawner : MonoBehaviour
         GameObject basePrefab = ResolveBasePrefab(playerClass);
         GameObject prefab = ResolveSkinPrefab(basePrefab);
 
-        if (prefab == null)
+        if (spawnPoint == null)
         {
-            Debug.LogError($"[PlayerSpawner] Missing player prefab for class {playerClass}.");
-            return;
+            var taggedMarker = GameObject.FindGameObjectWithTag("PlayerSpawn");
+            if (taggedMarker != null)
+            {
+                spawnPoint = taggedMarker.transform;
+            }
         }
 
-        var fallbackSpawn = spawnPoint != null ? spawnPoint.position : new Vector3(11.9f, 17.8f, 0f);
+        var fallbackSpawn = spawnPoint != null ? spawnPoint.position : new Vector3(24.0889f, -49.7661f, 0f);
         var spawnPosition = ShouldUseSavedPosition(WorldState.LastPosition)
             ? WorldState.LastPosition
             : fallbackSpawn;
