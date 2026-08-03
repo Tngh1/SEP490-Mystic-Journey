@@ -33,11 +33,11 @@ public class UIConfirmPurchase : MonoBehaviour
 
     private void Awake()
     {
-        if (plusButton != null) plusButton.onClick.AddListener(IncreaseQuantity);
-        if (minusButton != null) minusButton.onClick.AddListener(DecreaseQuantity);
-        if (maxButton != null) maxButton.onClick.AddListener(SetMaxQuantity);
-        if (confirmButton != null) confirmButton.onClick.AddListener(Confirm);
-        if (cancelButton != null) cancelButton.onClick.AddListener(Cancel);
+        if (plusButton != null) { plusButton.onClick.RemoveAllListeners(); plusButton.onClick.AddListener(IncreaseQuantity); }
+        if (minusButton != null) { minusButton.onClick.RemoveAllListeners(); minusButton.onClick.AddListener(DecreaseQuantity); }
+        if (maxButton != null) { maxButton.onClick.RemoveAllListeners(); maxButton.onClick.AddListener(SetMaxQuantity); }
+        if (confirmButton != null) { confirmButton.onClick.RemoveAllListeners(); confirmButton.onClick.AddListener(Confirm); }
+        if (cancelButton != null) { cancelButton.onClick.RemoveAllListeners(); cancelButton.onClick.AddListener(Cancel); }
     }
 
     public void Setup(UIItemDisplayData itemData)
