@@ -175,6 +175,18 @@ namespace MysticJourney.Features.Dungeon.UI
             // claim (already claimed, session gone) still has to resolve to something visible.
             if (goldText != null) goldText.text = "+0";
             if (expText != null) expText.text = "+0";
+
+            // Năng lượng được kiểm tra & trừ ở đây (claim-reward), KHÔNG chặn lúc vào dungeon.
+            // Nếu không đủ thì phải nói rõ, nếu không người chơi chỉ thấy +0/+0 và tưởng bug.
+            // Khớp theo message giống ClaimWithRetry ở trên: ErrorCode là INVALID_OPERATION dùng
+            // chung cho mọi lỗi claim nên không phân biệt được trường hợp thiếu năng lượng.
+            if (error.Message != null && error.Message.Contains("Insufficient energy"))
+            {
+                MysticJourney.UI.UIPopupManager.Instance?.ShowAlert(
+                    "Not Enough Energy",
+                    "You don't have enough energy to claim this chest.\n\n" +
+                    "Energy regenerates over time — come back and clear the dungeon again once it has refilled.");
+            }
         }
 
         private void OnExitClicked()

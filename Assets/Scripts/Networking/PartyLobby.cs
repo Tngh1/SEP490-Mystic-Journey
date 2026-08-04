@@ -99,10 +99,6 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
 
     private ChangeDetector _changes;
 
-    // Set locally on the outgoing host right before it disconnects, so the promoted
-    // member knows to claim StateAuthority when it arrives.
-    private bool _claimAuthorityOnArrival;
-
     public override void Spawned()
     {
         _all[Object.Id] = this;
@@ -351,17 +347,6 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         return -1;
     }
 
-    /// <summary>First occupied slot whose player is not the host, or default when none.</summary>
-    private PlayerRef FirstNonHostMember()
-    {
-        for (int i = 0; i < MaxMembers; i++)
-        {
-            var m = Members[i];
-            if (m.IsOccupied && m.Player != HostPlayer) return m.Player;
-        }
-        return default;
-    }
-
     // ─────────────────────────────────────────────────────────────────────────
     // Invite bookkeeping (host state authority)
     // ─────────────────────────────────────────────────────────────────────────
@@ -453,7 +438,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     /// <summary>Client leaves the party (removes its own slot). Host leave is handled
-    /// separately by <see cref="LeaveAsHost"/> because it transfers authority.</summary>
+    /// separately by <see cref="LeaveAsHost"/> because it disbands the whole party.</summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_Leave(PlayerRef player)
     {
@@ -468,69 +453,31 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Leave / host transfer (24.7)
+    // Leave / disband (24.7)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Graceful host leave. Runs on the host (state authority). If another member
-    /// exists, authority transfers to the first of them: the host rewrites HostPlayer
-    /// (while it still owns authority), clears its own slot, and asks the promoted
-    /// member to claim StateAuthority. If the host is alone, the party is destroyed.
-    /// Returns true if the party was torn down (caller should shut the session down).
+    /// Host leave = disband. Runs on the host (state authority) and despawns the party
+    /// object, so every member's <see cref="Despawned"/> fires, clears <see cref="Local"/>
+    /// and raises <see cref="OnLocalPartyChanged"/> — which is what closes their panel.
+    ///
+    /// Authority is deliberately NOT transferred to a remaining member: the party belongs
+    /// to whoever created it, so when the host walks away the party stops existing for
+    /// everyone rather than silently continuing under a new owner the members never chose.
     /// </summary>
-    public bool LeaveAsHost()
+    public void LeaveAsHost()
     {
-        if (!HasStateAuthority) return false;
+        if (!HasStateAuthority) return;
 
-        PlayerRef next = FirstNonHostMember();
-        if (next == default)
-        {
-            // No one else — tear the party down.
-            if (Runner != null && Object != null)
-                Runner.Despawn(Object);
-            return true;
-        }
-
-        // Promote: update host + drop own slot while we still hold authority, then
-        // hand the object to the promoted member.
-        int hostSlot = FindSlot(HostPlayer);
-        HostPlayer = next;
-        if (hostSlot >= 0)
-        {
-            var arr = Members;
-            arr.Set(hostSlot, default);
-        }
-
-        RPC_PromoteHost(next);
-        return false;
-    }
-
-    /// <summary>Tell the promoted member to claim StateAuthority over the party.</summary>
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PromoteHost([RpcTarget] PlayerRef target)
-    {
-        _claimAuthorityOnArrival = true;
-        Object.RequestStateAuthority();
+        if (Runner != null && Object != null)
+            Runner.Despawn(Object);
     }
 
     /// <summary>Fusion callback: our StateAuthority over this object changed.</summary>
     public void StateAuthorityChanged()
     {
-        if (HasStateAuthority && _claimAuthorityOnArrival)
-        {
-            _claimAuthorityOnArrival = false;
-            // HostPlayer was already set to us by the outgoing host; ensure our slot
-            // is marked ready as the new host and normalise state.
-            HostPlayer = Runner.LocalPlayer;
-            int slot = FindSlot(Runner.LocalPlayer);
-            if (slot >= 0)
-            {
-                var m = Members[slot];
-                m.Ready = true;
-                var arr = Members;
-                arr.Set(slot, m);
-            }
-        }
+        // No-op: the host never hands this object to a member (host leave disbands the
+        // party). Kept because Fusion requires the IStateAuthorityChanged member.
     }
 
     // ─────────────────────────────────────────────────────────────────────────
