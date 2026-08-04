@@ -27,14 +27,9 @@ namespace UI.Friend
         [SerializeField] private Button logoutButton;
 
         [Header("Class Art")]
-        [Tooltip("Cờ lớn bên ngoài panel (PlayerProfilePanel/ClassDeco).")]
-        [SerializeField] private Image classDecoImage;
         [Tooltip("Huy hiệu class nhỏ (LeftPanel/Bg_Class/Deco/ClassIcon).")]
         [SerializeField] private Image classIconImage;
-        // Sprite gán tay: 6 file này nằm ngoài Assets/Resources nên không Resources.Load được.
-        [SerializeField] private Sprite knightFlag;
-        [SerializeField] private Sprite mageFlag;
-        [SerializeField] private Sprite archerFlag;
+        // Sprite gán tay: 3 file này nằm ngoài Assets/Resources nên không Resources.Load được.
         [SerializeField] private Sprite knightIcon;
         [SerializeField] private Sprite mageIcon;
         [SerializeField] private Sprite archerIcon;
@@ -222,24 +217,20 @@ namespace UI.Friend
                 viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile);
         }
 
-        /// <summary>Đổi cờ lớn + huy hiệu nhỏ theo class. BE trả về string nên so sánh không phân biệt hoa/thường, không khớp thì về Knight.</summary>
+        /// <summary>Đổi huy hiệu class nhỏ. BE trả về string nên so sánh không phân biệt hoa/thường, không khớp thì về Knight.</summary>
         private void ApplyClassArt(string className)
         {
-            Sprite flag = knightFlag;
             Sprite icon = knightIcon;
 
             if (string.Equals(className, "Mage", StringComparison.OrdinalIgnoreCase))
             {
-                flag = mageFlag;
                 icon = mageIcon;
             }
             else if (string.Equals(className, "Archer", StringComparison.OrdinalIgnoreCase))
             {
-                flag = archerFlag;
                 icon = archerIcon;
             }
 
-            if (classDecoImage != null && flag != null) classDecoImage.sprite = flag;
             if (classIconImage != null && icon != null) classIconImage.sprite = icon;
         }
 
@@ -848,11 +839,13 @@ namespace UI.Friend
             logoutButton.onClick.AddListener(OnLogoutClicked);
         }
 
-        // Chỉ cho tài khoản đang đăng nhập: panel này cũng dùng để xem hồ sơ người chơi khác,
-        // ở đó nút Logout vô nghĩa (và dễ bấm nhầm).
+        // Only meaningful for the signed-in account: this panel also shows other players' profiles,
+        // where Logout makes no sense (and is easy to hit by accident).
+        // Logout is not undoable (session gone, back to MainMenu), so confirm first.
         private void OnLogoutClicked()
         {
-            MysticJourney.Core.Services.SessionService.Logout();
+            PartyPopupConfirm.Show(transform, "Log out of your account?",
+                MysticJourney.Core.Services.SessionService.Logout);
         }
 
         public void ClosePanel()

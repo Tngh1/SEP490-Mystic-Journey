@@ -52,6 +52,12 @@ public class InventoryManager : MonoBehaviour
     [SerializeField] private GameObject tabItemsHighlight;
     [SerializeField] private GameObject tabSkinsHighlight;
 
+    [Header("Active Filter/Tab Sprites")]
+    // Chỉ cần gán sprite trạng thái ĐANG CHỌN. Sprite thường được tự lưu lại từ scene lúc bind
+    // (xem RegisterFilterVisual) nên không phải gán tay.
+    [SerializeField] private Sprite filterActiveSprite;
+    [SerializeField] private Sprite tabActiveSprite;
+
     [Header("Stats Labels (tuỳ chọn)")]
     [SerializeField] private TMP_Text totalItemsText;
     [SerializeField] private TMP_Text totalSkinsText;
@@ -85,6 +91,20 @@ public class InventoryManager : MonoBehaviour
 
     private SkinDatabaseSO _skinDatabase;
     private float _lastLoadedAt = -999f;
+
+    // Filter/tab trong scene là Toggle với m_IsOn = 0, graphic = null và KHÔNG có ToggleGroup,
+    // nên không có sẵn trạng thái "đang chọn" nào để hiện. Tự quản radio state ở đây rồi đổi
+    // sprite của background Image (chính là targetGraphic của Toggle) cho nút đang active.
+    // Key phải có tiền tố nhóm: item và skin là 2 bộ filter riêng và cùng có giá trị "All".
+    private readonly Dictionary<string, Image> _filterGraphics = new Dictionary<string, Image>();
+    // Sprite gốc trong scene, dùng làm trạng thái thường khi Inspector không gán ô Inactive.
+    private readonly Dictionary<string, Sprite> _filterNormalSprites = new Dictionary<string, Sprite>();
+    private Sprite _tabItemsNormalSprite;
+    private Sprite _tabSkinsNormalSprite;
+    private bool _tabNormalSpritesCached;
+
+    private static string FilterKey(bool isSkinFilter, string filterValue)
+        => (isSkinFilter ? "skin:" : "item:") + filterValue;
 
     // -------------------------------------------------------------------------
     // Unity Lifecycle
@@ -475,13 +495,62 @@ public class InventoryManager : MonoBehaviour
         if (tabItemsHighlight) tabItemsHighlight.SetActive(!showSkins);
         if (tabSkinsHighlight) tabSkinsHighlight.SetActive(showSkins);
 
+        // tabItemsHighlight/tabSkinsHighlight không được gán trong scene, nên tab active phải
+        // nhận biết bằng sprite giống filter.
+        UpdateTabHighlights();
+
         if (itemFilterBar) itemFilterBar.SetActive(!showSkins);
         if (skinFilterBar) skinFilterBar.SetActive(showSkins);
 
         if (uiInventory) uiInventory.gameObject.SetActive(!showSkins);
         if (uiSkinInventory) uiSkinInventory.gameObject.SetActive(showSkins);
 
+        UpdateFilterHighlights();
         RefreshCurrentTab();
+    }
+
+    // Đổi Image.sprite chứ KHÔNG dùng Toggle.spriteState: cả 9 filter và 2 tab đều để
+    // Transition = ColorTint, mà SpriteState chỉ có tác dụng khi Transition = SpriteSwap. Ghi
+    // thẳng sprite nên không phụ thuộc vào transition mode ai đặt trong Inspector.
+    private static void ApplySprite(Image graphic, Sprite sprite)
+    {
+        if (graphic == null || sprite == null) return;
+        if (graphic.sprite != sprite) graphic.sprite = sprite;
+    }
+
+    // Toggle bị set bằng code (hoặc bấm lại nút đang bật) phải đồng bộ lại isOn.
+    // SetIsOnWithoutNotify để không gọi lại listener → tránh đệ quy / refresh đúp.
+    private static void SyncToggle(Image graphic, bool active)
+    {
+        if (graphic == null) return;
+        var toggle = graphic.GetComponent<Toggle>();
+        if (toggle != null && toggle.isOn != active)
+            toggle.SetIsOnWithoutNotify(active);
+    }
+
+    private void UpdateTabHighlights()
+    {
+        if (!_tabNormalSpritesCached)
+        {
+            _tabNormalSpritesCached = true;
+            var itemsGraphic = tabItemsToggle != null ? tabItemsToggle.targetGraphic as Image : null;
+            var skinsGraphic = tabSkinsToggle != null ? tabSkinsToggle.targetGraphic as Image : null;
+            if (itemsGraphic != null) _tabItemsNormalSprite = itemsGraphic.sprite;
+            if (skinsGraphic != null) _tabSkinsNormalSprite = skinsGraphic.sprite;
+        }
+
+        ApplyTabVisual(tabItemsToggle, !_showingSkins, _tabItemsNormalSprite);
+        ApplyTabVisual(tabSkinsToggle, _showingSkins, _tabSkinsNormalSprite);
+    }
+
+    private void ApplyTabVisual(Toggle tab, bool active, Sprite normalSprite)
+    {
+        if (tab == null) return;
+
+        var graphic = tab.targetGraphic as Image;
+        ApplySprite(graphic, active ? tabActiveSprite : normalSprite);
+
+        if (tab.isOn != active) tab.SetIsOnWithoutNotify(active);
     }
 
     public void SetFilter(string filterType)
@@ -494,6 +563,7 @@ public class InventoryManager : MonoBehaviour
         {
             _currentFilter = filterType;
         }
+        UpdateFilterHighlights();
         RefreshCurrentTab();
     }
 
@@ -800,17 +870,17 @@ public class InventoryManager : MonoBehaviour
             }
         }
 
-        BindFilterAction("All", "BtnFilterAll", "AllButton");
-        BindFilterAction("Weapon", "BtnFilterWeapon", "WeaponButton");
-        BindFilterAction("Armor", "BtnFilterArmor", "ArmorButton");
-        BindFilterAction("Consumable", "BtnFilterConsumable", "PotionButton", "ConsumableButton");
-        BindFilterAction("Material", "BtnFilterMaterial", "MaterialButton");
-        BindFilterAction("QuestItem", "BtnFilterQuest", "QuestButton");
-        BindFilterAction("Other", "BtnFilterOther", "OtherButton");
+        BindFilterAction("All", false, "BtnFilterAll", "AllButton");
+        BindFilterAction("Weapon", false, "BtnFilterWeapon", "WeaponButton");
+        BindFilterAction("Armor", false, "BtnFilterArmor", "ArmorButton");
+        BindFilterAction("Consumable", false, "BtnFilterConsumable", "PotionButton", "ConsumableButton");
+        BindFilterAction("Material", false, "BtnFilterMaterial", "MaterialButton");
+        BindFilterAction("QuestItem", false, "BtnFilterQuest", "QuestButton");
+        BindFilterAction("Other", false, "BtnFilterOther", "OtherButton");
 
-        BindFilterAction("All", "BtnSkinFilterAll");
-        BindFilterAction("Owned", "BtnSkinFilterOwned");
-        BindFilterAction("Unowned", "BtnSkinFilterUnowned");
+        BindFilterAction("All", true, "BtnSkinFilterAll");
+        BindFilterAction("Owned", true, "BtnSkinFilterOwned");
+        BindFilterAction("Unowned", true, "BtnSkinFilterUnowned");
 
         BindAction(CycleSort, "BtnSort", "SortButton", "OptionA", "BtnSkinSort");
         _sortDropdown = FindDropdown("BtnSort", "SortButton", "OptionA", "BtnSkinSort");
@@ -872,18 +942,19 @@ public class InventoryManager : MonoBehaviour
         return obj == null ? null : obj.GetComponent<Toggle>();
     }
 
-    private void BindFilterAction(string filterValue, params string[] names)
+    private void BindFilterAction(string filterValue, bool isSkinFilter, params string[] names)
     {
         var obj = FindObject(names);
-        if (obj == null) 
+        if (obj == null)
         {
             Debug.LogWarning("[InventoryManager] BindFilterAction: Could not find object for " + filterValue);
             return;
         }
-        
+
         var btn = obj.GetComponent<Button>();
         if (btn != null)
         {
+            RegisterFilterVisual(FilterKey(isSkinFilter, filterValue), btn);
             btn.onClick.AddListener(() => {
                 Debug.Log("[InventoryManager] Button clicked: " + filterValue);
                 SetFilter(filterValue);
@@ -894,17 +965,63 @@ public class InventoryManager : MonoBehaviour
         var toggle = obj.GetComponent<Toggle>();
         if (toggle != null)
         {
-            toggle.onValueChanged.AddListener((isOn) => { 
-                if (isOn) 
+            RegisterFilterVisual(FilterKey(isSkinFilter, filterValue), toggle);
+            toggle.onValueChanged.AddListener((isOn) => {
+                if (isOn)
                 {
                     Debug.Log("[InventoryManager] Toggle selected: " + filterValue);
-                    SetFilter(filterValue); 
+                    SetFilter(filterValue);
+                }
+                else
+                {
+                    // Bấm lại filter đang bật: giữ nguyên filter và bật lại toggle, nếu không
+                    // nút sẽ tắt highlight mà danh sách vẫn đang lọc theo nó.
+                    UpdateFilterHighlights();
                 }
             });
             return;
         }
 
         Debug.LogWarning("[InventoryManager] BindFilterAction: Object " + obj.name + " has neither Button nor Toggle for " + filterValue);
+    }
+
+    // targetGraphic của các nút này là background Image nằm trên chính object đó (đã kiểm trong
+    // scene), nên đủ để đổi sprite. Fallback GetComponent<Image> cho nút nào bỏ trống targetGraphic.
+    private void RegisterFilterVisual(string key, Selectable selectable)
+    {
+        var graphic = selectable.targetGraphic as Image;
+        if (graphic == null) graphic = selectable.GetComponent<Image>();
+        if (graphic == null)
+        {
+            Debug.LogWarning("[InventoryManager] RegisterFilterVisual: no Image on " + selectable.name);
+            return;
+        }
+
+        _filterGraphics[key] = graphic;
+        // BindEvents có thể chạy lại (xem _eventsBound), lúc đó nút đang chọn đã mang sprite
+        // active — cache nó làm "sprite thường" thì nút sẽ kẹt highlight vĩnh viễn.
+        if (graphic.sprite != filterActiveSprite) _filterNormalSprites[key] = graphic.sprite;
+    }
+
+    // Đổi sprite cho nút đang active và trả phần còn lại về sprite thường. Chỉ đụng tới nhóm đang
+    // hiện (item/skin) để filter của tab kia không bị xoá highlight khi quay lại.
+    private void UpdateFilterHighlights()
+    {
+        string activeKey = FilterKey(_showingSkins, _showingSkins ? _currentSkinFilter : _currentFilter);
+        string groupPrefix = _showingSkins ? "skin:" : "item:";
+
+        foreach (var pair in _filterGraphics)
+        {
+            var graphic = pair.Value;
+            if (graphic == null) continue;
+            if (!pair.Key.StartsWith(groupPrefix, System.StringComparison.Ordinal)) continue;
+
+            bool active = pair.Key == activeKey;
+
+            _filterNormalSprites.TryGetValue(pair.Key, out Sprite normal);
+            ApplySprite(graphic, active ? filterActiveSprite : normal);
+            SyncToggle(graphic, active);
+        }
     }
 
     private void BindAction(System.Action action, params string[] names)

@@ -49,8 +49,8 @@ public class MainMinimapToggleRuntime : MonoBehaviour
     private void OpenMapPanel()
     {
         // Trong dungeon thì không mở: panel chỉ dùng để dịch chuyển map, mà dịch chuyển
-        // đang bị chặn. TryOpen tự báo lý do cho người chơi.
-        if (!MainMapPanelRuntime.TryOpen()) return;
+        // đang bị chặn. Im lặng bỏ qua, không báo gì.
+        if (!MainMapPanelRuntime.CanOpen) return;
 
         if (UIManager.Instance != null && UIManager.Instance.mapPanel != null)
         {
