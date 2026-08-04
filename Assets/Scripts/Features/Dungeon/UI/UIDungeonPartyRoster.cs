@@ -51,10 +51,12 @@ public class UIDungeonPartyRoster : MonoBehaviour
 
         ClearRoster();
         RefreshRoster();
-        
-        // Listen to spawn/despawn events if NetworkPlayer provides them,
-        // otherwise we just poll periodically or assume roster doesn't change mid-dungeon.
-        InvokeRepeating(nameof(RefreshRoster), 2f, 5f); 
+
+        // Poll instead of listening: party members' NetworkPlayers appear asynchronously
+        // as each client finishes migrating into the dungeon room, so a one-shot scan at
+        // enable time would miss everyone who is still connecting. Kept short so a member
+        // who lands late still shows up quickly rather than after several seconds.
+        InvokeRepeating(nameof(RefreshRoster), 0.5f, 1f);
     }
 
     private void OnDisable()

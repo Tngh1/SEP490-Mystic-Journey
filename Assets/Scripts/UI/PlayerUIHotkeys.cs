@@ -39,6 +39,19 @@ public class PlayerUIHotkeys : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// A toggle key may act when nothing is open, or when the panel it owns is the
+    /// one that's open (so the same key closes it). If a DIFFERENT panel is open the
+    /// key is ignored — otherwise pressing M over the party roster would route
+    /// through UIManager.ShowPanel → CloseAll and silently drop the player out of
+    /// the party panel.
+    /// </summary>
+    private static bool CanToggle(UIManager ui, GameObject owned)
+    {
+        if (ui == null) return false;
+        return !ui.IsAnyPanelOpen || ui.IsPanelOpen(owned);
+    }
+
     private static bool IsNetworked
     {
         get
@@ -63,7 +76,7 @@ public class PlayerUIHotkeys : MonoBehaviour
         if (WorldState.PlayerLevel < MainFeatureUnlockRuntime.InventoryButtonLevel) return;
 
         var ui = UIManager.Instance;
-        if (ui != null && ui.inventoryPanel != null)
+        if (ui != null && ui.inventoryPanel != null && CanToggle(ui, ui.inventoryPanel))
             ui.OpenPanel(ui.inventoryPanel); // OpenPanel toggles if already open
     }
 
@@ -72,7 +85,7 @@ public class PlayerUIHotkeys : MonoBehaviour
         if (WorldState.PlayerLevel < MainFeatureUnlockRuntime.MiniMapButtonLevel) return;
 
         var ui = UIManager.Instance;
-        if (ui != null && ui.mapPanel != null)
+        if (ui != null && ui.mapPanel != null && CanToggle(ui, ui.mapPanel))
             ui.OpenPanel(ui.mapPanel);
     }
 }

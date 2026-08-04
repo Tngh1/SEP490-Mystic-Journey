@@ -465,10 +465,14 @@ public class PlayerHUDController : MonoBehaviour
     /// </summary>
     public void ApplyAvatar(string avatarUrl)
     {
+        // Also publish it to the networked avatar so party members see the right picture
+        // in the in-dungeon roster — a proxy cannot fetch another player's profile.
+        NetworkPlayer.PublishLocalAvatar(avatarUrl);
+
         FindHUDReferences();
         if (avatarImage == null) return;
 
-        var sprite = Resources.Load<Sprite>($"Avatars/{(string.IsNullOrEmpty(avatarUrl) ? "avatar_1" : avatarUrl)}");
+        var sprite = NetworkPlayer.ResolveAvatarSprite(avatarUrl);
         if (sprite != null)
             avatarImage.sprite = sprite;
     }
@@ -523,10 +527,12 @@ public class PlayerHUDController : MonoBehaviour
             corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
         }
 
-        if (avatarImage != null)
-        {
-            ApplyAvatar(profile.AvatarUrl);
-        }
+        // NOT gated on avatarImage: ApplyAvatar also publishes the avatar to the network so
+        // party members can draw it in the dungeon roster. Gating the call on a HUD Image
+        // reference meant that whenever transform.Find("TopBar/Button/Avatar") missed, the
+        // network publish never ran either, WorldState.AvatarUrl stayed empty, and every
+        // proxy silently fell back to avatar_1. ApplyAvatar null-checks the Image itself.
+        ApplyAvatar(profile.AvatarUrl);
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);
 

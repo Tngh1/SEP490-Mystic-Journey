@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,13 +19,16 @@ public class UIMapSlotReference
     public Button clickButton;
     public TMP_Text mapNameText;
     public Image mapThumbnail;
-    
+
     [Header("State Groups")]
     public GameObject unlockedGroup;
     public GameObject lockedGroup;
-    
+
+    [Tooltip("ActiveMap border, chỉ bật cho map người chơi đang đứng")]
+    public GameObject activeBorder;
+
     [Header("Progress")]
-    public TMP_Text explorationText; // e.g. "Exploration: 100%"
+    public TMP_Text explorationText; // chỉ phần số, label "Exploration:" là text tĩnh của parent
     public Image progressBarFill; // ProgressBar fill amount
 }
 
@@ -33,6 +37,11 @@ public class MainMapPanelRuntime : MonoBehaviour
     [Header("UI Elements")]
     public RawImage mapBackground;
     public Button continueButton;
+
+    [Header("Bottom Bar")]
+    [Tooltip("Chỉ phần số của 'All Map Progress:'")]
+    public TMP_Text totalProgressText;
+    public Image totalProgressBarFill;
 
     [Header("Map References")]
     public UIMapSlotReference elfForestSlot;
@@ -77,12 +86,18 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void OnEnable()
     {
-        SyncMinimapBackground();
+        // Scene lưu ActiveBorder ở trạng thái bật để dễ chỉnh giao diện, nên phải
+        // dựng lại trạng thái đúng ngay khi mở panel, trước khi API trả về.
+        ApplyLocalStateBeforeFetch();
 
         // The panel shows the whole level, not the player's surroundings, so the
         // shared minimap camera zooms out to frame everything while it is open.
         if (MinimapCameraController.Instance != null)
             MinimapCameraController.Instance.ShowFullMap();
+
+        // Must run after ShowFullMap: that call swaps the camera onto the wide
+        // full-map texture, and the RawImage has to follow it.
+        SyncMinimapBackground();
 
         WorldRuntimeEvents.MapCompleted += OnQuestClaimedCheckMapUnlock;
         WorldRuntimeEvents.QuestsChanged += OnQuestsChanged;
@@ -114,6 +129,47 @@ public class MainMapPanelRuntime : MonoBehaviour
         }
     }
 
+    // Dựng trạng thái từ dữ liệu có sẵn ở client (quest + map đang đứng) để panel
+    // không nháy sai một nhịp trong lúc chờ WorldApi, và vẫn đúng nếu API lỗi.
+    private void ApplyLocalStateBeforeFetch()
+    {
+        if (allSlots == null) return;
+
+        string currentMap = WorldState.CurrentMapName;
+
+        foreach (var slot in allSlots)
+        {
+            if (slot == null || slot.mapData == null) continue;
+
+            bool isUnlocked = slot.mapData.unlockQuestId <= 0 ||
+                              (QuestManager.Instance != null &&
+                               QuestManager.Instance.CanEnterMap(slot.mapData));
+
+            _mapUnlockState[slot.mapData.mapName] = isUnlocked;
+
+            ApplySlotState(slot, isUnlocked, currentMap);
+
+            if (slot.mapNameText != null)
+                slot.mapNameText.text = slot.mapData.mapName;
+
+            if (slot.mapThumbnail != null && slot.mapData.thumbnail != null)
+                slot.mapThumbnail.sprite = slot.mapData.thumbnail;
+        }
+    }
+
+    private static void ApplySlotState(UIMapSlotReference slot, bool isUnlocked, string currentMap)
+    {
+        if (slot.unlockedGroup != null)
+            slot.unlockedGroup.SetActive(isUnlocked);
+
+        if (slot.lockedGroup != null)
+            slot.lockedGroup.SetActive(!isUnlocked);
+
+        // ActiveBorder chỉ sáng ở map đang đứng, và chỉ khi map đó đã mở.
+        if (slot.activeBorder != null)
+            slot.activeBorder.SetActive(isUnlocked && QuestUtils.IsSameMap(currentMap, slot.mapData.mapName));
+    }
+
     private void BindMapButton(UIMapSlotReference slot)
     {
         if (slot.clickButton != null && slot.mapData != null)
@@ -131,9 +187,16 @@ public class MainMapPanelRuntime : MonoBehaviour
             return;
         }
 
+        var api = WorldApi.Instance;
+        if (api == null)
+        {
+            Debug.LogWarning("[MainMapPanelRuntime] WorldApi is unavailable, skipping map progress fetch.");
+            return;
+        }
+
         isFetchingData = true;
 
-        WorldApi.Instance.GetState(
+        api.GetState(
             state =>
             {
                 if (state != null && state.Maps != null)
@@ -162,12 +225,17 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void UpdateSlotsUI(List<WorldMapProgressResponse> mapsProgress)
     {
+        string currentMap = WorldState.CurrentMapName;
+        int pctSum = 0, pctCount = 0;
+
         foreach (var slot in allSlots)
         {
             if (slot == null || slot.mapData == null) continue;
 
+            // BE trả tên scene liền ("ElfForest"), MapData.mapName có dấu cách ("Elf Forest"),
+            // nên so khớp phải bỏ dấu cách chứ không dùng Equals thô.
             var progress = mapsProgress?.FirstOrDefault(m =>
-                string.Equals(m.MapName, slot.mapData.mapName, StringComparison.OrdinalIgnoreCase));
+                QuestUtils.IsSameMap(m.MapName, slot.mapData.mapName));
 
             var apiUnlocked = progress != null && progress.IsUnlocked;
             var questUnlocked = QuestManager.Instance != null && QuestManager.Instance.CanEnterMap(slot.mapData);
@@ -179,18 +247,16 @@ public class MainMapPanelRuntime : MonoBehaviour
                 : slot.mapData.mapName;
 
             _mapUnlockState[slot.mapData.mapName] = isUnlocked;
+            pctSum += explorationPct;
+            pctCount++;
 
             if (slot.mapNameText != null)
                 slot.mapNameText.text = displayName;
 
-            if (slot.unlockedGroup != null)
-                slot.unlockedGroup.SetActive(isUnlocked);
-
-            if (slot.lockedGroup != null)
-                slot.lockedGroup.SetActive(!isUnlocked);
+            ApplySlotState(slot, isUnlocked, currentMap);
 
             if (slot.explorationText != null)
-                slot.explorationText.text = $"Exploration: {explorationPct}%";
+                slot.explorationText.text = $"{explorationPct}%";
 
             if (slot.progressBarFill != null)
                 slot.progressBarFill.fillAmount = explorationPct / 100f;
@@ -198,11 +264,27 @@ public class MainMapPanelRuntime : MonoBehaviour
             if (slot.mapThumbnail != null && slot.mapData.thumbnail != null)
                 slot.mapThumbnail.sprite = slot.mapData.thumbnail;
         }
+
+        int totalPct = pctCount == 0 ? 0 : Mathf.RoundToInt((float)pctSum / pctCount);
+
+        if (totalProgressText != null)
+            totalProgressText.text = $"{totalPct}%";
+
+        if (totalProgressBarFill != null)
+            totalProgressBarFill.fillAmount = totalPct / 100f;
     }
 
     private void OnMapButtonClicked(UIMapSlotReference slot)
     {
         if (slot.mapData == null) return;
+
+        // Chặn ngay từ slot: guard thật nằm ở MapSceneController.EnterMap, nhưng nếu chỉ chặn
+        // ở đó thì người chơi phải mở popup Detail rồi bấm Enter mới biết là không đi được.
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+        {
+            MapSceneController.NotifyTravelBlocked();
+            return;
+        }
 
         _mapUnlockState.TryGetValue(slot.mapData.mapName, out bool canEnter);
 
@@ -227,6 +309,17 @@ public class MainMapPanelRuntime : MonoBehaviour
     private void SyncMinimapBackground()
     {
         if (mapBackground == null) return;
+
+        // Prefer the texture the minimap camera is rendering into right now: in
+        // full-map mode that is the wide panel texture, whose aspect matches this
+        // frame. Reading it from the HUD minimap instead would pin us to the square
+        // minimap texture and letterbox the level.
+        var minimap = MinimapCameraController.Instance;
+        if (minimap != null && minimap.ActiveTexture != null)
+        {
+            mapBackground.texture = minimap.ActiveTexture;
+            return;
+        }
 
         var miniMapObj = FindSceneObject("MiniMap");
         if (miniMapObj != null)
@@ -261,6 +354,10 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void OnMapChanged(string mapName)
     {
+        // New level, new bounds: re-frame before rebinding the texture.
+        if (MinimapCameraController.Instance != null)
+            MinimapCameraController.Instance.ShowFullMap();
+
         SyncMinimapBackground();
         FetchMapProgress();
     }

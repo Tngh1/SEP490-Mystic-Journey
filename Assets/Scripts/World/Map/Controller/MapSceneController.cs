@@ -10,8 +10,30 @@ public class MapSceneController : MonoBehaviour
     [SerializeField]
     private List<MapSceneConfig> mapConfigs;
 
+    /// <summary>
+    /// Đang trong dungeon thì không cho đổi map. Guard đặt ở đây (chứ không ở UI) để bịt MỌI
+    /// đường vào: map panel, cổng dịch chuyển, thuyền.
+    ///
+    /// Lý do phải chặn, không phải chỉ vì thiết kế: trong dungeon, WorldState.CurrentMapName là
+    /// tên scene dungeon và DungeonManager đã move player VÀO scene đó, nên ChangeMap sẽ unload
+    /// chính scene đang chứa player -> player bị destroy, tới map mới không còn nhân vật. Muốn
+    /// ra ngoài phải đi qua DungeonManager.ReturnToWorldMap (rời phòng Photon, trả player về
+    /// Main trước khi unload, tắt dungeon HUD, thu hồi rương thưởng).
+    /// </summary>
+    public bool IsTravelBlocked
+    {
+        get { return DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon; }
+    }
+
     public void EnterMap(MapData mapData, bool useCache = true, Vector3? specificSpawnPos = null)
     {
+        if (IsTravelBlocked)
+        {
+            Debug.Log("[MapSceneController] Travel blocked: player is inside a dungeon.");
+            NotifyTravelBlocked();
+            return;
+        }
+
         MapSceneConfig config =
             mapConfigs.Find(
                 x => x != null && x.mapData == mapData);
@@ -25,6 +47,21 @@ public class MapSceneController : MonoBehaviour
 
         StartCoroutine(
             ChangeMap(config.sceneName, useCache, specificSpawnPos));
+    }
+
+    /// <summary>
+    /// Popup chặn, dùng lại đúng kênh MapTeleportPortal đang dùng cho map chưa mở
+    /// (QuestPopup nằm ở Canvas/PopupLayer nên KHÔNG bị ToggleDungeonMode ẩn đi).
+    /// Cố tình gọi overload 2 tham số với kind None: overload 1 tham số bật inferKind, mà
+    /// câu này có chữ "cannot ... while" dễ bị đoán nhầm thành popup quest kèm stamp xanh.
+    /// </summary>
+    public static void NotifyTravelBlocked()
+    {
+        if (MainQuestPanelRuntime.Instance == null) return;
+
+        MainQuestPanelRuntime.Instance.ShowQuestPopup(
+            "You cannot travel to another map while inside a dungeon. Leave the dungeon first.",
+            UIQuestPopupView.QuestPopupKind.None);
     }
 
     private IEnumerator ChangeMap(
@@ -43,6 +80,11 @@ public class MapSceneController : MonoBehaviour
         var previousScene = WorldState.CurrentMapName;
         if (!string.IsNullOrWhiteSpace(previousScene) && SceneManager.GetSceneByName(previousScene).isLoaded)
         {
+            // Luồng thường PlayerSpawner đã đặt player trong "Main" nên unload map cũ không
+            // đụng tới nó. Vẫn đưa về Main phòng khi một luồng khác gắn player vào scene map —
+            // unload nhầm là mất nhân vật, không phải chỉ sai vị trí.
+            MovePlayerToMainScene();
+
             yield return SceneManager
                 .UnloadSceneAsync(previousScene);
         }
@@ -115,12 +157,9 @@ public class MapSceneController : MonoBehaviour
         // bởi UpdatePosition bên dưới. Gọi sớm sẽ nhận lại quest của map CŨ -> vào map mới không
         // có nhiệm vụ và không có mũi tên waypoint. Load sau khi lưu vị trí thành công.
 
-        var player = GameObject.FindGameObjectWithTag("Player");
+        var player = FindPlayer();
         if (player == null)
-        {
-            var pm = Object.FindFirstObjectByType<PlayerMovement>();
-            if (pm != null) player = pm.gameObject;
-        }
+            Debug.LogWarning($"[MapSceneController] No player found after loading {targetScene}.");
 
         if (player != null)
         {
@@ -174,5 +213,48 @@ public class MapSceneController : MonoBehaviour
         // xong sẽ tự render lại HUD. Nếu sau này muốn vào map là có ngay quest thì đổi callback
         // ở trên thành cờ và chờ nó trước LoadingScreen.Hide().
         yield return LoadingScreen.Hide();
+    }
+
+    /// <summary>
+    /// Local player object, luôn trả về ROOT của scene.
+    /// Ưu tiên NetworkPlayer.Local: trong multiplayer, PlayerMovement có thể khớp nhầm child
+    /// VISUAL của class prefab, mà child không phải scene root nên MoveGameObjectToScene ném lỗi.
+    /// </summary>
+    private static GameObject FindPlayer()
+    {
+        GameObject found = NetworkPlayer.Local != null ? NetworkPlayer.Local.gameObject : null;
+
+        found ??= GameObject.FindGameObjectWithTag("Player");
+
+        if (found == null)
+        {
+            var pm = Object.FindFirstObjectByType<PlayerMovement>();
+            if (pm != null) found = pm.gameObject;
+        }
+
+        return found != null ? found.transform.root.gameObject : null;
+    }
+
+    /// <summary>
+    /// Đưa player về scene "Main" để nó sống sót qua lần unload map cũ. Nuốt lỗi có chủ đích:
+    /// MoveGameObjectToScene ném nếu object không phải scene root, và một lần move hỏng không
+    /// đáng để giết coroutine đổi map (sẽ kẹt màn hình loading).
+    /// </summary>
+    private static void MovePlayerToMainScene()
+    {
+        var player = FindPlayer();
+        if (player == null) return;
+
+        var mainScene = SceneManager.GetSceneByName("Main");
+        if (!mainScene.IsValid() || !mainScene.isLoaded || player.scene == mainScene) return;
+
+        try
+        {
+            SceneManager.MoveGameObjectToScene(player, mainScene);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[MapSceneController] Could not move '{player.name}' to Main: {ex.Message}");
+        }
     }
 }

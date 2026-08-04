@@ -12,6 +12,14 @@ namespace MysticJourney.Core.Services
         public string PlayerName { get; set; }
         public string PlayerClass { get; set; }
         public int EquippedSkinId { get; set; }
+
+        /// <summary>
+        /// Resource name of the player's profile avatar (e.g. "avatar_3"), matching a
+        /// sprite under Resources/Avatars. Kept here — not only on the HUD — because
+        /// NetworkPlayer replicates it so party members can show each other's avatar.
+        /// </summary>
+        public string AvatarUrl { get; set; }
+
         public string CurrentMapName { get; set; }
         public Vector3 LastPosition { get; set; }
         public float CorruptionLevel { get; set; }
@@ -24,6 +32,7 @@ namespace MysticJourney.Core.Services
             PlayerName = null;
             PlayerClass = "Knight";
             EquippedSkinId = 0;
+            AvatarUrl = null;
             CurrentMapName = "ElfForest";
             LastPosition = new Vector3(11.9f, 17.8f, 0f);
             CorruptionLevel = 0f;
@@ -36,6 +45,7 @@ namespace MysticJourney.Core.Services
             PlayerName = PlayerPrefs.GetString("mj_user_name", string.Empty);
             PlayerClass = PlayerPrefs.GetString("mj_player_class", "Knight");
             EquippedSkinId = PlayerPrefs.GetInt("mj_equipped_skin_id", 0);
+            AvatarUrl = PlayerPrefs.GetString("mj_avatar_url", string.Empty);
             CurrentMapName = PlayerPrefs.GetString("mj_last_map", "ElfForest");
             LastPosition = new Vector3(
                 PlayerPrefs.GetFloat("mj_pos_x", 11.9f),
@@ -51,6 +61,7 @@ namespace MysticJourney.Core.Services
             PlayerPrefs.SetString("mj_user_name", PlayerName ?? string.Empty);
             PlayerPrefs.SetString("mj_player_class", PlayerClass ?? "Knight");
             PlayerPrefs.SetInt("mj_equipped_skin_id", EquippedSkinId);
+            PlayerPrefs.SetString("mj_avatar_url", AvatarUrl ?? string.Empty);
             PlayerPrefs.SetString("mj_last_map", CurrentMapName ?? "ElfForest");
             PlayerPrefs.SetFloat("mj_pos_x", LastPosition.x);
             PlayerPrefs.SetFloat("mj_pos_y", LastPosition.y);

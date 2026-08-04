@@ -356,6 +356,12 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
                 Scene = ResolveGameplayScene(),
                 SceneManager = sceneManager,
                 CustomPhotonAppSettings = BuildAppSettings(),
+                // A dungeon room holds exactly one party, so it is capped at the same size.
+                // That cap is what lets the rest of the code treat "everyone in this room"
+                // as "the party" — the in-dungeon roster (UIDungeonPartyRoster) and party
+                // chat (NetworkPlayer.BroadcastPartyChat) both rely on it. The social lobby
+                // stays uncapped: it must hold every online player for presence + invites.
+                PlayerCount = phase == PartyPhase.Dungeon ? PartyLobby.MaxMembers : (int?)null,
             };
 
             Debug.Log($"[PhotonManager] Connecting to session '{args.SessionName}' " +
