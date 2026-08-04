@@ -55,6 +55,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -76,8 +78,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: -1980289144, guid: 8b9614b99a381eb4fb6d9aa01be8a942, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -124,7 +127,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ac3894736ba7d849a9cc7dd8ff15337, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyBehaviour: {fileID: 1153424983129270322}
+  enemyBehaviour: {fileID: 0}
   enemyEntity: {fileID: 4880468609330424922}
 --- !u!1 &3706973823214634390
 GameObject:
@@ -178,6 +181,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -199,8 +204,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 2
   m_Sprite: {fileID: -1869374846, guid: bfdd77a8044e6d24b9c45b0c7c5a6311, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.30588236}
@@ -228,7 +234,6 @@ GameObject:
   - component: {fileID: 3491647490437903614}
   - component: {fileID: 5633811753684952056}
   - component: {fileID: 4880468609330424922}
-  - component: {fileID: 1153424983129270322}
   m_Layer: 0
   m_Name: Rat
   m_TagString: Untagged
@@ -451,25 +456,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 5
---- !u!114 &1153424983129270322
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5267451333743389507}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6dbcc92e44457541a7702f9a8b72815, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startingState: 1
-  roamingDistanceMax: 1
-  roamingDistanceMin: 0.5
-  roamingTimeMax: 12
-  isChasingEnemy: 1
-  isAttackingEnemy: 1
-  chasingDistance: 4
-  chasingSpeedMultiplier: 2
-  attackDistance: 2
-  attackRate: 2
+  monsterId: 0
+  monsterSpawnId: 0
+  useApiStats: 1
+  def: 0
