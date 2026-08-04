@@ -14,6 +14,7 @@ namespace MysticJourney.API.Models
         public int bannerId;
         public int leaderId;
         public string leaderName;
+        public string leaderAvatarUrl;
         public int level;
         public int guildExp;
         public int expToNextLevel;

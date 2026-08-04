@@ -39,14 +39,27 @@ public class UIPartyPanel : MonoBehaviour
     [Tooltip("Class → avatar sprite mapping. Auto-loaded from Resources/ClassAvatarDatabase if empty.")]
     [SerializeField] private ClassAvatarDatabaseSO avatarDatabase;
 
+    [Tooltip("Skin → portrait mapping. Auto-loaded from Resources/SkinDatabase if empty.")]
+    [SerializeField] private SkinDatabaseSO skinDatabase;
+
+    [Header("Dungeon Info UI")]
+    [SerializeField] private TMP_Text descriptionText;
+    [SerializeField] private Transform dropsContainer;
+    [SerializeField] private GameObject dropItemPrefab; // Optional prefab to instantiate for drop items
+
     [Header("Runtime Info")]
     private int selectedConfigId = 1;
     private string selectedSceneName = "AbandonedMines";
     private string selectedDungeonName = "Abandoned Mines";
+    private string selectedDescription = "";
+    private System.Collections.Generic.List<ChestItemResponse> possibleDrops = new();
     private int energyCost = 20;
     private int playerEnergy = 0;
     private int recommendedLevel = 1;
     private int difficulty = 1;
+    private int goldMinReward = 0;
+    private int goldMaxReward = 0;
+    private int experienceReward = 0;
 
     // Local player identity (for the host slot in solo mode + as fallback).
     private string localPlayerName = "Player";
@@ -173,6 +186,11 @@ public class UIPartyPanel : MonoBehaviour
                     energyCost = response.EnergyCost;
                     if (!string.IsNullOrEmpty(response.Name))
                         selectedDungeonName = response.Name;
+                    selectedDescription = response.Description ?? "No description available.";
+                    possibleDrops = response.PossibleDrops ?? new();
+                    goldMinReward = response.GoldMinReward;
+                    goldMaxReward = response.GoldMaxReward;
+                    experienceReward = response.ExperienceReward;
                 }
                 gameObject.SetActive(true);
                 PublishDungeonSelectionIfHost();
@@ -221,12 +239,19 @@ public class UIPartyPanel : MonoBehaviour
                         recommendedLevel = mines.LevelRequirement;
                         difficulty = mines.Difficulty;
                         selectedSceneName = "HollowCryptDungeon";
+                        selectedDescription = mines.Description ?? "No description available.";
+                        possibleDrops = mines.PossibleDrops ?? new();
+                        goldMinReward = mines.GoldMinReward;
+                        goldMaxReward = mines.GoldMaxReward;
+                        experienceReward = mines.ExperienceReward;
                     }
                     else
                     {
                         selectedConfigId = 1;
                         selectedSceneName = "HollowCryptDungeon";
                         selectedDungeonName = "Abandoned Mines";
+                        selectedDescription = "";
+                        possibleDrops = new();
                         energyCost = 20;
                         recommendedLevel = 1;
                         difficulty = 2;
@@ -240,9 +265,14 @@ public class UIPartyPanel : MonoBehaviour
                 selectedConfigId = 1;
                 selectedSceneName = "AbandonedMines";
                 selectedDungeonName = "Abandoned Mines";
+                selectedDescription = "";
+                possibleDrops = new();
                 energyCost = 20;
                 recommendedLevel = 1;
                 difficulty = 2;
+                goldMinReward = 0;
+                goldMaxReward = 0;
+                experienceReward = 0;
                 PublishDungeonSelectionIfHost();
                 FetchPlayerEnergy();
             }
@@ -309,9 +339,113 @@ public class UIPartyPanel : MonoBehaviour
             dungeonNameText.fontSizeMin = 18;
         }
 
+        UpdateDungeonInfoPanel();
         UpdateEnergyCostLabel();
         UpdatePlayersPanel();
         UpdateBottomBar();
+    }
+
+    private void UpdateDungeonInfoPanel()
+    {
+        if (descriptionText != null)
+        {
+            descriptionText.text = selectedDescription;
+        }
+
+        if (dropsContainer != null)
+        {
+            // Clear existing
+            foreach (Transform child in dropsContainer)
+            {
+                Destroy(child.gameObject);
+            }
+
+            if (true) // Just to keep block indentation
+            {
+                // Spawn Gold if available
+                if (goldMaxReward > 0)
+                {
+                    SpawnDropItem("Gold", goldMinReward, goldMaxReward, null);
+                }
+
+                // Spawn Exp if available
+                if (experienceReward > 0)
+                {
+                    SpawnDropItem("Experience", experienceReward, experienceReward, null);
+                }
+
+                if (possibleDrops != null)
+                {
+                    foreach (var drop in possibleDrops)
+                    {
+                        SpawnDropItem(drop.ItemName, drop.QuantityMin, drop.QuantityMax, drop.ItemIconUrl);
+                    }
+                }
+            }
+        }
+    }
+
+    private void SpawnDropItem(string itemName, int minQty, int maxQty, string iconUrl)
+    {
+        GameObject itemObj;
+        if (dropItemPrefab != null)
+        {
+            itemObj = Instantiate(dropItemPrefab, dropsContainer);
+        }
+        else
+        {
+            itemObj = new GameObject("DropItem", typeof(RectTransform), typeof(Image));
+            itemObj.transform.SetParent(dropsContainer, false);
+            var rt = itemObj.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(40, 40);
+        }
+
+        // Try to load icon
+        Image image = null;
+        var iconTransform = itemObj.transform.Find("Icon");
+        if (iconTransform != null)
+        {
+            image = iconTransform.GetComponent<Image>();
+        }
+        else
+        {
+            image = itemObj.GetComponentInChildren<Image>();
+        }
+        
+        if (image != null && !string.IsNullOrEmpty(itemName))
+        {
+            Sprite sprite = null;
+            if (ItemIconDatabase.Instance != null)
+            {
+                sprite = ItemIconDatabase.Instance.GetIcon(itemName, null);
+            }
+            
+            if (sprite == null)
+            {
+                sprite = Resources.Load<Sprite>(iconUrl) ?? Resources.Load<Sprite>("Icons/Items/" + itemName);
+            }
+
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+                image.enabled = true;
+                image.preserveAspect = true;
+            }
+            else
+            {
+                Debug.LogWarning($"[UIPartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
+            }
+        }
+
+        // Update quantity text if exists
+        var qtyText = itemObj.GetComponentInChildren<TMPro.TMP_Text>();
+        if (qtyText != null)
+        {
+            if (minQty == maxQty)
+                qtyText.text = $"x{maxQty}";
+            else
+                qtyText.text = $"x{minQty}-{maxQty}";
+        }
     }
 
     private void UpdateEnergyCostLabel()
@@ -384,6 +518,52 @@ public class UIPartyPanel : MonoBehaviour
                 energyCostText = energyTrans.GetComponentInChildren<TMP_Text>(true);
             }
         }
+
+        // 3. Auto-find Description and Drops if null or wrong
+        if (descriptionText == null)
+        {
+            var allTexts = GetComponentsInChildren<TMP_Text>(true);
+            foreach (var t in allTexts)
+            {
+                if (descriptionText == null && t.text == "New Text" && t.name.Contains("Text"))
+                {
+                    descriptionText = t;
+                }
+            }
+        }
+
+        if (dropsContainer != null && dropsContainer.name == "RewardItem")
+        {
+            dropsContainer = dropsContainer.parent;
+        }
+
+        if (dropsContainer == null)
+        {
+            var layouts = GetComponentsInChildren<UnityEngine.UI.LayoutGroup>(true);
+            foreach (var layout in layouts)
+            {
+                if (dropsContainer == null)
+                {
+                    string lname = layout.name.ToLower();
+                    if (lname.Contains("drop") || lname.Contains("item") || lname.Contains("content") || lname.Contains("container"))
+                    {
+                        dropsContainer = layout.transform;
+                        if (lname.Contains("drop") || lname.Contains("item")) break;
+                    }
+                }
+            }
+        }
+
+        if (dropsContainer != null && dropsContainer.GetComponent<UnityEngine.UI.LayoutGroup>() == null)
+        {
+            var hg = dropsContainer.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+            hg.childControlHeight = false;
+            hg.childControlWidth = false;
+            hg.childForceExpandHeight = false;
+            hg.childForceExpandWidth = false;
+            hg.childAlignment = TextAnchor.MiddleCenter;
+            hg.spacing = 10;
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -404,12 +584,13 @@ public class UIPartyPanel : MonoBehaviour
         // ── Slot 0: host ─────────────────────────────────────────────────────
         if (slots.Length > 0 && slots[0] != null)
         {
-            string hostName; int hostLevel; CharacterClass hostCls;
+            string hostName; int hostLevel; CharacterClass hostCls; int hostSkin;
             if (party != null && TryGetHostMember(party, out var hostMember))
             {
                 hostName = hostMember.Name.Value;
                 hostLevel = hostMember.Level;
                 hostCls = (CharacterClass)hostMember.PlayerClass;
+                hostSkin = hostMember.SkinId;
             }
             else
             {
@@ -417,8 +598,9 @@ public class UIPartyPanel : MonoBehaviour
                 hostLevel = localPlayerLevel;
                 if (!Enum.TryParse(WorldState.PlayerClass ?? "Knight", true, out hostCls))
                     hostCls = CharacterClass.Knight;
+                hostSkin = WorldState.EquippedSkinId;
             }
-            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls));
+            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls), SkinPortraitFor(hostSkin));
         }
 
         // ── Slots 1..N: other members / invite buttons ───────────────────────
@@ -445,14 +627,27 @@ public class UIPartyPanel : MonoBehaviour
                 var m = others[otherIdx];
                 var cls = (CharacterClass)m.PlayerClass;
                 var target = m.Player;
-                slot.RenderMember(m.Name.Value, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
-                    canKick: localIsHost, onKick: () => PartyService.KickMember(target));
+                var memberName = m.Name.Value;
+                slot.RenderMember(memberName, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
+                    canKick: localIsHost,
+                    onKick: () => ConfirmKick(memberName, () => PartyService.KickMember(target)),
+                    skinPortrait: SkinPortraitFor(m.SkinId));
             }
             else
             {
                 slot.RenderEmpty();
             }
         }
+    }
+
+    /// <summary>
+    /// Confirms a kick through <c>Canvas/PopupLayer/PartyPopup</c> in the Main Scene.
+    /// This used to call <c>UIPopupManager</c>, which was the wrong popup: that is the shared
+    /// generic dialog, not the party-specific one the designers built.
+    /// </summary>
+    private void ConfirmKick(string memberName, Action onConfirm)
+    {
+        PartyPopupConfirm.Show(transform, $"Kick {memberName} from the party?", onConfirm);
     }
 
     private void EnsureSlotsResolved()
@@ -523,6 +718,15 @@ public class UIPartyPanel : MonoBehaviour
     private Sprite NameplateFor(CharacterClass cls)
     {
         return avatarDatabase != null ? avatarDatabase.GetNameplate(cls) : null;
+    }
+
+    /// <summary>Portrait for a member's equipped skin — the same preview sprite the
+    /// inventory's skin tab renders, so a slot matches what that player is wearing.</summary>
+    private Sprite SkinPortraitFor(int skinId)
+    {
+        if (skinId <= 0) return null;
+        if (skinDatabase == null) skinDatabase = SkinDatabaseSO.LoadDefault();
+        return skinDatabase != null ? skinDatabase.GetPreviewSprite(skinId) : null;
     }
 
     private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)

@@ -61,6 +61,29 @@ public class UIManager : MonoBehaviour
         // Không cần tải skill ở đây nữa vì đã chuyển sang PlayerCombat.Start()
     }
 
+    /// <summary>
+    /// True while any tracked panel is on screen. Read by <see cref="GameplayInputProvider"/>
+    /// to suppress gameplay hotkeys, so a key pressed while a panel is up doesn't also
+    /// leak into the world (pressing "1" over the party roster must not cast a skill).
+    /// Uses activeInHierarchy: a panel under a disabled parent isn't actually visible.
+    /// </summary>
+    public bool IsAnyPanelOpen
+    {
+        get
+        {
+            foreach (var panel in GetPanels())
+            {
+                if (panel != null && panel.activeInHierarchy)
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>True if this specific panel is currently on screen.</summary>
+    public bool IsPanelOpen(GameObject panel) => panel != null && panel.activeInHierarchy;
+
     public void OpenPanel(GameObject panel)
     {
         if (panel == null)

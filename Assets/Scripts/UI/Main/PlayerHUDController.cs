@@ -37,6 +37,7 @@ public class PlayerHUDController : MonoBehaviour
     [Header("HUD Groups")]
     [SerializeField] private GameObject nonCombatActionGroup;
     [SerializeField] private GameObject dungeonSpecificGroup;
+    [SerializeField] private GameObject partyRosterContainer;
 
     [Header("Level-Gated Buttons")]
     [SerializeField] private GameObject chatButtonObj;
@@ -169,6 +170,16 @@ public class PlayerHUDController : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// Resolve a button in the left action column. It lives under
+    /// "NonCombatActionGroup/Left"; a plain "Left/..." path returns null and fails
+    /// SILENTLY (no hover effect, no reference), so fall back to a name search.
+    /// </summary>
+    private Transform FindLeft(string buttonName)
+        => transform.Find("NonCombatActionGroup/Left/" + buttonName)
+           ?? transform.Find("Left/" + buttonName)
+           ?? FindChildRecursive(transform, buttonName);
+
     public void FindHUDReferences()
     {
         if (playerNameText == null) playerNameText = transform.Find("TopBar/Button/PlayerNameText")?.GetComponent<TMP_Text>();
@@ -258,12 +269,12 @@ public class PlayerHUDController : MonoBehaviour
         }
         if (friendButtonObj == null)
         {
-            var btn = transform.Find("Left/FriendButton");
+            var btn = FindLeft("FriendButton");
             if (btn != null) friendButtonObj = btn.gameObject;
         }
         if (dailyButtonObj == null)
         {
-            var btn = transform.Find("Left/DailyButton");
+            var btn = FindLeft("DailyButton");
             if (btn != null) dailyButtonObj = btn.gameObject;
         }
         if (mailButtonObj == null)
@@ -273,22 +284,22 @@ public class PlayerHUDController : MonoBehaviour
         }
         if (gachaButtonObj == null)
         {
-            var btn = transform.Find("Left/GachaButton");
+            var btn = FindLeft("GachaButton");
             if (btn != null) gachaButtonObj = btn.gameObject;
         }
         if (shopButtonObj == null)
         {
-            var btn = transform.Find("Left/ShopButton");
+            var btn = FindLeft("ShopButton");
             if (btn != null) shopButtonObj = btn.gameObject;
         }
         if (guildButtonObj == null)
         {
-            var btn = transform.Find("Left/GuildButton");
+            var btn = FindLeft("GuildButton");
             if (btn != null) guildButtonObj = btn.gameObject;
         }
         if (bestiaryButtonObj == null)
         {
-            var btn = transform.Find("Left/BestiaryButton");
+            var btn = FindLeft("BestiaryButton");
             if (btn != null) bestiaryButtonObj = btn.gameObject;
         }
         if (skillsButtonObj == null)
@@ -300,13 +311,13 @@ public class PlayerHUDController : MonoBehaviour
         }
 
         // Same hover-scale transition the party panel uses on its Start/Ready buttons.
-        AddHoverEffect(transform.Find("Left/DailyButton"));
-        AddHoverEffect(transform.Find("Left/GachaButton"));
-        AddHoverEffect(transform.Find("Left/ShopButton"));
-        AddHoverEffect(transform.Find("Left/FriendButton"));
-        AddHoverEffect(transform.Find("Left/GuildButton"));
-        AddHoverEffect(transform.Find("Left/BestiaryButton"));
-        AddHoverEffect(transform.Find("Left/InventoryButton"));
+        AddHoverEffect(FindLeft("DailyButton"));
+        AddHoverEffect(FindLeft("GachaButton"));
+        AddHoverEffect(FindLeft("ShopButton"));
+        AddHoverEffect(FindLeft("FriendButton"));
+        AddHoverEffect(FindLeft("GuildButton"));
+        AddHoverEffect(FindLeft("BestiaryButton"));
+        AddHoverEffect(FindLeft("InventoryButton"));
         AddHoverEffect(transform.Find("ChatButton"));
         AddHoverEffect(transform.Find("BottomCenter/Skills/SkillButton"));
         AddHoverEffect(transform.Find("TopBar/Right_Buttons/MailButton"));
@@ -330,6 +341,12 @@ public class PlayerHUDController : MonoBehaviour
             if (grp != null) dungeonSpecificGroup = grp.gameObject;
         }
 
+        if (partyRosterContainer == null)
+        {
+            var grp = transform.Find("PartyRosterContainer");
+            if (grp != null) partyRosterContainer = grp.gameObject;
+        }
+
         // Đảm bảo trạng thái nút bấm đúng với map hiện tại khi vừa vào game
         bool inDungeon = false;
         if (DungeonManager.Instance != null)
@@ -343,9 +360,14 @@ public class PlayerHUDController : MonoBehaviour
     {
         if (settingsButtonObj != null) settingsButtonObj.SetActive(!isInDungeon);
         if (pauseButtonObj != null) pauseButtonObj.SetActive(isInDungeon);
-        
+
         if (nonCombatActionGroup != null) nonCombatActionGroup.SetActive(!isInDungeon);
         if (dungeonSpecificGroup != null) dungeonSpecificGroup.SetActive(isInDungeon);
+
+        // Danh sách HP/avatar của đồng đội chỉ có nghĩa trong dungeon. Container này được lưu
+        // m_IsActive: 0 trong Main.unity và trước đây KHÔNG có code nào bật nó, nên
+        // UIDungeonPartyRoster.OnEnable chưa từng chạy và party không bao giờ hiện.
+        if (partyRosterContainer != null) partyRosterContainer.SetActive(isInDungeon);
     }
 
     public void StartHUDLoop()
@@ -449,6 +471,24 @@ public class PlayerHUDController : MonoBehaviour
         UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
+    /// <summary>
+    /// Đổi avatar trên HUD ngay lập tức. Không có hàm này thì avatar chỉ đổi ở vòng lặp
+    /// RefreshHUD kế tiếp — tức người chơi phải chờ tới 15 giây mới thấy ảnh mới.
+    /// </summary>
+    public void ApplyAvatar(string avatarUrl)
+    {
+        // Also publish it to the networked avatar so party members see the right picture
+        // in the in-dungeon roster — a proxy cannot fetch another player's profile.
+        NetworkPlayer.PublishLocalAvatar(avatarUrl);
+
+        FindHUDReferences();
+        if (avatarImage == null) return;
+
+        var sprite = NetworkPlayer.ResolveAvatarSprite(avatarUrl);
+        if (sprite != null)
+            avatarImage.sprite = sprite;
+    }
+
     private int _lastKnownLevel = -1;
 
     private void UpdateProfileUI(PlayerProfileResponse profile)
@@ -499,15 +539,12 @@ public class PlayerHUDController : MonoBehaviour
             corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
         }
 
-        if (avatarImage != null)
-        {
-            string avatarUrl = string.IsNullOrEmpty(profile.AvatarUrl) ? "avatar_1" : profile.AvatarUrl;
-            Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
-            if (avatarSprite != null)
-            {
-                avatarImage.sprite = avatarSprite;
-            }
-        }
+        // NOT gated on avatarImage: ApplyAvatar also publishes the avatar to the network so
+        // party members can draw it in the dungeon roster. Gating the call on a HUD Image
+        // reference meant that whenever transform.Find("TopBar/Button/Avatar") missed, the
+        // network publish never ran either, WorldState.AvatarUrl stayed empty, and every
+        // proxy silently fell back to avatar_1. ApplyAvatar null-checks the Image itself.
+        ApplyAvatar(profile.AvatarUrl);
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);
 

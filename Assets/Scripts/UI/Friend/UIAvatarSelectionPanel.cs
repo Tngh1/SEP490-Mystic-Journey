@@ -27,11 +27,22 @@ namespace UI.Friend
 
         private void Awake()
         {
+            // closeButton bỏ trống trong Inspector nên nút X của panel này không làm gì cả
+            // (onClick trong scene cũng rỗng). Tự tìm theo tên để không phụ thuộc việc gán tay.
+            if (closeButton == null)
+                closeButton = transform.Find("CloseButton")?.GetComponent<Button>();
+
             if (closeButton != null)
                 closeButton.onClick.AddListener(ClosePanel);
-            
+
             if (saveButton != null)
                 saveButton.onClick.AddListener(SaveAvatar);
+
+            foreach (var btn in GetComponentsInChildren<Button>(true))
+            {
+                if (btn != null && btn.GetComponent<UIHoverScaleEffect>() == null)
+                    btn.gameObject.AddComponent<UIHoverScaleEffect>();
+            }
         }
 
         public void OpenPanel(int myProfileId, string currentAvatarId, UIFriendProfilePanel profilePanel)

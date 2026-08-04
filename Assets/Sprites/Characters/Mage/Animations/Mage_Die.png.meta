@@ -32,6 +32,24 @@ TextureImporter:
   - first:
       213: 5610601420526954828
     second: Mage_Die_9
+  - first:
+      213: -2479358392913769614
+    second: Mage_Die_10
+  - first:
+      213: -5569538002335756249
+    second: Mage_Die_11
+  - first:
+      213: 8665688982662855557
+    second: Mage_Die_12
+  - first:
+      213: -8281230849632509226
+    second: Mage_Die_13
+  - first:
+      213: -2575777797788114774
+    second: Mage_Die_14
+  - first:
+      213: -3788308039858489690
+    second: Mage_Die_15
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -78,7 +96,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 150
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -130,12 +148,12 @@ TextureImporter:
       name: Mage_Die_0
       rect:
         serializedVersion: 2
-        x: 25
-        y: 5
-        width: 70
-        height: 97
+        x: 19
+        y: 397
+        width: 89
+        height: 104
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -152,12 +170,12 @@ TextureImporter:
       name: Mage_Die_1
       rect:
         serializedVersion: 2
-        x: 128
-        y: 5
-        width: 70
-        height: 96
+        x: 147
+        y: 397
+        width: 89
+        height: 103
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -174,12 +192,12 @@ TextureImporter:
       name: Mage_Die_2
       rect:
         serializedVersion: 2
-        x: 231
-        y: 5
-        width: 62
-        height: 95
+        x: 275
+        y: 397
+        width: 89
+        height: 102
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -196,12 +214,12 @@ TextureImporter:
       name: Mage_Die_3
       rect:
         serializedVersion: 2
-        x: 330
-        y: 5
-        width: 62
-        height: 92
+        x: 405
+        y: 397
+        width: 90
+        height: 102
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -218,12 +236,12 @@ TextureImporter:
       name: Mage_Die_4
       rect:
         serializedVersion: 2
-        x: 425
-        y: 5
-        width: 62
-        height: 90
+        x: 23
+        y: 269
+        width: 89
+        height: 100
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -240,12 +258,12 @@ TextureImporter:
       name: Mage_Die_5
       rect:
         serializedVersion: 2
-        x: 519
-        y: 5
-        width: 61
-        height: 83
+        x: 152
+        y: 269
+        width: 90
+        height: 89
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -262,12 +280,12 @@ TextureImporter:
       name: Mage_Die_6
       rect:
         serializedVersion: 2
-        x: 613
-        y: 5
-        width: 61
-        height: 78
+        x: 274
+        y: 268
+        width: 97
+        height: 87
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -284,12 +302,12 @@ TextureImporter:
       name: Mage_Die_7
       rect:
         serializedVersion: 2
-        x: 696
-        y: 0
-        width: 85
-        height: 78
+        x: 399
+        y: 268
+        width: 98
+        height: 87
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -306,12 +324,12 @@ TextureImporter:
       name: Mage_Die_8
       rect:
         serializedVersion: 2
-        x: 799
-        y: 0
-        width: 85
-        height: 69
+        x: 6
+        y: 140
+        width: 111
+        height: 87
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -328,12 +346,12 @@ TextureImporter:
       name: Mage_Die_9
       rect:
         serializedVersion: 2
-        x: 921
-        y: 0
-        width: 95
-        height: 57
+        x: 134
+        y: 140
+        width: 116
+        height: 85
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -346,11 +364,33 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Mage_Die_10
+      rect:
+        serializedVersion: 2
+        x: 262
+        y: 140
+        width: 116
+        height: 85
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 27bcd778dac879dd0800000000000000
+      internalID: -2479358392913769614
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: dda1f35f4a78ee8458b79245c17e27e2
     internalID: 0
     vertices: []
     indices: 
@@ -362,6 +402,12 @@ TextureImporter:
     nameFileIdTable:
       Mage_Die_0: -7491451133676506370
       Mage_Die_1: 5942799926400856719
+      Mage_Die_10: -2479358392913769614
+      Mage_Die_11: -5569538002335756249
+      Mage_Die_12: 8665688982662855557
+      Mage_Die_13: -8281230849632509226
+      Mage_Die_14: -2575777797788114774
+      Mage_Die_15: -3788308039858489690
       Mage_Die_2: -2188050234558894862
       Mage_Die_3: -4873097655518270345
       Mage_Die_4: -2998367402781688525

@@ -27,14 +27,9 @@ namespace UI.Friend
         [SerializeField] private Button logoutButton;
 
         [Header("Class Art")]
-        [Tooltip("Cờ lớn bên ngoài panel (PlayerProfilePanel/ClassDeco).")]
-        [SerializeField] private Image classDecoImage;
         [Tooltip("Huy hiệu class nhỏ (LeftPanel/Bg_Class/Deco/ClassIcon).")]
         [SerializeField] private Image classIconImage;
-        // Sprite gán tay: 6 file này nằm ngoài Assets/Resources nên không Resources.Load được.
-        [SerializeField] private Sprite knightFlag;
-        [SerializeField] private Sprite mageFlag;
-        [SerializeField] private Sprite archerFlag;
+        // Sprite gán tay: 3 file này nằm ngoài Assets/Resources nên không Resources.Load được.
         [SerializeField] private Sprite knightIcon;
         [SerializeField] private Sprite mageIcon;
         [SerializeField] private Sprite archerIcon;
@@ -58,6 +53,14 @@ namespace UI.Friend
         [SerializeField] private Transform achievementContent;
         [SerializeField] private GameObject achievementItemPrefab;
         [SerializeField] private TMP_Text achievementSummaryText;
+
+        [Header("Achievement Pagination")]
+        [SerializeField] private Button achievementPrevButton;
+        [SerializeField] private Button achievementNextButton;
+        [SerializeField] private TMP_Text achievementPageText;
+
+        private int _currentAchievementPage = 1;
+        private const int ACHIEVEMENTS_PER_PAGE = 5;
 
         [Header("Achievement Detail")]
         [SerializeField] private GameObject achievementDetailPanel;
@@ -98,6 +101,12 @@ namespace UI.Friend
                     if (achievementListPanel != null)
                         achievementListPanel.SetActive(false);
                 });
+
+            if (achievementPrevButton != null)
+                achievementPrevButton.onClick.AddListener(OnPrevAchievementPage);
+
+            if (achievementNextButton != null)
+                achievementNextButton.onClick.AddListener(OnNextAchievementPage);
 
             if (achievementDetailCloseButton != null)
                 achievementDetailCloseButton.onClick.AddListener(CloseAchievementPopup);
@@ -208,24 +217,20 @@ namespace UI.Friend
                 viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile);
         }
 
-        /// <summary>Đổi cờ lớn + huy hiệu nhỏ theo class. BE trả về string nên so sánh không phân biệt hoa/thường, không khớp thì về Knight.</summary>
+        /// <summary>Đổi huy hiệu class nhỏ. BE trả về string nên so sánh không phân biệt hoa/thường, không khớp thì về Knight.</summary>
         private void ApplyClassArt(string className)
         {
-            Sprite flag = knightFlag;
             Sprite icon = knightIcon;
 
             if (string.Equals(className, "Mage", StringComparison.OrdinalIgnoreCase))
             {
-                flag = mageFlag;
                 icon = mageIcon;
             }
             else if (string.Equals(className, "Archer", StringComparison.OrdinalIgnoreCase))
             {
-                flag = archerFlag;
                 icon = archerIcon;
             }
 
-            if (classDecoImage != null && flag != null) classDecoImage.sprite = flag;
             if (classIconImage != null && icon != null) classIconImage.sprite = icon;
         }
 
@@ -317,8 +322,13 @@ namespace UI.Friend
         {
             if (_currentProfile != null)
                 _currentProfile.AvatarUrl = avatarUrl;
-                
+
             ApplyProfileAvatar(avatarUrl);
+
+            // Avatar còn hiện ở HUD (TopBar). HUD chỉ tự tải lại mỗi 15 giây nên nếu không đẩy
+            // sang đây, người chơi đổi avatar xong vẫn thấy ảnh cũ ở góc màn hình.
+            if (_isCurrentPlayerProfile)
+                PlayerHUDController.Instance?.ApplyAvatar(avatarUrl);
         }
 
         private void LoadFriendsCount()
@@ -383,7 +393,7 @@ namespace UI.Friend
                 PopulateAchievementList();
 
                 if (achievementSummaryText != null)
-                    achievementSummaryText.text = $"Achievements: {_ownedAchievementMap.Count}/{_achievementCatalog.Count}";
+                    achievementSummaryText.text = $"Total: {_ownedAchievementMap.Count}";
 
                 CloseAchievementPopup();
             }, err =>
@@ -392,7 +402,7 @@ namespace UI.Friend
                 _ownedAchievementMap.Clear();
                 PopulateAchievementList();
                 if (achievementSummaryText != null)
-                    achievementSummaryText.text = $"Achievements: 0/{_achievementCatalog.Count}";
+                    achievementSummaryText.text = $"Total: 0";
                 ClearAchievementDetail();
             });
         }
@@ -404,8 +414,19 @@ namespace UI.Friend
             if (achievementContent == null || achievementItemPrefab == null)
                 return;
 
-            foreach (var achievement in _achievementCatalog)
+            int totalItems = _achievementCatalog.Count;
+            int totalPages = Mathf.CeilToInt((float)totalItems / ACHIEVEMENTS_PER_PAGE);
+            if (totalPages < 1) totalPages = 1;
+
+            if (_currentAchievementPage > totalPages) _currentAchievementPage = totalPages;
+            if (_currentAchievementPage < 1) _currentAchievementPage = 1;
+
+            int startIndex = (_currentAchievementPage - 1) * ACHIEVEMENTS_PER_PAGE;
+            int endIndex = Mathf.Min(startIndex + ACHIEVEMENTS_PER_PAGE, totalItems);
+
+            for (int i = startIndex; i < endIndex; i++)
             {
+                var achievement = _achievementCatalog[i];
                 var item = Instantiate(achievementItemPrefab, achievementContent);
                 item.transform.localScale = Vector3.one;
                 _achievementItemInstances.Add(item);
@@ -476,6 +497,48 @@ namespace UI.Friend
             if (achievementScrollRect != null)
             {
                 achievementScrollRect.verticalNormalizedPosition = 1f;
+            }
+
+            UpdatePaginationUI(totalPages);
+        }
+
+        private void UpdatePaginationUI(int totalPages)
+        {
+            if (achievementPageText != null)
+            {
+                achievementPageText.text = $"{_currentAchievementPage}/{totalPages}";
+            }
+
+            if (achievementPrevButton != null)
+            {
+                achievementPrevButton.interactable = _currentAchievementPage > 1;
+            }
+
+            if (achievementNextButton != null)
+            {
+                achievementNextButton.interactable = _currentAchievementPage < totalPages;
+            }
+        }
+
+        private void OnPrevAchievementPage()
+        {
+            if (_currentAchievementPage > 1)
+            {
+                _currentAchievementPage--;
+                PopulateAchievementList();
+            }
+        }
+
+        private void OnNextAchievementPage()
+        {
+            int totalItems = _achievementCatalog.Count;
+            int totalPages = Mathf.CeilToInt((float)totalItems / ACHIEVEMENTS_PER_PAGE);
+            if (totalPages < 1) totalPages = 1;
+
+            if (_currentAchievementPage < totalPages)
+            {
+                _currentAchievementPage++;
+                PopulateAchievementList();
             }
         }
 
@@ -552,6 +615,9 @@ namespace UI.Friend
 
         public void ShowAchievementListView()
         {
+            _currentAchievementPage = 1;
+            PopulateAchievementList();
+
             if (achievementListPanel != null)
                 achievementListPanel.SetActive(true);
 
@@ -773,11 +839,13 @@ namespace UI.Friend
             logoutButton.onClick.AddListener(OnLogoutClicked);
         }
 
-        // Chỉ cho tài khoản đang đăng nhập: panel này cũng dùng để xem hồ sơ người chơi khác,
-        // ở đó nút Logout vô nghĩa (và dễ bấm nhầm).
+        // Only meaningful for the signed-in account: this panel also shows other players' profiles,
+        // where Logout makes no sense (and is easy to hit by accident).
+        // Logout is not undoable (session gone, back to MainMenu), so confirm first.
         private void OnLogoutClicked()
         {
-            MysticJourney.Core.Services.SessionService.Logout();
+            PartyPopupConfirm.Show(transform, "Log out of your account?",
+                MysticJourney.Core.Services.SessionService.Logout);
         }
 
         public void ClosePanel()

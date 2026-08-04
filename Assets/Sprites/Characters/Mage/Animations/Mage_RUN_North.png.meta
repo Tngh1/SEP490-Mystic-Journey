@@ -26,9 +26,6 @@ TextureImporter:
   - first:
       213: 3891786518983389063
     second: Mage_RUN_North_7
-  - first:
-      213: 3433462283429176148
-    second: Mage_RUN_North_8
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -127,12 +124,12 @@ TextureImporter:
       name: Mage_RUN_North_0
       rect:
         serializedVersion: 2
-        x: 79
-        y: 68
-        width: 96
-        height: 119
+        x: 18
+        y: 266
+        width: 89
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -149,12 +146,12 @@ TextureImporter:
       name: Mage_RUN_North_1
       rect:
         serializedVersion: 2
-        x: 321
-        y: 65
-        width: 98
-        height: 121
+        x: 146
+        y: 266
+        width: 89
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -171,12 +168,12 @@ TextureImporter:
       name: Mage_RUN_North_2
       rect:
         serializedVersion: 2
-        x: 568
-        y: 60
-        width: 93
-        height: 122
+        x: 276
+        y: 266
+        width: 87
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -193,12 +190,12 @@ TextureImporter:
       name: Mage_RUN_North_3
       rect:
         serializedVersion: 2
-        x: 819
-        y: 60
-        width: 84
-        height: 125
+        x: 21
+        y: 139
+        width: 86
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -215,12 +212,12 @@ TextureImporter:
       name: Mage_RUN_North_4
       rect:
         serializedVersion: 2
-        x: 1062
-        y: 58
-        width: 80
-        height: 129
+        x: 150
+        y: 139
+        width: 85
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -237,12 +234,12 @@ TextureImporter:
       name: Mage_RUN_North_5
       rect:
         serializedVersion: 2
-        x: 1304
-        y: 60
-        width: 79
-        height: 126
+        x: 278
+        y: 139
+        width: 85
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -259,12 +256,12 @@ TextureImporter:
       name: Mage_RUN_North_6
       rect:
         serializedVersion: 2
-        x: 1548
-        y: 57
-        width: 78
-        height: 125
+        x: 20
+        y: 12
+        width: 87
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -281,12 +278,12 @@ TextureImporter:
       name: Mage_RUN_North_7
       rect:
         serializedVersion: 2
-        x: 1794
-        y: 60
-        width: 80
-        height: 125
+        x: 147
+        y: 12
+        width: 88
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -299,33 +296,11 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: Mage_RUN_North_8
-      rect:
-        serializedVersion: 2
-        x: 2037
-        y: 64
-        width: 86
-        height: 123
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 4536f7961cb16af20800000000000000
-      internalID: 3433462283429176148
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 719055c9147202147a2b33d5ad70c05f
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -333,9 +308,7 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
       Mage_RUN_North_0: 3916276484622157067
       Mage_RUN_North_1: -2083527365675632222
@@ -345,7 +318,6 @@ TextureImporter:
       Mage_RUN_North_5: -7418627636789432261
       Mage_RUN_North_6: -6731299951540941021
       Mage_RUN_North_7: 3891786518983389063
-      Mage_RUN_North_8: 3433462283429176148
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

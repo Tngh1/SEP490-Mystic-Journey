@@ -18,11 +18,13 @@ namespace MysticJourney.Core.Services
     public class AudioManager : MonoBehaviour
     {
         private static AudioManager _instance;
+        private static bool _isQuitting = false;
+
         public static AudioManager Instance
         {
             get
             {
-                if (_instance == null && Application.isPlaying)
+                if (_instance == null && Application.isPlaying && !_isQuitting)
                 {
                     var go = new GameObject("[AudioManager]");
                     _instance = go.AddComponent<AudioManager>();
@@ -136,6 +138,19 @@ namespace MysticJourney.Core.Services
 
             _musicSource.volume = master * s.MusicVolume;
             _sfxSource.volume = master * s.SfxVolume;
+        }
+
+        private void OnApplicationQuit()
+        {
+            _isQuitting = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                _isQuitting = true;
+            }
         }
     }
 }

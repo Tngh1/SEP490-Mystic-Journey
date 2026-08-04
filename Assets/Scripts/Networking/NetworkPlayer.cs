@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Fusion;
+using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -37,6 +38,15 @@ public class NetworkPlayer : NetworkBehaviour
     [Networked] public int PlayerProfileId { get; set; }
     [Networked] public NetworkString<_32> PlayerName { get; set; }
     [Networked] public int Level { get; set; }
+
+    /// <summary>
+    /// Profile avatar resource name (e.g. "avatar_3") under Resources/Avatars. Replicated
+    /// so party members can render each other's avatar in the in-dungeon roster — the HUD's
+    /// own avatar comes straight from the profile API, but a proxy has no API access to
+    /// another player's profile.
+    /// </summary>
+    [Networked] public NetworkString<_32> AvatarUrl { get; set; }
+
     [Networked, OnChangedRender(nameof(OnPlayerClassChanged))] public int PlayerClass { get; set; }
     [Networked, OnChangedRender(nameof(OnSkinChanged))] public int EquippedSkinId { get; set; }
 
@@ -192,6 +202,117 @@ public class NetworkPlayer : NetworkBehaviour
         DungeonManager.Instance?.AdoptRestartSession(sessionId);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Party chat INSIDE the dungeon
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Party chat received while in the dungeon room. Static because the receiver
+    /// (UIChatPanel) has no reason to know which avatar carried the RPC.
+    ///
+    /// PartyLobby cannot serve chat here: it is a NetworkObject of the SOCIAL LOBBY
+    /// room, and entering a dungeon tears the runner down (PhotonManager.MigrateToRoomAsync),
+    /// which despawns it and nulls PartyLobby.Local for the whole run. NetworkPlayer is
+    /// the only party-wide replicated object that survives into DUNGEON_{hostProfileId} —
+    /// and because that room contains exactly the party (capped at PartyLobby.MaxMembers),
+    /// "everyone in the room" == "the party". UIDungeonPartyRoster already relies on that.
+    /// </summary>
+    public static event Action<PartyChatMessageResponse> PartyChatReceived;
+
+    /// <summary>True when party chat can be sent/received over the dungeon room.</summary>
+    public static bool CanUsePartyChat =>
+        Local != null && Local.Object != null && Local.Runner != null && Local.Runner.IsRunning;
+
+    /// <summary>
+    /// Send a party chat message to everyone in the dungeon room. Returns false when
+    /// the transport is not ready, so the caller can restore the typed text.
+    /// </summary>
+    public static bool BroadcastPartyChat(PartyChatMessageResponse message)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.Content)) return false;
+
+        // Each gate logs which one tripped: the caller can only surface a generic
+        // "Party chat is not ready", which made a failed send indistinguishable from a
+        // dropped RPC.
+        if (Local == null)
+        {
+            Debug.LogWarning("[NetworkPlayer] Party chat send failed: no local avatar spawned yet.");
+            return false;
+        }
+        if (Local.Object == null || !Local.Object.IsValid)
+        {
+            Debug.LogWarning("[NetworkPlayer] Party chat send failed: local NetworkObject is not valid.");
+            return false;
+        }
+        if (Local.Runner == null || !Local.Runner.IsRunning)
+        {
+            Debug.LogWarning("[NetworkPlayer] Party chat send failed: runner is not running (still migrating?).");
+            return false;
+        }
+
+        int senderId = WorldState.PlayerProfileId > 0 ? WorldState.PlayerProfileId : message.SenderId;
+        if (senderId <= 0)
+        {
+            Debug.LogWarning("[NetworkPlayer] Party chat send failed: cannot resolve sender profile id.");
+            return false;
+        }
+
+        string senderName = !string.IsNullOrWhiteSpace(WorldState.PlayerName)
+            ? WorldState.PlayerName
+            : message.SenderName;
+        string sentAt = string.IsNullOrWhiteSpace(message.SentAt)
+            ? DateTime.UtcNow.ToString("O")
+            : message.SentAt;
+
+        // Sent from the avatar we own — Fusion rejects RPCs raised on a proxy.
+        // Logged with the room + peer count because the two clients silently landing in
+        // DIFFERENT rooms looks exactly like a dropped RPC from here: the send "succeeds",
+        // the local echo shows, and nobody else ever hears it. If SessionName differs
+        // between the two clients' logs, the bug is the migration, not the chat.
+        Debug.Log($"[NetworkPlayer] Party chat send | room='{Local.Runner.SessionInfo?.Name}' " +
+                  $"peers={Local.Runner.SessionInfo?.PlayerCount} avatars={All.Count} sender={senderId}");
+
+        Local.RPC_PartyChatMessage(
+            senderId,
+            NetworkChatText.ClampUtf8(senderName, NetworkChatText.MaxSenderNameBytes),
+            NetworkChatText.ClampUtf8(message.Content, NetworkChatText.MaxContentBytes),
+            NetworkChatText.ClampUtf8(sentAt, NetworkChatText.MaxTimestampBytes));
+        return true;
+    }
+
+    // Plain `string` params, NOT NetworkString<_N>: a NetworkString always costs its full width
+    // and _N counts 32-bit WORDS, so <_32>/<_128>/<_32> summed to 792 bytes against Fusion's
+    // 512-byte ceiling — Fusion dropped every send and logged "payload is too large". A string
+    // is weaved as variable-length UTF-8, so a short message now costs a few dozen bytes.
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_PartyChatMessage(int senderId, string senderName,
+                                      string content, string sentAt)
+    {
+        if (senderId <= 0) return;
+
+        // Logged so a silent chat can be pinned down: if this line appears but no message
+        // shows, the RPC arrived and the UI dropped it (wrong tab / not subscribed); if it
+        // never appears on the other client, the RPC itself did not travel.
+        Debug.Log($"[NetworkPlayer] Party chat RPC received from {senderId} " +
+                  $"({senderName}), listeners={PartyChatReceived?.GetInvocationList().Length ?? 0}");
+
+        PartyChatReceived?.Invoke(new PartyChatMessageResponse
+        {
+            SenderId   = senderId,
+            SenderName = senderName ?? string.Empty,
+            Content    = content ?? string.Empty,
+            Channel    = "Party",
+            SentAt     = sentAt ?? string.Empty,
+        });
+    }
+
+    /// <summary>Clamp a string so it fits a fixed-size NetworkString without Fusion truncating mid-send.</summary>
+    private static string TrimForFusion(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+    }
+
     // Replicated movement vector. The input-authority client writes it each tick
     // from its input; every OTHER client reads it in Render() to drive the walk
     // animation of the remote avatar. Without this, remote players slide to their
@@ -301,6 +422,38 @@ public class NetworkPlayer : NetworkBehaviour
         OnPlayerClassChanged();
     }
 
+    /// <summary>
+    /// Record the local player's profile avatar and replicate it if the avatar already
+    /// exists. Safe to call before Spawned() — WorldState is written either way and
+    /// Spawned() picks it up from there.
+    /// </summary>
+    public static void PublishLocalAvatar(string avatarUrl)
+    {
+        WorldState.AvatarUrl = avatarUrl;
+        WorldState.SaveToPlayerPrefs();
+
+        var local = Local;
+        if (local != null && local.Object != null && local.Object.HasStateAuthority)
+        {
+            local.AvatarUrl = TrimForFusion(avatarUrl, 30);
+        }
+    }
+
+    /// <summary>
+    /// Load a player's avatar sprite from Resources/Avatars, falling back to avatar_1 when
+    /// the profile has none or the named sprite is missing.
+    /// </summary>
+    public static Sprite ResolveAvatarSprite(string avatarUrl)
+    {
+        Sprite sprite = null;
+        if (!string.IsNullOrWhiteSpace(avatarUrl))
+        {
+            sprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+        }
+
+        return sprite != null ? sprite : Resources.Load<Sprite>("Avatars/avatar_1");
+    }
+
     public override void Spawned()
     {
         Debug.Log($"[NetworkPlayer] Spawned. InputAuthority={Object.InputAuthority}, " +
@@ -323,6 +476,7 @@ public class NetworkPlayer : NetworkBehaviour
             PlayerName = WorldState.PlayerName ?? "Player";
             PlayerProfileId = WorldState.PlayerProfileId;
             Level = Mathf.Max(1, WorldState.PlayerLevel);
+            AvatarUrl = TrimForFusion(WorldState.AvatarUrl, 30);
 
             if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
             {

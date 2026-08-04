@@ -18,6 +18,15 @@ public class PartyManager : MonoBehaviour
 {
     public static PartyManager Instance { get; private set; }
 
+    /// <summary>
+    /// True from the moment a dungeon entry starts until the dungeon scene transition is
+    /// kicked off. In that window the PartyLobby has already despawned (the host tore the
+    /// lobby runner down) but the dungeon room is not up yet, so neither party transport
+    /// is live. Party-facing UI must not conclude "you are not in a party" here — the
+    /// party is intact, it is only mid-migration.
+    /// </summary>
+    public static bool IsEnteringDungeon { get; private set; }
+
     private PartyLobby _hookedParty;
 
     // Guards so the one-shot dungeon-entry work runs exactly once per transition.
@@ -213,6 +222,7 @@ public class PartyManager : MonoBehaviour
         // delivers all networked props of a snapshot together, so when State==InDungeon
         // is visible the session id / scene set in HostPublishDungeonSession are too.
         _dungeonEntryStarted = true;
+        IsEnteringDungeon = true;
         StartCoroutine(EnterDungeonRoutine(
             party.DungeonConfigId,
             party.DungeonSceneName.Value,
@@ -239,6 +249,7 @@ public class PartyManager : MonoBehaviour
         {
             Debug.LogError("[PartyEntry] ABORT: Dungeon scene name empty.");
             _dungeonEntryStarted = false;
+            IsEnteringDungeon = false;
             yield break;
         }
 
@@ -246,6 +257,7 @@ public class PartyManager : MonoBehaviour
         {
             Debug.LogWarning("[PartyEntry] ABORT: invalid session id (host Enter call failed).");
             _dungeonEntryStarted = false;
+            IsEnteringDungeon = false;
             yield break;
         }
 
@@ -305,6 +317,7 @@ public class PartyManager : MonoBehaviour
             {
                 Debug.LogError($"[PartyEntry] MigrateToDungeonAsync FAULTED: {task.Exception?.GetBaseException().Message}");
                 _dungeonEntryStarted = false;
+                IsEnteringDungeon = false;
                 yield break;
             }
 
@@ -331,6 +344,9 @@ public class PartyManager : MonoBehaviour
             Debug.Log("[PartyEntry] NetworkPlayer.Local found! Entering Dungeon Scene.");
 
         // 3. Perform the scene transition using the shared session id (no Enter API here).
+        // The dungeon room is up at this point, so party chat has a live transport again.
+        IsEnteringDungeon = false;
+
         if (DungeonManager.Instance != null)
         {
             DungeonManager.Instance.EnterDungeonScene(configId, scene, 0, dungeonName, sessionId,

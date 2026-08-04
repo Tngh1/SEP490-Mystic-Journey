@@ -50,24 +50,6 @@ TextureImporter:
   - first:
       213: 6872742036544597487
     second: Mage_BasicAttack_Slide_15
-  - first:
-      213: -8226982588687786513
-    second: Mage_BasicAttack_Slide_16
-  - first:
-      213: -5165344223368082995
-    second: Mage_BasicAttack_Slide_17
-  - first:
-      213: -4561428808866865406
-    second: Mage_BasicAttack_Slide_18
-  - first:
-      213: -276247934693072687
-    second: Mage_BasicAttack_Slide_19
-  - first:
-      213: 1926525010707661037
-    second: Mage_BasicAttack_Slide_20
-  - first:
-      213: 6053076157746590396
-    second: Mage_BasicAttack_Slide_21
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -166,12 +148,12 @@ TextureImporter:
       name: Mage_BasicAttack_Slide_0
       rect:
         serializedVersion: 2
-        x: 81
-        y: 67
-        width: 79
-        height: 121
+        x: 18
+        y: 394
+        width: 89
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -188,12 +170,12 @@ TextureImporter:
       name: Mage_BasicAttack_Slide_1
       rect:
         serializedVersion: 2
-        x: 331
-        y: 67
-        width: 73
-        height: 121
+        x: 146
+        y: 394
+        width: 89
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -210,12 +192,12 @@ TextureImporter:
       name: Mage_BasicAttack_Slide_2
       rect:
         serializedVersion: 2
-        x: 574
-        y: 68
-        width: 72
-        height: 117
+        x: 275
+        y: 394
+        width: 89
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -232,12 +214,12 @@ TextureImporter:
       name: Mage_BasicAttack_Slide_3
       rect:
         serializedVersion: 2
-        x: 803
-        y: 68
-        width: 105
-        height: 118
+        x: 408
+        y: 393
+        width: 84
+        height: 105
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -254,12 +236,12 @@ TextureImporter:
       name: Mage_BasicAttack_Slide_4
       rect:
         serializedVersion: 2
-        x: 1053
-        y: 68
-        width: 132
-        height: 118
+        x: 28
+        y: 266
+        width: 81
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -276,12 +258,12 @@ TextureImporter:
       name: Mage_BasicAttack_Slide_5
       rect:
         serializedVersion: 2
-        x: 1300
-        y: 68
-        width: 118
-        height: 117
+        x: 159
+        y: 266
+        width: 78
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -295,15 +277,37 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_6
+      rect:
+        serializedVersion: 2
+        x: 287
+        y: 266
+        width: 78
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b5d5360ae53667b0800000000000000
+      internalID: -5231434637901441609
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
       name: Mage_BasicAttack_Slide_7
       rect:
         serializedVersion: 2
-        x: 1539
-        y: 68
-        width: 94
-        height: 118
+        x: 416
+        y: 266
+        width: 78
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -317,15 +321,81 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_8
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 139
+        width: 78
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e2b77feac2ac7210800000000000000
+      internalID: 1332118582279516897
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_9
+      rect:
+        serializedVersion: 2
+        x: 161
+        y: 139
+        width: 74
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c6b0dc7dede4bf770800000000000000
+      internalID: 8645590628678044524
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_10
+      rect:
+        serializedVersion: 2
+        x: 286
+        y: 139
+        width: 77
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23117706da3b51b50800000000000000
+      internalID: 6563349589191495986
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
       name: Mage_BasicAttack_Slide_11
       rect:
         serializedVersion: 2
-        x: 1781
-        y: 68
-        width: 130
-        height: 118
+        x: 413
+        y: 139
+        width: 78
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -338,11 +408,99 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_12
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 12
+        width: 78
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6fe4f1f60ee6cd330800000000000000
+      internalID: 3736983701026721526
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_13
+      rect:
+        serializedVersion: 2
+        x: 151
+        y: 12
+        width: 84
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c02776a21d7669b0800000000000000
+      internalID: -5087241210012688186
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_14
+      rect:
+        serializedVersion: 2
+        x: 274
+        y: 12
+        width: 89
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 82fc4fc5e2a4996a0800000000000000
+      internalID: -6442036228988285144
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mage_BasicAttack_Slide_15
+      rect:
+        serializedVersion: 2
+        x: 402
+        y: 12
+        width: 89
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: feda2290872e06f50800000000000000
+      internalID: 6872742036544597487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 2d8a11a248bd1634eaacd06f0c3647ee
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -350,9 +508,7 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
       Mage_BasicAttack_Slide_0: -4699437245998113363
       Mage_BasicAttack_Slide_1: -6880247769940055811
@@ -362,13 +518,7 @@ TextureImporter:
       Mage_BasicAttack_Slide_13: -5087241210012688186
       Mage_BasicAttack_Slide_14: -6442036228988285144
       Mage_BasicAttack_Slide_15: 6872742036544597487
-      Mage_BasicAttack_Slide_16: -8226982588687786513
-      Mage_BasicAttack_Slide_17: -5165344223368082995
-      Mage_BasicAttack_Slide_18: -4561428808866865406
-      Mage_BasicAttack_Slide_19: -276247934693072687
       Mage_BasicAttack_Slide_2: -7360959983536632023
-      Mage_BasicAttack_Slide_20: 1926525010707661037
-      Mage_BasicAttack_Slide_21: 6053076157746590396
       Mage_BasicAttack_Slide_3: -2783836816757395008
       Mage_BasicAttack_Slide_4: -5721858824772144408
       Mage_BasicAttack_Slide_5: 3571522567503099512

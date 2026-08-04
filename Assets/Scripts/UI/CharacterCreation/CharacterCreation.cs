@@ -6,6 +6,7 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Utilities;
+using System.Collections.Generic;
 
 public class CharacterCreation : MonoBehaviour
 {
@@ -17,13 +18,61 @@ public class CharacterCreation : MonoBehaviour
     [SerializeField] private GameObject mageLight;
     [SerializeField] private GameObject archerLight;
 
+    [Header("Class Stats UI")]
+    [SerializeField] private TMP_Text hpText;
+    [SerializeField] private TMP_Text atkText;
+    [SerializeField] private TMP_Text defText;
+    [SerializeField] private TMP_Text moveSpeedText;
+    [SerializeField] private TMP_Text attackSpeedText;
+    [SerializeField] private TMP_Text critRateText;
+    [SerializeField] private TMP_Text critDamageText;
+    [SerializeField] private TMP_Text damageBonusText;
+
     private string selectedClass;
     private bool _isCreating;
+    private List<ClassConfigDTO> classConfigs = new List<ClassConfigDTO>();
 
     private void Start()
     {
         FindLights();
         UpdateClassLights(); // Turn off all lights initially until a class is explicitly selected
+        FetchClassStats();
+    }
+
+    private void FetchClassStats()
+    {
+        WikiApi.Instance.GetClasses(
+            configs =>
+            {
+                classConfigs = configs;
+                if (!string.IsNullOrEmpty(selectedClass))
+                {
+                    UpdateStatsUI();
+                }
+            },
+            error =>
+            {
+                Debug.LogError($"Failed to fetch class configs: {error.Message}");
+            }
+        );
+    }
+
+    private void UpdateStatsUI()
+    {
+        if (classConfigs == null || classConfigs.Count == 0) return;
+
+        var config = classConfigs.Find(c => c.ClassName == selectedClass);
+        if (config != null)
+        {
+            if (hpText != null) hpText.text = config.MaxHp.ToString("N0");
+            if (atkText != null) atkText.text = config.Atk.ToString("N0");
+            if (defText != null) defText.text = config.Def.ToString("N0");
+            if (moveSpeedText != null) moveSpeedText.text = config.MoveSpeed.ToString("N0");
+            if (attackSpeedText != null) attackSpeedText.text = config.AttackSpeed.ToString("N0");
+            if (critRateText != null) critRateText.text = config.CritRate.ToString() + "%";
+            if (critDamageText != null) critDamageText.text = config.CritDamage.ToString() + "%";
+            if (damageBonusText != null) damageBonusText.text = config.DamageBonus.ToString() + "%";
+        }
     }
 
     private void FindLights()
@@ -57,6 +106,7 @@ public class CharacterCreation : MonoBehaviour
         selectedClass = "Knight";
         Debug.Log("Knight Selected");
         UpdateClassLights();
+        UpdateStatsUI();
     }
 
     public void SelectMage()
@@ -64,6 +114,7 @@ public class CharacterCreation : MonoBehaviour
         selectedClass = "Mage";
         Debug.Log("Mage Selected");
         UpdateClassLights();
+        UpdateStatsUI();
     }
 
     public void SelectArcher()
@@ -71,6 +122,7 @@ public class CharacterCreation : MonoBehaviour
         selectedClass = "Archer";
         Debug.Log("Archer Selected");
         UpdateClassLights();
+        UpdateStatsUI();
     }
 
     public void CreateCharacter()

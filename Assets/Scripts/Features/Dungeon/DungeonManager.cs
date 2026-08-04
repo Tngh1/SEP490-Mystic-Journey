@@ -41,12 +41,25 @@ public class DungeonManager : MonoBehaviour
     // ── Per-run enemy tracking (normal monsters and boss are tracked separately) ──
     private readonly List<EnemyEntity> _normalEnemies = new();
     private readonly List<EnemyEntity> _bossEnemies   = new();
+
+    // Every enemy registered this run, INCLUDING ones already dead and removed from the
+    // lists above. Registration is idempotent against this set rather than against
+    // _normalEnemies, because ReconcileReplicatedEnemies re-scans the scene repeatedly:
+    // a corpse still in the scene (death animation / loot) would otherwise be re-added
+    // after HandleNormalEnemyDeath removed it, inflating TotalNormalEnemies so the
+    // progress panel could never reach killed == total and the run never completed.
+    private readonly HashSet<EnemyEntity> _seenEnemies = new();
     private bool bossKilled = false;
     private Vector3 _bossDeathPosition = Vector3.zero;
 
     // Guards the one-shot "I became master late, re-run the spawn" recovery so a client
     // that legitimately has no enemies cannot loop the pipeline forever.
     private bool _masterSpawnRetried = false;
+
+    // One reconcile loop at a time. The master-retry above re-enters
+    // SpawnAndRegisterEnemies recursively, which would otherwise start a second loop
+    // polling the same scene.
+    private bool _reconcileLoopRunning = false;
 
     // One-shot guard so the spawn runs exactly once per dungeon entry. Both the
     // sceneLoaded event and TransitionToDungeon kick it off (the event alone proved
@@ -159,6 +172,7 @@ public class DungeonManager : MonoBehaviour
         _currentPhase = DungeonPhase.Normal;
         _normalEnemies.Clear();
         _bossEnemies.Clear();
+        _seenEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
         _masterSpawnRetried = false;
         _spawnStarted = false;
@@ -258,6 +272,16 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     public bool IsPartyHost { get; private set; }
 
     /// <summary>
+    /// True when this client is responsible for the backend session: the party host, and
+    /// also a solo player. Gating backend writes on <see cref="PhotonManager.IsHost"/>
+    /// alone excludes solo, because there is no runner offline so IsHost is false —
+    /// progress and Complete were never sent, the session stayed InProgress and
+    /// claim-reward failed, leaving the complete panel on +0 / +0 / --:--.
+    /// </summary>
+    private static bool OwnsSession =>
+        PhotonManager.Instance?.IsHost == true || NetworkPlayer.Local == null;
+
+    /// <summary>
     /// EVERY client (host + members): perform the actual scene transition into the
     /// dungeon using an already-established session id (from the host). Does NOT call
     /// the Enter API again — members reuse the host's session. Reuses the existing
@@ -291,6 +315,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _currentPhase = DungeonPhase.Normal;
         _normalEnemies.Clear();
         _bossEnemies.Clear();
+        _seenEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
         _masterSpawnRetried = false;
         _spawnStarted = false;
@@ -570,8 +595,12 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 
                 if (!isProxy)
                 {
-                    _normalEnemies.Clear();
-                    EnemyProgress.Clear();
+                    // No Clear() here: NetworkEnemy.Spawned already registered each of
+                    // these from inside Runner.Spawn, and wiping the lists without also
+                    // wiping _seenEnemies would make the re-registration below a no-op
+                    // and leave the authority itself on "Loading...". Registration is
+                    // idempotent, so simply re-running it reconciles anything the
+                    // callback missed.
                     foreach (var enemy in spawnedEnemies)
                     {
                         RegisterNetworkedEnemy(enemy);
@@ -589,9 +618,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                     // with 0 tracked enemies, which is exactly what pins the progress
                     // panel on "Loading..." (TotalNormalEnemies == 0).
                     //
-                    // So sweep the scene instead of trusting the callback timing.
-                    // RegisterNetworkedEnemy is idempotent (Contains guards), so this is
-                    // safe to run alongside the Spawned() path.
+                    // So sweep the scene instead of trusting the callback timing, and
+                    // keep reconciling afterwards for replicas that are still in flight.
                     yield return SweepReplicatedEnemies();
                 }
 
@@ -627,11 +655,16 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             var enemies = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             Debug.Log($"[DungeonManager] Fallback: found {enemies.Length} pre-placed enemies.");
 
+            // This path rebuilds from a full scene scan, so it resets _seenEnemies too —
+            // otherwise the set would still hold entries whose list rows were just wiped,
+            // and any later reconcile would refuse to re-add them.
             _normalEnemies.Clear();
             EnemyProgress.Clear();
+            _seenEnemies.Clear();
             foreach (var enemy in enemies)
             {
                 if (enemy == null) continue;
+                _seenEnemies.Add(enemy);
                 _normalEnemies.Add(enemy);
                 enemy.OnDeath -= HandleNormalEnemyDeath;
                 enemy.OnDeath += HandleNormalEnemyDeath;
@@ -645,48 +678,108 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         }
     }
 
-    /// <summary>
-    /// Proxy-side enemy discovery. Polls the scene for replicated EnemyEntity objects
-    /// until some show up (or we give up), then registers them. Needed because the
-    /// authority's Runner.Spawn calls and this client's dungeon transition run
-    /// concurrently, so NetworkEnemy.Spawned can fire either before this client has
-    /// cleared its lists or well after it finished loading.
-    /// </summary>
     private static bool AnyEnemyInScene() =>
         FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length > 0;
 
+    /// <summary>
+    /// Proxy-side enemy discovery. Polls the scene for replicated EnemyEntity objects
+    /// until some show up (or we give up), then registers them and hands over to the
+    /// periodic reconcile. Needed because the authority's Runner.Spawn calls and this
+    /// client's dungeon transition run concurrently, so NetworkEnemy.Spawned can fire
+    /// either before this client has cleared its lists or well after it finished loading.
+    /// </summary>
     private IEnumerator SweepReplicatedEnemies()
     {
-        // ponytail: fixed 8s poll window instead of reacting to a "spawn finished"
-        // signal from the authority. Upgrade path: have the master broadcast an RPC
-        // with the expected enemy count once InstantiateAll returns, and wait on that.
+        // First pass: wait (bounded) for the first replica so the caller does not return
+        // with an empty roster. The authority's own pipeline includes a backend round trip
+        // (MonsterApi.GetSpawnsForMap) before it spawns anything, so "nothing yet" here is
+        // normal rather than a failure.
         float wait = 8f;
-        while (wait > 0f)
+        while (wait > 0f && !AnyEnemyInScene())
         {
-            var found = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            if (found.Length > 0)
-            {
-                _normalEnemies.Clear();
-                _bossEnemies.Clear();
-                EnemyProgress.Clear();
-                foreach (var enemy in found) RegisterNetworkedEnemy(enemy);
-                Debug.Log($"[DungeonManager] Proxy swept {found.Length} replicated enemies " +
-                          $"→ {_normalEnemies.Count} normal, {_bossEnemies.Count} boss.");
-                yield break;
-            }
-
             wait -= Time.deltaTime;
             yield return null;
         }
 
-        Debug.LogWarning("[DungeonManager] Proxy found NO replicated enemies after 8s — " +
-                         "the master client likely never ran Runner.Spawn (check its console).");
+        int first = ReconcileReplicatedEnemies();
+        if (first > 0)
+        {
+            Debug.Log($"[DungeonManager] Proxy swept {first} replicated enemies " +
+                      $"→ {_normalEnemies.Count} normal, {_bossEnemies.Count} boss.");
+        }
+        else
+        {
+            Debug.LogWarning("[DungeonManager] Proxy found NO replicated enemies after 8s — " +
+                             "the master client may not have run Runner.Spawn yet (check its " +
+                             "console). Reconcile keeps polling, so a late spawn still lands.");
+        }
+
+        // Keep reconciling for the rest of the Normal phase. The single 8s window was the
+        // remaining hole behind the progress panel sitting on "Loading...": Fusion delivers
+        // replicas over several ticks and the authority may still be waiting on its spawn
+        // API when the window closes, so whatever had not arrived yet was never counted.
+        // Registration is idempotent (_seenEnemies), so this only ever adds what is new.
+        StartCoroutine(ReconcileReplicatedEnemiesLoop());
+    }
+
+    /// <summary>
+    /// Registers every enemy currently in the scene that we have not seen yet, without
+    /// clearing anything. Returns how many objects were scanned.
+    /// </summary>
+    private int ReconcileReplicatedEnemies()
+    {
+        var found = FindObjectsByType<EnemyEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (var enemy in found) RegisterNetworkedEnemy(enemy);
+        return found.Length;
+    }
+
+    /// <summary>
+    /// Periodic top-up for a proxy: picks up replicas that arrive after the initial sweep.
+    /// Ends when the boss phase starts (from then on the only new spawn is the boss, which
+    /// <see cref="NetworkEnemy.Spawned"/> files correctly on its own) or when the run ends.
+    /// </summary>
+    private IEnumerator ReconcileReplicatedEnemiesLoop()
+    {
+        if (_reconcileLoopRunning) yield break;
+        _reconcileLoopRunning = true;
+
+        string sceneAtStart = _currentDungeonSceneName;
+
+        while (IsInDungeon &&
+               _currentPhase == DungeonPhase.Normal &&
+               _currentDungeonSceneName == sceneAtStart)
+        {
+            yield return new WaitForSeconds(1f);
+
+            // A restart re-runs the whole pipeline; let that one own the reconcile.
+            if (!IsInDungeon || _currentPhase != DungeonPhase.Normal ||
+                _currentDungeonSceneName != sceneAtStart)
+                break;
+
+            int before = _normalEnemies.Count;
+            ReconcileReplicatedEnemies();
+            if (_normalEnemies.Count != before)
+            {
+                Debug.Log($"[DungeonManager] Reconcile picked up {_normalEnemies.Count - before} " +
+                          $"late replicated enemies (total now {TotalNormalEnemies}).");
+            }
+        }
+
+        _reconcileLoopRunning = false;
     }
 
     public void RegisterNetworkedEnemy(EnemyEntity enemy)
     {
         if (enemy == null) return;
-        
+
+        // One registration per enemy per run, tracked in _seenEnemies rather than in
+        // _normalEnemies: the latter has the dead removed from it, so a corpse that is
+        // still in the scene would be re-registered by the reconcile sweep and inflate
+        // the total. A replica that arrives already dead is skipped for the same reason —
+        // it was killed before this client had it, so it belongs to neither list.
+        if (!_seenEnemies.Add(enemy)) return;
+        if (enemy.IsDead) return;
+
         // Name test alone is not enough: NetworkEnemy.Spawned() (which calls us) fires
         // from inside Runner.Spawn, i.e. BEFORE DungeonSpawner.SpawnBoss renames the
         // instance to "{MonsterName}(Boss)". Proxies never rename at all — SpawnEnemyObject
@@ -700,29 +793,23 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         if (isBoss)
         {
-            if (!_bossEnemies.Contains(enemy))
-            {
-                _bossEnemies.Add(enemy);
-                enemy.OnDeath -= HandleBossEnemyDeath;
-                enemy.OnDeath += HandleBossEnemyDeath;
-                Debug.Log($"[DungeonManager] Registered networked BOSS: {enemy.gameObject.name} (phase={_currentPhase})");
-            }
+            _bossEnemies.Add(enemy);
+            enemy.OnDeath -= HandleBossEnemyDeath;
+            enemy.OnDeath += HandleBossEnemyDeath;
+            Debug.Log($"[DungeonManager] Registered networked BOSS: {enemy.gameObject.name} (phase={_currentPhase})");
         }
         else
         {
-            if (!_normalEnemies.Contains(enemy))
-            {
-                _normalEnemies.Add(enemy);
-                enemy.OnDeath -= HandleNormalEnemyDeath;
-                enemy.OnDeath += HandleNormalEnemyDeath;
+            _normalEnemies.Add(enemy);
+            enemy.OnDeath -= HandleNormalEnemyDeath;
+            enemy.OnDeath += HandleNormalEnemyDeath;
 
-                string n = GetCleanEnemyName(enemy);
-                if (!EnemyProgress.ContainsKey(n)) EnemyProgress[n] = (0, 0);
-                var p = EnemyProgress[n];
-                p.total++;
-                EnemyProgress[n] = p;
-                Debug.Log($"[DungeonManager] Registered networked enemy: {n} (Total: {p.total})");
-            }
+            string n = GetCleanEnemyName(enemy);
+            if (!EnemyProgress.ContainsKey(n)) EnemyProgress[n] = (0, 0);
+            var p = EnemyProgress[n];
+            p.total++;
+            EnemyProgress[n] = p;
+            Debug.Log($"[DungeonManager] Registered networked enemy: {n} (Total: {p.total})");
         }
     }
 
@@ -779,8 +866,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         Debug.Log($"[DungeonManager] Normal enemy killed. Remaining: {remaining}. Progress: {percentage}%");
 
-        // Fire-and-forget progress update (only host should call backend API)
-        if (PhotonManager.Instance?.IsHost == true)
+        // Fire-and-forget progress update (session owner only: host, or solo)
+        if (OwnsSession)
         {
             DungeonApi.Instance.UpdateProgress(
                 CurrentSessionId,
@@ -924,8 +1011,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         bool updateDone = false;
         bool completeDone = false;
 
-        // Report final progress FIRST and wait for it (only host should call backend API)
-        if (PhotonManager.Instance?.IsHost == true)
+        // Report final progress FIRST and wait for it (session owner only: host, or solo)
+        if (OwnsSession)
         {
             DungeonApi.Instance.UpdateProgress(
                 CurrentSessionId,
@@ -1232,6 +1319,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _currentPhase = DungeonPhase.Normal;
         _normalEnemies.Clear();
         _bossEnemies.Clear();
+        _seenEnemies.Clear();
         _bossDeathPosition = Vector3.zero;
         _masterSpawnRetried = false;
         _spawnStarted = false;
@@ -1248,10 +1336,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // Note: PreviousMapSceneName and PreviousPlayerPosition are preserved from the FIRST time they entered!
 
         // Whoever owns the backend session calls Enter: the party host, and also a solo
-        // player (no NetworkPlayer at all → IsHost is false offline, so the old check sent
-        // solo down the member path and it reused the finished run's session id).
-        bool ownsSession = PhotonManager.Instance?.IsHost == true || NetworkPlayer.Local == null;
-        if (ownsSession)
+        // player. Members reuse the host's id via RPC_SetRestartSession below.
+        if (OwnsSession)
         {
             DungeonApi.Instance.Enter(CurrentDungeonConfigId, _currentPartyMembers,
                 onSuccess: response =>

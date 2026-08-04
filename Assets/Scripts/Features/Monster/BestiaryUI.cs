@@ -56,7 +56,29 @@ public class BestiaryUI : MonoBehaviour
         }
 
         ClearList();
+        ClearDetail();
         LoadCatalogData();
+    }
+
+    /// <summary>
+    /// Ô detail trong scene có sẵn text mẫu ("Monster Name", "Boss", "1000"...) nên panel vừa mở
+    /// đã thấy dữ liệu giả dù chưa chọn con nào. Xoá trắng cho tới khi người chơi bấm 1 slot.
+    /// </summary>
+    private void ClearDetail()
+    {
+        if (detailIcon != null)
+        {
+            detailIcon.sprite = null;
+            detailIcon.enabled = false;
+        }
+
+        if (detailNameText != null) detailNameText.text = string.Empty;
+        if (detailTypeText != null) detailTypeText.text = string.Empty;
+        if (detailDescText != null) detailDescText.text = string.Empty;
+        if (detailStatsText != null) detailStatsText.text = string.Empty;
+        if (bossIcon != null) bossIcon.SetActive(false);
+
+        SetStats(string.Empty, string.Empty, string.Empty);
     }
 
     private void OnDisable()
@@ -141,6 +163,7 @@ public class BestiaryUI : MonoBehaviour
             {
                 detailIcon.color = Color.white;
                 if (iconSprite != null) detailIcon.sprite = iconSprite;
+                detailIcon.enabled = detailIcon.sprite != null;
             }
 
             if (detailNameText != null) detailNameText.text = data.Name;
@@ -174,6 +197,7 @@ public class BestiaryUI : MonoBehaviour
             {
                 detailIcon.color = Color.black;
                 if (iconSprite != null) detailIcon.sprite = iconSprite;
+                detailIcon.enabled = detailIcon.sprite != null;
             }
 
             if (detailNameText != null) detailNameText.text = "???";

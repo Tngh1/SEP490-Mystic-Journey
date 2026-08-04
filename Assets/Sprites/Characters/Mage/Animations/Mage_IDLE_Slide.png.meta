@@ -26,9 +26,6 @@ TextureImporter:
   - first:
       213: 1692293641517351649
     second: Mage_IDLE_Slide_7
-  - first:
-      213: -1623391944717981284
-    second: Mage_IDLE_Slide_8
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -127,12 +124,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_0
       rect:
         serializedVersion: 2
-        x: 80
-        y: 66
-        width: 81
-        height: 123
+        x: 18
+        y: 267
+        width: 88
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -149,12 +146,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_1
       rect:
         serializedVersion: 2
-        x: 324
-        y: 66
-        width: 81
-        height: 123
+        x: 146
+        y: 267
+        width: 88
+        height: 103
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -171,12 +168,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_2
       rect:
         serializedVersion: 2
-        x: 568
-        y: 67
-        width: 83
-        height: 119
+        x: 273
+        y: 267
+        width: 90
+        height: 102
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -193,12 +190,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_3
       rect:
         serializedVersion: 2
-        x: 812
-        y: 67
-        width: 85
-        height: 117
+        x: 17
+        y: 140
+        width: 89
+        height: 101
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -215,12 +212,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_4
       rect:
         serializedVersion: 2
-        x: 1056
-        y: 67
-        width: 88
-        height: 114
+        x: 144
+        y: 140
+        width: 90
+        height: 100
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -237,12 +234,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_5
       rect:
         serializedVersion: 2
-        x: 1299
-        y: 67
+        x: 272
+        y: 140
         width: 91
-        height: 114
+        height: 101
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -259,12 +256,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_6
       rect:
         serializedVersion: 2
-        x: 1542
-        y: 67
-        width: 94
-        height: 118
+        x: 17
+        y: 13
+        width: 89
+        height: 101
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -281,12 +278,12 @@ TextureImporter:
       name: Mage_IDLE_Slide_7
       rect:
         serializedVersion: 2
-        x: 1787
-        y: 67
-        width: 89
-        height: 120
+        x: 146
+        y: 13
+        width: 88
+        height: 104
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -299,33 +296,11 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: Mage_IDLE_Slide_8
-      rect:
-        serializedVersion: 2
-        x: 2031
-        y: 66
-        width: 82
-        height: 123
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: c99aadb90ad8879e0800000000000000
-      internalID: -1623391944717981284
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e7c776db8536b3f4f8385a6a56c99d84
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -333,9 +308,7 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
       Mage_IDLE_Slide_0: 6997009810776627152
       Mage_IDLE_Slide_1: -6252271917933369749
@@ -345,7 +318,6 @@ TextureImporter:
       Mage_IDLE_Slide_5: -7359761856736770976
       Mage_IDLE_Slide_6: -1022049098316570815
       Mage_IDLE_Slide_7: 1692293641517351649
-      Mage_IDLE_Slide_8: -1623391944717981284
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

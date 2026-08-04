@@ -22,6 +22,8 @@ public class PlayerAnimation : MonoBehaviour
     [SerializeField] private Animator animator;
     [Tooltip("Optional. If null, fetched via GetComponentInChildren.")]
     [SerializeField] private SpriteRenderer spriteRenderer;
+    [Tooltip("Check this if the character's original sprite is drawn facing left (e.g. Southwest) instead of right.")]
+    [SerializeField] private bool invertFlipX = false;
 
     // Cached parameter hashes (faster than string lookups).
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
@@ -96,7 +98,8 @@ public class PlayerAnimation : MonoBehaviour
 
         if (spriteRenderer != null && move.x != 0f)
         {
-            spriteRenderer.flipX = move.x < 0f;
+            bool shouldFlip = move.x < 0f;
+            spriteRenderer.flipX = invertFlipX ? !shouldFlip : shouldFlip;
         }
     }
 

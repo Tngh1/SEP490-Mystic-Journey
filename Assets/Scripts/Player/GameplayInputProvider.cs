@@ -63,6 +63,51 @@ public class GameplayInputProvider : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// True while the UI owns the keyboard, so gameplay actions must stay silent.
+    ///
+    /// Without this gate every key reached BOTH the panel and the world: pressing
+    /// "1" over the party roster cast Skill1, "M" opened the map ON TOP of the
+    /// roster (UIManager.ShowPanel → CloseAll closes the party panel, which is
+    /// what looked like "đang join party nhấn gì cũng out hết"), and clicking any
+    /// button fired Attack because Attack is bound to leftButton.
+    ///
+    /// Two conditions block gameplay:
+    ///   • Any tracked panel is on screen (UIManager.IsAnyPanelOpen).
+    ///   • A text field has focus — so typing "1" in chat/search never casts a
+    ///     skill. This also covers panels built at runtime that UIManager doesn't
+    ///     track (e.g. the party panel's friend-invite modal).
+    ///
+    /// Deliberately does NOT gate Move or the pointer/aim helpers: freezing the
+    /// player in place is a design change nobody asked for, and AoE aim confirm
+    /// (PlayerCombat) already guards itself with IsPointerOverGameObject.
+    /// </summary>
+    public static bool UiIsCapturingInput
+    {
+        get
+        {
+            var ui = UIManager.Instance;
+            if (ui != null && ui.IsAnyPanelOpen) return true;
+            return IsTextFieldFocused;
+        }
+    }
+
+    private static bool IsTextFieldFocused
+    {
+        get
+        {
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            var sel = es != null ? es.currentSelectedGameObject : null;
+            if (sel == null) return false;
+
+            var tmp = sel.GetComponent<TMPro.TMP_InputField>();
+            if (tmp != null && tmp.isFocused) return true;
+
+            var legacy = sel.GetComponent<UnityEngine.UI.InputField>();
+            return legacy != null && legacy.isFocused;
+        }
+    }
+
     // Action-map / action names. Kept in one place so the string literals used
     // to look up InputActions live here and nowhere else.
     private const string PlayerMap   = "Player";
@@ -123,27 +168,31 @@ public class GameplayInputProvider : MonoBehaviour
     // Public API — buttons (held / pressed-this-frame)
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>True while the Attack control is held down.</summary>
-    public bool AttackHeld => IsHeld(_attack, ref _attack, AttackName);
-    /// <summary>True on the frame the Attack control was pressed.</summary>
-    public bool AttackPressed => WasPressed(_attack, ref _attack, AttackName);
+    /// <summary>True while the Attack control is held down. Silent while the UI has focus.</summary>
+    public bool AttackHeld => !UiIsCapturingInput && IsHeldRaw(_attack, ref _attack, AttackName);
+    /// <summary>True on the frame the Attack control was pressed. Silent while the UI has focus.</summary>
+    public bool AttackPressed => !UiIsCapturingInput && WasPressedRaw(_attack, ref _attack, AttackName);
 
-    public bool Skill1Held => IsHeld(_skill1, ref _skill1, Skill1Name);
-    public bool Skill1Pressed => WasPressed(_skill1, ref _skill1, Skill1Name);
+    public bool Skill1Held => !UiIsCapturingInput && IsHeldRaw(_skill1, ref _skill1, Skill1Name);
+    public bool Skill1Pressed => !UiIsCapturingInput && WasPressedRaw(_skill1, ref _skill1, Skill1Name);
 
-    public bool Skill2Held => IsHeld(_skill2, ref _skill2, Skill2Name);
-    public bool Skill2Pressed => WasPressed(_skill2, ref _skill2, Skill2Name);
+    public bool Skill2Held => !UiIsCapturingInput && IsHeldRaw(_skill2, ref _skill2, Skill2Name);
+    public bool Skill2Pressed => !UiIsCapturingInput && WasPressedRaw(_skill2, ref _skill2, Skill2Name);
 
-    public bool Skill3Held => IsHeld(_skill3, ref _skill3, Skill3Name);
-    public bool Skill3Pressed => WasPressed(_skill3, ref _skill3, Skill3Name);
+    public bool Skill3Held => !UiIsCapturingInput && IsHeldRaw(_skill3, ref _skill3, Skill3Name);
+    public bool Skill3Pressed => !UiIsCapturingInput && WasPressedRaw(_skill3, ref _skill3, Skill3Name);
 
     /// <summary>True while the Interact control is held down.</summary>
-    public bool InteractHeld => IsHeld(_interact, ref _interact, InteractName);
+    public bool InteractHeld => !UiIsCapturingInput && IsHeldRaw(_interact, ref _interact, InteractName);
     /// <summary>True on the frame the Interact control was pressed. Respects rebinding.</summary>
-    public bool InteractPressed => WasPressed(_interact, ref _interact, InteractName);
+    public bool InteractPressed => !UiIsCapturingInput && WasPressedRaw(_interact, ref _interact, InteractName);
 
-    public bool InventoryPressed => WasPressed(_inventory, ref _inventory, InventoryName);
-    public bool MapPressed => WasPressed(_map, ref _map, MapName);
+    // Inventory / Map are TOGGLES: they must still fire while their own panel is
+    // open, otherwise the key that opened the panel can't close it. So they are
+    // only blocked by text-field focus here; the "a different panel is open"
+    // rule is applied by PlayerUIHotkeys, which knows which panel each key owns.
+    public bool InventoryPressed => !IsTextFieldFocused && WasPressedRaw(_inventory, ref _inventory, InventoryName);
+    public bool MapPressed => !IsTextFieldFocused && WasPressedRaw(_map, ref _map, MapName);
 
     /// <summary>
     /// Skill slot helper (0-based) so callers can index without knowing the
@@ -355,14 +404,14 @@ public class GameplayInputProvider : MonoBehaviour
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    private bool IsHeld(InputAction cached, ref InputAction field, string name)
+    private bool IsHeldRaw(InputAction cached, ref InputAction field, string name)
     {
         EnsureResolved();
         InputAction a = field ?? cached;
         return a != null && a.IsPressed();
     }
 
-    private bool WasPressed(InputAction cached, ref InputAction field, string name)
+    private bool WasPressedRaw(InputAction cached, ref InputAction field, string name)
     {
         EnsureResolved();
         InputAction a = field ?? cached;
