@@ -62,6 +62,16 @@ public class UIChatPanel : MonoBehaviour
     private readonly HashSet<int> pendingReportIds = new HashSet<int>();
     private readonly HashSet<string> displayedRealtimeKeys = new HashSet<string>();
 
+    // Party messages that arrived while another tab was open, replayed when the Party
+    // tab opens. World and Guild do NOT need this — both are persisted server-side and
+    // re-fetched on tab switch, so dropping a live copy only costs a few seconds of
+    // latency. ChatApi has no party endpoint at all (only World and Friend), so the RPC
+    // is the one and only copy: dropping it here loses the message permanently.
+    // ponytail: capped in-memory ring, cleared on scene reload. If party history needs to
+    // survive a relog, it needs a BE endpoint + LoadPartyHistory, not a bigger buffer.
+    private const int MaxPendingPartyMessages = 50;
+    private readonly Queue<PartyChatMessageResponse> pendingPartyMessages = new Queue<PartyChatMessageResponse>();
+
     private ChatChannel currentChannel = ChatChannel.World;
     private bool isSending;
     private bool isLoadingWorldHistory;
@@ -259,6 +269,10 @@ public class UIChatPanel : MonoBehaviour
 
         if (inputField != null)
         {
+            // Stop typing at the wire budget instead of letting ClampUtf8 cut the message
+            // silently — otherwise the sender sees their full text and everyone else sees it
+            // truncated. Set in code, not the Inspector, so it can't drift from the RPC limit.
+            inputField.characterLimit = NetworkChatText.MaxContentChars;
             inputField.onSubmit.AddListener(HandleInputSubmitted);
         }
     }
@@ -395,6 +409,7 @@ public class UIChatPanel : MonoBehaviour
                 {
                     AddSystemMessage("You are not in a party.");
                 }
+                FlushPendingPartyMessages();
                 break;
         }
     }
@@ -1044,6 +1059,32 @@ public class UIChatPanel : MonoBehaviour
         if (currentChannel == ChatChannel.Party)
         {
             AddPartyMessage(message);
+            return;
+        }
+
+        // Not on the Party tab: hold it instead of dropping it. There is no party history
+        // endpoint to re-fetch from, so a discard here is permanent data loss.
+        if (message == null || string.IsNullOrWhiteSpace(message.Content)) return;
+
+        if (pendingPartyMessages.Count >= MaxPendingPartyMessages)
+        {
+            pendingPartyMessages.Dequeue();
+        }
+
+        pendingPartyMessages.Enqueue(message);
+    }
+
+    /// <summary>
+    /// Replay party messages that arrived while another tab was open. Called on entering
+    /// the Party tab, AFTER ClearMessages() so the replay is not wiped by the same switch.
+    /// AddPartyMessage dedups on SenderId|SentAt|Content, so a message that also arrived
+    /// live is not doubled.
+    /// </summary>
+    private void FlushPendingPartyMessages()
+    {
+        while (pendingPartyMessages.Count > 0)
+        {
+            AddPartyMessage(pendingPartyMessages.Dequeue());
         }
     }
 

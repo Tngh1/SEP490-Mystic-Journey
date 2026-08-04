@@ -627,8 +627,10 @@ public class UIPartyPanel : MonoBehaviour
                 var m = others[otherIdx];
                 var cls = (CharacterClass)m.PlayerClass;
                 var target = m.Player;
-                slot.RenderMember(m.Name.Value, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
-                    canKick: localIsHost, onKick: () => PartyService.KickMember(target),
+                var memberName = m.Name.Value;
+                slot.RenderMember(memberName, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
+                    canKick: localIsHost,
+                    onKick: () => ConfirmKick(memberName, () => PartyService.KickMember(target)),
                     skinPortrait: SkinPortraitFor(m.SkinId));
             }
             else
@@ -636,6 +638,27 @@ public class UIPartyPanel : MonoBehaviour
                 slot.RenderEmpty();
             }
         }
+    }
+
+    /// <summary>
+    /// Xác nhận trước khi kick, dùng lại đúng popup của guild kick (UIGuildMemberEntry).
+    /// Không có UIPopupManager thì kick luôn: mất hộp xác nhận còn hơn nút Kick chết hẳn.
+    /// </summary>
+    private static void ConfirmKick(string memberName, Action onConfirm)
+    {
+        var popup = MysticJourney.UI.UIPopupManager.Instance;
+        if (popup == null)
+        {
+            Debug.LogWarning("[UIPartyPanel] UIPopupManager missing; kicking without confirmation.");
+            onConfirm?.Invoke();
+            return;
+        }
+
+        popup.ShowConfirm(
+            "Kick Member",
+            $"Are you sure you want to kick {memberName}?",
+            () => onConfirm?.Invoke(),
+            null);
     }
 
     private void EnsureSlotsResolved()

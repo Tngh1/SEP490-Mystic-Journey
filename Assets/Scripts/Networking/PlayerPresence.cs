@@ -192,9 +192,6 @@ public class PlayerPresence : NetworkBehaviour
     /// <summary>Minimum seconds between two accepted messages from the same player.</summary>
     private const float MinChatInterval = 0.5f;
 
-    /// <summary>Must match the NetworkString width used by <see cref="RPC_WorldMessage"/>.</summary>
-    private const int MaxChatChars = 120;
-
     private float _lastChatAccepted = float.NegativeInfinity;
 
     /// <summary>True when a world-chat message can actually be relayed over Photon.</summary>
@@ -210,10 +207,9 @@ public class PlayerPresence : NetworkBehaviour
         if (message == null || message.ChatMessageId <= 0) return false;
         if (!WorldChatReady) return false;
 
-        string body = message.Content ?? string.Empty;
-        if (body.Length > MaxChatChars) body = body.Substring(0, MaxChatChars);
-
-        Local.RPC_WorldMessage(message.ChatMessageId, body);
+        Local.RPC_WorldMessage(
+            message.ChatMessageId,
+            NetworkChatText.ClampUtf8(message.Content, NetworkChatText.MaxContentBytes));
         return true;
     }
 
@@ -221,10 +217,14 @@ public class PlayerPresence : NetworkBehaviour
     /// Sent by a player ON ITS OWN presence and received by every peer. Sender identity
     /// is read from this object's networked fields, never from the payload.
     /// </summary>
+    // `content` is a plain string, NOT NetworkString<_128>: a NetworkString always costs its
+    // full width and _N counts 32-bit WORDS, so <_128> alone was 516 bytes and pushed this RPC
+    // to 528 against Fusion's 512-byte ceiling — Fusion dropped the send and only its own error
+    // log said so. A string is weaved as variable-length UTF-8.
     [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
-    public void RPC_WorldMessage(int chatMessageId, NetworkString<_128> content)
+    public void RPC_WorldMessage(int chatMessageId, string content)
     {
-        string body = content.ToString();
+        string body = content ?? string.Empty;
         if (chatMessageId <= 0 || string.IsNullOrWhiteSpace(body)) return;
 
         // Flood guard: the send cooldown lives in the UI, so a modified client could
