@@ -59,6 +59,14 @@ namespace MysticJourney.UI
             if (btnCancel != null) btnCancel.onClick.AddListener(OnCancelClicked);
             if (btnBackgroundBlocker != null) btnBackgroundBlocker.onClick.AddListener(OnCancelClicked); // Click ra ngoài cũng tính là Cancel
 
+            // Reset cả hai về ẩn. Trong scene BackgroundBlocker được serialize là active=true,
+            // nên nếu không tắt ở đây thì chỉ cần một chỗ *đọc* UIPopupManager.Instance (getter
+            // tự SetActive(true) lên GameObject này) đúng lúc PopupLayer đang bật là màn hình có
+            // ngay một Button trong suốt phủ kín, không popup nào để bấm OK => treo cả UI.
+            // Kiểu null-check `if (UIPopupManager.Instance != null)` đó nằm rải rác ở
+            // UIFriendPanel, GuildUIManager...
+            if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
+
             if (popupContainer != null) popupContainer.SetActive(false);
         }
 
@@ -76,7 +84,6 @@ namespace MysticJourney.UI
         public void ShowConfirm(string title, string message, Action onConfirm, Action onCancel = null, string confirmText = "Yes", string cancelText = "No")
         {
             SetupPopup(title, message, confirmText, cancelText, onConfirm, onCancel, showCancelButton: true);
-            if (!gameObject.activeInHierarchy) gameObject.SetActive(true);
         }
 
         private void SetupPopup(string title, string message, string confirmText, string cancelText, Action onConfirm, Action onCancel, bool showCancelButton)
@@ -95,18 +102,13 @@ namespace MysticJourney.UI
                 btnCancel.gameObject.SetActive(showCancelButton);
             }
 
-            if (btnBackgroundBlocker != null)
-            {
-                btnBackgroundBlocker.gameObject.SetActive(true);
-            }
-
-            if (popupContainer != null)
-            {
-                popupContainer.SetActive(true);
-                popupContainer.transform.SetAsLastSibling();
-            }
-
-            // Ensure this object and all its parents are active
+            // Bật lại mọi cấp cha đang tắt. PopupLayer là container DÙNG CHUNG cho 14 popup và bị
+            // code khác tắt/bật (MainQuestPanelRuntime tắt nó sau khi chạy hết queue popup quest),
+            // nên không được coi là luôn bật.
+            // PHẢI walk TRƯỚC khi bật popupContainer/blocker: trong scene cả PopupLayer lẫn
+            // GameObject này đều đang tắt, nên Awake() chưa hề chạy — Unity chỉ chạy nó đúng vào
+            // lúc SetActive(true) ở vòng lặp dưới. Awake() kết thúc bằng việc tắt cả container lẫn
+            // blocker, nên nếu bật chúng trước thì Awake() tắt lại ngay và popup không bao giờ hiện.
             Transform current = transform;
             while (current != null)
             {
@@ -117,8 +119,16 @@ namespace MysticJourney.UI
                 current = current.parent;
             }
 
-            // Đảm bảo GameObject chứa script này cũng đang bật
-            if (!gameObject.activeInHierarchy) gameObject.SetActive(true);
+            if (btnBackgroundBlocker != null)
+            {
+                btnBackgroundBlocker.gameObject.SetActive(true);
+            }
+
+            if (popupContainer != null)
+            {
+                popupContainer.SetActive(true);
+                popupContainer.transform.SetAsLastSibling();
+            }
         }
 
         private void OnConfirmClicked()

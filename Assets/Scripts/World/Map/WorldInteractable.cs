@@ -290,8 +290,14 @@ public class WorldInteractable : MonoBehaviour
     {
         if (kind == WorldInteractableKind.Dungeon)
         {
-            if (WorldState.PlayerLevel < 5)
-                return "Yêu cầu Cấp 5 để vào Dungeon";
+            // Cùng nguồn level và cùng hằng số với DungeonEntrance.Interact(), nếu không
+            // prompt sẽ nói "đủ level" trong khi gate vẫn chặn (hoặc ngược lại).
+            var level = Mathf.Max(
+                WorldState.PlayerLevel,
+                PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerLevelKey, 1));
+
+            if (level < DungeonEntrance.RequiredLevel)
+                return $"Requires Level {DungeonEntrance.RequiredLevel} to enter the Dungeon";
             return "Press E to Enter Dungeon";
         }
 

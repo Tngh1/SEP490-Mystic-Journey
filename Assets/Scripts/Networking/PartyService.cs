@@ -144,8 +144,8 @@ public static class PartyService
     }
 
     /// <summary>
-    /// Leave the current party. A plain member removes its own slot; the host runs the
-    /// authority-transfer path and, if it was the last member, tears the party down.
+    /// Leave the current party. A plain member removes its own slot; the host disbands
+    /// the party for everyone (see <see cref="PartyLobby.LeaveAsHost"/>).
     /// </summary>
     public static void LeaveParty()
     {
