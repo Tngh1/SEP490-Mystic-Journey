@@ -3,8 +3,10 @@ using UnityEngine;
 /// <summary>
 /// Drives the minimap camera. It follows the local player from far above with a
 /// zoomed-out orthographic view (a map, not a second gameplay view) and renders
-/// into RT_Minimap. Player icons are drawn as UI on top of that texture by
-/// <see cref="MinimapMarkerLayer"/> — this component only owns the camera.
+/// into RT_Minimap. While the map panel is open it stops following and frames the
+/// whole level into the wider full-map texture instead, so the level is not
+/// letterboxed inside the panel frame. Player icons are drawn as UI on top of that
+/// texture by <see cref="MinimapMarkerLayer"/> — this component only owns the camera.
 /// </summary>
 [RequireComponent(typeof(Camera))]
 public class MinimapCameraController : MonoBehaviour
@@ -18,6 +20,16 @@ public class MinimapCameraController : MonoBehaviour
 
     [Tooltip("Layers the minimap must not render (UI, VFX, ...).")]
     [SerializeField] private LayerMask hiddenLayers;
+
+    [Header("Full map (map panel)")]
+    [Tooltip("Render texture used while the map panel is open. Its aspect must match " +
+             "the panel's RawImage, otherwise the level is letterboxed inside the frame. " +
+             "Leave empty to keep rendering into the minimap texture.")]
+    [SerializeField] private RenderTexture fullMapTexture;
+
+    [Tooltip("Margin left around the level in full-map view. 1 = level edges touch the frame.")]
+    [Range(1f, 1.5f)]
+    [SerializeField] private float fullMapPadding = 1.02f;
 
     [Header("Follow")]
     [Tooltip("Follow smoothing. 0 = snap instantly to the target.")]
@@ -36,6 +48,10 @@ public class MinimapCameraController : MonoBehaviour
     private Vector3 _fullMapCenter;
     private float _fullMapZoom;
 
+    // Texture the camera renders into while following the player. Restored when the
+    // map panel closes, so the HUD minimap keeps its own square texture.
+    private RenderTexture _minimapTexture;
+
     private void Awake()
     {
         Instance = this;
@@ -44,6 +60,7 @@ public class MinimapCameraController : MonoBehaviour
         Camera.orthographic = true;
         Camera.orthographicSize = zoom;
         Camera.cullingMask &= ~hiddenLayers.value;
+        _minimapTexture = Camera.targetTexture;
 
         // The gameplay camera owns audio; a second listener spams warnings and
         // breaks 2D spatial panning.
@@ -79,12 +96,17 @@ public class MinimapCameraController : MonoBehaviour
     {
         if (!TryComputeWorldBounds(out Bounds b)) return;
 
+        // Render into the wide panel texture first: the fit below must use the
+        // aspect the player will actually see, not the square minimap one.
+        if (fullMapTexture != null && Camera.targetTexture != fullMapTexture)
+            Camera.targetTexture = fullMapTexture;
+
         _fullMapCenter = new Vector3(b.center.x, b.center.y, cameraZOffset);
 
         // Orthographic size is half the vertical extent; also fit the width through
         // the aspect ratio, then pad so the level edges are not flush with the frame.
-        float aspect = Camera.aspect > 0.0001f ? Camera.aspect : 1f;
-        _fullMapZoom = Mathf.Max(b.extents.y, b.extents.x / aspect) * 1.05f;
+        float aspect = CurrentAspect();
+        _fullMapZoom = Mathf.Max(b.extents.y, b.extents.x / aspect) * Mathf.Max(1f, fullMapPadding);
 
         _fullMap = true;
         transform.position = _fullMapCenter;
@@ -95,8 +117,32 @@ public class MinimapCameraController : MonoBehaviour
     public void ShowMinimap()
     {
         _fullMap = false;
+
+        if (_minimapTexture != null && Camera.targetTexture != _minimapTexture)
+            Camera.targetTexture = _minimapTexture;
+
         Camera.orthographicSize = zoom;
         if (Target != null) transform.position = FocusPosition();
+    }
+
+    /// <summary>
+    /// Texture the camera is rendering into right now. The map panel binds its
+    /// RawImage to this so it follows the full-map/minimap swap.
+    /// </summary>
+    public RenderTexture ActiveTexture
+    {
+        get { return Camera != null ? Camera.targetTexture : null; }
+    }
+
+    // Camera.aspect only picks up a new target texture on the next render, so read
+    // the texture directly — ShowFullMap needs the value in the same frame.
+    private float CurrentAspect()
+    {
+        var rt = Camera.targetTexture;
+        if (rt != null && rt.height > 0)
+            return (float)rt.width / rt.height;
+
+        return Camera.aspect > 0.0001f ? Camera.aspect : 1f;
     }
 
     // ponytail: bounds are derived from whatever renderers are loaded when the panel

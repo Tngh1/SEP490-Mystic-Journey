@@ -45,6 +45,13 @@ public static class WorldState
         set => _service.EquippedSkinId = value;
     }
 
+    /// <summary>Resource name of the profile avatar (e.g. "avatar_3") under Resources/Avatars.</summary>
+    public static string AvatarUrl
+    {
+        get => _service.AvatarUrl;
+        set => _service.AvatarUrl = value;
+    }
+
     public static string CurrentMapName
     {
         get => _service.CurrentMapName;

@@ -50,7 +50,7 @@ public class MenuUIManager : MonoBehaviour
     public void OpenRegisterWebsite()
     {
         if (!string.IsNullOrEmpty(websiteUrl))
-            Application.OpenURL(websiteUrl);
+            Application.OpenURL(websiteUrl.TrimEnd('/') + "/register");
     }
 
     // Website Button

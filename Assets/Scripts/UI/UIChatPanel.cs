@@ -82,6 +82,7 @@ public class UIChatPanel : MonoBehaviour
     private bool guildTabBound;
     private bool partyTabBound;
     private bool partyStaticEventBound;
+    private bool partyNetworkEventBound;
 
     private void OnEnable()
     {
@@ -107,9 +108,14 @@ public class UIChatPanel : MonoBehaviour
 
     private void Update()
     {
-        if (currentChannel == ChatChannel.Party && subscribedParty != PartyLobby.Local)
+        // Re-poll because both party transports appear asynchronously: PartyLobby is
+        // spawned by the host, and the dungeon one only exists once the migration lands.
+        // Checked independently — a single combined condition could leave the network
+        // event unbound forever once both PartyLobby references settled on null.
+        if (currentChannel == ChatChannel.Party &&
+            (!partyNetworkEventBound || subscribedParty != PartyLobby.Local))
         {
-            SubscribePartyLobby();
+            SubscribePartyTransport();
         }
 
         UpdateHistoryFallbackState();
@@ -120,7 +126,7 @@ public class UIChatPanel : MonoBehaviour
         StopHistoryFallback();
         StopGuildRefresh();
         UnsubscribePhotonRelay();
-        UnsubscribePartyLobby();
+        UnsubscribePartyTransport();
         UnbindPartyStaticEvent();
     }
 
@@ -384,8 +390,8 @@ public class UIChatPanel : MonoBehaviour
                 StartGuildRefresh();
                 break;
             case ChatChannel.Party:
-                SubscribePartyLobby();
-                if (PartyLobby.Local == null)
+                SubscribePartyTransport();
+                if (HasNoParty())
                 {
                     AddSystemMessage("You are not in a party.");
                 }
@@ -406,11 +412,11 @@ public class UIChatPanel : MonoBehaviour
 
         if (currentChannel == ChatChannel.Party)
         {
-            SubscribePartyLobby();
+            SubscribePartyTransport();
         }
         else
         {
-            UnsubscribePartyLobby();
+            UnsubscribePartyTransport();
         }
     }
 
@@ -491,10 +497,14 @@ public class UIChatPanel : MonoBehaviour
 
     private void SendPartyMessage(string msg)
     {
+        bool useDungeonTransport = IsDungeonPartyChat();
+
         var party = PartyLobby.Local;
-        if (party == null)
+        if (!useDungeonTransport && party == null)
         {
-            AddSystemMessage("You are not in a party.");
+            AddSystemMessage(IsPartyTransportMigrating()
+                ? "Entering the dungeon — party chat will be back in a moment."
+                : "You are not in a party.");
             FocusInput();
             return;
         }
@@ -518,10 +528,23 @@ public class UIChatPanel : MonoBehaviour
             SentAt = DateTime.UtcNow.ToString("O")
         };
 
-        if (!party.BroadcastPartyMessage(message))
+        bool sent = useDungeonTransport
+            ? NetworkPlayer.BroadcastPartyChat(message)
+            : party.BroadcastPartyMessage(message);
+
+        if (!sent)
         {
             inputField.text = msg;
             AddSystemMessage("Party chat is not ready.");
+        }
+        else
+        {
+            // Echo our own message locally instead of waiting for the RpcTargets.All
+            // round-trip to come back. Previously the sender saw nothing at all if the
+            // echo was dropped or the receive handler was not bound yet — and the input
+            // field had already been cleared, so the text was gone too. AddPartyMessage
+            // dedups on SenderId|SentAt|Content, so the incoming echo is a no-op.
+            AddPartyMessage(message);
         }
 
         FocusInput();
@@ -774,6 +797,90 @@ public class UIChatPanel : MonoBehaviour
         worldRelayBound = false;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Party transport
+    //
+    // Party chat has TWO transports because the party outlives the room it was
+    // formed in:
+    //   • Social lobby → PartyLobby (a NetworkObject of MYSTIC_SOCIAL_LOBBY).
+    //   • Dungeon      → NetworkPlayer, because entering a dungeon tears the runner
+    //                    down (PhotonManager.MigrateToDungeonAsync) and despawns
+    //                    PartyLobby, nulling PartyLobby.Local for the whole run.
+    // The dungeon room is capped at PartyLobby.MaxMembers and holds exactly one
+    // party, so "everyone in the room" == "the party" there.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>True while party chat should run over the dungeon room instead of PartyLobby.</summary>
+    private static bool IsDungeonPartyChat()
+    {
+        var photon = PhotonManager.Instance;
+        return photon != null && photon.IsDungeonSession && NetworkPlayer.CanUsePartyChat;
+    }
+
+    /// <summary>
+    /// True when there is no live transport but the player IS still in a party — the
+    /// migration window where the lobby runner is already down and the dungeon room is
+    /// not up yet. Telling the player they left their party here would be wrong.
+    /// </summary>
+    private static bool IsPartyTransportMigrating()
+    {
+        return PartyManager.IsEnteringDungeon;
+    }
+
+    /// <summary>True when the player genuinely has no party on either transport.</summary>
+    private static bool HasNoParty()
+    {
+        return PartyLobby.Local == null && !IsDungeonPartyChat() && !IsPartyTransportMigrating();
+    }
+
+    private void SubscribePartyTransport()
+    {
+        // Bind BOTH transports whenever the Party tab is open, instead of picking one
+        // based on IsDungeonPartyChat().
+        //
+        // Picking one was a receive-side trap: if IsDungeonPartyChat() was false at the
+        // moment the tab opened (phase not yet Dungeon, or the local avatar not spawned
+        // yet), this bound PartyLobby instead — and in a dungeon PartyLobby.Local is null
+        // forever, so subscribedParty and PartyLobby.Local were BOTH null and Update()'s
+        // re-poll condition `subscribedParty != PartyLobby.Local` stayed false. The network
+        // event then never got bound at all: that client could send (the send path re-checks
+        // live) but could never receive. Only the sender's own local echo showed up.
+        //
+        // Binding both is safe: the two transports never carry the same message (the lobby
+        // one is despawned in a dungeon), and AddPartyMessage dedups on
+        // SenderId|SentAt|Content anyway.
+        BindPartyNetworkEvent();
+        SubscribePartyLobby();
+    }
+
+    private void UnsubscribePartyTransport()
+    {
+        UnsubscribePartyLobby();
+        UnbindPartyNetworkEvent();
+    }
+
+    private void BindPartyNetworkEvent()
+    {
+        if (partyNetworkEventBound)
+        {
+            return;
+        }
+
+        NetworkPlayer.PartyChatReceived += OnPartyMessageReceived;
+        partyNetworkEventBound = true;
+    }
+
+    private void UnbindPartyNetworkEvent()
+    {
+        if (!partyNetworkEventBound)
+        {
+            return;
+        }
+
+        NetworkPlayer.PartyChatReceived -= OnPartyMessageReceived;
+        partyNetworkEventBound = false;
+    }
+
     private void SubscribePartyLobby()
     {
         var party = PartyLobby.Local;
@@ -810,12 +917,19 @@ public class UIChatPanel : MonoBehaviour
         }
 
         var previous = subscribedParty;
-        SubscribePartyLobby();
+        SubscribePartyTransport();
+
+        // PartyLobby despawning is the NORMAL start of dungeon entry, not a party
+        // breakup — keep the history and stay quiet while the transport swaps over.
+        if (previous != null && subscribedParty == null && !HasNoParty())
+        {
+            return;
+        }
 
         if (clearPartyChatOnPartyChanged && previous != subscribedParty)
         {
             ClearMessages();
-            if (subscribedParty == null)
+            if (HasNoParty())
             {
                 AddSystemMessage("You are not in a party.");
             }
