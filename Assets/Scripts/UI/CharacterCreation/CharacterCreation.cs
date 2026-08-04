@@ -19,6 +19,7 @@ public class CharacterCreation : MonoBehaviour
     [SerializeField] private GameObject archerLight;
 
     [Header("Class Stats UI")]
+    [SerializeField] private GameObject statPanel;
     [SerializeField] private TMP_Text hpText;
     [SerializeField] private TMP_Text atkText;
     [SerializeField] private TMP_Text defText;
@@ -36,6 +37,10 @@ public class CharacterCreation : MonoBehaviour
     {
         FindLights();
         UpdateClassLights(); // Turn off all lights initially until a class is explicitly selected
+        
+        if (statPanel != null) 
+            statPanel.SetActive(false);
+
         FetchClassStats();
     }
 
@@ -64,6 +69,8 @@ public class CharacterCreation : MonoBehaviour
         var config = classConfigs.Find(c => c.ClassName == selectedClass);
         if (config != null)
         {
+            if (statPanel != null) statPanel.SetActive(true);
+
             if (hpText != null) hpText.text = config.MaxHp.ToString("N0");
             if (atkText != null) atkText.text = config.Atk.ToString("N0");
             if (defText != null) defText.text = config.Def.ToString("N0");
