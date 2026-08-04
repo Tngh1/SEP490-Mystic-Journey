@@ -80,8 +80,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
         if (npcPanel == null)
             return;
 
-        RenderLocal(interactable);
         ShowPanel();
+        RenderLocal(interactable);
 
         if (!ApiClient.Instance.HasToken() || interactable.NpcId <= 0)
             return;

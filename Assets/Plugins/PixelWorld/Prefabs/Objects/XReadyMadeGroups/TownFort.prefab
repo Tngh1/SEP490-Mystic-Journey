@@ -8281,11 +8281,95 @@ PrefabInstance:
       propertyPath: m_Name
       value: CastleStoneWall_2
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 3764938049338740943, guid: d4ebc52d30ea821408364b1b530dfa64, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6661574117732478942, guid: d4ebc52d30ea821408364b1b530dfa64, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4663248497006640760}
   m_SourcePrefab: {fileID: 100100000, guid: d4ebc52d30ea821408364b1b530dfa64, type: 3}
+--- !u!1 &4587336890644820939 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6661574117732478942, guid: d4ebc52d30ea821408364b1b530dfa64, type: 3}
+  m_PrefabInstance: {fileID: 7195578774166739989}
+  m_PrefabAsset: {fileID: 0}
+--- !u!60 &4663248497006640760
+PolygonCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4587336890644820939}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.50212765, y: 0.036474165}
+    oldSize: {x: 14.6875, y: 10.28125}
+    newSize: {x: 14.6875, y: 10.28125}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Points:
+    m_Paths:
+    - - {x: 7.3125, y: 4.6875}
+      - {x: 7.3125, y: 9.90625}
+      - {x: 3.3125, y: 9.90625}
+      - {x: 3.125, y: 9.71875}
+      - {x: 2.625, y: 9.90625}
+      - {x: 2.21875, y: 9.90625}
+      - {x: 2.21875, y: 7.25}
+      - {x: -2.1454315, y: 7.4356737}
+      - {x: -2.28125, y: 9.90625}
+      - {x: -7.375, y: 9.90625}
+      - {x: -7.375, y: 4.84375}
+      - {x: -7.21875, y: 4.6875}
+      - {x: -7.3125, y: 2.4375}
+      - {x: -7.3125, y: -0.21875}
+      - {x: -7.21875, y: -0.3125}
+      - {x: -2.5, y: -0.3125}
+      - {x: -2.40625, y: -0.21875}
+      - {x: -2.34375, y: 0.9375}
+      - {x: -0.75, y: 0.96875}
+      - {x: -0.6881256, y: 2.849228}
+      - {x: 0.5625, y: 2.78125}
+      - {x: 0.53125, y: 1}
+      - {x: 2.2117767, y: 0.9415293}
+      - {x: 2.125, y: -0.375}
+      - {x: 7.21875, y: -0.375}
+      - {x: 7.25, y: -0.34375}
+      - {x: 7.25, y: 2.3125}
+      - {x: 7.15625, y: 4.5625}
+  m_UseDelaunayMesh: 0
 --- !u!4 &8349930425146606929 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1169596415183919428, guid: d4ebc52d30ea821408364b1b530dfa64, type: 3}

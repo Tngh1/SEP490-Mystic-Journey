@@ -400,7 +400,11 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Attack()
     {
-        if (IsSilenced || IsBusy() || Time.time < nextAttackTime) return;
+        if (IsSilenced || IsBusy() || Time.time < nextAttackTime)
+        {
+            Debug.Log($"[PlayerCombat] Attack ignored. IsSilenced: {IsSilenced}, IsBusy: {IsBusy()}, Cooldown remaining: {(nextAttackTime - Time.time):F2}s");
+            return;
+        }
         Debug.Log($"[PlayerCombat] Attack triggered. Cooldown: {currentAttackCooldown}, Delay: {currentAttackDelay}");
         nextAttackTime = Time.time + currentAttackCooldown;
 
@@ -419,7 +423,7 @@ public class PlayerCombat : NetworkBehaviour
 
     private void SpawnBasicAttackProjectile()
     {
-        if (firePoint == null) return;
+        Transform spawnPoint = firePoint != null ? firePoint : transform;
 
         PlayerMovement pm = GetComponent<PlayerMovement>();
         Vector2 direction = pm != null ? pm.LastMove : Vector2.right;
@@ -436,7 +440,7 @@ public class PlayerCombat : NetworkBehaviour
             basicAttackPrefab.GetComponent<NetworkObject>() != null)
         {
             float dmg = GetClassScaledDamage(basicAttackDamage);
-            Runner.Spawn(basicAttackPrefab, firePoint.position, rotation, Object.InputAuthority,
+            Runner.Spawn(basicAttackPrefab, spawnPoint.position, rotation, Object.InputAuthority,
                 (r, o) =>
                 {
                     var np = o.GetComponent<NetworkSkillProjectile>();
@@ -445,7 +449,7 @@ public class PlayerCombat : NetworkBehaviour
             return;
         }
 
-        GameObject projectileObj = Instantiate(basicAttackPrefab, firePoint.position, rotation);
+        GameObject projectileObj = Instantiate(basicAttackPrefab, spawnPoint.position, rotation);
 
         SkillProjectile projectileScript = projectileObj.GetComponent<SkillProjectile>();
         if (projectileScript != null)

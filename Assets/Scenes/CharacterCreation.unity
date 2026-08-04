@@ -364,6 +364,7 @@ MonoBehaviour:
   knightLight: {fileID: 701547391}
   mageLight: {fileID: 1098017062}
   archerLight: {fileID: 1827268600}
+  statPanel: {fileID: 1851364988}
   hpText: {fileID: 236027485}
   atkText: {fileID: 1122389207}
   defText: {fileID: 328338825}
@@ -5016,7 +5017,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 5473583022464571830, guid: a8bb7b9ad5403094aa47beb7c50fe5c5, type: 3}
+  m_Sprite: {fileID: -5552417913062985601, guid: 067d6940c6a3b5f46877a8f0035ebf11, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5278,7 +5279,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1851364989
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6040,7 +6041,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -7297142469408514293, guid: a8bb7b9ad5403094aa47beb7c50fe5c5, type: 3}
+  m_Sprite: {fileID: 601325958733788123, guid: 7456d4f763c7eed489ca0b56055e5623, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
