@@ -734,12 +734,46 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         if (popupLayer != null && popupLayerActivatedByQuest)
         {
-            popupLayer.SetActive(false);
+            // PopupLayer là container DÙNG CHUNG cho 14 popup (MapPopup, NPCPanel, ChestPanel...).
+            // Tắt cả layer vì popup quest đã xong sẽ kéo theo mọi popup khác đang mở — người chơi
+            // mở popup dịch chuyển map, ăn một popup quest, rồi popup map biến mất không lý do.
+            // Chỉ tắt khi KHÔNG còn popup nào khác đang mở.
+            if (!HasOtherActivePopup())
+                popupLayer.SetActive(false);
+
             popupLayerActivatedByQuest = false;
         }
 
         isProcessingPopupQueue = false;
         popupRoutine = null;
+    }
+
+    /// <summary>
+    /// True nếu trong PopupLayer còn popup nào khác (không phải QuestPopup) đang bật.
+    /// Xét activeSelf của con trực tiếp: mọi popup ở đây đều là sibling và tự bật/tắt chính nó,
+    /// nên đó đúng là "đang mở" — không dùng activeInHierarchy vì lúc gọi hàm này layer có thể
+    /// vẫn đang bật và ta cần biết trạng thái riêng của từng popup.
+    /// </summary>
+    private bool HasOtherActivePopup()
+    {
+        if (popupLayer == null) return false;
+
+        var layerTransform = popupLayer.transform;
+        for (int i = 0; i < layerTransform.childCount; i++)
+        {
+            var child = layerTransform.GetChild(i);
+            if (child == null) continue;
+            if (questPopup != null && child.gameObject == questPopup) continue;
+
+            if (child.gameObject.activeSelf)
+            {
+                Debug.Log(
+                    $"[MainQuestPanelRuntime] Keeping PopupLayer on: '{child.name}' is still open.");
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

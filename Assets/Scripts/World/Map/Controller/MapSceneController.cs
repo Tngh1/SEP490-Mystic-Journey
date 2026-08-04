@@ -22,6 +22,16 @@ public class MapSceneController : MonoBehaviour
     /// </summary>
     public bool IsTravelBlocked
     {
+        get { return IsTravelBlockedNow; }
+    }
+
+    /// <summary>
+    /// Bản static của <see cref="IsTravelBlocked"/>, cho UI gọi mà không cần tìm instance:
+    /// map panel nằm ở Canvas của Main còn MapManager là một GameObject khác, và các đường
+    /// mở panel (phím M, nút MiniMap) chạy trước cả khi người chơi chọn map nào.
+    /// </summary>
+    public static bool IsTravelBlockedNow
+    {
         get { return DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon; }
     }
 

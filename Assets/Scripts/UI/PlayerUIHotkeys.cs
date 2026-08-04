@@ -85,7 +85,12 @@ public class PlayerUIHotkeys : MonoBehaviour
         if (WorldState.PlayerLevel < MainFeatureUnlockRuntime.MiniMapButtonLevel) return;
 
         var ui = UIManager.Instance;
-        if (ui != null && ui.mapPanel != null && CanToggle(ui, ui.mapPanel))
-            ui.OpenPanel(ui.mapPanel);
+        if (ui == null || ui.mapPanel == null || !CanToggle(ui, ui.mapPanel)) return;
+
+        // Trong dungeon không cho mở, nhưng phím M vẫn phải ĐÓNG được panel đang mở
+        // (ví dụ mở panel rồi mới vào dungeon qua cổng) — nếu không người chơi bị kẹt.
+        if (!ui.IsPanelOpen(ui.mapPanel) && !MainMapPanelRuntime.TryOpen()) return;
+
+        ui.OpenPanel(ui.mapPanel);
     }
 }

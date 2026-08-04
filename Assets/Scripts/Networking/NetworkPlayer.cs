@@ -274,15 +274,19 @@ public class NetworkPlayer : NetworkBehaviour
 
         Local.RPC_PartyChatMessage(
             senderId,
-            TrimForFusion(senderName, 30),
-            TrimForFusion(message.Content, 120),
-            TrimForFusion(sentAt, 30));
+            NetworkChatText.ClampUtf8(senderName, NetworkChatText.MaxSenderNameBytes),
+            NetworkChatText.ClampUtf8(message.Content, NetworkChatText.MaxContentBytes),
+            NetworkChatText.ClampUtf8(sentAt, NetworkChatText.MaxTimestampBytes));
         return true;
     }
 
+    // Plain `string` params, NOT NetworkString<_N>: a NetworkString always costs its full width
+    // and _N counts 32-bit WORDS, so <_32>/<_128>/<_32> summed to 792 bytes against Fusion's
+    // 512-byte ceiling — Fusion dropped every send and logged "payload is too large". A string
+    // is weaved as variable-length UTF-8, so a short message now costs a few dozen bytes.
     [Rpc(RpcSources.All, RpcTargets.All)]
-    private void RPC_PartyChatMessage(int senderId, NetworkString<_32> senderName,
-                                      NetworkString<_128> content, NetworkString<_32> sentAt)
+    private void RPC_PartyChatMessage(int senderId, string senderName,
+                                      string content, string sentAt)
     {
         if (senderId <= 0) return;
 
@@ -295,10 +299,10 @@ public class NetworkPlayer : NetworkBehaviour
         PartyChatReceived?.Invoke(new PartyChatMessageResponse
         {
             SenderId   = senderId,
-            SenderName = senderName.ToString(),
-            Content    = content.ToString(),
+            SenderName = senderName ?? string.Empty,
+            Content    = content ?? string.Empty,
             Channel    = "Party",
-            SentAt     = sentAt.ToString(),
+            SentAt     = sentAt ?? string.Empty,
         });
     }
 
