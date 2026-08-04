@@ -57,6 +57,9 @@ public class MainMapPanelRuntime : MonoBehaviour
     private bool isFetchingData;
     private bool pendingFetch;
 
+    // Đặt ở OnEnable khi lần mở bị chặn, để OnDisable ngay sau đó bỏ qua phần dọn dẹp.
+    private bool _openRejected;
+
     private readonly Dictionary<string, bool> _mapUnlockState =
         new(StringComparer.OrdinalIgnoreCase);
 
@@ -82,10 +85,67 @@ public class MainMapPanelRuntime : MonoBehaviour
         {
             BindMapButton(slot);
         }
+
+        SetupHoverEffects();
+    }
+
+    /// <summary>
+    /// Gắn hiệu ứng phóng to khi rê chuột, dùng đúng component UIHoverScaleEffect mà HUD đang dùng.
+    /// Quét cả MapPopup: popup nằm ở Canvas/PopupLayer nên KHÔNG phải con của panel này,
+    /// GetComponentsInChildren từ đây không bao giờ với tới nút Go/Cancel của nó.
+    /// </summary>
+    private void SetupHoverEffects()
+    {
+        AddHoverEffects(transform);
+
+        if (mapDetailPopup != null)
+            AddHoverEffects(mapDetailPopup.transform);
+    }
+
+    private static void AddHoverEffects(Transform root)
+    {
+        if (root == null) return;
+
+        // true: các slot bị khoá và cả popup đều đang tắt lúc Start, nút của chúng
+        // sẽ không được tìm thấy nếu chỉ quét những object đang bật.
+        foreach (var button in root.GetComponentsInChildren<Button>(true))
+        {
+            if (button == null) continue;
+            if (button.GetComponent<UIHoverScaleEffect>() == null)
+                button.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
+    }
+
+    /// <summary>
+    /// Cổng chung cho MỌI đường mở Map Panel (phím M, nút MiniMap, tự mở khi unlock map).
+    /// Trong dungeon thì không cho mở: panel này chỉ có một mục đích là dịch chuyển map, mà
+    /// MapSceneController.EnterMap luôn từ chối khi đang ở dungeon — mở ra chỉ để người chơi
+    /// bấm rồi không đi được.
+    ///
+    /// Bị chặn thì im lặng, KHÔNG popup: trong dungeon người chơi không có việc gì để làm với
+    /// panel này, nên báo lỗi chỉ là nhiễu.
+    /// </summary>
+    public static bool CanOpen
+    {
+        get { return !MapSceneController.IsTravelBlockedNow; }
     }
 
     private void OnEnable()
     {
+        // Chốt chặn cuối: bắt cả những đường bật panel bằng SetActive trực tiếp (nút MiniMap,
+        // animation, code scene) chứ không đi qua CanOpen. Phải return NGAY, trước khi
+        // ShowFullMap() đổi target texture của minimap camera — nếu không, camera bị kéo sang
+        // texture full-map rồi panel mới tắt, và HUD minimap trong dungeon đứng ở khung sai.
+        if (!CanOpen)
+        {
+            Debug.Log("[MainMapPanelRuntime] Blocked: cannot open the Map Panel inside a dungeon.");
+            _openRejected = true;
+            gameObject.SetActive(false);
+            return;
+        }
+
+        _openRejected = false;
+
         // Scene lưu ActiveBorder ở trạng thái bật để dễ chỉnh giao diện, nên phải
         // dựng lại trạng thái đúng ngay khi mở panel, trước khi API trả về.
         ApplyLocalStateBeforeFetch();
@@ -115,6 +175,14 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void OnDisable()
     {
+        // Lần mở bị từ chối ở OnEnable chưa đăng ký gì và chưa đụng vào camera, nên không có
+        // gì để dọn. Chạy tiếp sẽ gọi ShowMinimap() và ép HUD minimap re-frame giữa dungeon.
+        if (_openRejected)
+        {
+            _openRejected = false;
+            return;
+        }
+
         // Hand the camera back to the HUD minimap, otherwise it stays zoomed out.
         if (MinimapCameraController.Instance != null)
             MinimapCameraController.Instance.ShowMinimap();
@@ -278,13 +346,9 @@ public class MainMapPanelRuntime : MonoBehaviour
     {
         if (slot.mapData == null) return;
 
-        // Chặn ngay từ slot: guard thật nằm ở MapSceneController.EnterMap, nhưng nếu chỉ chặn
-        // ở đó thì người chơi phải mở popup Detail rồi bấm Enter mới biết là không đi được.
-        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
-        {
-            MapSceneController.NotifyTravelBlocked();
-            return;
-        }
+        // Chặn ngay từ slot: guard thật nằm ở MapSceneController.EnterMap. Im lặng bỏ qua —
+        // panel gần như không mở được trong dungeon, đây chỉ là chốt phòng xa.
+        if (!CanOpen) return;
 
         _mapUnlockState.TryGetValue(slot.mapData.mapName, out bool canEnter);
 
@@ -292,8 +356,18 @@ public class MainMapPanelRuntime : MonoBehaviour
         {
             if (mapDetailPopup != null)
             {
+                // Popup nằm ở Canvas/PopupLayer — một GameObject KHÁC cây của panel này.
+                // SetActive(true) trên chính popup là vô nghĩa nếu PopupLayer đang tắt: popup
+                // "bật" nhưng activeInHierarchy = false nên không có gì hiện lên, và không có
+                // lỗi nào để lần ra. Bật lại cả các cấp cha trước.
+                EnsureAncestorsActive(mapDetailPopup.transform);
+
                 mapDetailPopup.gameObject.SetActive(true);
                 mapDetailPopup.Setup(slot.mapData);
+
+                // Popup dùng Canvas riêng (sortingOrder 100) nên không bị Map Panel che, nhưng
+                // vẫn đưa lên cuối để nổi trên các popup khác đang mở trong cùng PopupLayer.
+                mapDetailPopup.transform.SetAsLastSibling();
             }
             else
             {
@@ -303,6 +377,34 @@ public class MainMapPanelRuntime : MonoBehaviour
         else
         {
             Debug.Log($"[MainMapPanelRuntime] Map '{slot.mapData.mapName}' is locked.");
+        }
+    }
+
+    /// <summary>
+    /// Bật lại mọi cấp cha đang tắt của <paramref name="target"/>, dừng ở Canvas.
+    /// Cần vì popup sống ở Canvas/PopupLayer: chỉ cần một cấp cha bị tắt (lỡ tay trong Editor,
+    /// hoặc MainQuestPanelRuntime tắt PopupLayer sau khi chạy hết queue popup quest) là popup
+    /// dịch chuyển map không bao giờ hiện, dù code vẫn gọi SetActive(true) đúng.
+    /// </summary>
+    private static void EnsureAncestorsActive(Transform target)
+    {
+        if (target == null) return;
+
+        var parents = new Stack<Transform>();
+        for (var current = target.parent; current != null; current = current.parent)
+        {
+            parents.Push(current);
+            if (current.GetComponent<Canvas>() != null) break;
+        }
+
+        while (parents.Count > 0)
+        {
+            var parent = parents.Pop();
+            if (parent != null && !parent.gameObject.activeSelf)
+            {
+                Debug.Log($"[MainMapPanelRuntime] Re-enabling inactive popup ancestor '{parent.name}'.");
+                parent.gameObject.SetActive(true);
+            }
         }
     }
 
@@ -354,6 +456,15 @@ public class MainMapPanelRuntime : MonoBehaviour
 
     private void OnMapChanged(string mapName)
     {
+        // Vào dungeon khi panel đang mở (cổng dungeon, hoặc host kéo cả party vào): tự đóng
+        // thay vì cố re-frame theo scene dungeon. Đóng trước khi ShowFullMap() để không
+        // đụng vào target texture của minimap camera.
+        if (!CanOpen)
+        {
+            ClosePanel();
+            return;
+        }
+
         // New level, new bounds: re-frame before rebinding the texture.
         if (MinimapCameraController.Instance != null)
             MinimapCameraController.Instance.ShowFullMap();
@@ -367,6 +478,10 @@ public class MainMapPanelRuntime : MonoBehaviour
         yield return new WaitForSeconds(1.5f);
 
         FetchMapProgress();
+
+        // Người chơi có thể nhận thưởng quest NGAY TRONG dungeon.
+        // Panel sẽ tự mở ở lần bấm sau, lúc đó tiến độ đã fetch xong.
+        if (!CanOpen) yield break;
 
         if (UIManager.Instance != null && UIManager.Instance.mapPanel != null)
         {

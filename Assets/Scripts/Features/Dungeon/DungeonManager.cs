@@ -272,6 +272,16 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     public bool IsPartyHost { get; private set; }
 
     /// <summary>
+    /// True when this client is responsible for the backend session: the party host, and
+    /// also a solo player. Gating backend writes on <see cref="PhotonManager.IsHost"/>
+    /// alone excludes solo, because there is no runner offline so IsHost is false —
+    /// progress and Complete were never sent, the session stayed InProgress and
+    /// claim-reward failed, leaving the complete panel on +0 / +0 / --:--.
+    /// </summary>
+    private static bool OwnsSession =>
+        PhotonManager.Instance?.IsHost == true || NetworkPlayer.Local == null;
+
+    /// <summary>
     /// EVERY client (host + members): perform the actual scene transition into the
     /// dungeon using an already-established session id (from the host). Does NOT call
     /// the Enter API again — members reuse the host's session. Reuses the existing
@@ -856,8 +866,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
         Debug.Log($"[DungeonManager] Normal enemy killed. Remaining: {remaining}. Progress: {percentage}%");
 
-        // Fire-and-forget progress update (only host should call backend API)
-        if (PhotonManager.Instance?.IsHost == true)
+        // Fire-and-forget progress update (session owner only: host, or solo)
+        if (OwnsSession)
         {
             DungeonApi.Instance.UpdateProgress(
                 CurrentSessionId,
@@ -1001,8 +1011,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         bool updateDone = false;
         bool completeDone = false;
 
-        // Report final progress FIRST and wait for it (only host should call backend API)
-        if (PhotonManager.Instance?.IsHost == true)
+        // Report final progress FIRST and wait for it (session owner only: host, or solo)
+        if (OwnsSession)
         {
             DungeonApi.Instance.UpdateProgress(
                 CurrentSessionId,
@@ -1326,10 +1336,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // Note: PreviousMapSceneName and PreviousPlayerPosition are preserved from the FIRST time they entered!
 
         // Whoever owns the backend session calls Enter: the party host, and also a solo
-        // player (no NetworkPlayer at all → IsHost is false offline, so the old check sent
-        // solo down the member path and it reused the finished run's session id).
-        bool ownsSession = PhotonManager.Instance?.IsHost == true || NetworkPlayer.Local == null;
-        if (ownsSession)
+        // player. Members reuse the host's id via RPC_SetRestartSession below.
+        if (OwnsSession)
         {
             DungeonApi.Instance.Enter(CurrentDungeonConfigId, _currentPartyMembers,
                 onSuccess: response =>

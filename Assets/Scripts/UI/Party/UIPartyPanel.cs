@@ -627,8 +627,10 @@ public class UIPartyPanel : MonoBehaviour
                 var m = others[otherIdx];
                 var cls = (CharacterClass)m.PlayerClass;
                 var target = m.Player;
-                slot.RenderMember(m.Name.Value, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
-                    canKick: localIsHost, onKick: () => PartyService.KickMember(target),
+                var memberName = m.Name.Value;
+                slot.RenderMember(memberName, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
+                    canKick: localIsHost,
+                    onKick: () => ConfirmKick(memberName, () => PartyService.KickMember(target)),
                     skinPortrait: SkinPortraitFor(m.SkinId));
             }
             else
@@ -636,6 +638,16 @@ public class UIPartyPanel : MonoBehaviour
                 slot.RenderEmpty();
             }
         }
+    }
+
+    /// <summary>
+    /// Confirms a kick through <c>Canvas/PopupLayer/PartyPopup</c> in the Main Scene.
+    /// This used to call <c>UIPopupManager</c>, which was the wrong popup: that is the shared
+    /// generic dialog, not the party-specific one the designers built.
+    /// </summary>
+    private void ConfirmKick(string memberName, Action onConfirm)
+    {
+        PartyPopupConfirm.Show(transform, $"Kick {memberName} from the party?", onConfirm);
     }
 
     private void EnsureSlotsResolved()

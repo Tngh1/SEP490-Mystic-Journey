@@ -285,22 +285,26 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             ? WorldState.PlayerName
             : message.SenderName;
 
-        NetworkString<_32> networkSenderName = TrimForFusion(senderName, 30);
-        NetworkString<_128> networkContent = TrimForFusion(message.Content, 120);
-        NetworkString<_32> networkSentAt = TrimForFusion(
+        string networkSenderName = NetworkChatText.ClampUtf8(senderName, NetworkChatText.MaxSenderNameBytes);
+        string networkContent = NetworkChatText.ClampUtf8(message.Content, NetworkChatText.MaxContentBytes);
+        string networkSentAt = NetworkChatText.ClampUtf8(
             string.IsNullOrWhiteSpace(message.SentAt) ? DateTime.UtcNow.ToString("O") : message.SentAt,
-            30);
+            NetworkChatText.MaxTimestampBytes);
 
         RPC_PartyMessageReceived(senderId, networkSenderName, networkContent, networkSentAt);
         return true;
     }
 
+    // Plain `string` params, NOT NetworkString<_N>: a NetworkString always costs its full width
+    // and _N counts 32-bit WORDS, so <_32>/<_128>/<_32> summed to 792 bytes against Fusion's
+    // 512-byte ceiling — Fusion dropped every send and logged "payload is too large". A string
+    // is weaved as variable-length UTF-8, so a short message now costs a few dozen bytes.
     [Rpc(RpcSources.All, RpcTargets.All)]
     private void RPC_PartyMessageReceived(
         int senderId,
-        NetworkString<_32> senderName,
-        NetworkString<_128> content,
-        NetworkString<_32> sentAt)
+        string senderName,
+        string content,
+        string sentAt)
     {
         RefreshLocalMembership();
 
@@ -312,10 +316,10 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         PartyMessageReceived?.Invoke(new PartyChatMessageResponse
         {
             SenderId = senderId,
-            SenderName = senderName.ToString(),
-            Content = content.ToString(),
+            SenderName = senderName ?? string.Empty,
+            Content = content ?? string.Empty,
             Channel = "Party",
-            SentAt = sentAt.ToString()
+            SentAt = sentAt ?? string.Empty
         });
     }
 
@@ -331,16 +335,6 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
 
         return false;
-    }
-
-    private static string TrimForFusion(string value, int maxLength)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Length <= maxLength ? value : value.Substring(0, maxLength);
     }
 
     private int FindSlot(PlayerRef player)

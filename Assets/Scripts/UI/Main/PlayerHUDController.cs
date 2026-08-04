@@ -37,6 +37,7 @@ public class PlayerHUDController : MonoBehaviour
     [Header("HUD Groups")]
     [SerializeField] private GameObject nonCombatActionGroup;
     [SerializeField] private GameObject dungeonSpecificGroup;
+    [SerializeField] private GameObject partyRosterContainer;
 
     [Header("Level-Gated Buttons")]
     [SerializeField] private GameObject chatButtonObj;
@@ -340,6 +341,12 @@ public class PlayerHUDController : MonoBehaviour
             if (grp != null) dungeonSpecificGroup = grp.gameObject;
         }
 
+        if (partyRosterContainer == null)
+        {
+            var grp = transform.Find("PartyRosterContainer");
+            if (grp != null) partyRosterContainer = grp.gameObject;
+        }
+
         // Đảm bảo trạng thái nút bấm đúng với map hiện tại khi vừa vào game
         bool inDungeon = false;
         if (DungeonManager.Instance != null)
@@ -353,9 +360,14 @@ public class PlayerHUDController : MonoBehaviour
     {
         if (settingsButtonObj != null) settingsButtonObj.SetActive(!isInDungeon);
         if (pauseButtonObj != null) pauseButtonObj.SetActive(isInDungeon);
-        
+
         if (nonCombatActionGroup != null) nonCombatActionGroup.SetActive(!isInDungeon);
         if (dungeonSpecificGroup != null) dungeonSpecificGroup.SetActive(isInDungeon);
+
+        // Danh sách HP/avatar của đồng đội chỉ có nghĩa trong dungeon. Container này được lưu
+        // m_IsActive: 0 trong Main.unity và trước đây KHÔNG có code nào bật nó, nên
+        // UIDungeonPartyRoster.OnEnable chưa từng chạy và party không bao giờ hiện.
+        if (partyRosterContainer != null) partyRosterContainer.SetActive(isInDungeon);
     }
 
     public void StartHUDLoop()
