@@ -641,24 +641,13 @@ public class UIPartyPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Xác nhận trước khi kick, dùng lại đúng popup của guild kick (UIGuildMemberEntry).
-    /// Không có UIPopupManager thì kick luôn: mất hộp xác nhận còn hơn nút Kick chết hẳn.
+    /// Confirms a kick through <c>Canvas/PopupLayer/PartyPopup</c> in the Main Scene.
+    /// This used to call <c>UIPopupManager</c>, which was the wrong popup: that is the shared
+    /// generic dialog, not the party-specific one the designers built.
     /// </summary>
-    private static void ConfirmKick(string memberName, Action onConfirm)
+    private void ConfirmKick(string memberName, Action onConfirm)
     {
-        var popup = MysticJourney.UI.UIPopupManager.Instance;
-        if (popup == null)
-        {
-            Debug.LogWarning("[UIPartyPanel] UIPopupManager missing; kicking without confirmation.");
-            onConfirm?.Invoke();
-            return;
-        }
-
-        popup.ShowConfirm(
-            "Kick Member",
-            $"Are you sure you want to kick {memberName}?",
-            () => onConfirm?.Invoke(),
-            null);
+        PartyPopupConfirm.Show(transform, $"Kick {memberName} from the party?", onConfirm);
     }
 
     private void EnsureSlotsResolved()

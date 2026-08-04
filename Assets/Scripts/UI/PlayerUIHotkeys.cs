@@ -89,7 +89,7 @@ public class PlayerUIHotkeys : MonoBehaviour
 
         // Trong dungeon không cho mở, nhưng phím M vẫn phải ĐÓNG được panel đang mở
         // (ví dụ mở panel rồi mới vào dungeon qua cổng) — nếu không người chơi bị kẹt.
-        if (!ui.IsPanelOpen(ui.mapPanel) && !MainMapPanelRuntime.TryOpen()) return;
+        if (!ui.IsPanelOpen(ui.mapPanel) && !MainMapPanelRuntime.CanOpen) return;
 
         ui.OpenPanel(ui.mapPanel);
     }

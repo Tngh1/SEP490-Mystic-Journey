@@ -40,7 +40,6 @@ public class MapSceneController : MonoBehaviour
         if (IsTravelBlocked)
         {
             Debug.Log("[MapSceneController] Travel blocked: player is inside a dungeon.");
-            NotifyTravelBlocked();
             return;
         }
 
@@ -57,21 +56,6 @@ public class MapSceneController : MonoBehaviour
 
         StartCoroutine(
             ChangeMap(config.sceneName, useCache, specificSpawnPos));
-    }
-
-    /// <summary>
-    /// Popup chặn, dùng lại đúng kênh MapTeleportPortal đang dùng cho map chưa mở
-    /// (QuestPopup nằm ở Canvas/PopupLayer nên KHÔNG bị ToggleDungeonMode ẩn đi).
-    /// Cố tình gọi overload 2 tham số với kind None: overload 1 tham số bật inferKind, mà
-    /// câu này có chữ "cannot ... while" dễ bị đoán nhầm thành popup quest kèm stamp xanh.
-    /// </summary>
-    public static void NotifyTravelBlocked()
-    {
-        if (MainQuestPanelRuntime.Instance == null) return;
-
-        MainQuestPanelRuntime.Instance.ShowQuestPopup(
-            "You cannot travel to another map while inside a dungeon. Leave the dungeon first.",
-            UIQuestPopupView.QuestPopupKind.None);
     }
 
     private IEnumerator ChangeMap(

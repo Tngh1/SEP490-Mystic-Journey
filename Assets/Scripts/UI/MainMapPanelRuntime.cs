@@ -120,37 +120,25 @@ public class MainMapPanelRuntime : MonoBehaviour
     /// Cổng chung cho MỌI đường mở Map Panel (phím M, nút MiniMap, tự mở khi unlock map).
     /// Trong dungeon thì không cho mở: panel này chỉ có một mục đích là dịch chuyển map, mà
     /// MapSceneController.EnterMap luôn từ chối khi đang ở dungeon — mở ra chỉ để người chơi
-    /// bấm rồi ăn popup báo lỗi.
+    /// bấm rồi không đi được.
+    ///
+    /// Bị chặn thì im lặng, KHÔNG popup: trong dungeon người chơi không có việc gì để làm với
+    /// panel này, nên báo lỗi chỉ là nhiễu.
     /// </summary>
     public static bool CanOpen
     {
         get { return !MapSceneController.IsTravelBlockedNow; }
     }
 
-    /// <summary>
-    /// Trả về true nếu được phép mở. Nếu đang bị chặn thì báo cho người chơi biết lý do
-    /// (im lặng thì nút MiniMap / phím M trông như bị hỏng).
-    /// </summary>
-    public static bool TryOpen(bool notifyIfBlocked = true)
-    {
-        if (CanOpen) return true;
-
-        if (notifyIfBlocked)
-            MapSceneController.NotifyTravelBlocked();
-
-        return false;
-    }
-
     private void OnEnable()
     {
         // Chốt chặn cuối: bắt cả những đường bật panel bằng SetActive trực tiếp (nút MiniMap,
-        // animation, code scene) chứ không đi qua TryOpen. Phải return NGAY, trước khi
+        // animation, code scene) chứ không đi qua CanOpen. Phải return NGAY, trước khi
         // ShowFullMap() đổi target texture của minimap camera — nếu không, camera bị kéo sang
         // texture full-map rồi panel mới tắt, và HUD minimap trong dungeon đứng ở khung sai.
         if (!CanOpen)
         {
             Debug.Log("[MainMapPanelRuntime] Blocked: cannot open the Map Panel inside a dungeon.");
-            MapSceneController.NotifyTravelBlocked();
             _openRejected = true;
             gameObject.SetActive(false);
             return;
@@ -358,13 +346,9 @@ public class MainMapPanelRuntime : MonoBehaviour
     {
         if (slot.mapData == null) return;
 
-        // Chặn ngay từ slot: guard thật nằm ở MapSceneController.EnterMap, nhưng nếu chỉ chặn
-        // ở đó thì người chơi phải mở popup Detail rồi bấm Enter mới biết là không đi được.
-        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
-        {
-            MapSceneController.NotifyTravelBlocked();
-            return;
-        }
+        // Chặn ngay từ slot: guard thật nằm ở MapSceneController.EnterMap. Im lặng bỏ qua —
+        // panel gần như không mở được trong dungeon, đây chỉ là chốt phòng xa.
+        if (!CanOpen) return;
 
         _mapUnlockState.TryGetValue(slot.mapData.mapName, out bool canEnter);
 
@@ -495,10 +479,9 @@ public class MainMapPanelRuntime : MonoBehaviour
 
         FetchMapProgress();
 
-        // Người chơi có thể nhận thưởng quest NGAY TRONG dungeon. Không báo popup ở đây:
-        // họ không bấm gì cả, một popup "cannot travel" tự nhảy ra chỉ gây bối rối.
+        // Người chơi có thể nhận thưởng quest NGAY TRONG dungeon.
         // Panel sẽ tự mở ở lần bấm sau, lúc đó tiến độ đã fetch xong.
-        if (!TryOpen(notifyIfBlocked: false)) yield break;
+        if (!CanOpen) yield break;
 
         if (UIManager.Instance != null && UIManager.Instance.mapPanel != null)
         {
