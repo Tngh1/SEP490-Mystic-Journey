@@ -569,13 +569,13 @@ public class UIPartyPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Confirms a kick through <c>Canvas/PopupLayer/PartyPopup</c> in the Main Scene.
+    /// Confirms a kick through <c>Canvas/PopupLayer/UIPopup</c> in the Main Scene.
     /// This used to call <c>UIPopupManager</c>, which was the wrong popup: that is the shared
     /// generic dialog, not the party-specific one the designers built.
     /// </summary>
     private void ConfirmKick(string memberName, Action onConfirm)
     {
-        PartyPopupConfirm.Show(transform, $"Kick {memberName} from the party?", onConfirm);
+        UIPopupBox.Show(transform, $"Kick {memberName} from the party?", onConfirm);
     }
 
     private void EnsureSlotsResolved()
@@ -749,7 +749,7 @@ public class UIPartyPanel : MonoBehaviour
             // Party path — flip networked state; PartyManager (Step 5) drives the load.
             if (!party.CanStartDungeon)
             {
-                PartyPopupConfirm.Notify(transform, "All members must be ready (need at least 2 players).");
+                UIPopupBox.Notify(transform, "All members must be ready (need at least 2 players).");
                 return;
             }
             PartyService.StartDungeon(selectedConfigId, selectedSceneName);
@@ -775,7 +775,7 @@ public class UIPartyPanel : MonoBehaviour
         // Notify BEFORE Close(): the popup is located via GetComponentInParent<Canvas>() from this
         // transform, and that skips inactive objects — after Close() this panel is deactivated, the
         // Canvas lookup returns null, and the message degrades to a warning with nothing shown.
-        PartyPopupConfirm.Notify(transform, "Dungeon expedition cancelled.");
+        UIPopupBox.Notify(transform, "Dungeon expedition cancelled.");
         Close();
     }
 
@@ -977,7 +977,7 @@ public class UIPartyPanel : MonoBehaviour
                 var result = PartyService.InviteByProfileId(profileId);
                 if (result == PartyService.InviteResult.Sent)
                 {
-                    PartyPopupConfirm.Notify(transform, $"Invited {friendName}.");
+                    UIPopupBox.Notify(transform, $"Invited {friendName}.");
                     btnTxt.text = "SENT";
                     btnImg.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
                     btn.interactable = false;
@@ -987,7 +987,7 @@ public class UIPartyPanel : MonoBehaviour
                 {
                     // Report the real reason: blaming the friend for a local connection
                     // problem sent players hunting a bug on the wrong side.
-                    PartyPopupConfirm.Notify(transform, result switch
+                    UIPopupBox.Notify(transform, result switch
                     {
                         PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
                         PartyService.InviteResult.PartyFull => "Your party is already full.",
