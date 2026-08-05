@@ -198,29 +198,31 @@ public class DungeonManager : MonoBehaviour
         DungeonApi.Instance.Enter(configId, partyMembers ?? new List<string>(),
             onSuccess: response =>
             {
-                if (response != null)
+                if (response != null && response.DungeonSessionId > 0)
                 {
                     CurrentSessionId = response.DungeonSessionId;
                     IsInDungeon = true;
                     Debug.Log($"[DungeonManager] Session created: {CurrentSessionId}");
-                    
+
                     // Transition to target scene
                     StartCoroutine(TransitionToDungeon(dungeonSceneName));
                 }
                 else
                 {
-                    Debug.LogWarning("[DungeonManager] Enter API succeeded but no session data returned. Proceeding anyway for testing.");
-                    CurrentSessionId = -1; // Dummy session ID
-                    IsInDungeon = true;
-                    StartCoroutine(TransitionToDungeon(dungeonSceneName));
+                    // Was: fall through with CurrentSessionId = -1 "for testing". A dummy id
+                    // means every later UpdateProgress/Complete/claim-reward call targets a
+                    // session that does not exist, so the run ends on +0 / +0 rewards.
+                    Debug.LogWarning("[DungeonManager] Enter API succeeded but returned no session id. Aborting dungeon entry.");
+                    NotifyBlocked("Cannot enter dungeon: backend returned no session.");
                 }
             },
             onError: error =>
             {
-                Debug.LogWarning($"[DungeonManager] Enter API failed: {error.Message}. Proceeding to dungeon anyway for testing.");
-                CurrentSessionId = -1; // Dummy session ID
-                IsInDungeon = true;
-                StartCoroutine(TransitionToDungeon(dungeonSceneName));
+                // Was: proceed into the dungeon anyway. That also silently defeated every
+                // server-side entry rule — including the level requirement — because the
+                // client ignored the rejection and loaded the scene regardless.
+                Debug.LogWarning($"[DungeonManager] Enter API failed: {error.Message}. Aborting dungeon entry.");
+                NotifyBlocked($"Cannot enter dungeon: {error.Message}");
             }
         );
     }
@@ -252,7 +254,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 if (CurrentSessionId <= 0)
                 {
                     Debug.LogWarning("[DungeonManager] Party Enter API returned no session id. Aborting dungeon entry.");
-                    WorldRuntimeEvents.RaiseMessage("Cannot start dungeon: backend returned no session.");
+                    NotifyBlocked("Cannot start dungeon: backend returned no session.");
                     onReady?.Invoke(0);
                     return;
                 }
@@ -262,7 +264,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             {
                 Debug.LogWarning($"[DungeonManager] Party Enter API failed: {error.Message}. Aborting dungeon entry.");
                 CurrentSessionId = 0;
-                WorldRuntimeEvents.RaiseMessage($"Cannot start dungeon: {error.Message}");
+                NotifyBlocked($"Cannot start dungeon: {error.Message}");
                 onReady?.Invoke(0);
             }
         );
@@ -295,7 +297,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         if (sessionId <= 0)
         {
             Debug.LogWarning("[DungeonManager] EnterDungeonScene aborted: invalid session id.");
-            WorldRuntimeEvents.RaiseMessage("Cannot enter dungeon: backend session missing.");
+            NotifyBlocked("Cannot enter dungeon: backend session missing.");
             return;
         }
 
@@ -1057,11 +1059,75 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             completeDone = true;
         }
 
+        // Credit any "Explore ... Dungeon" objective (Q14 "Train in the Old Dungeon").
+        // NOTHING else in Assets/Scripts/Features/Dungeon touched QuestManager, so clearing a
+        // dungeon never credited quest progress and Q14 sat InProgress forever — which
+        // dead-ended the whole Chapter 2 chain, since it gates on Claimed.
+        //
+        // Deliberately OUTSIDE the OwnsSession branch above: quest progress is per-player, and
+        // every client reaches BossDeathSequence exactly once (both entry points latch
+        // _currentPhase = Complete first), so each party member credits their own copy once.
+        // Boss death rather than entry because the prose says "Clear his training dungeon".
+        // AddProgress clamps at targetAmount, so a re-run of a claimed quest is a no-op, and
+        // Explore is in the auto-complete list — the batch loop Completes + Claims from here.
+        CreditDungeonExploreQuests();
+
         // Wait for boss death animation
         yield return new WaitForSeconds(1.5f);
 
         // Spawn the reward chest with drop-in animation
         SpawnFinalChestAtPosition(chestPosition);
+    }
+
+    /// <summary>
+    /// Surfaces a "you cannot enter / something failed" message to the player.
+    /// These all used to go through WorldRuntimeEvents.RaiseMessage, which has NO subscriber
+    /// anywhere in the project — so every one of them was a silent no-op and a rejected
+    /// dungeon entry looked to the player like a dead keypress. MainQuestPanelRuntime is the
+    /// same channel MapTeleportPortal uses for its blocked-entry message. Kind.None is
+    /// explicit: InferKind guesses from keywords and would stamp a green "Completed!" on text
+    /// containing words like "complete".
+    /// </summary>
+    private static void NotifyBlocked(string message)
+    {
+        Debug.LogWarning($"[DungeonManager] {message}");
+        if (MainQuestPanelRuntime.Instance != null)
+            MainQuestPanelRuntime.Instance.ShowQuestPopup(message, UIQuestPopupView.QuestPopupKind.None);
+    }
+
+    /// <summary>
+    /// Advances every in-progress "Explore" quest whose ObjectiveTarget names a dungeon.
+    /// Mirrors the portal's matching loop in MapTeleportPortal (Contains("Portal")); the two
+    /// targets are disjoint, and Q8/Q14 are the only Explore quests seeded, so neither hook
+    /// can credit the other's quest.
+    /// </summary>
+    private void CreditDungeonExploreQuests()
+    {
+        var quests = QuestManager.Instance?.GetMainQuests();
+        if (quests == null) return;
+
+        bool credited = false;
+
+        foreach (var q in quests)
+        {
+            if (!string.Equals(q.Status, "InProgress", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(q.ObjectiveType, "Explore", StringComparison.OrdinalIgnoreCase)) continue;
+            if (q.ObjectiveTarget == null) continue;
+            if (!q.ObjectiveTarget.Contains("Dungeon", StringComparison.OrdinalIgnoreCase)) continue;
+
+            Debug.Log($"[DungeonManager] Crediting Explore quest {q.QuestId} for dungeon clear.");
+            QuestManager.Instance.AddProgress(q.QuestId, 1);
+            credited = true;
+            // No popup here, same reason as MapTeleportPortal: the batch sync loop
+            // Completes + Claims and fires the single "Reward Claimed!" popup.
+        }
+
+        // AddProgress only queues into _pendingBatch for BatchSyncLoop's 1s tick. Leaving the
+        // dungeon reloads quests, and HandleLoadedQuestResponses calls _pendingBatch.Clear() —
+        // so without this flush a fast exit after the boss dies drops the credit and Q14 stays
+        // InProgress. Same reason MapTeleportPortal flushes before unloading a scene.
+        if (credited)
+            QuestManager.Instance.FlushPendingProgressNow();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1365,7 +1431,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 onError: error =>
                 {
                     Debug.LogWarning($"[DungeonManager] Restart API failed: {error.Message}. Proceeding to restart anyway for testing.");
-                    WorldRuntimeEvents.RaiseMessage($"Cannot Restart API: {error.Message}");
+                    NotifyBlocked($"Cannot Restart API: {error.Message}");
                     
                     CurrentSessionId = -1;
                     IsInDungeon = true;

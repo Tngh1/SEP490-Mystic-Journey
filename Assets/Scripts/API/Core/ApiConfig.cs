@@ -165,7 +165,6 @@ namespace MysticJourney.API.Core
         public const string WorldNpcTalk = "/api/world/npc/talk";
         public const string WorldNpcTurnIn = "/api/world/npc/turn-in";
         public const string WorldInteract = "/api/world/interactions";
-        public const string WorldClaimDrop = "/api/world/claim-drop";
         public const string WorldDailyLoginClaim = "/api/world/daily-login/claim";
         public const string WorldDailyLoginRetroClaim = "/api/world/daily-login/retro-claim";
 
