@@ -589,10 +589,18 @@ public class PlayerHUDController : MonoBehaviour
         {
             int level = profile.Level;
             int totalExp = profile.ExperiencePoints;
-            int targetExp = (level - 1) * 100;
+
+            // profile.ExperiencePoints là tổng lũy kế từ backend, không reset khi lên level,
+            // nên phải trừ mốc EXP của level hiện tại mới ra đúng phần dư sau khi lên cấp
+            // (VD: lên Level 4 với tổng 314 EXP, mốc Level 4 là 300 -> dư 14, không phải 314).
+            int currentLevelFloor = (level - 1) * 100;
+            int expIntoLevel = totalExp - currentLevelFloor;
+
+            // Mốc tổng EXP để lên cấp tiếp theo: level * 100 (Ví dụ: Level 5 cần 500 EXP tổng để lên Level 6)
+            int targetExp = level * 100;
             if (targetExp <= 0) targetExp = 100;
 
-            float expRatio = (float)totalExp / targetExp;
+            float expRatio = (float)expIntoLevel / targetExp;
             if (level >= 100)
             {
                 expRatio = 1f;
@@ -600,7 +608,7 @@ public class PlayerHUDController : MonoBehaviour
             }
             else
             {
-                if (expText != null) expText.text = $"EXP: {totalExp}/{targetExp}";
+                if (expText != null) expText.text = $"EXP: {expIntoLevel}/{targetExp}";
             }
 
             if (expBarImage != null)
@@ -669,6 +677,13 @@ public class PlayerHUDController : MonoBehaviour
 
     private void ApplyLevelGating(int playerLevel)
     {
+        // RefreshHUD chạy mỗi 15s VÀ mỗi lần ăn exp/vàng/nhận thưởng — kể cả trong hầm ngục.
+        // Mấy nút dưới đây nằm trong NonCombatActionGroup mà ToggleDungeonMode(true) đã ẩn,
+        // nên SetActive(true) ở đây bật lại cụm nút/tab bên trái ngay giữa hầm ngục.
+        // Ra khỏi hầm ngục, ToggleDungeonMode(false) + RefreshHUD kế tiếp sẽ gating lại đúng.
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
         // Toàn bộ HUD mở khi bước sang Chương 2 (AutumnPumpkin).
         // Cấp 3 là cấp người chơi đạt được khi VÀO Chương 2 theo đường cong exp
         // trong seed, nên đây chính là mốc "vừa qua Chương 1". Chương 1 là phần

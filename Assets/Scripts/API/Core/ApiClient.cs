@@ -218,7 +218,7 @@ namespace MysticJourney.API.Core
                         // Rejected: server từ chối refresh token (hết hạn hoặc session bị đè).
                         Debug.LogWarning("[ApiClient] Refresh token rejected. Session expired or overridden.");
                         ClearToken();
-                        MysticJourney.Core.Services.SessionService.Logout();
+                        MysticJourney.Core.Services.SessionService.Logout("Your session has ended. Please log in again.");
                         onError?.Invoke(new ApiException
                         {
                             StatusCode = 401,
@@ -395,7 +395,7 @@ namespace MysticJourney.API.Core
                 {
                     Debug.LogWarning("[ApiClient] Session overridden or unauthorized. Clearing token and logging out to MainMenu.");
                     ClearToken();
-                    MysticJourney.Core.Services.SessionService.Logout();
+                    MysticJourney.Core.Services.SessionService.Logout(!string.IsNullOrEmpty(errorMsg) ? errorMsg : "Your session has ended. Please log in again.");
                 }
 
                 onError?.Invoke(new ApiException

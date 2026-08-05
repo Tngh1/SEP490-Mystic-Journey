@@ -54,6 +54,12 @@ namespace MysticJourney.Screen.Login
 
             // Load Remember Me data
             LoadRememberMeData();
+
+            // Bị buộc logout (session hết hạn/bị đè, mất kết nối) từ scene trước sẽ để lại lý do
+            // ở đây trước khi LoadScene — hiện lại bằng đúng popup lỗi login sẵn có.
+            var pendingReason = MysticJourney.Core.Services.SessionService.ConsumePendingLogoutReason();
+            if (!string.IsNullOrEmpty(pendingReason))
+                ShowErrorPopup(pendingReason);
         }
 
         private void OnDestroy()

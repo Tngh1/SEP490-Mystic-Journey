@@ -43,8 +43,24 @@ public static class UIPopupBox
         // down. Anchoring on the Canvas rather than transform.parent keeps this working if a panel
         // ever gains an extra wrapper.
         var canvas = caller != null ? caller.GetComponentInParent<Canvas>() : null;
-        if (canvas == null) canvas = UnityEngine.Object.FindObjectOfType<Canvas>();
         var popup = canvas != null ? canvas.transform.Find("PopupLayer/UIPopup") : null;
+
+        // Không có caller (vd. NetworkReconnectManager gọi Show(caller: null, ...)), hoặc caller
+        // không nằm dưới Canvas gốc: FindObjectOfType<Canvas>() cũ trả về Canvas ĐẦU TIÊN Unity
+        // gặp, mà scene luôn có hàng chục HealthBarCanvas/OverheadUI (mỗi quái/player một cái) —
+        // một trong số đó đứng trước Canvas gốc khiến Find("PopupLayer/UIPopup") luôn null, popup
+        // "Reconnecting..." không bao giờ hiện và onConfirm chạy ngay (Return to Menu → logout
+        // thẳng, đúng triệu chứng mất kết nối mà không thấy panel thông báo). Quét toàn bộ Canvas
+        // và chọn đúng cái sở hữu PopupLayer/UIPopup.
+        if (popup == null)
+        {
+            foreach (var c in UnityEngine.Object.FindObjectsOfType<Canvas>())
+            {
+                popup = c.transform.Find("PopupLayer/UIPopup");
+                if (popup != null) break;
+            }
+        }
+
         if (popup == null)
         {
             Debug.LogWarning("[UIPopupBox] Canvas/PopupLayer/UIPopup missing; continuing without confirmation.");

@@ -190,6 +190,15 @@ public class UIManager : MonoBehaviour
         if (questTracker == null)
             return;
 
+        // QuestTracker nằm dưới HUD/NonCombatActionGroup — đúng nhóm mà
+        // ToggleDungeonMode(true) TẮT để ẩn cụm nút/tab bên trái khi vào hầm ngục.
+        // SetParentsActiveForTracker bật lại MỌI cha cho tới HUD, nên mỗi lần
+        // mở/đóng panel trong hầm ngục (ShowPanel/ClosePanel/CloseAll đều gọi hàm này)
+        // sẽ bật lại NonCombatActionGroup và mấy tab panel bên trái hiện lại giữa hầm ngục.
+        // Trong hầm ngục thì quest tracker cũng không có nghĩa, nên bỏ qua hẳn.
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
         SetParentsActiveForTracker(questTracker.transform);
         questTracker.SetActive(true);
     }

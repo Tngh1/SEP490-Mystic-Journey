@@ -59,6 +59,14 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
 
     private void Apply()
     {
+        // Trong hầm ngục, PlayerHUDController.ToggleDungeonMode(true) ẩn cụm nút bên trái.
+        // Apply() lại chạy theo LevelChanged/QuestsChanged — tức là ngay khi nhận exp/thưởng
+        // giữa hầm ngục — và SetActive(true) từng nút, làm mấy tab panel bên trái hiện lại.
+        // Hoãn tới khi ra khỏi hầm ngục: ToggleDungeonMode(false) + RefreshLevelFromApi
+        // sẽ dựng lại trạng thái đúng.
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
         CacheObjects();
         var level = Mathf.Max(1, WorldState.PlayerLevel);
 

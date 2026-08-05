@@ -845,7 +845,7 @@ namespace UI.Friend
         private void OnLogoutClicked()
         {
             UIPopupBox.Show(transform, "Logout", "Log out of your account?",
-                MysticJourney.Core.Services.SessionService.Logout);
+                () => MysticJourney.Core.Services.SessionService.Logout());
         }
 
         public void ClosePanel()
