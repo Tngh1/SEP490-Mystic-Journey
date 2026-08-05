@@ -15,12 +15,27 @@ namespace MysticJourney.Core.Services
     {
         private static bool _loggingOut;
 
-        public static void Logout()
+        // Set bởi các nơi bị BUỘC logout (session hết hạn/bị đè, mất kết nối) để LoginUIManager
+        // hiện lý do sau khi LoadScene xong — logout do người chơi tự bấm không truyền reason,
+        // nên MainMenuScene tải bình thường không hiện popup nào.
+        public static string PendingLogoutReason { get; private set; }
+
+        public static string ConsumePendingLogoutReason()
+        {
+            var reason = PendingLogoutReason;
+            PendingLogoutReason = null;
+            return reason;
+        }
+
+        public static void Logout(string reason = null)
         {
             // Bấm 2 lần liên tiếp: lần 2 phải bị bỏ qua, nếu không sẽ gọi LoadScene giữa lúc
             // request logout đầu đang bay và cảnh mới bị load hai lần.
             if (_loggingOut) return;
             _loggingOut = true;
+
+            if (!string.IsNullOrEmpty(reason))
+                PendingLogoutReason = reason;
 
             Debug.Log("[SessionService] Logging out...");
 

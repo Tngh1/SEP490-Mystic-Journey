@@ -158,7 +158,7 @@ namespace MysticJourney.Networking
                         {
                             IsReconnecting = false;
                             if (UIPopupManager.Instance != null) UIPopupManager.Instance.HidePopup();
-                            SessionService.Logout();
+                            SessionService.Logout("Your session has ended. Please log in again.");
                         }
                         else
                         {

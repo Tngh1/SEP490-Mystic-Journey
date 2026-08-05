@@ -26,15 +26,6 @@ TextureImporter:
   - first:
       213: 4648089935889871497
     second: Archer_IDLE_North_7
-  - first:
-      213: -1655495464609815358
-    second: Archer_IDLE_North_8
-  - first:
-      213: -5658805399585471654
-    second: Archer_IDLE_North_9
-  - first:
-      213: -6375070501524732976
-    second: Archer_IDLE_North_10
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -81,7 +72,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 200
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -133,12 +124,12 @@ TextureImporter:
       name: Archer_IDLE_North_0
       rect:
         serializedVersion: 2
-        x: 32
-        y: 25
-        width: 41
-        height: 51
+        x: 15
+        y: 260
+        width: 85
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -155,12 +146,12 @@ TextureImporter:
       name: Archer_IDLE_North_1
       rect:
         serializedVersion: 2
-        x: 136
-        y: 26
-        width: 41
-        height: 50
+        x: 140
+        y: 260
+        width: 85
+        height: 111
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -177,12 +168,12 @@ TextureImporter:
       name: Archer_IDLE_North_2
       rect:
         serializedVersion: 2
-        x: 241
-        y: 27
-        width: 40
-        height: 50
+        x: 265
+        y: 260
+        width: 85
+        height: 112
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -199,12 +190,12 @@ TextureImporter:
       name: Archer_IDLE_North_3
       rect:
         serializedVersion: 2
-        x: 346
-        y: 27
-        width: 39
-        height: 51
+        x: 15
+        y: 134
+        width: 85
+        height: 111
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -221,12 +212,12 @@ TextureImporter:
       name: Archer_IDLE_North_4
       rect:
         serializedVersion: 2
-        x: 451
-        y: 28
-        width: 38
-        height: 51
+        x: 140
+        y: 134
+        width: 85
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -243,12 +234,12 @@ TextureImporter:
       name: Archer_IDLE_North_5
       rect:
         serializedVersion: 2
-        x: 556
-        y: 28
-        width: 36
-        height: 51
+        x: 265
+        y: 134
+        width: 85
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -265,12 +256,12 @@ TextureImporter:
       name: Archer_IDLE_North_6
       rect:
         serializedVersion: 2
-        x: 659
-        y: 28
-        width: 37
-        height: 51
+        x: 15
+        y: 8
+        width: 85
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -287,12 +278,12 @@ TextureImporter:
       name: Archer_IDLE_North_7
       rect:
         serializedVersion: 2
-        x: 764
-        y: 28
-        width: 36
-        height: 51
+        x: 140
+        y: 8
+        width: 85
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -305,77 +296,11 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: Archer_IDLE_North_8
-      rect:
-        serializedVersion: 2
-        x: 868
-        y: 27
-        width: 36
-        height: 50
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2c469a865af7609e0800000000000000
-      internalID: -1655495464609815358
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Archer_IDLE_North_9
-      rect:
-        serializedVersion: 2
-        x: 972
-        y: 26
-        width: 36
-        height: 51
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a5345a08872e771b0800000000000000
-      internalID: -5658805399585471654
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Archer_IDLE_North_10
-      rect:
-        serializedVersion: 2
-        x: 1076
-        y: 24
-        width: 36
-        height: 52
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0d30c8ac7233787a0800000000000000
-      internalID: -6375070501524732976
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 39a6b0d56e41b174584e2f24706e7b3b
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -383,21 +308,16 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
       Archer_IDLE_North_0: -7821732840084662747
       Archer_IDLE_North_1: -3782538879323154037
-      Archer_IDLE_North_10: -6375070501524732976
       Archer_IDLE_North_2: 8937904606119456471
       Archer_IDLE_North_3: 8485422740189321691
       Archer_IDLE_North_4: -6275653621351634178
       Archer_IDLE_North_5: -5490079485522929314
       Archer_IDLE_North_6: 8965396634811383065
       Archer_IDLE_North_7: 4648089935889871497
-      Archer_IDLE_North_8: -1655495464609815358
-      Archer_IDLE_North_9: -5658805399585471654
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

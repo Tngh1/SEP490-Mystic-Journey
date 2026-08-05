@@ -258,10 +258,10 @@ namespace MysticJourney.Screen.GameSetting
         public void OnLogoutClicked()
         {
             UIPopupBox.Show(
-                transform, 
+                transform,
                 "Logout",
-                $"Logout from {UnityEngine.PlayerPrefs.GetString("UserName", "your account")}?", 
-                MysticJourney.Core.Services.SessionService.Logout
+                $"Logout from {UnityEngine.PlayerPrefs.GetString("UserName", "your account")}?",
+                () => MysticJourney.Core.Services.SessionService.Logout()
             );
         }
 

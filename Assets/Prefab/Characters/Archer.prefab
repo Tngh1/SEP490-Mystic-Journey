@@ -90,12 +90,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 15
-  m_Sprite: {fileID: -8832760425727250348, guid: ae3f27f603ba8e946a14e1da0f15e3fc, type: 3}
+  m_Sprite: {fileID: -7009282432861256702, guid: 3152ec5f955e2b640b3086e0888800bb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.47, y: 0.5}
+  m_Size: {x: 0.88, y: 1.1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -245,6 +245,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimation
   animator: {fileID: 0}
   spriteRenderer: {fileID: 3587043343154439068}
+  invertFlipX: 0
 --- !u!114 &3917341008382606599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -330,8 +331,8 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.47, y: 0.5}
-    newSize: {x: 0.47, y: 0.5}
+    oldSize: {x: 0.44, y: 0.55}
+    newSize: {x: 0.88, y: 1.1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
@@ -395,7 +396,7 @@ Transform:
   m_GameObject: {fileID: 2679640470514327847}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.01, y: -0.275, z: 0}
+  m_LocalPosition: {x: -0.01, y: -0.309, z: 0}
   m_LocalScale: {x: 0.253456, y: 0.198916, z: 0.48575}
   m_ConstrainProportionsScale: 1
   m_Children: []

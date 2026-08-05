@@ -35,6 +35,21 @@ TextureImporter:
   - first:
       213: -3046540719418920903
     second: Archer_BasicAttack_North_10
+  - first:
+      213: 8101001067880912116
+    second: Archer_BasicAttack_North_11
+  - first:
+      213: -6817083442263893485
+    second: Archer_BasicAttack_North_12
+  - first:
+      213: -1648108713708163618
+    second: Archer_BasicAttack_North_13
+  - first:
+      213: 3089439464957672435
+    second: Archer_BasicAttack_North_14
+  - first:
+      213: 8608077450107927553
+    second: Archer_BasicAttack_North_15
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -81,7 +96,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 200
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -133,12 +148,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_0
       rect:
         serializedVersion: 2
-        x: 32
-        y: 25
-        width: 41
-        height: 51
+        x: 15
+        y: 386
+        width: 85
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -155,12 +170,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_1
       rect:
         serializedVersion: 2
-        x: 136
-        y: 25
-        width: 41
-        height: 51
+        x: 143
+        y: 386
+        width: 82
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -177,12 +192,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_2
       rect:
         serializedVersion: 2
-        x: 240
-        y: 25
-        width: 41
-        height: 51
+        x: 273
+        y: 386
+        width: 79
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -199,12 +214,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_3
       rect:
         serializedVersion: 2
-        x: 347
-        y: 28
-        width: 38
-        height: 48
+        x: 396
+        y: 386
+        width: 83
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -221,12 +236,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_4
       rect:
         serializedVersion: 2
-        x: 452
-        y: 28
-        width: 37
-        height: 50
+        x: 22
+        y: 260
+        width: 78
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -243,12 +258,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_5
       rect:
         serializedVersion: 2
-        x: 557
-        y: 28
-        width: 36
-        height: 52
+        x: 152
+        y: 260
+        width: 73
+        height: 113
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -265,12 +280,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_6
       rect:
         serializedVersion: 2
-        x: 663
-        y: 28
-        width: 34
-        height: 53
+        x: 281
+        y: 260
+        width: 69
+        height: 110
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -287,12 +302,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_7
       rect:
         serializedVersion: 2
-        x: 768
-        y: 28
-        width: 33
-        height: 53
+        x: 408
+        y: 260
+        width: 67
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -309,12 +324,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_8
       rect:
         serializedVersion: 2
-        x: 872
-        y: 28
-        width: 31
-        height: 53
+        x: 33
+        y: 134
+        width: 67
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -331,12 +346,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_9
       rect:
         serializedVersion: 2
-        x: 976
-        y: 28
-        width: 31
-        height: 52
+        x: 158
+        y: 134
+        width: 67
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -353,12 +368,12 @@ TextureImporter:
       name: Archer_BasicAttack_North_10
       rect:
         serializedVersion: 2
-        x: 1080
-        y: 28
-        width: 31
-        height: 52
+        x: 283
+        y: 134
+        width: 67
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -371,11 +386,121 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Archer_BasicAttack_North_11
+      rect:
+        serializedVersion: 2
+        x: 406
+        y: 134
+        width: 69
+        height: 110
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f41a10ec898c6070800000000000000
+      internalID: 8101001067880912116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Archer_BasicAttack_North_12
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 8
+        width: 74
+        height: 110
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 31ad9ab4abad461a0800000000000000
+      internalID: -6817083442263893485
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Archer_BasicAttack_North_13
+      rect:
+        serializedVersion: 2
+        x: 147
+        y: 8
+        width: 83
+        height: 110
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: edde2306bddb029e0800000000000000
+      internalID: -1648108713708163618
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Archer_BasicAttack_North_14
+      rect:
+        serializedVersion: 2
+        x: 269
+        y: 8
+        width: 87
+        height: 110
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3fbffd723d4efda20800000000000000
+      internalID: 3089439464957672435
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Archer_BasicAttack_North_15
+      rect:
+        serializedVersion: 2
+        x: 389
+        y: 8
+        width: 86
+        height: 110
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 10cbbb455d8067770800000000000000
+      internalID: 8608077450107927553
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: d88597d6539f7d44fbc078b2c56f6a1c
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -383,13 +508,16 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
       Archer_BasicAttack_North_0: 8870689465616482974
       Archer_BasicAttack_North_1: -8601470169823672712
       Archer_BasicAttack_North_10: -3046540719418920903
+      Archer_BasicAttack_North_11: 8101001067880912116
+      Archer_BasicAttack_North_12: -6817083442263893485
+      Archer_BasicAttack_North_13: -1648108713708163618
+      Archer_BasicAttack_North_14: 3089439464957672435
+      Archer_BasicAttack_North_15: 8608077450107927553
       Archer_BasicAttack_North_2: -3523319399222502241
       Archer_BasicAttack_North_3: 6758876669848611329
       Archer_BasicAttack_North_4: 7934557314429294674
