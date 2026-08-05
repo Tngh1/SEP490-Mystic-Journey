@@ -5,29 +5,90 @@ using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Request;
 
+[System.Serializable]
+public struct StatIconMapping
+{
+    [Tooltip("Tên chỉ số từ Backend: MaxHp, Atk, Def, MoveSpeed, AttackSpeed, CritRate, CritDamage, DamageBonus")]
+    public string statName;
+    [Tooltip("File hình Sprite icon mà bạn muốn dùng cho chỉ số này (tên file sprite là gì cũng được)")]
+    public Sprite icon;
+}
+
 public class UILevelUpPanel : MonoBehaviour
 {
+    [Header("UI Component References")]
     [SerializeField] private Button[] statButtons;
     [SerializeField] private TMP_Text[] statTexts;
+    [Tooltip("Kéo 5 khung ảnh Image hiển thị Icon tương ứng trên 5 Nút bấm vào đây (nơi chứa quả tim đỏ)")]
+    [SerializeField] private Image[] statIcons;
     [SerializeField] private Button closeButton;
     [SerializeField] private GameObject loadingOverlay;
     [SerializeField] private TMP_Text remainingPointsText;
+    
+    [Header("Gán Sprite Icon theo loại chỉ số")]
+    [Tooltip("Danh sách Sprite icon tương ứng với từng tên chỉ số")]
+    [SerializeField] private StatIconMapping[] statIconMappings;
+    [Tooltip("Sprite icon mặc định nếu không tìm thấy trong danh sách")]
+    [SerializeField] private Sprite defaultStatIcon;
     
     private List<string> currentOptions;
     
     private void Awake()
     {
-        closeButton.onClick.AddListener(ClosePanel);
+        if (closeButton != null) closeButton.onClick.AddListener(ClosePanel);
         for (int i = 0; i < statButtons.Length; i++)
         {
             int index = i;
-            statButtons[i].onClick.AddListener(() => OnStatButtonClicked(index));
+            if (statButtons[i] != null)
+            {
+                statButtons[i].onClick.AddListener(() => OnStatButtonClicked(index));
+            }
         }
+        AutoDetectStatIcons();
     }
     
     private void OnEnable()
     {
         FetchOptions();
+    }
+
+    private void AutoDetectStatIcons()
+    {
+        if (statButtons == null) return;
+        if (statIcons == null || statIcons.Length != statButtons.Length)
+        {
+            statIcons = new Image[statButtons.Length];
+        }
+
+        for (int i = 0; i < statButtons.Length; i++)
+        {
+            if (statButtons[i] == null) continue;
+            if (statIcons[i] != null) continue;
+
+            // 1. Check for child named "Icon", "StatIcon", or "Image"
+            var iconT = statButtons[i].transform.Find("Icon") 
+                     ?? statButtons[i].transform.Find("StatIcon")
+                     ?? statButtons[i].transform.Find("Image");
+
+            if (iconT != null && iconT.TryGetComponent<Image>(out var img))
+            {
+                statIcons[i] = img;
+            }
+            else
+            {
+                // 2. Check for child Image separate from the button's background Image
+                var btnImg = statButtons[i].GetComponent<Image>();
+                var childImgs = statButtons[i].GetComponentsInChildren<Image>(true);
+                foreach (var ci in childImgs)
+                {
+                    if (ci != btnImg)
+                    {
+                        statIcons[i] = ci;
+                        break;
+                    }
+                }
+            }
+        }
     }
     
     public void FetchOptions()
@@ -72,18 +133,64 @@ public class UILevelUpPanel : MonoBehaviour
     {
         if (currentOptions == null || currentOptions.Count == 0) return;
         
+        AutoDetectStatIcons();
+        
         for (int i = 0; i < statButtons.Length; i++)
         {
             if (i < currentOptions.Count)
             {
+                string statKey = currentOptions[i];
                 statButtons[i].gameObject.SetActive(true);
-                statTexts[i].text = GetStatDisplayName(currentOptions[i]);
+
+                if (statTexts[i] != null)
+                {
+                    statTexts[i].text = GetStatDisplayName(statKey);
+                }
+
+                if (statIcons != null && i < statIcons.Length && statIcons[i] != null)
+                {
+                    Sprite icon = GetStatIcon(statKey);
+                    if (icon != null)
+                    {
+                        statIcons[i].sprite = icon;
+                        statIcons[i].gameObject.SetActive(true);
+                    }
+                }
             }
             else
             {
                 statButtons[i].gameObject.SetActive(false);
             }
         }
+    }
+
+    private Sprite GetStatIcon(string statName)
+    {
+        if (string.IsNullOrEmpty(statName)) return defaultStatIcon;
+        if (statIconMappings != null && statIconMappings.Length > 0)
+        {
+            string key = statName.ToLowerInvariant().Replace(" ", "").Replace("_", "");
+            if (key == "attack") key = "atk";
+            if (key == "defense") key = "def";
+            if (key == "hp") key = "maxhp";
+
+            foreach (var mapping in statIconMappings)
+            {
+                if (!string.IsNullOrEmpty(mapping.statName))
+                {
+                    string mappingKey = mapping.statName.ToLowerInvariant().Replace(" ", "").Replace("_", "");
+                    if (mappingKey == "attack") mappingKey = "atk";
+                    if (mappingKey == "defense") mappingKey = "def";
+                    if (mappingKey == "hp") mappingKey = "maxhp";
+
+                    if (mappingKey == key)
+                    {
+                        if (mapping.icon != null) return mapping.icon;
+                    }
+                }
+            }
+        }
+        return defaultStatIcon;
     }
     
     private void OnStatButtonClicked(int index)
@@ -144,7 +251,7 @@ public class UILevelUpPanel : MonoBehaviour
         if (loadingOverlay != null) loadingOverlay.SetActive(isLoading);
         foreach (var btn in statButtons)
         {
-            btn.interactable = !isLoading;
+            if (btn != null) btn.interactable = !isLoading;
         }
     }
     
@@ -157,15 +264,15 @@ public class UILevelUpPanel : MonoBehaviour
     {
         switch (statName.ToLowerInvariant())
         {
-            case "maxhp": return "<align=center>Max HP\n<color=#4CAF50>+20</color></align>";
-            case "atk": return "<align=center>Attack\n<color=#F44336>+3</color></align>";
-            case "def": return "<align=center>Defense\n<color=#FFEB3B>+2</color></align>";
-            case "movespeed": return "<align=center>Move Speed\n<color=#2196F3>+1</color></align>";
-            case "attackspeed": return "<align=center>Attack Speed\n<color=#FF9800>+1</color></align>";
-            case "critrate": return "<align=center>Crit Rate\n<color=#9C27B0>+1%</color></align>";
-            case "critdamage": return "<align=center>Crit Damage\n<color=#E91E63>+2%</color></align>";
-            case "damagebonus": return "<align=center>Damage Bonus\n<color=#00BCD4>+1%</color></align>";
-            default: return $"<align=center>{statName}</align>";
+            case "maxhp": return "<align=center><b>Max HP</b>\n<color=#4CAF50>+20</color></align>";
+            case "atk": return "<align=center><b>Attack</b>\n<color=#F44336>+3</color></align>";
+            case "def": return "<align=center><b>Defense</b>\n<color=#FFEB3B>+2</color></align>";
+            case "movespeed": return "<align=center><b>Move Speed</b>\n<color=#2196F3>+1</color></align>";
+            case "attackspeed": return "<align=center><b>Attack Speed</b>\n<color=#FF9800>+1</color></align>";
+            case "critrate": return "<align=center><b>Crit Rate</b>\n<color=#9C27B0>+1%</color></align>";
+            case "critdamage": return "<align=center><b>Crit Damage</b>\n<color=#E91E63>+2%</color></align>";
+            case "damagebonus": return "<align=center><b>Damage Bonus</b>\n<color=#00BCD4>+1%</color></align>";
+            default: return $"<align=center><b>{statName}</b></align>";
         }
     }
 }
