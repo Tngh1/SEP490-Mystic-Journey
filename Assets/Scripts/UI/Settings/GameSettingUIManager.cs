@@ -257,11 +257,12 @@ namespace MysticJourney.Screen.GameSetting
 
         public void OnLogoutClicked()
         {
-            // Trước đây load "LoginScene" — KHÔNG có scene nào tên vậy (màn đăng nhập là
-            // MainMenuScene), nên LoadScene im lặng thất bại và người chơi đứng lại trong game.
-            // SessionService lo đủ thứ tự: Photon shutdown -> gọi API logout khi token còn hạn ->
-            // xoá token/cache -> load MainMenuScene.
-            MysticJourney.Core.Services.SessionService.Logout();
+            UIPopupBox.Show(
+                transform, 
+                "Logout",
+                $"Logout from {UnityEngine.PlayerPrefs.GetString("UserName", "your account")}?", 
+                MysticJourney.Core.Services.SessionService.Logout
+            );
         }
 
         private void OnSettingsExitClicked()
