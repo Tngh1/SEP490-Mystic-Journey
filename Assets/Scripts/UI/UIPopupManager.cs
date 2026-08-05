@@ -131,6 +131,14 @@ namespace MysticJourney.UI
             }
         }
 
+        public void HidePopup()
+        {
+            if (popupContainer != null) popupContainer.SetActive(false);
+            if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
+            onConfirmAction = null;
+            onCancelAction = null;
+        }
+
         private void OnConfirmClicked()
         {
             if (popupContainer != null) popupContainer.SetActive(false);

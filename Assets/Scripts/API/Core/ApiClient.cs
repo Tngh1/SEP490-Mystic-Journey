@@ -352,6 +352,7 @@ namespace MysticJourney.API.Core
                 request.result == UnityWebRequest.Result.DataProcessingError)
             {
                 Debug.LogError($"[ApiClient] ❌ Network Error: {request.error}");
+                MysticJourney.Networking.NetworkReconnectManager.Instance?.ReportNetworkError();
                 onError?.Invoke(new ApiException
                 {
                     StatusCode = 0,
@@ -452,6 +453,9 @@ namespace MysticJourney.API.Core
                 });
                 return; // Stop execution if parsing fails
             }
+
+            // Report network success if we were reconnecting
+            MysticJourney.Networking.NetworkReconnectManager.Instance?.ReportNetworkSuccess();
 
             // Gọi onSuccess BÊN NGOÀI try-catch để lỗi của Callback không bị nhầm thành lỗi Parse JSON
             onSuccess?.Invoke(result);

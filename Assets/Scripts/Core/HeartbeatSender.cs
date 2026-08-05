@@ -26,14 +26,23 @@ namespace MysticJourney.Core
             if (!ApiClient.Instance.HasToken())
                 return;
 
+            // Skip background heartbeat if NetworkReconnectManager is already actively reconnecting
+            if (MysticJourney.Networking.NetworkReconnectManager.Instance != null &&
+                MysticJourney.Networking.NetworkReconnectManager.Instance.IsReconnecting)
+                return;
+
             string url = ApiConfig.PlayerHeartbeat;
             
             ApiClient.Instance.PostEmpty<object>(url, (res) => 
             {
-                // Heartbeat successful
+                MysticJourney.Networking.NetworkReconnectManager.Instance?.ReportNetworkSuccess();
             }, (err) => 
             {
                 Debug.LogWarning($"Heartbeat failed: {err.Message}");
+                if (err != null && (err.StatusCode == 0 || err.ErrorCode == "NETWORK_ERROR"))
+                {
+                    MysticJourney.Networking.NetworkReconnectManager.Instance?.ReportNetworkError();
+                }
             }, requiresAuth: true);
         }
     }
