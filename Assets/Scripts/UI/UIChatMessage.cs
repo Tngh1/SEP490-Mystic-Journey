@@ -63,7 +63,7 @@ public class UIChatMessage : MonoBehaviour
         ChatMessageId = chatMessageId;
         
         // Chỉ hiện nút Report cho tin nhắn của ng khác.
-        CanReport = chatMessageId > 0 && !isMine && !isReported;
+        CanReport = !isMine && !isReported;
 
         if (senderText != null)
         {
@@ -166,7 +166,6 @@ public class UIChatMessage : MonoBehaviour
         {
             if (CanReport)
             {
-                // Thoát khỏi Layout Group nếu có (LayoutGroup sẽ đè vị trí ta set thủ công)
                 var le = reportButton.GetComponent<LayoutElement>();
                 if (le == null) le = reportButton.gameObject.AddComponent<LayoutElement>();
                 le.ignoreLayout = true;
@@ -178,17 +177,22 @@ public class UIChatMessage : MonoBehaviour
                     rt.anchorMax = new Vector2(1f, 0.5f);
                     rt.pivot     = new Vector2(1f, 0.5f);
                     rt.anchoredPosition = new Vector2(-4f, 0f);
-                    rt.sizeDelta = new Vector2(58f, 24f);
+                    rt.sizeDelta = new Vector2(24f, 24f);
+                    rt.localScale = Vector3.one;
                 }
 
-                // Fix màu: button gốc + mọi Image con
+                // Giữ màu gốc của Sprite từ UIChatMessage_Prefab
                 foreach (var img in reportButton.GetComponentsInChildren<Image>(true))
                 {
+                    img.enabled      = true;
+                    img.raycastTarget = true;
                     if (img.gameObject == reportButton.gameObject)
                     {
-                        img.color        = new Color(0.55f, 0.16f, 0.16f, 0.88f);
-                        img.enabled      = true;
-                        img.raycastTarget = true;
+                        img.color = Color.white;
+                        if (reportButton.targetGraphic == null)
+                        {
+                            reportButton.targetGraphic = img;
+                        }
                     }
                 }
 
