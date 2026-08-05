@@ -26,25 +26,17 @@ public class DailyLoginPanelRuntime : MonoBehaviour
     [Tooltip("Icon hiển thị cho phần thưởng Gems/Diamond")]
     [SerializeField] private Sprite gemIcon;
 
-    [Header("Retro Claim Confirmation")]
-    [SerializeField] private GameObject confirmRetroPanel;
-    [SerializeField] private TMP_Text confirmRetroText;
-    [SerializeField] private Button confirmRetroYesBtn;
-    [SerializeField] private Button confirmRetroNoBtn;
-
     private readonly List<DailyLoginRewardResponse> rewards = new List<DailyLoginRewardResponse>();
     private PlayerDailyLoginResponse status;
     private bool rewardsLoaded;
     private bool requestInFlight;
     private bool eventsBound;
     private float rewardsLoadedAt = -999f;
-    private int pendingRetroClaimDay = -1;
 
     private void Awake()
     {
         BindUi();
         BindEvents();
-        CloseRetroClaimPopup();
         UpdateMonthText();
     }
 
@@ -255,16 +247,10 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         if (uiDailyLogin != null)
             uiDailyLogin.OnDailyItemClaimed += HandleDailySlotClicked;
 
-        if (confirmRetroYesBtn != null)
-            confirmRetroYesBtn.onClick.AddListener(ExecuteRetroClaim);
-
-        if (confirmRetroNoBtn != null)
-            confirmRetroNoBtn.onClick.AddListener(CloseRetroClaimPopup);
-
         if (claimButton != null)
             claimButton.onClick.AddListener(ClaimAvailableReward);
 
-        eventsBound = uiDailyLogin != null || refreshButton != null || claimButton != null || confirmRetroYesBtn != null;
+        eventsBound = uiDailyLogin != null || refreshButton != null || claimButton != null;
     }
 
     private void HandleDailySlotClicked(UIBaseItemSlot slot)
@@ -315,44 +301,16 @@ public class DailyLoginPanelRuntime : MonoBehaviour
             return;
         }
 
-        pendingRetroClaimDay = dayNumber;
-
-        if (confirmRetroPanel != null)
-        {
-            if (confirmRetroText != null)
-            {
-                int remainingClaims = 5 - (status?.RetroClaimCount ?? 0);
-                confirmRetroText.text = $"Do you want to spend 20 Gems to retro-claim Day {dayNumber}?\n(Remaining this month: {remainingClaims})";
-            }
-            
-            // Đảm bảo Popup nằm trên cùng của DailyLoginPanel để không bị che mất
-            if (confirmRetroPanel.transform.parent != this.transform)
-            {
-                confirmRetroPanel.transform.SetParent(this.transform, false);
-            }
-            confirmRetroPanel.transform.SetAsLastSibling();
-            confirmRetroPanel.SetActive(true);
-        }
-        else
-        {
-            // Fallback nếu panel bị null
-            ExecuteRetroClaim();
-        }
-    }
-
-    private void CloseRetroClaimPopup()
-    {
-        pendingRetroClaimDay = -1;
-        if (confirmRetroPanel != null)
-            confirmRetroPanel.SetActive(false);
-    }
-
-    private void ExecuteRetroClaim()
-    {
-        if (pendingRetroClaimDay <= 0) return;
-        int dayToClaim = pendingRetroClaimDay;
-        CloseRetroClaimPopup();
-        RetroClaimReward(dayToClaim);
+        int remainingClaims = 5 - (status?.RetroClaimCount ?? 0);
+        UIPopupBox.Show(
+            caller: transform,
+            titleText: "Retro Claim",
+            message: $"Do you want to spend 20 Gems to retro-claim Day {dayNumber}?\n(Remaining this month: {remainingClaims})",
+            onConfirm: () => RetroClaimReward(dayNumber),
+            onCancel: null,
+            confirmText: "Claim (20 Gems)",
+            cancelText: "Cancel"
+        );
     }
 
     private void BindUi()
@@ -372,23 +330,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         if (claimButton == null)
             claimButton = FindButton("ClaimButton", "ClaimDailyButton");
 
-        if (confirmRetroPanel == null)
-            confirmRetroPanel = FindSceneObject("ConfirmRetroClaimPanel");
-        if (confirmRetroText == null && confirmRetroPanel != null)
-        {
-            var tmp = confirmRetroPanel.GetComponentInChildren<TMP_Text>(true);
-            if (tmp != null) confirmRetroText = tmp;
-        }
-        if (confirmRetroYesBtn == null && confirmRetroPanel != null)
-        {
-            var btnYes = FindDescendant(confirmRetroPanel.transform, "ConfirmButton", "YesButton", "OkButton");
-            if (btnYes != null) confirmRetroYesBtn = btnYes.GetComponent<Button>();
-        }
-        if (confirmRetroNoBtn == null && confirmRetroPanel != null)
-        {
-            var btnNo = FindDescendant(confirmRetroPanel.transform, "CancelButton", "NoButton", "CloseButton");
-            if (btnNo != null) confirmRetroNoBtn = btnNo.GetComponent<Button>();
-        }
+
     }
 
     private static GameObject FindSceneObject(string objectName)

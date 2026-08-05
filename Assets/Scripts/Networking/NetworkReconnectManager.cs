@@ -106,38 +106,27 @@ namespace MysticJourney.Networking
 
         private void ShowReconnectingPopup()
         {
-            if (UIPopupManager.Instance != null)
-            {
-                UIPopupManager.Instance.ShowAlert(
-                    title: "Reconnecting...",
-                    message: "Connection lost. Reconnecting to server...",
-                    onOk: OnReturnToMenuClicked,
-                    okText: "Return to Menu"
-                );
-            }
-            else
-            {
-                Debug.LogWarning("[NetworkReconnectManager] UIPopupManager.Instance not found!");
-            }
+            UIPopupBox.Show(
+                caller: null,
+                titleText: "Reconnecting...",
+                message: "Connection lost. Reconnecting to server...",
+                onConfirm: OnReturnToMenuClicked,
+                onCancel: null,
+                confirmText: "Return to Menu"
+            );
         }
 
         private void ShowResumeDungeonPopup()
         {
-            if (UIPopupManager.Instance != null)
-            {
-                UIPopupManager.Instance.ShowConfirm(
-                    title: "Reconnected",
-                    message: "Network connection restored. Do you want to resume the dungeon?",
-                    onConfirm: OnResumeDungeonClicked,
-                    onCancel: OnReturnToMenuClicked,
-                    confirmText: "Resume Dungeon",
-                    cancelText: "Return to Menu"
-                );
-            }
-            else
-            {
-                Debug.LogWarning("[NetworkReconnectManager] UIPopupManager.Instance not found for Resume prompt!");
-            }
+            UIPopupBox.Show(
+                caller: null,
+                titleText: "Reconnected",
+                message: "Network connection restored. Do you want to resume the dungeon?",
+                onConfirm: OnResumeDungeonClicked,
+                onCancel: OnReturnToMenuClicked,
+                confirmText: "Resume Dungeon",
+                cancelText: "Return to Menu"
+            );
         }
 
         private IEnumerator AutoReconnectCoroutine()

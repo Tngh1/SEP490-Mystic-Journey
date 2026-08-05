@@ -28,7 +28,7 @@ public static class UIPopupBox
     /// so every one of those strings was silently dropped. Routing them to the quest popup instead is
     /// wrong: its Kind.None branch stamps the title "Quest not complete" over whatever it is given.
     /// </summary>
-    public static void Notify(Transform caller, string message) => Show(caller, message, null);
+    public static void Notify(Transform caller, string title, string message) => Show(caller, title, message, null);
 
     /// <summary>
     /// Opens the popup and runs <paramref name="onConfirm"/> if the player accepts. Passing null makes
@@ -36,13 +36,14 @@ public static class UIPopupBox
     /// losing the confirmation step beats leaving the caller's button dead.
     /// </summary>
     /// <param name="caller">Any UI node living under the same Canvas as PopupLayer.</param>
-    public static void Show(Transform caller, string message, Action onConfirm)
+    public static void Show(Transform caller, string titleText, string message, Action onConfirm, Action onCancel = null, string confirmText = null, string cancelText = null)
     {
         // UIPopup is a child of PopupLayer — a different branch from the calling panel
         // (Canvas/PartyPanel, Canvas/PlayerProfilePanel, ...), so we walk up to the Canvas and back
         // down. Anchoring on the Canvas rather than transform.parent keeps this working if a panel
         // ever gains an extra wrapper.
         var canvas = caller != null ? caller.GetComponentInParent<Canvas>() : null;
+        if (canvas == null) canvas = UnityEngine.Object.FindObjectOfType<Canvas>();
         var popup = canvas != null ? canvas.transform.Find("PopupLayer/UIPopup") : null;
         if (popup == null)
         {
@@ -51,7 +52,7 @@ public static class UIPopupBox
             return;
         }
 
-        bool isDecision = onConfirm != null;
+        bool isDecision = onConfirm != null || onCancel != null;
 
         var okButton = popup.Find("OkButton")?.GetComponent<Button>();
         var confirmButton = popup.Find("ConfirmButton")?.GetComponent<Button>();
@@ -67,8 +68,19 @@ public static class UIPopupBox
         SetActive(confirmButton, confirmButton == acceptButton);
         SetActive(cancelButton, isDecision);
 
+        if (acceptButton != null)
+        {
+            var txt = acceptButton.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = confirmText ?? (acceptButton == okButton ? "OK" : "Confirm");
+        }
+        if (cancelButton != null)
+        {
+            var txt = cancelButton.GetComponentInChildren<TMP_Text>();
+            if (txt != null) txt.text = cancelText ?? "Cancel";
+        }
+
         var title = popup.Find("Title")?.GetComponent<TMP_Text>();
-        if (title != null) title.text = isDecision ? "Confirm" : "Notice";
+        if (title != null) title.text = titleText;
 
         var text = popup.Find("Text")?.GetComponent<TMP_Text>();
         if (text != null) text.text = message;
@@ -77,8 +89,8 @@ public static class UIPopupBox
         // without it the previous listener survives — open the kick popup for A, close it, then
         // open the logout popup, and a single accept press kicks A as well.
         Bind(acceptButton, popup, onConfirm);
-        Bind(cancelButton, popup, null);
-        Bind(closeButton, popup, null);
+        Bind(cancelButton, popup, onCancel);
+        Bind(closeButton, popup, onCancel);
 
         // SetActive(true) on the popup alone is not enough while PopupLayer is off: activeSelf turns
         // true but activeInHierarchy stays false, so nothing appears and no error is logged to trace

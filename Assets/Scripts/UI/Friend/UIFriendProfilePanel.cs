@@ -844,7 +844,7 @@ namespace UI.Friend
         // Logout is not undoable (session gone, back to MainMenu), so confirm first.
         private void OnLogoutClicked()
         {
-            UIPopupBox.Show(transform, "Log out of your account?",
+            UIPopupBox.Show(transform, "Logout", "Log out of your account?",
                 MysticJourney.Core.Services.SessionService.Logout);
         }
 
