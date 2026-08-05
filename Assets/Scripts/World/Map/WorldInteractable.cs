@@ -290,14 +290,19 @@ public class WorldInteractable : MonoBehaviour
     {
         if (kind == WorldInteractableKind.Dungeon)
         {
-            // Cùng nguồn level và cùng hằng số với DungeonEntrance.Interact(), nếu không
+            // Cùng nguồn level và cùng ngưỡng với DungeonEntrance.Interact(), nếu không
             // prompt sẽ nói "đủ level" trong khi gate vẫn chặn (hoặc ngược lại).
-            var level = Mathf.Max(
-                WorldState.PlayerLevel,
-                PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerLevelKey, 1));
+            // DungeonEntrance nằm CÙNG GameObject (nó tự AddComponent ra cái này ở Start).
+            var entrance = GetComponent<DungeonEntrance>();
 
-            if (level < DungeonEntrance.RequiredLevel)
-                return $"Requires Level {DungeonEntrance.RequiredLevel} to enter the Dungeon";
+            // Chưa có DungeonEntrance hoặc server chưa trả LevelRequirement: nói thật là
+            // đang chờ, KHÔNG đoán một con số. Interact() cũng fail closed cùng lúc này.
+            if (entrance == null || !entrance.RequiredLevel.HasValue)
+                return "Checking dungeon requirements...";
+
+            int required = entrance.RequiredLevel.Value;
+            if (WorldState.PlayerLevel < required)
+                return $"Requires Level {required} to enter the Dungeon";
             return "Press E to Enter Dungeon";
         }
 

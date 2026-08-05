@@ -194,45 +194,36 @@ namespace MysticJourney.Features.Monster
                 MonsterDropVisualManager.Instance.SpawnFloatingTextDirect(transform.position, text, glowColor);
             }
 
-            // Gửi API nhận thưởng về Server để cộng Vàng, EXP, hoặc Item vào Database khi thực sự nhặt được
-            string typeStr = dropType.ToString();
-            MysticJourney.API.Endpoints.WorldApi.Instance.ClaimDrop(typeStr, (int)amount, 0, itemName,
-                res =>
+            // Server đã cộng vàng/exp/vật phẩm trong transaction của /monsters/{id}/defeat.
+            // Ở đây chỉ đọc lại số liệu để UI khớp — không gửi gì lên nữa, vì client không có
+            // thẩm quyền quyết định phần thưởng.
+            if (dropType == DropPickupType.Gold || dropType == DropPickupType.Exp)
+            {
+                // RefreshHUD (không phải ForceRefreshHUD) để cờ _isRefreshing gộp được các
+                // pickup rơi liên tiếp thành một lần gọi API.
+                if (PlayerHUDController.Instance != null)
                 {
-                    // 1. Force Refresh Player HUD (Cập nhật thanh EXP & Vàng ngay lập tức)
-                    if (PlayerHUDController.Instance != null)
-                    {
-                        PlayerHUDController.Instance.ForceRefreshHUD();
-                    }
+                    PlayerHUDController.Instance.RefreshHUD();
+                }
+            }
+            else
+            {
+                InventoryManager.RefreshAny(refreshStats: true);
 
-                    // 2. Force Refresh Inventory UI (Cập nhật toàn bộ ô đồ & số lượng đá trong Túi đồ ngay lập tức)
-                    InventoryManager.RefreshAny(refreshStats: true);
-
-                    // 3. Force Refresh Skill Panel & Detail Popup nếu đang mở
-                    var skillPanel = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
-                    if (skillPanel != null)
-                    {
-                        skillPanel.RefreshStoneCount();
-                    }
-
-                    var skillPopup = FindFirstObjectByType<SkillPopup>(FindObjectsInactive.Include);
-                    if (skillPopup != null && skillPopup.gameObject.activeInHierarchy)
-                    {
-                        skillPopup.AutoBindComponents();
-                    }
-
-                    Destroy(gameObject);
-                },
-                err =>
+                var skillPanel = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+                if (skillPanel != null)
                 {
-                    Debug.LogWarning($"[WorldDropPickup] ClaimDrop API ({err?.StatusCode}): {err?.Message}. Note: Please restart/rebuild Backend API so /api/world/claim-drop endpoint is loaded!");
-                    if (PlayerHUDController.Instance != null)
-                    {
-                        PlayerHUDController.Instance.ForceRefreshHUD();
-                    }
-                    InventoryManager.RefreshAny(refreshStats: true);
-                    Destroy(gameObject);
-                });
+                    skillPanel.RefreshStoneCount();
+                }
+
+                var skillPopup = FindFirstObjectByType<SkillPopup>(FindObjectsInactive.Include);
+                if (skillPopup != null && skillPopup.gameObject.activeInHierarchy)
+                {
+                    skillPopup.AutoBindComponents();
+                }
+            }
+
+            Destroy(gameObject);
         }
 
         private Sprite CreateProceduralSprite(DropPickupType type)
