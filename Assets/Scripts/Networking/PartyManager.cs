@@ -269,6 +269,17 @@ public class PartyManager : MonoBehaviour
         string returnMap = string.IsNullOrWhiteSpace(WorldState.CurrentMapName) ? "ElfForest" : WorldState.CurrentMapName;
         Vector3 returnPos = WorldState.LastPosition;
 
+        // Che màn hình NGAY từ đầu, không đợi tới TransitionToDungeon. Từ đây tới đó là
+        // 3s (host) hoặc tới 7s (member) chờ tear-down, rồi DestroyNonNetworkedPlayers()
+        // xoá avatar world, rồi tới 10s chờ avatar network — tức người chơi nhìn map cũ
+        // KHÔNG CÒN nhân vật suốt 3-17s. Đây là toàn bộ lý do phải Show ở đây.
+        //
+        // Scene "Loading" load additive và PassThroughSceneManager (scene manager của
+        // runner dungeon) không unload scene nào, nên nó sống qua migration.
+        // LoadingScreen.Show() trong TransitionToDungeon sau đó tự no-op vì scene đã loaded,
+        // và Hide() ở cuối TransitionToDungeon mới là chỗ tắt.
+        yield return LoadingScreen.Show("Entering dungeon...");
+
         string dungeonRoom = $"DUNGEON_{hostProfileId}";
 
         // Master-client election: whoever joins the fresh dungeon room FIRST becomes the
@@ -318,6 +329,7 @@ public class PartyManager : MonoBehaviour
                 Debug.LogError($"[PartyEntry] MigrateToDungeonAsync FAULTED: {task.Exception?.GetBaseException().Message}");
                 _dungeonEntryStarted = false;
                 IsEnteringDungeon = false;
+                yield return AbortEntry("Could not reach the dungeon. Please try again.");
                 yield break;
             }
 
@@ -355,7 +367,26 @@ public class PartyManager : MonoBehaviour
         else
         {
             Debug.LogError("[PartyEntry] DungeonManager.Instance is null — cannot enter scene.");
+            yield return AbortEntry("Could not enter the dungeon. Please try again.");
         }
+    }
+
+    /// <summary>
+    /// Tắt màn hình loading và báo lỗi khi entry chết SAU khi đã Show. Bắt buộc phải có:
+    /// backdrop của scene Loading là full-screen alpha 1 nên nếu chỉ `yield break` thì
+    /// người chơi ngồi trước một màn che kín vĩnh viễn, không input nào thoát được — tệ
+    /// hơn hẳn so với lỗi gốc là thấy map trống.
+    ///
+    /// Đường thành công KHÔNG gọi hàm này: TransitionToDungeon tự Hide() ở cuối.
+    /// </summary>
+    private static IEnumerator AbortEntry(string message)
+    {
+        yield return LoadingScreen.Hide();
+
+        // Cùng kênh DungeonManager.NotifyBlocked dùng cho entry bị chặn.
+        // (WorldRuntimeEvents.RaiseMessage không có subscriber nào — sẽ im lặng.)
+        if (MainQuestPanelRuntime.Instance != null)
+            MainQuestPanelRuntime.Instance.ShowQuestPopup(message, UIQuestPopupView.QuestPopupKind.None);
     }
 
     /// <summary>

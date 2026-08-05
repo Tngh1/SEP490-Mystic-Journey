@@ -15,6 +15,14 @@ using UnityEngine.UI;
 public static class PartyPopupConfirm
 {
     /// <summary>
+    /// Message-only variant: OK and Close both just dismiss. Party feedback ("Invited X.", "party is
+    /// full", ...) used to go through <c>WorldRuntimeEvents.RaiseMessage</c>, which has no subscriber,
+    /// so every one of those strings was silently dropped. Routing them to the quest popup instead is
+    /// wrong: its Kind.None branch stamps the title "Quest not complete" over whatever it is given.
+    /// </summary>
+    public static void Notify(Transform caller, string message) => Show(caller, message, null);
+
+    /// <summary>
     /// Opens the confirmation popup and runs <paramref name="onConfirm"/> if the player presses OK.
     /// If the popup cannot be found, <paramref name="onConfirm"/> runs immediately: losing the
     /// confirmation step beats leaving the caller's button dead.

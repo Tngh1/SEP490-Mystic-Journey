@@ -50,13 +50,14 @@ public class UIPartyPanel : MonoBehaviour
     [Header("Runtime Info")]
     private int selectedConfigId = 1;
     private string selectedSceneName = "AbandonedMines";
-    private string selectedDungeonName = "Abandoned Mines";
+    // Không có tên mặc định: một cái tên cứng ở đây sẽ hiện ĐÚNG như thật cho dungeon sai
+    // (mọi cửa từng mặc định "Abandoned Mines", kể cả configId 2 = Dragon's Lair).
+    // Rỗng thì UpdateUI() hiện "Dungeon" — trung tính, không khẳng định điều gì sai.
+    private string selectedDungeonName;
     private string selectedDescription = "";
     private System.Collections.Generic.List<ChestItemResponse> possibleDrops = new();
     private int energyCost = 20;
     private int playerEnergy = 0;
-    private int recommendedLevel = 1;
-    private int difficulty = 1;
     private int goldMinReward = 0;
     private int goldMaxReward = 0;
     private int experienceReward = 0;
@@ -175,14 +176,14 @@ public class UIPartyPanel : MonoBehaviour
             return;
         }
 
-        // Fetch detailed config info via GetById to grab recommended level, difficulty and energy cost
+        // Fetch detailed config info via GetById to grab energy cost, description and drops.
+        // Level requirement KHÔNG đọc ở đây: DungeonEntrance tự fetch ngưỡng của chính nó
+        // và là nơi duy nhất gate, nên panel giữ thêm một bản copy chỉ tạo cơ hội lệch.
         DungeonApi.Instance.GetById(configId,
             response =>
             {
                 if (response != null)
                 {
-                    recommendedLevel = response.LevelRequirement;
-                    difficulty = response.Difficulty;
                     energyCost = response.EnergyCost;
                     if (!string.IsNullOrEmpty(response.Name))
                         selectedDungeonName = response.Name;
@@ -198,81 +199,7 @@ public class UIPartyPanel : MonoBehaviour
             },
             error =>
             {
-                recommendedLevel = 1;
-                difficulty = 2;
                 gameObject.SetActive(true);
-                PublishDungeonSelectionIfHost();
-                FetchPlayerEnergy();
-            }
-        );
-    }
-
-    // Backward compatibility for general string matching search
-    public void OpenForDungeon(string matchName)
-    {
-        gameObject.SetActive(true);
-        LoadDungeonAndEnergy(matchName);
-    }
-
-    private void LoadDungeonAndEnergy(string matchName)
-    {
-        DungeonApi.Instance.GetAll(1, 10,
-            onSuccess: response =>
-            {
-                if (response?.Items != null)
-                {
-                    DungeonResponse mines = null;
-                    foreach (var d in response.Items)
-                    {
-                        if (d != null && d.Name != null && d.Name.ToLower().Contains(matchName.ToLower()))
-                        {
-                            mines = d;
-                            break;
-                        }
-                    }
-
-                    if (mines != null)
-                    {
-                        selectedConfigId = mines.DungeonConfigId;
-                        selectedDungeonName = mines.Name;
-                        energyCost = mines.EnergyCost;
-                        recommendedLevel = mines.LevelRequirement;
-                        difficulty = mines.Difficulty;
-                        selectedSceneName = "HollowCryptDungeon";
-                        selectedDescription = mines.Description ?? "No description available.";
-                        possibleDrops = mines.PossibleDrops ?? new();
-                        goldMinReward = mines.GoldMinReward;
-                        goldMaxReward = mines.GoldMaxReward;
-                        experienceReward = mines.ExperienceReward;
-                    }
-                    else
-                    {
-                        selectedConfigId = 1;
-                        selectedSceneName = "HollowCryptDungeon";
-                        selectedDungeonName = "Abandoned Mines";
-                        selectedDescription = "";
-                        possibleDrops = new();
-                        energyCost = 20;
-                        recommendedLevel = 1;
-                        difficulty = 2;
-                    }
-                }
-                PublishDungeonSelectionIfHost();
-                FetchPlayerEnergy();
-            },
-            onError: error =>
-            {
-                selectedConfigId = 1;
-                selectedSceneName = "AbandonedMines";
-                selectedDungeonName = "Abandoned Mines";
-                selectedDescription = "";
-                possibleDrops = new();
-                energyCost = 20;
-                recommendedLevel = 1;
-                difficulty = 2;
-                goldMinReward = 0;
-                goldMaxReward = 0;
-                experienceReward = 0;
                 PublishDungeonSelectionIfHost();
                 FetchPlayerEnergy();
             }
@@ -332,7 +259,8 @@ public class UIPartyPanel : MonoBehaviour
 
         if (dungeonNameText != null)
         {
-            dungeonNameText.text = dungeonName;
+            // Tên chưa về (hoặc server trả rỗng): nhãn trung tính, KHÔNG đoán tên dungeon.
+            dungeonNameText.text = string.IsNullOrWhiteSpace(dungeonName) ? "Dungeon" : dungeonName;
             dungeonNameText.textWrappingMode = TextWrappingModes.NoWrap;
             dungeonNameText.enableAutoSizing = true;
             dungeonNameText.fontSizeMax = 48;
@@ -821,7 +749,7 @@ public class UIPartyPanel : MonoBehaviour
             // Party path — flip networked state; PartyManager (Step 5) drives the load.
             if (!party.CanStartDungeon)
             {
-                WorldRuntimeEvents.RaiseMessage("All members must be ready (need at least 2 players).");
+                PartyPopupConfirm.Notify(transform, "All members must be ready (need at least 2 players).");
                 return;
             }
             PartyService.StartDungeon(selectedConfigId, selectedSceneName);
@@ -844,8 +772,11 @@ public class UIPartyPanel : MonoBehaviour
         {
             PartyService.LeaveParty();
         }
+        // Notify BEFORE Close(): the popup is located via GetComponentInParent<Canvas>() from this
+        // transform, and that skips inactive objects — after Close() this panel is deactivated, the
+        // Canvas lookup returns null, and the message degrades to a warning with nothing shown.
+        PartyPopupConfirm.Notify(transform, "Dungeon expedition cancelled.");
         Close();
-        WorldRuntimeEvents.RaiseMessage("Dungeon expedition cancelled.");
     }
 
     public void Close()
@@ -1046,7 +977,7 @@ public class UIPartyPanel : MonoBehaviour
                 var result = PartyService.InviteByProfileId(profileId);
                 if (result == PartyService.InviteResult.Sent)
                 {
-                    WorldRuntimeEvents.RaiseMessage($"Invited {friendName}.");
+                    PartyPopupConfirm.Notify(transform, $"Invited {friendName}.");
                     btnTxt.text = "SENT";
                     btnImg.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
                     btn.interactable = false;
@@ -1056,7 +987,7 @@ public class UIPartyPanel : MonoBehaviour
                 {
                     // Report the real reason: blaming the friend for a local connection
                     // problem sent players hunting a bug on the wrong side.
-                    WorldRuntimeEvents.RaiseMessage(result switch
+                    PartyPopupConfirm.Notify(transform, result switch
                     {
                         PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
                         PartyService.InviteResult.PartyFull => "Your party is already full.",
