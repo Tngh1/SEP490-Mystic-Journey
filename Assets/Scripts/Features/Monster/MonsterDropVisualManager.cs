@@ -128,6 +128,16 @@ namespace MysticJourney.Features.Monster
                 }
             }
 
+            if (!foundPos)
+            {
+                var player = GameObject.FindWithTag("Player");
+                if (player != null)
+                {
+                    spawnPosition = player.transform.position + (Vector3)Random.insideUnitCircle * 0.5f;
+                    foundPos = true;
+                }
+            }
+
             if (!foundPos) return;
 
             // Chạy Coroutine hiển thị lần lượt các hiệu ứng rớt đồ
@@ -136,60 +146,89 @@ namespace MysticJourney.Features.Monster
 
         private IEnumerator SpawnLootSequence(Vector3 basePosition, MonsterDefeatResponse response)
         {
-            float yOffset = 0.5f;
+            int dropIndex = 0;
 
-            // 1. Hiệu ứng EXP
-            if (response.ExperienceEarned > 0)
-            {
-                SpawnFloatingText(basePosition + Vector3.up * yOffset, $"+{response.ExperienceEarned} EXP", expColor);
-                yOffset += 0.4f;
-                yield return new WaitForSeconds(0.12f);
-            }
-
-            // 2. Hiệu ứng Coins (Vàng)
+            // 1. Phôi vật thể Vàng (Gold) rơi ra map - sử dụng Gold-Icon.png từ Resources/Item
             if (response.GoldEarned > 0)
             {
-                string goldStr = response.GoldEarned % 1 == 0 
-                    ? $"{response.GoldEarned:N0}" 
-                    : $"{response.GoldEarned:F1}";
-                string coinLabel = response.GoldEarned == 1 ? "Coin" : "Coins";
-                SpawnFloatingText(basePosition + Vector3.up * yOffset, $"+{goldStr} {coinLabel}", goldColor);
-                yOffset += 0.4f;
-                yield return new WaitForSeconds(0.12f);
+                Sprite goldSprite = Resources.Load<Sprite>("Item/Gold-Icon") ?? Resources.Load<Sprite>("Item/Gold");
+                Vector3 landPos = basePosition + (Vector3)(Random.insideUnitCircle * 0.8f);
+                SpawnPhysicalDrop(basePosition, landPos, DropPickupType.Gold, "Gold", (float)response.GoldEarned, goldSprite, goldColor);
+                dropIndex++;
+                yield return new WaitForSeconds(0.08f);
             }
 
-            // 3. Hiệu ứng Vật phẩm (Items / Gems / Coins)
+            // 2. Phôi vật thể Kinh nghiệm (EXP) rơi ra map - sử dụng Exp-icon.png từ Resources/Item
+            if (response.ExperienceEarned > 0)
+            {
+                Sprite expSprite = Resources.Load<Sprite>("Item/Exp-icon") ?? Resources.Load<Sprite>("Item/EXP");
+                Vector3 landPos = basePosition + (Vector3)(Random.insideUnitCircle * 0.8f);
+                SpawnPhysicalDrop(basePosition, landPos, DropPickupType.Exp, "EXP", (float)response.ExperienceEarned, expSprite, expColor);
+                dropIndex++;
+                yield return new WaitForSeconds(0.08f);
+            }
+
+            // 3. Phôi vật thể Vật phẩm & Đá nâng cấp (Skill Upgrade Stone) rơi ra map
             if (response.DroppedItems != null && response.DroppedItems.Length > 0)
             {
                 foreach (var item in response.DroppedItems)
                 {
                     if (item == null) continue;
-                    
+
                     string itemName = item.ItemName ?? "";
-                    if (itemName.Equals("Vàng", System.StringComparison.OrdinalIgnoreCase))
+                    DropPickupType type = DropPickupType.Item;
+                    Color itemColorToUse = itemColor;
+
+                    if (itemName.Contains("Skill Upgrade Stone") || itemName.Contains("Upgrade Stone"))
                     {
-                        itemName = item.Quantity == 1 ? "Coin" : "Coins";
-                    }
-                    else if (itemName.Equals("Kim Cương", System.StringComparison.OrdinalIgnoreCase) || 
-                             itemName.Equals("Đá Quý", System.StringComparison.OrdinalIgnoreCase) || 
-                             itemName.Equals("Gem", System.StringComparison.OrdinalIgnoreCase))
-                    {
-                        itemName = item.Quantity == 1 ? "Gem" : "Gems";
+                        type = DropPickupType.SkillUpgradeStone;
+                        itemColorToUse = gemColor;
                     }
 
-                    string itemText = item.Quantity > 1 
-                        ? $"+{item.Quantity}x {itemName}" 
-                        : $"+{itemName}";
+                    Sprite customSprite = ResolveItemSprite(itemName);
 
-                    Color colorToUse = (itemName.IndexOf("Gem", System.StringComparison.OrdinalIgnoreCase) >= 0) 
-                        ? gemColor 
-                        : itemColor;
-
-                    SpawnFloatingText(basePosition + Vector3.up * yOffset, itemText, colorToUse);
-                    yOffset += 0.4f;
-                    yield return new WaitForSeconds(0.12f);
+                    Vector3 landPos = basePosition + (Vector3)(Random.insideUnitCircle * 1.0f);
+                    SpawnPhysicalDrop(basePosition, landPos, type, itemName, item.Quantity, customSprite, itemColorToUse);
+                    dropIndex++;
+                    yield return new WaitForSeconds(0.08f);
                 }
             }
+        }
+
+        private Sprite ResolveItemSprite(string itemName)
+        {
+            if (string.IsNullOrEmpty(itemName)) return null;
+
+            // 1. Try loading directly from Resources/Item/{itemName}
+            Sprite spr = Resources.Load<Sprite>($"Item/{itemName}");
+            if (spr != null) return spr;
+
+            // 2. Try loading clean name
+            string cleanName = itemName.Trim();
+            spr = Resources.Load<Sprite>($"Item/{cleanName}");
+            if (spr != null) return spr;
+
+            // 3. Fallback for Skill Upgrade Stone
+            if (itemName.Contains("Skill Upgrade Stone") || itemName.Contains("Upgrade Stone"))
+            {
+                return Resources.Load<Sprite>("Item/Skill Upgrade Stone");
+            }
+
+            return null;
+        }
+
+        private void SpawnPhysicalDrop(Vector3 spawnPos, Vector3 landPos, DropPickupType type, string name, float qty, Sprite sprite, Color color)
+        {
+            GameObject dropGO = new GameObject($"[DropPickup]_{name}");
+            dropGO.transform.position = spawnPos;
+
+            var pickup = dropGO.AddComponent<WorldDropPickup>();
+            pickup.Setup(type, name, qty, sprite, color, landPos);
+        }
+
+        public void SpawnFloatingTextDirect(Vector3 position, string text, Color color)
+        {
+            SpawnFloatingText(position, text, color);
         }
 
         private void SpawnFloatingText(Vector3 position, string text, Color color)

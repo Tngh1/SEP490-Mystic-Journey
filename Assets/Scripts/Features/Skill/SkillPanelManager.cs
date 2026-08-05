@@ -22,6 +22,9 @@ public class SkillPanelManager : MonoBehaviour
     [Header("Slots")]
     public SkillSlot[] skillSlots; // assign 3 slots in inspector
 
+    [Header("Stone Counter UI")]
+    public TMPro.TextMeshProUGUI stoneCountText;
+
 #if UNITY_EDITOR
     [ContextMenu("Load All Skills In Project")]
     public void LoadAllSkillsInProject()
@@ -89,10 +92,50 @@ public class SkillPanelManager : MonoBehaviour
         
         // Tự động gọi API mỗi khi Panel này được SetActive(true)
         RefreshSkillList();
+        RefreshStoneCount();
+    }
+
+    public void RefreshStoneCount()
+    {
+        EnsureStoneCountUI();
+        InventoryApi.Instance.GetInventory(
+            onSuccess: (summary) =>
+            {
+                int stones = 0;
+                if (summary?.BagItems != null)
+                {
+                    foreach (var item in summary.BagItems)
+                    {
+                        if (item != null && !string.IsNullOrEmpty(item.ItemName) &&
+                            (item.ItemId == 22 || item.ItemName.Equals("Skill Upgrade Stone", System.StringComparison.OrdinalIgnoreCase) || (item.ItemName.Contains("Skill Upgrade") && item.ItemName.Contains("Stone"))))
+                        {
+                            stones += item.Quantity;
+                        }
+                    }
+                }
+                if (stoneCountText != null)
+                {
+                    stoneCountText.text = stones.ToString();
+                }
+            },
+            onError: (err) =>
+            {
+                Debug.LogWarning("[SkillPanelManager] Could not load stone count: " + err.Message);
+            }
+        );
+    }
+
+    private void EnsureStoneCountUI()
+    {
+        if (stoneCountText == null)
+        {
+            stoneCountText = transform.Find("Header/Stone/NumberStone")?.GetComponent<TMPro.TextMeshProUGUI>();
+        }
     }
 
     public void RefreshSkillList()
     {
+        RefreshStoneCount();
         // Dọn dẹp UI cũ được dời vào trong PopulateUI để tránh lỗi bất đồng bộ
         SkillApi.Instance.GetMySkills(
             onSuccess: (response) =>

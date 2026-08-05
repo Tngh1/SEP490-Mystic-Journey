@@ -588,6 +588,10 @@ public class PlayerCombat : NetworkBehaviour
         if (corruptionCost > 0)
         {
             MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel += corruptionCost;
+            if (PlayerHUDController.Instance != null)
+            {
+                PlayerHUDController.Instance.ApplyCorruption(MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel);
+            }
             SyncCorruptionLevelToServer();
         }
 

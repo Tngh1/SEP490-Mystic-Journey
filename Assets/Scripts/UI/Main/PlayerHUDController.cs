@@ -185,8 +185,19 @@ public class PlayerHUDController : MonoBehaviour
         if (playerNameText == null) playerNameText = transform.Find("TopBar/Button/PlayerNameText")?.GetComponent<TMP_Text>();
         if (levelText == null) levelText = transform.Find("TopBar/Button/Avatar/Level/LevelText")?.GetComponent<TMP_Text>();
         if (avatarImage == null) avatarImage = transform.Find("TopBar/Button/Avatar")?.GetComponent<Image>();
-        if (expBarImage == null) expBarImage = transform.Find("TopBar/Button/ExpBar/ExpFill")?.GetComponent<Image>();
-        if (expText == null) expText = transform.Find("TopBar/Button/ExpBar/ExpNumber")?.GetComponent<TMP_Text>();
+        if (expBarImage == null)
+        {
+            expBarImage = transform.Find("TopBar/Button/ExpBar/ExpFill")?.GetComponent<Image>()
+                       ?? transform.Find("TopBar/Button/Avatar/ExpBar/ExpFill")?.GetComponent<Image>()
+                       ?? FindChildRecursive(transform, "ExpFill")?.GetComponent<Image>();
+        }
+        if (expText == null)
+        {
+            expText = transform.Find("TopBar/Button/ExpBar/ExpNumber")?.GetComponent<TMP_Text>()
+                   ?? transform.Find("TopBar/Button/Avatar/ExpBar/ExpNumber")?.GetComponent<TMP_Text>()
+                   ?? FindChildRecursive(transform, "ExpNumber")?.GetComponent<TMP_Text>()
+                   ?? FindChildRecursive(transform, "ExpText")?.GetComponent<TMP_Text>();
+        }
         if (hpBarImage == null) hpBarImage = transform.Find("TopBar/Button/HPBar/HPFill")?.GetComponent<Image>();
 
         // fillAmount only applies to Filled images; force it so a Simple-typed
@@ -400,14 +411,17 @@ public class PlayerHUDController : MonoBehaviour
         UpdateStatsUI(currentHp, maxHp);
     }
 
+    public void ForceRefreshHUD()
+    {
+        _isRefreshing = false;
+        _isCurrencyRefreshing = false;
+        RefreshHUD();
+    }
+
     public void RefreshHUD()
     {
         if (_isRefreshing) return;
         _isRefreshing = true;
-        
-        // Heartbeat is NOT sent here: HeartbeatSender already pings every 30s, and the BE
-        // treats anything within 5 minutes as Online. Sending it again on the 15s HUD
-        // refresh tripled the write rate on the busiest endpoint for no extra freshness.
 
         // Step 1: Refresh Profile (Level, Exp)
         PlayerApi.Instance.GetMyProfile(
@@ -428,10 +442,32 @@ public class PlayerHUDController : MonoBehaviour
             }
         );
 
-        // Step 2: Character Stats (Current HP, Max HP) are now updated in real-time via PlayerEntity.OnHealthChanged event.
-        // We no longer poll CharacterApi.Instance.GetMyStats here to save HTTP traffic.
-
         RefreshCurrencyBalance();
+    }
+
+    private void EnsureFilledImageMode(Image img)
+    {
+        if (img == null) return;
+        if (img.type != Image.Type.Filled)
+        {
+            img.type = Image.Type.Filled;
+            img.fillMethod = Image.FillMethod.Horizontal;
+            img.fillOrigin = (int)Image.OriginHorizontal.Left;
+        }
+    }
+
+    public void ApplyCorruption(float corruptionLevel)
+    {
+        FindHUDReferences();
+        if (corruptionText != null)
+        {
+            corruptionText.text = $"{Mathf.RoundToInt(corruptionLevel)}/100";
+        }
+        if (corruptionBarImage != null)
+        {
+            EnsureFilledImageMode(corruptionBarImage);
+            corruptionBarImage.fillAmount = Mathf.Clamp01(corruptionLevel / 100f);
+        }
     }
 
     public void ApplyStats(PlayerStatsResponse stats)
@@ -536,6 +572,7 @@ public class PlayerHUDController : MonoBehaviour
 
         if (corruptionBarImage != null)
         {
+            EnsureFilledImageMode(corruptionBarImage);
             corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
         }
 
@@ -548,16 +585,14 @@ public class PlayerHUDController : MonoBehaviour
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);
 
-        if (expBarImage != null)
+        if (expBarImage != null || expText != null)
         {
-            // Experience required formula: (Level - 1) * 100
             int level = profile.Level;
             int totalExp = profile.ExperiencePoints;
-            int baseExpForLevel = (level - 1) * 100;
-            int currentExpInLevel = Mathf.Max(0, totalExp - baseExpForLevel);
-            int requiredExpForNextLevel = 100; // Each level step needs 100 exp from the previous
+            int targetExp = (level - 1) * 100;
+            if (targetExp <= 0) targetExp = 100;
 
-            float expRatio = (float)currentExpInLevel / requiredExpForNextLevel;
+            float expRatio = (float)totalExp / targetExp;
             if (level >= 100)
             {
                 expRatio = 1f;
@@ -565,10 +600,14 @@ public class PlayerHUDController : MonoBehaviour
             }
             else
             {
-                if (expText != null) expText.text = $"EXP: {currentExpInLevel}/{requiredExpForNextLevel}";
+                if (expText != null) expText.text = $"EXP: {totalExp}/{targetExp}";
             }
 
-            expBarImage.fillAmount = Mathf.Clamp01(expRatio);
+            if (expBarImage != null)
+            {
+                EnsureFilledImageMode(expBarImage);
+                expBarImage.fillAmount = Mathf.Clamp01(expRatio);
+            }
         }
     }
 
