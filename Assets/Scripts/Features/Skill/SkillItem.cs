@@ -89,10 +89,33 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
             }
         }
 
-        // 3. Trạng thái Đã mở khóa / Chưa mở khóa (Block / Lock overlay)
+        // 3. Trạng thái Đã mở khóa / Chưa mở khóa (Block / Lock overlay / DimBg)
         if (lockOverlay != null)
         {
             lockOverlay.SetActive(!isUnlocked);
+        }
+
+        // Tự động tìm và ẩn DimBg / Clock trong child "block" nếu có để bỏ nền đen mờ
+        Transform blockTr = transform.Find("block");
+        if (blockTr != null)
+        {
+            Transform dimBg = blockTr.Find("DimBg");
+            if (dimBg != null)
+            {
+                dimBg.gameObject.SetActive(!isUnlocked);
+            }
+
+            Transform clock = blockTr.Find("Clock");
+            if (clock != null)
+            {
+                clock.gameObject.SetActive(!isUnlocked);
+            }
+        }
+
+        Transform rootDimBg = transform.Find("DimBg");
+        if (rootDimBg != null)
+        {
+            rootDimBg.gameObject.SetActive(!isUnlocked);
         }
 
         if (levelText != null)
