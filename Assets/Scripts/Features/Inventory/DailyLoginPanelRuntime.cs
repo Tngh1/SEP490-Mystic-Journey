@@ -45,10 +45,12 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         BindUi();
         BindEvents();
         CloseRetroClaimPopup();
+        UpdateMonthText();
     }
 
     private void OnEnable()
     {
+        UpdateMonthText();
         LoadDaily(false);
     }
 
@@ -56,6 +58,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
     {
         BindUi();
         BindEvents();
+        UpdateMonthText();
 
         if (requestInFlight)
             return;
@@ -111,6 +114,16 @@ public class DailyLoginPanelRuntime : MonoBehaviour
             });
     }
 
+    private void UpdateMonthText()
+    {
+        if (monthsText == null)
+            return;
+
+        int m = (status != null && status.CurrentMonth > 0) ? status.CurrentMonth : DateTime.UtcNow.Month;
+        int y = (status != null && status.CurrentYear > 0) ? status.CurrentYear : DateTime.UtcNow.Year;
+        monthsText.text = $"Month {m}/{y}";
+    }
+
     private void Render()
     {
         if (uiDailyLogin == null)
@@ -120,12 +133,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         var currentDay = DateTime.UtcNow.Day; // Đồng bộ múi giờ UTC với backend
         var list = new List<UIItemDisplayData>();
 
-        if (monthsText != null)
-        {
-            var m = status?.CurrentMonth ?? DateTime.UtcNow.Month;
-            var y = status?.CurrentYear ?? DateTime.UtcNow.Year;
-            monthsText.text = $"Month {m}/{y}";
-        }
+        UpdateMonthText();
 
         foreach (var reward in rewards.OrderBy(r => r.DayNumber))
         {
