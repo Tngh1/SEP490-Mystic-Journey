@@ -182,66 +182,106 @@ namespace MysticJourney.API.Core
                 if (requiresAuth && request.responseCode == 401)
                 {
                     string rt = GetRefreshToken();
-                    if (!string.IsNullOrEmpty(rt) && !_isRefreshing)
+                    if (!string.IsNullOrEmpty(rt))
                     {
-                        // Refresh token
-                        bool refreshed = false;
-                        yield return StartCoroutine(RefreshAccessTokenCoroutine(rt, success => refreshed = success));
-
-                        if (refreshed)
+                        // Một request khác đang refresh → chờ nó xong rồi retry, đừng logout.
+                        if (_isRefreshing)
                         {
-                            Debug.Log($"[ApiClient] Token refreshed. Retrying {method} {url}");
-                            // Lần 2: retry với access token mới
-                            using (var retry = new UnityWebRequest(url, method))
-                            {
-                                if (jsonBody != null)
-                                    retry.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
-                                retry.downloadHandler = new DownloadHandlerBuffer();
-                                retry.timeout = ApiConfig.Timeout;
-                                SetCommonHeaders(retry, requiresAuth);
-                                yield return retry.SendWebRequest();
-                                HandleResponse(retry, onSuccess, onError);
-                            }
+                            while (_isRefreshing) yield return null;
+                            yield return StartCoroutine(SendOnce(method, url, jsonBody, onSuccess, onError, requiresAuth));
                             yield break;
                         }
-                        else
+
+                        var outcome = RefreshOutcome.Rejected;
+                        yield return StartCoroutine(RefreshAccessTokenCoroutine(rt, r => outcome = r));
+
+                        if (outcome == RefreshOutcome.Success)
                         {
-                            // Refresh thất bại (do đã bị đè session hoặc token hết hạn) → clear token và logout về MainMenu
-                            Debug.LogWarning("[ApiClient] Refresh token failed. Session expired or overridden. Clearing token and logging out.");
-                            ClearToken();
-                            MysticJourney.Core.Services.SessionService.Logout();
+                            Debug.Log($"[ApiClient] Token refreshed. Retrying {method} {url}");
+                            yield return StartCoroutine(SendOnce(method, url, jsonBody, onSuccess, onError, requiresAuth));
+                            yield break;
+                        }
+
+                        if (outcome == RefreshOutcome.NetworkError)
+                        {
+                            // Không gọi được server để refresh → giữ session, người chơi thử lại khi có mạng.
+                            Debug.LogWarning("[ApiClient] Refresh unreachable (network error). Keeping session.");
                             onError?.Invoke(new ApiException
                             {
-                                StatusCode = 401,
-                                ErrorCode = "SESSION_EXPIRED",
-                                Message = "Your account has been logged in on another device. Please log in again."
+                                StatusCode = 0,
+                                ErrorCode = "NETWORK_ERROR",
+                                Message = "Cannot reach the server. Check your connection and try again."
                             });
                             yield break;
                         }
+
+                        // Rejected: server từ chối refresh token (hết hạn hoặc session bị đè).
+                        Debug.LogWarning("[ApiClient] Refresh token rejected. Session expired or overridden.");
+                        ClearToken();
+                        MysticJourney.Core.Services.SessionService.Logout();
+                        onError?.Invoke(new ApiException
+                        {
+                            StatusCode = 401,
+                            ErrorCode = "SESSION_EXPIRED",
+                            Message = "Your session has ended. Please log in again."
+                        });
+                        yield break;
                     }
                 }
 
-                HandleResponse(request, onSuccess, onError);
+                HandleResponse(request, onSuccess, onError, requiresAuth);
             }
         }
 
-        // Coroutine gọi /api/auth/refresh-token, trả về true nếu thành công
-        private IEnumerator RefreshAccessTokenCoroutine(string refreshToken, Action<bool> onDone)
+        // Gửi đúng 1 lần, không refresh/retry. Dùng cho lần retry sau khi đã có token mới.
+        private IEnumerator SendOnce<T>(string method, string url, string jsonBody, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
+        {
+            using (var request = new UnityWebRequest(url, method))
+            {
+                if (jsonBody != null)
+                    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.timeout = ApiConfig.Timeout;
+                SetCommonHeaders(request, requiresAuth);
+                yield return request.SendWebRequest();
+                HandleResponse(request, onSuccess, onError, requiresAuth);
+            }
+        }
+
+        // Kết quả của một lần refresh token. Phân biệt "server từ chối" với "không gọi được server".
+        private enum RefreshOutcome
+        {
+            Success,
+            Rejected,     // Server trả 4xx → refresh token hết hạn hoặc session bị đè
+            NetworkError  // Không kết nối được → session vẫn có thể còn hợp lệ
+        }
+
+        // Coroutine gọi /api/auth/refresh-token.
+        // Trả về NetworkError nếu không gọi được server (giữ session), Rejected nếu server từ chối.
+        private IEnumerator RefreshAccessTokenCoroutine(string refreshToken, Action<RefreshOutcome> onDone)
         {
             _isRefreshing = true;
             string url = ApiConfig.BaseUrl + ApiConfig.AuthRefreshToken;
-            string body = $"{{\"refreshToken\":\"{refreshToken}\"}}";
+            string body = JsonConvert.SerializeObject(new { refreshToken });
+            var outcome = RefreshOutcome.Rejected;
 
             using (var req = new UnityWebRequest(url, "POST"))
             {
                 req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.timeout = ApiConfig.Timeout;
-                req.SetRequestHeader("Content-Type", "application/json");
-                req.SetRequestHeader("Accept", "application/json");
+                req.SetRequestHeader("Content-Type", ApiConfig.ContentType);
+                req.SetRequestHeader("Accept", ApiConfig.Accept);
                 yield return req.SendWebRequest();
 
-                if (req.result == UnityWebRequest.Result.Success && req.responseCode < 400)
+                if (req.result == UnityWebRequest.Result.ConnectionError ||
+                    req.result == UnityWebRequest.Result.DataProcessingError)
+                {
+                    // Mất mạng / timeout → chưa biết session còn hợp lệ hay không, đừng logout.
+                    Debug.LogWarning($"[ApiClient] Token refresh unreachable: {req.error}");
+                    outcome = RefreshOutcome.NetworkError;
+                }
+                else if (req.responseCode < 400)
                 {
                     try
                     {
@@ -256,9 +296,11 @@ namespace MysticJourney.API.Core
                             if (!string.IsNullOrEmpty(newRefreshToken))
                                 SaveRefreshToken(newRefreshToken);
                             Debug.Log("[ApiClient] Access token refreshed successfully.");
-                            onDone?.Invoke(true);
-                            _isRefreshing = false;
-                            yield break;
+                            outcome = RefreshOutcome.Success;
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[ApiClient] Refresh response had no access token.");
                         }
                     }
                     catch (Exception ex)
@@ -266,11 +308,14 @@ namespace MysticJourney.API.Core
                         Debug.LogWarning($"[ApiClient] Failed to parse refresh response: {ex.Message}");
                     }
                 }
-
-                Debug.LogWarning($"[ApiClient] Token refresh failed. Code={req.responseCode}");
-                onDone?.Invoke(false);
-                _isRefreshing = false;
+                else
+                {
+                    Debug.LogWarning($"[ApiClient] Token refresh rejected. Code={req.responseCode}");
+                }
             }
+
+            _isRefreshing = false;
+            onDone?.Invoke(outcome);
         }
 
         // ── Internal Helpers ──────────────────────────────────────
@@ -298,7 +343,7 @@ namespace MysticJourney.API.Core
         }
 
         // Xử lý response: kiểm tra lỗi → parse JSON → gọi callback
-        private void HandleResponse<T>(UnityWebRequest request, Action<T> onSuccess, Action<ApiException> onError)
+        private void HandleResponse<T>(UnityWebRequest request, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
         {
             string rawBody = request.downloadHandler?.text ?? string.Empty;
 
@@ -341,7 +386,11 @@ namespace MysticJourney.API.Core
                 Debug.LogError($"[ApiClient] ❌ HTTP {request.responseCode} on {request.url} | ErrorCode={errorCode} | Message={errorMsg}");
                 Debug.LogError($"[ApiClient] Raw body: {rawBody}");
 
-                if (request.responseCode == 401 || string.Equals(errorCode, "SESSION_OVERRIDDEN", StringComparison.OrdinalIgnoreCase))
+                // Chỉ logout khi request CÓ mang token mà vẫn bị từ chối. Login/register dùng
+                // requiresAuth=false: sai mật khẩu cũng trả 401, logout ở đó là reload
+                // MainMenuScene ngay dưới form đăng nhập.
+                if (requiresAuth &&
+                    (request.responseCode == 401 || string.Equals(errorCode, "SESSION_OVERRIDDEN", StringComparison.OrdinalIgnoreCase)))
                 {
                     Debug.LogWarning("[ApiClient] Session overridden or unauthorized. Clearing token and logging out to MainMenu.");
                     ClearToken();

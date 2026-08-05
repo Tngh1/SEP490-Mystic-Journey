@@ -115,41 +115,6 @@ namespace MysticJourney.API.Endpoints
                 onError, requiresAuth: true);
         }
 
-        [Serializable]
-        public class ClaimDropRequest
-        {
-            public string DropType;
-            public int Quantity;
-            public int ItemId;
-            public string ItemName;
-        }
-
-        [Serializable]
-        public class ClaimDropResponse
-        {
-            public bool Success;
-            public string Message;
-            public double NewGold;
-            public int NewExperience;
-            public int NewLevel;
-        }
-
-        public void ClaimDrop(string dropType, int quantity, int itemId, string itemName, Action<ClaimDropResponse> onSuccess, Action<ApiException> onError = null)
-        {
-            var body = new ClaimDropRequest
-            {
-                DropType = dropType ?? "",
-                Quantity = quantity,
-                ItemId = itemId,
-                ItemName = itemName ?? ""
-            };
-
-            ApiClient.Instance.Post<ClaimDropRequest, ClaimDropResponse>(
-                ApiConfig.WorldClaimDrop, body,
-                response => onSuccess?.Invoke(response),
-                onError, requiresAuth: true);
-        }
-
         // ── Private: Áp dụng vị trí world ────────────
         private static void ApplyWorldPosition(PlayerWorldPositionResponse position)
         {
