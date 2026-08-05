@@ -41,6 +41,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         AutoFindButtons();
         BindButtons();
         EnsureButtonRaycasts();
+        EnsureHoverEffects();
     }
 
     private void AutoFindButtons()
@@ -130,6 +131,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         AutoFindButtons();
         BindButtons();
         EnsureButtonRaycasts();
+        EnsureHoverEffects();
         ResetAddFriendButton();
         RefreshAddFriendVisibility();
 
@@ -247,6 +249,31 @@ public class UIPlayerContextMenu : MonoBehaviour
         if (graphic != null)
         {
             graphic.raycastTarget = true;
+        }
+    }
+
+    /// <summary>
+    /// Gắn hiệu ứng phóng to khi rê chuột, dùng đúng component UIHoverScaleEffect mà HUD
+    /// đang dùng (nó sống trong UIPartyPanel.cs — không có helper dùng chung, mỗi panel tự
+    /// opt-in bằng đúng 2 dòng này).
+    ///
+    /// CHỈ gắn cho 3 nút trong MenuBox, KHÔNG quét GetComponentsInChildren&lt;Button&gt;():
+    /// BackgroundBlocker (nút chặn click phủ toàn màn hình, anh em của MenuBox) cũng là một
+    /// Button, nên quét cả cây sẽ phóng to lớp chặn vô hình đó theo con trỏ.
+    /// </summary>
+    private void EnsureHoverEffects()
+    {
+        EnsureHoverEffect(viewProfileButton);
+        EnsureHoverEffect(addFriendButton);
+        EnsureHoverEffect(reportButton);
+    }
+
+    private static void EnsureHoverEffect(Button button)
+    {
+        if (button == null) return;
+        if (button.GetComponent<UIHoverScaleEffect>() == null)
+        {
+            button.gameObject.AddComponent<UIHoverScaleEffect>();
         }
     }
 

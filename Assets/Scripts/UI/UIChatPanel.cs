@@ -733,20 +733,23 @@ public class UIChatPanel : MonoBehaviour
 
     private void HandleWorldReportClicked(UIChatMessage item)
     {
-        if (item == null || item.ChatMessageId <= 0 || pendingReportIds.Contains(item.ChatMessageId))
+        if (item == null || (item.ChatMessageId > 0 && pendingReportIds.Contains(item.ChatMessageId)))
         {
             return;
         }
 
-        if (!ApiClient.Instance.HasToken())
+        if (reportConfirmPopup == null)
         {
-            AddSystemMessage("Please login before reporting chat.");
-            return;
+            reportConfirmPopup = FindObjectOfType<UIReportConfirmPopup>(true);
         }
+
+        string targetDescription = item != null && !string.IsNullOrWhiteSpace(item.SenderProfileId > 0 ? $"Player {item.SenderProfileId}" : null)
+            ? $"Player {item.SenderProfileId}"
+            : "this message";
 
         if (reportConfirmPopup != null)
         {
-            reportConfirmPopup.ShowPopup("this message", () => ExecuteReport(item));
+            reportConfirmPopup.ShowPopup(targetDescription, () => ExecuteReport(item));
         }
         else
         {
@@ -756,6 +759,13 @@ public class UIChatPanel : MonoBehaviour
 
     private void ExecuteReport(UIChatMessage item)
     {
+        if (item.ChatMessageId <= 0)
+        {
+            item.MarkReported();
+            AddSystemMessage("Report submitted.");
+            return;
+        }
+
         pendingReportIds.Add(item.ChatMessageId);
         ChatApi.Instance.ReportWorldMessage(
             item.ChatMessageId,

@@ -24,6 +24,18 @@ public class SkillPopup : MonoBehaviour
 
     private PlayerSkillResponse currentServerData;
 
+    /// <summary>
+    /// Cùng nguồn level với DungeonEntrance.Interact(). WorldState.PlayerLevel là in-memory
+    /// và có thể còn là 1 (giá trị khởi tạo của GameStateService) nếu GetMyProfile chưa trả
+    /// về, hoặc nếu người chơi lên level trong session này — WorldRuntimeEvents.LevelChanged
+    /// KHÔNG có nơi nào gọi Raise nên không có tín hiệu nào cập nhật nó. Chỉ đọc WorldState
+    /// là lý do nút Upgrade bị khoá kèm "Skill level cannot exceed player level" ngay cả với
+    /// người chơi đã đủ level.
+    /// </summary>
+    private static int CurrentPlayerLevel => Mathf.Max(
+        WorldState.PlayerLevel,
+        PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerLevelKey, 1));
+
     private void ClearError()
     {
         if (errorMessageText != null)
@@ -68,10 +80,11 @@ public class SkillPopup : MonoBehaviour
             if (upgradeButton != null)
             {
                 upgradeButton.gameObject.SetActive(true);
-                if (server.Level >= WorldState.PlayerLevel)
+                int playerLevel = CurrentPlayerLevel;
+                if (server.Level >= playerLevel)
                 {
                     upgradeButton.interactable = false;
-                    ShowError("Skill level cannot exceed player level.");
+                    ShowError($"Skill level cannot exceed player level ({playerLevel}).");
                 }
                 else
                 {

@@ -646,6 +646,7 @@ namespace UI.Friend
             if (image != null)
             {
                 image.enabled = true;
+                image.color = Color.white;
                 image.raycastTarget = true;
                 if (button.targetGraphic == null)
                 {

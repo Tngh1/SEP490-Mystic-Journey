@@ -107,7 +107,7 @@ public class UIPartyPanel : MonoBehaviour
 
     // ─────────────────────────────────────────────────────────────────────────
     // Party event wiring — keep instance-level subscriptions pointed at the
-    // current PartyLobby.Local (which changes as we join / leave / get promoted).
+    // current PartyLobby.Local (which changes as we join / leave / get disbanded).
     // ─────────────────────────────────────────────────────────────────────────
 
     private void RehookPartyEvents()
@@ -771,10 +771,13 @@ public class UIPartyPanel : MonoBehaviour
                 var label = startButton.GetComponentInChildren<TMP_Text>(true);
                 if (label != null) label.text = "START";
 
+                // Năng lượng KHÔNG chặn ở đây nữa — chỉ kiểm tra khi mở rương trong dungeon
+                // (backend trừ energy ở claim-reward, BR-10). Nhãn EnergyCost vẫn tô đỏ để
+                // báo trước là sẽ không nhận được thưởng nếu không kịp hồi năng lượng.
                 if (inParty)
-                    startButton.interactable = party.CanStartDungeon && playerEnergy >= energyCost;
+                    startButton.interactable = party.CanStartDungeon;
                 else
-                    startButton.interactable = playerEnergy >= energyCost;
+                    startButton.interactable = true;
 
                 startButton.onClick.AddListener(OnStartClick);
             }
@@ -812,12 +815,6 @@ public class UIPartyPanel : MonoBehaviour
 
     private void OnStartClick()
     {
-        if (playerEnergy < energyCost)
-        {
-            WorldRuntimeEvents.RaiseMessage("Not enough energy for this dungeon!");
-            return;
-        }
-
         var party = PartyLobby.Local;
         if (party != null && party.IsLocalHost)
         {
