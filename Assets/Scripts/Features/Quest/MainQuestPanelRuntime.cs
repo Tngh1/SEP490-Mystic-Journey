@@ -103,7 +103,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
-        
+
         if (QuestManager.Instance != null)
         {
             QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
