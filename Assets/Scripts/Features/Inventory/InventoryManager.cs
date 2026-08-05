@@ -167,6 +167,11 @@ public class InventoryManager : MonoBehaviour
         BindEvents();
         UpdatePlayerAvatar();
 
+        if (force)
+        {
+            _requestInFlight = false;
+        }
+
         if (_requestInFlight)
             return;
 

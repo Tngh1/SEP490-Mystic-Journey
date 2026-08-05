@@ -139,9 +139,18 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (popupManager == null)
+        {
+            popupManager = FindFirstObjectByType<SkillPopup>(FindObjectsInactive.Include);
+        }
+
         if (popupManager != null)
         {
             popupManager.ShowPopup(visualData, serverData);
+        }
+        else
+        {
+            Debug.LogError("[SkillItem] Cannot show skill detail popup: SkillPopup reference was not found in the scene!");
         }
     }
 
