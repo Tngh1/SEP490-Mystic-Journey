@@ -671,6 +671,16 @@ public class QuestManager : MonoBehaviour
         UpsertQuestState(response);
         _pendingBatch.Remove(response.QuestId);
         OnQuestProgressChanged?.Invoke(response.QuestId);
+
+        // Cùng quy tắc với nhánh load: quest non-Collect đã Completed thì tự nhận thưởng ngay,
+        // không đợi reload. Collect vẫn phải nộp cho NPC nên bỏ qua.
+        if (QuestUtils.IsStatus(response, "Completed")
+            && !string.Equals(response.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase))
+        {
+            int claimId = response.QuestId;
+            ClaimReward(claimId,
+                onError: err => Debug.LogWarning($"[QuestManager] Auto-claim fail questId={claimId}: {err}"));
+        }
     }
 
     private void UpsertQuestState(PlayerQuestResponse response)

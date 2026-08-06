@@ -415,7 +415,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         if (QuestUtils.IsStatus(active, "Completed"))
         {
-            SetText(trackerStatus, "<color=#55FF55>Completed</color>");
+            // Completed nhưng chưa Claimed: phần thưởng vẫn đang chờ. Nói rõ bước kế tiếp
+            // thay vì chỉ dán nhãn "Completed" — nếu không player không biết phải làm gì.
+            SetText(trackerStatus, "<color=#55FF55>Come back to claim your reward.</color>");
         }
         else if (QuestUtils.IsStatus(active, "NotStarted"))
         {

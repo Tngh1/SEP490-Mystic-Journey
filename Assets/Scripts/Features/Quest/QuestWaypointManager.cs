@@ -538,6 +538,12 @@ namespace MysticJourney.Features.Quest
                 {
                     if (i == null || !IsAvailableWaypointTarget(i)) continue;
 
+                    // Vật cần nhặt không bao giờ là NPC. Phép so tên bên dưới có chiều
+                    // ngược (cleanTarget chứa gName), nên NPC "Natalie" khớp với mục tiêu
+                    // "Natalie's Memory" rồi thắng ở vòng chọn "gần nhất" khi player đứng
+                    // cạnh NPC — mũi tên chỉ sai về NPC thay vì căn nhà chứa vật phẩm.
+                    if (i.Kind == WorldInteractableKind.Npc) continue;
+
                     bool isMatch = false;
                     if (i.QuestId.HasValue && i.QuestId.Value == quest.QuestId && quest.QuestId > 0)
                     {
@@ -594,6 +600,9 @@ namespace MysticJourney.Features.Quest
                     {
                         var parentInteractable = go.GetComponentInParent<WorldInteractable>();
                         if (parentInteractable != null && !IsAvailableWaypointTarget(parentInteractable))
+                            continue;
+                        // Cùng lý do như trên: chặn NPC lọt vào qua phép so tên chiều ngược.
+                        if (parentInteractable != null && parentInteractable.Kind == WorldInteractableKind.Npc)
                             continue;
 
                         float d = Vector3.Distance(playerPos, go.transform.position);
