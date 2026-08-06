@@ -683,17 +683,30 @@ public class InventoryManager : MonoBehaviour
                 }
             });
 
+            // ponytail: backend không seed PlayerSkins row cho skin mặc định khi tạo
+            // account mới, nên nó về PlayerSkinId=0/IsEquipped=false và bị khoá. Skin
+            // mặc định thì luôn sở hữu, nên suy ra ở client. Xoá khối này khi API trả
+            // đúng row đã equip lúc tạo account.
+            bool anySkinEquipped = false;
+            foreach (var skin in filteredSkins)
+                if (skin.IsEquipped) { anySkinEquipped = true; break; }
+
             foreach (var skin in filteredSkins)
             {
                 Sprite icon = ResolveIcon(skin.SkinId, skin.IconUrl);
+                bool isDefaultSkin = IsDefaultSkin(skin.SkinId, skin.SkinName);
+                bool owned = skin.PlayerSkinId > 0 || isDefaultSkin;
+                bool equipped = skin.IsEquipped || (isDefaultSkin && !anySkinEquipped);
+
                 displayList.Add(new UIItemDisplayData
                 {
-                    itemId = skin.PlayerSkinId,  // dùng PlayerSkinId làm id hiển thị (0 = chưa sở hữu)
+                    // itemId > 0 = đã sở hữu. Default chưa có row thì mượn -1 để mở khoá.
+                    itemId = skin.PlayerSkinId > 0 ? skin.PlayerSkinId : (owned ? -1 : 0),
                     itemName = skin.SkinName,
                     icon = icon,
                     quantity = 1,
                     rarity = skin.SkinRarity,
-                    isEquipped = skin.IsEquipped,
+                    isEquipped = equipped,
                     rawData = skin                  // PlayerSkinSummaryResponse để popup dùng
                 });
             }
@@ -1291,16 +1304,16 @@ public class InventoryManager : MonoBehaviour
         {
             foreach (var skin in _summary.PlayerSkins)
             {
-                if (skin != null && skin.IsEquipped && skin.SkinId > 0)
-                {
-                    bool isDefault = skin.SkinName != null && skin.SkinName.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                    if (!isDefault)
-                    {
-                        sprite = ResolveIcon(skin.SkinId, skin.IconUrl);
-                        if (sprite != null)
-                            break;
-                    }
-                }
+                if (skin == null || !skin.IsEquipped || skin.SkinId <= 0)
+                    continue;
+                if (IsSkinForAnotherClass(skin.SkinId, skin.SkinName, pClass))
+                    continue;
+
+                // Default skins are resolved here too: the SkinDatabase carries a preview
+                // sprite per skinId, so this stays class-correct without Inspector wiring.
+                sprite = ResolveIcon(skin.SkinId, skin.IconUrl);
+                if (sprite != null)
+                    break;
             }
         }
 
@@ -1323,11 +1336,39 @@ public class InventoryManager : MonoBehaviour
     private Sprite ResolveClassSprite(string playerClass)
     {
         var c = (playerClass ?? string.Empty).Trim();
-        if (c.Equals("Knight", System.StringComparison.OrdinalIgnoreCase)) return knightIdleSprite;
-        if (c.Equals("Archer", System.StringComparison.OrdinalIgnoreCase)) return archerIdleSprite;
-        if (c.Equals("Mage", System.StringComparison.OrdinalIgnoreCase)) return mageIdleSprite;
+        if (c.Equals("Knight", System.StringComparison.OrdinalIgnoreCase)) return knightIdleSprite ?? ResolveClassSpriteFromDatabase(CharacterClass.Knight);
+        if (c.Equals("Archer", System.StringComparison.OrdinalIgnoreCase)) return archerIdleSprite ?? ResolveClassSpriteFromDatabase(CharacterClass.Archer);
+        if (c.Equals("Mage", System.StringComparison.OrdinalIgnoreCase)) return mageIdleSprite ?? ResolveClassSpriteFromDatabase(CharacterClass.Mage);
         // Class lạ/chưa set: dùng Knight làm mặc định thay vì để trống hẳn.
         return knightIdleSprite;
+    }
+
+    // Idle sprite fields are wired per-scene and are easy to leave empty (Archer was),
+    // which silently showed the wrong class. The SkinDatabase already maps class -> preview.
+    private Sprite ResolveClassSpriteFromDatabase(CharacterClass characterClass)
+    {
+        if (_skinDatabase == null)
+            _skinDatabase = SkinDatabaseSO.LoadDefault();
+        if (_skinDatabase?.skinPrefabs == null)
+            return null;
+
+        Sprite fallback = null;
+        foreach (var entry in _skinDatabase.skinPrefabs)
+        {
+            if (entry.characterClass != characterClass || entry.skinId <= 0)
+                continue;
+            if (!_skinDatabase.TryGetPreviewSprite(entry.skinId, out var sprite))
+                continue;
+
+            bool isDefault = entry.skinName != null &&
+                entry.skinName.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            if (isDefault)
+                return sprite;
+
+            fallback ??= sprite;
+        }
+
+        return fallback;
     }
 
     // ── Ô trang bị (CharacterPreviewArea > EquipSlots) ───────────────────────────
@@ -1506,6 +1547,21 @@ public class InventoryManager : MonoBehaviour
             return previewSprite;
 
         return null;
+    }
+
+    private bool IsDefaultSkin(int skinId, string skinName)
+    {
+        if (_skinDatabase == null)
+            _skinDatabase = SkinDatabaseSO.LoadDefault();
+
+        if (_skinDatabase != null && _skinDatabase.TryGetSkinData(skinId, out var skinData))
+        {
+            if (!string.IsNullOrWhiteSpace(skinData.skinName))
+                return skinData.skinName.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        return !string.IsNullOrWhiteSpace(skinName)
+            && skinName.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private bool IsSkinForAnotherClass(int skinId, string skinName, string playerClass)
