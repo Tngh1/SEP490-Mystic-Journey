@@ -80,6 +80,23 @@ public class PlayerUIHotkeys : MonoBehaviour
             ui.OpenPanel(ui.inventoryPanel); // OpenPanel toggles if already open
     }
 
+    /// <summary>
+    /// False khi người chơi tự ẩn minimap bằng phím Map (bước 3 của vòng lặp).
+    /// <see cref="MainFeatureUnlockRuntime.Apply"/> đọc cờ này: nó chạy lại mỗi lần
+    /// LevelChanged/QuestsChanged và SetActive(true) lại MiniMapButton, nên nếu không
+    /// tôn trọng lựa chọn của người chơi thì minimap sẽ tự hiện lại giữa chừng.
+    /// </summary>
+    public static bool MinimapVisible { get; private set; } = true;
+
+    // Bước hiện tại của vòng lặp phím Map: 0 = chưa mở gì, 1 = Map Panel đang mở,
+    // 2 = Map Panel đã đóng, 3 = minimap đang ẩn. Nhấn tiếp từ 3 quay lại 0.
+    private int _mapCycleStep;
+
+    /// <summary>
+    /// Phím Map chạy vòng 4 bước: mở Map Panel → đóng Map Panel → ẩn minimap trên HUD →
+    /// hiện lại minimap → lặp lại. Phím nào chạy vòng này là do binding "Map" quyết định,
+    /// nên người chơi đổi phím trong GameSettingPanel (tab Controller) là ăn ngay.
+    /// </summary>
     private void ToggleMap()
     {
         if (WorldState.PlayerLevel < MainFeatureUnlockRuntime.MiniMapButtonLevel) return;
@@ -87,10 +104,59 @@ public class PlayerUIHotkeys : MonoBehaviour
         var ui = UIManager.Instance;
         if (ui == null || ui.mapPanel == null || !CanToggle(ui, ui.mapPanel)) return;
 
-        // Trong dungeon không cho mở, nhưng phím M vẫn phải ĐÓNG được panel đang mở
-        // (ví dụ mở panel rồi mới vào dungeon qua cổng) — nếu không người chơi bị kẹt.
-        if (!ui.IsPanelOpen(ui.mapPanel) && !MainMapPanelRuntime.CanOpen) return;
+        // Đồng bộ vòng lặp với thực tế trước khi bước tiếp: panel còn được mở bằng nút MiniMap
+        // và đóng bằng nút Continue / khi mở panel khác / khi vào dungeon. Không sync thì lần
+        // nhấn kế tiếp nhảy sai bước — ví dụ ẩn minimap trong khi Map Panel vẫn đang mở.
+        if (ui.IsPanelOpen(ui.mapPanel)) _mapCycleStep = 1;
+        else if (_mapCycleStep == 1) _mapCycleStep = 0;
 
-        ui.OpenPanel(ui.mapPanel);
+        _mapCycleStep = _mapCycleStep >= 3 ? 0 : _mapCycleStep + 1;
+
+        switch (_mapCycleStep)
+        {
+            case 1:
+                // Trong dungeon không cho mở: panel chỉ dùng để dịch chuyển map, mà dịch chuyển
+                // đang bị chặn. Đứng yên ở bước 0 để lần nhấn sau thử mở lại từ đầu.
+                if (!MainMapPanelRuntime.CanOpen) { _mapCycleStep = 0; return; }
+                ui.ShowPanel(ui.mapPanel);
+                break;
+
+            case 2:
+                ui.ClosePanel(ui.mapPanel);
+                break;
+
+            case 3:
+                SetMinimapVisible(false);
+                break;
+
+            default: // 0 — hết vòng, trả HUD về trạng thái ban đầu
+                SetMinimapVisible(true);
+                break;
+        }
+    }
+
+    private static GameObject _miniMapButton;
+
+    private static void SetMinimapVisible(bool visible)
+    {
+        MinimapVisible = visible;
+
+        if (_miniMapButton == null)
+            _miniMapButton = FindSceneObject("MiniMapButton");
+
+        if (_miniMapButton != null)
+            _miniMapButton.SetActive(visible);
+    }
+
+    private static GameObject FindSceneObject(string objectName)
+    {
+        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        foreach (var obj in objects)
+        {
+            if (obj != null && obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
+                return obj;
+        }
+
+        return null;
     }
 }

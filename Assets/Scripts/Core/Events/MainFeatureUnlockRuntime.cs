@@ -72,6 +72,14 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
 
         SetFeatureVisible("InventoryButton", "InventoryPanel", level >= InventoryButtonLevel);
         SetFeatureVisible("MiniMapButton", "MiniMap", level >= MiniMapButtonLevel);
+
+        // Người chơi tự ẩn minimap được bằng phím Map. Apply() chạy lại theo
+        // LevelChanged/QuestsChanged — tức ngay khi nhận exp — nên không tôn trọng lựa chọn
+        // đó thì minimap tự hiện lại giữa chừng. Tắt riêng bằng SetVisible thay vì gộp cờ vào
+        // dòng trên: SetFeatureVisible khi ẩn còn tắt luôn cha "MiniMap", mà cha đã tắt thì
+        // sau này bật lại mỗi nút con sẽ không có gì hiện lên.
+        if (level >= MiniMapButtonLevel && !PlayerUIHotkeys.MinimapVisible)
+            SetVisible("MiniMapButton", false);
         SetFeatureVisible("ShopButton", "ShopPanel", level >= ShopButtonLevel);
         SetFeatureVisible("GachaButton", "GachaPanel", level >= GachaButtonLevel);
         SetFeatureVisible("SkillButton", "SkillPanel", level >= SkillButtonLevel);
