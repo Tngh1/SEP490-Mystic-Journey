@@ -2,6 +2,7 @@ using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
+using UnityEngine.Video;
 
 [RequireComponent(typeof(WorldInteractable))]
 public class OriginTreeInteractable : MonoBehaviour
@@ -16,11 +17,22 @@ public class OriginTreeInteractable : MonoBehaviour
     [SerializeField] private Color healedColor = new Color(0.72f, 1f, 0.72f, 1f);
     [SerializeField] private float pulseScale = 1.04f;
 
+    [Header("Video")]
+    // Clip nằm trong Resources nên load bằng tên, không cần gắn vào scene.
+    // Chưa có file thì bỏ qua video và chỉ chạy hiệu ứng tween như trước.
+    [Tooltip("Tên VideoClip trong thư mục Resources.")]
+    [SerializeField] private string videoResourceName = "The_Purification_of_the_Origi_Tree";
+
+    [Tooltip("Thời gian chờ tối đa cho video.")]
+    [SerializeField] private float maxVideoWait = 30f;
+
     private WorldInteractable _interactable;
     private SpriteRenderer _treeRenderer;
     private Vector3 _baseScale;
     private bool _isHealing;
     private bool _healed;
+    private VideoPlayer _videoPlayer;
+    private bool _videoFinished;
 
     private void Awake()
     {
@@ -39,6 +51,8 @@ public class OriginTreeInteractable : MonoBehaviour
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshVisibility;
+        if (_videoPlayer != null)
+            _videoPlayer.loopPointReached -= OnVideoFinished;
     }
 
     public void StartHeal()
@@ -85,6 +99,10 @@ public class OriginTreeInteractable : MonoBehaviour
 
     private IEnumerator HealingSequence()
     {
+        // Video chạy sau khi API trả về OK, vì call đó tiêu 4 quyển sách và có thể fail.
+        // Phát cutscene trước rồi báo lỗi thiếu sách sẽ khó hiểu hơn là không phát.
+        yield return PlayPurificationVideo();
+
         var startColor = _treeRenderer != null ? _treeRenderer.color : Color.white;
         var elapsed = 0f;
         while (elapsed < healingDuration)
@@ -106,6 +124,57 @@ public class OriginTreeInteractable : MonoBehaviour
         _interactable.UpdateOverheadUI();
         WorldRuntimeEvents.RaiseMessage("The Origin Tree is healing. Talk to Lyra.");
     }
+
+    private IEnumerator PlayPurificationVideo()
+    {
+        if (string.IsNullOrEmpty(videoResourceName)) yield break;
+
+        var clip = Resources.Load<VideoClip>(videoResourceName);
+        if (clip == null)
+        {
+            // ponytail: chưa có file video thì chỉ cảnh báo và chạy tween.
+            // Thêm Assets/UI/Videos/Resources/<videoResourceName>.mp4 là tự động chạy.
+            Debug.LogWarning($"[OriginTreeInteractable] Không tìm thấy VideoClip '{videoResourceName}' trong Resources, bỏ qua cutscene.");
+            yield break;
+        }
+
+        if (_videoPlayer == null)
+        {
+            _videoPlayer = gameObject.AddComponent<VideoPlayer>();
+            _videoPlayer.playOnAwake = false;
+            _videoPlayer.loopPointReached += OnVideoFinished;
+        }
+
+        // Ẩn player trong lúc chiếu, giống IvyTree
+        var player = GameObject.FindGameObjectWithTag("Player");
+        SpriteRenderer[] playerSprites = null;
+        if (player != null)
+        {
+            playerSprites = player.GetComponentsInChildren<SpriteRenderer>();
+            foreach (var sp in playerSprites) sp.enabled = false;
+        }
+
+        _videoFinished = false;
+        _videoPlayer.clip = clip;
+        MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(_videoPlayer);
+        _videoPlayer.Play();
+
+        var elapsed = 0f;
+        while (!_videoFinished && elapsed < maxVideoWait)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        _videoFinished = false;
+
+        _videoPlayer.Stop();
+        MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(_videoPlayer);
+
+        if (playerSprites != null)
+            foreach (var sp in playerSprites) sp.enabled = true;
+    }
+
+    private void OnVideoFinished(VideoPlayer vp) => _videoFinished = true;
 
     private void RefreshVisibility()
     {
