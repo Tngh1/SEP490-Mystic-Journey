@@ -33,6 +33,15 @@ public class UIItemDetailPopup : MonoBehaviour
 
     [Header("Detail Panel - Icon")]
     [SerializeField] private Image itemIcon;
+    [SerializeField] private Image iconRarity;
+
+    [Header("Rarity Icons")]
+    [SerializeField] private Sprite iconCommon;
+    [SerializeField] private Sprite iconUncommon;
+    [SerializeField] private Sprite iconRare;
+    [SerializeField] private Sprite iconEpic;
+    [SerializeField] private Sprite iconLegendary;
+    [SerializeField] private Sprite iconMythic;
 
     [Header("Detail Panel - Buttons")]
     [SerializeField] private Button equipButton;
@@ -103,6 +112,14 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private void Awake()
     {
+        if (iconRarity == null && detailPanel != null)
+        {
+            Transform t = detailPanel.transform.Find("IconRarity");
+            if (t != null) iconRarity = t.GetComponent<Image>();
+        }
+
+        SetupHoverEffects();
+
         // Detail Buttons
         if (equipButton)      equipButton.onClick.AddListener(HandleEquipInitiated);
         if (unequipButton)    unequipButton.onClick.AddListener(HandleUnequip);
@@ -119,6 +136,18 @@ public class UIItemDetailPopup : MonoBehaviour
         if (btnMax)   btnMax.onClick.AddListener(() => ChangeConsumeQty(9999));
         if (confirmConsumeButton) confirmConsumeButton.onClick.AddListener(HandleConsumeConfirmed);
         if (cancelConsumeButton)  cancelConsumeButton.onClick.AddListener(Hide);
+    }
+
+    private void SetupHoverEffects()
+    {
+        foreach (var btn in GetComponentsInChildren<Button>(true))
+        {
+            if (btn == null || btn.name == "DimBackground") continue;
+            if (btn.GetComponent<UIHoverScaleEffect>() == null)
+            {
+                btn.gameObject.AddComponent<UIHoverScaleEffect>();
+            }
+        }
     }
 
     private void SwitchPanel(GameObject activePanel)
@@ -157,9 +186,19 @@ public class UIItemDetailPopup : MonoBehaviour
             SwitchPanel(detailPanel);
         }
 
-        if (itemNameText)        itemNameText.text        = item.ItemName ?? "Unknown";
+        Color rarityColor = GetRarityColor(item.ItemRarity);
+
+        if (itemNameText)
+        {
+            itemNameText.text = item.ItemName ?? "Unknown";
+            itemNameText.color = rarityColor;
+        }
         if (itemTypeText)        itemTypeText.text        = !string.IsNullOrEmpty(item.ItemSlot) ? item.ItemSlot : (item.ItemType ?? "");
-        if (itemRarityText)      itemRarityText.text      = item.ItemRarity ?? "";
+        if (itemRarityText)
+        {
+            itemRarityText.text = item.ItemRarity ?? "";
+            itemRarityText.color = rarityColor;
+        }
         if (itemDescriptionText) 
         {
             itemDescriptionText.text = item.ItemDescription ?? "";
@@ -169,6 +208,13 @@ public class UIItemDetailPopup : MonoBehaviour
             }
         }
         if (quantityText)        quantityText.text        = $"x{item.Quantity}";
+
+        if (iconRarity != null)
+        {
+            Sprite rSprite = GetRarityIcon(item.ItemRarity);
+            iconRarity.sprite = rSprite;
+            iconRarity.enabled = rSprite != null;
+        }
 
         if (itemIcon != null)
         {
@@ -256,11 +302,16 @@ public class UIItemDetailPopup : MonoBehaviour
     public void ShowEquipComparison(InventoryItemResponse equippedItem, Sprite oldIcon = null)
     {
         SwitchPanel(equipComparisonPanel);
+        EnsureStatIconsAsset();
 
         // Fill old item (Equipped)
         if (equippedItem != null)
         {
-            if (oldItemName) oldItemName.text = equippedItem.ItemName;
+            if (oldItemName)
+            {
+                oldItemName.text = equippedItem.ItemName;
+                oldItemName.color = GetRarityColor(equippedItem.ItemRarity);
+            }
             if (oldItemType) oldItemType.text = !string.IsNullOrEmpty(equippedItem.ItemSlot) ? equippedItem.ItemSlot : (equippedItem.ItemType ?? "");
             if (oldItemStats) oldItemStats.text = BuildStatsString(equippedItem);
             if (oldItemEffect) oldItemEffect.text = "None"; // Or fetch from item if applicable
@@ -271,7 +322,11 @@ public class UIItemDetailPopup : MonoBehaviour
         }
         else
         {
-            if (oldItemName) oldItemName.text = "None";
+            if (oldItemName)
+            {
+                oldItemName.text = "None";
+                oldItemName.color = Color.white;
+            }
             if (oldItemType) oldItemType.text = "";
             if (oldItemStats) oldItemStats.text = "";
             if (oldItemEffect) oldItemEffect.text = "";
@@ -281,7 +336,11 @@ public class UIItemDetailPopup : MonoBehaviour
         // Fill new item (New)
         if (_currentItem != null)
         {
-            if (newItemName) newItemName.text = _currentItem.ItemName;
+            if (newItemName)
+            {
+                newItemName.text = _currentItem.ItemName;
+                newItemName.color = GetRarityColor(_currentItem.ItemRarity);
+            }
             if (newItemType) newItemType.text = !string.IsNullOrEmpty(_currentItem.ItemSlot) ? _currentItem.ItemSlot : (_currentItem.ItemType ?? "");
             if (newItemStats) newItemStats.text = BuildStatsString(_currentItem, equippedItem);
             if (newItemEffect) newItemEffect.text = "None";
@@ -292,10 +351,20 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    private void EnsureStatIconsAsset()
+    {
+        var statIconsAsset = Resources.Load<TMP_SpriteAsset>("Sprite Assets/StatIcons");
+        if (statIconsAsset != null)
+        {
+            if (oldItemStats != null) oldItemStats.spriteAsset = statIconsAsset;
+            if (newItemStats != null) newItemStats.spriteAsset = statIconsAsset;
+        }
+    }
+
     private string BuildStatsString(InventoryItemResponse item, InventoryItemResponse oldItem = null)
     {
         string s = "";
-        void AddStat(string name, float val, float? oldVal = null, bool isPct = false) {
+        void AddStat(string iconName, string name, float val, float? oldVal = null, bool isPct = false) {
             if (val > 0) {
                 string vStr = isPct ? $"{val:F1}%" : $"{(int)val}";
                 string diffStr = "";
@@ -303,14 +372,14 @@ public class UIItemDetailPopup : MonoBehaviour
                     if (val > oldVal.Value) diffStr = " <color=green>↑</color>";
                     else if (val < oldVal.Value) diffStr = " <color=red>↓</color>";
                 }
-                s += $"{name}: +{vStr}{diffStr}\n";
+                s += $"<sprite name=\"{iconName}\"> {name}: +{vStr}{diffStr}\n";
             }
         }
-        AddStat("HP", item.BaseHp + item.BonusHp, oldItem != null ? oldItem.BaseHp + oldItem.BonusHp : (float?)null);
-        AddStat("ATK", item.BaseAtk + item.BonusAtk, oldItem != null ? oldItem.BaseAtk + oldItem.BonusAtk : (float?)null);
-        AddStat("DEF", item.BaseDef + item.BonusDef, oldItem != null ? oldItem.BaseDef + oldItem.BonusDef : (float?)null);
-        AddStat("Crit Rate", item.BonusCritRate, oldItem?.BonusCritRate, true);
-        AddStat("Crit Dmg", item.BonusCritDamage, oldItem?.BonusCritDamage, true);
+        AddStat("HPStats", "HP", item.BaseHp + item.BonusHp, oldItem != null ? oldItem.BaseHp + oldItem.BonusHp : (float?)null);
+        AddStat("DMGStats", "ATK", item.BaseAtk + item.BonusAtk, oldItem != null ? oldItem.BaseAtk + oldItem.BonusAtk : (float?)null);
+        AddStat("DEFStats", "DEF", item.BaseDef + item.BonusDef, oldItem != null ? oldItem.BaseDef + oldItem.BonusDef : (float?)null);
+        AddStat("CritStats", "Crit Rate", item.BonusCritRate, oldItem?.BonusCritRate, true);
+        AddStat("CritDMGStats", "Crit Dmg", item.BonusCritDamage, oldItem?.BonusCritDamage, true);
         return s;
     }
 
@@ -336,7 +405,12 @@ public class UIItemDetailPopup : MonoBehaviour
 
         _consumeQuantity = 1;
         
-        if (consumeName) consumeName.text = _currentItem.ItemName;
+        Color rarityColor = GetRarityColor(_currentItem.ItemRarity);
+        if (consumeName)
+        {
+            consumeName.text = _currentItem.ItemName;
+            consumeName.color = rarityColor;
+        }
         if (consumeDesc) consumeDesc.text = _currentItem.ItemDescription;
         if (consumeOwnedText) consumeOwnedText.text = $"Quantity owned: {_currentItem.Quantity}";
         if (consumeIcon) {
@@ -395,5 +469,37 @@ public class UIItemDetailPopup : MonoBehaviour
     {
         return item != null &&
                string.Equals(item.ItemType, itemType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static Color GetRarityColor(string rarity)
+    {
+        if (string.IsNullOrWhiteSpace(rarity)) return Color.white;
+
+        switch (rarity.Trim().ToLowerInvariant())
+        {
+            case "common": return Color.white;
+            case "uncommon": return new Color(0.35f, 0.9f, 0.45f); // Bright Green
+            case "rare": return new Color(0.35f, 0.62f, 1f);     // Bright Blue
+            case "epic": return new Color(0.75f, 0.45f, 1f);     // Bright Purple
+            case "legendary": return new Color(1f, 0.72f, 0.2f); // Gold / Yellow
+            case "mythic": return new Color(1f, 0.3f, 0.3f);     // Red
+            default: return Color.white;
+        }
+    }
+
+    private Sprite GetRarityIcon(string rarity)
+    {
+        if (string.IsNullOrWhiteSpace(rarity)) return iconCommon;
+
+        switch (rarity.Trim().ToLowerInvariant())
+        {
+            case "common": return iconCommon;
+            case "uncommon": return iconUncommon;
+            case "rare": return iconRare;
+            case "epic": return iconEpic;
+            case "legendary": return iconLegendary;
+            case "mythic": return iconMythic;
+            default: return iconCommon;
+        }
     }
 }
