@@ -23,9 +23,9 @@ public class UIInventorySkinSlot : UIBaseItemSlot
 
         if (lockedContainer != null)
         {
-            // Lock is active if itemId is 0 (meaning unowned)
-            // or we use a separate flag. For now, assuming itemId <= 0 means unowned.
-            lockedContainer.SetActive(data.itemId <= 0);
+            // itemId is PlayerSkinId, which is 0 for implicitly granted default skins.
+            // An equipped skin is always owned, so never lock it.
+            lockedContainer.SetActive(data.itemId <= 0 && !data.isEquipped);
         }
     }
 

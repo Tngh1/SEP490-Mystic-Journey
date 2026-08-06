@@ -41,8 +41,10 @@ public class UISkinInventory : MonoBehaviour
             }
             else
             {
+                // Skins are a variable-length list, not a fixed bag: leaving surplus slots
+                // active padded Content to 20 cells and scrolled the real ones out of view.
                 slots[i].ClearSlot();
-                slots[i].gameObject.SetActive(true);
+                slots[i].gameObject.SetActive(false);
             }
         }
 
@@ -69,6 +71,8 @@ public class UISkinInventory : MonoBehaviour
         if (slotPrefab == null || contentParent == null)
             return;
 
+        AdoptExistingSlots();
+
         desiredCount = Mathf.Max(0, desiredCount);
         while (slots.Count < desiredCount)
         {
@@ -77,6 +81,25 @@ public class UISkinInventory : MonoBehaviour
             slot.ClearSlot();
             slot.OnSlotClicked += HandleSlotClicked;
             slots.Add(slot);
+        }
+    }
+
+    // Slots placed in the scene at design time still show the prefab's placeholder
+    // name/icon unless we take them over, so adopt them before instantiating more.
+    private void AdoptExistingSlots()
+    {
+        if (contentParent == null)
+            return;
+
+        for (int i = 0; i < contentParent.childCount; i++)
+        {
+            var existing = contentParent.GetChild(i).GetComponent<UIInventorySkinSlot>();
+            if (existing == null || existing == slotPrefab || slots.Contains(existing))
+                continue;
+
+            existing.ClearSlot();
+            existing.OnSlotClicked += HandleSlotClicked;
+            slots.Add(existing);
         }
     }
 
