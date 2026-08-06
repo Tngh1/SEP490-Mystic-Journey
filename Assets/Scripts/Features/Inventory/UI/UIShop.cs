@@ -458,6 +458,16 @@ public class UIShop : MonoBehaviour
                 SetLoading(false);
                 SetStatus($"Purchase failed: {error.Message}");
                 Debug.LogError($"[UIShop] Purchase FAIL: {error.Message}");
+
+                // statusText chưa được gán trong Main.unity nên SetStatus chỉ ghi console — thiếu tiền
+                // trước giờ hoàn toàn im lặng với người chơi. BE ném BadRequestException cho MỌI lỗi mua
+                // (thiếu tiền, hết hàng, quá giới hạn) nên errorCode đều là BAD_REQUEST, không phân biệt
+                // được; chỉ message là khác nhau ("Not enough Gold." / "Sold out." / ...). Vì vậy đưa
+                // thẳng message của BE vào popup thay vì đoán loại lỗi bằng cách so khớp chuỗi.
+                // ponytail: message tiếng Anh lấy nguyên từ BE; muốn đa ngôn ngữ thì BE phải trả
+                // errorCode riêng cho từng trường hợp rồi client map sang chuỗi dịch.
+                UIPopupBox.Notify(transform, "Purchase Failed", error.Message);
+
                 UpdateRefreshButton();
             });
     }
