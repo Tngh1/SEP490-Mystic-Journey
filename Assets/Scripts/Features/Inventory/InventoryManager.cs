@@ -221,6 +221,9 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     // UC 20.2 – Handle Slot Click → Mở Item Detail Popup
     // =========================================================================
+    // =========================================================================
+    // UC 20.2 – Handle Slot Click → Mở Item Detail Popup / Comparison
+    // =========================================================================
     private void HandleSlotClicked(UIBaseItemSlot slot)
     {
         if (_requestInFlight) return; // Prevent double clicks while API is processing
@@ -230,6 +233,20 @@ public class InventoryManager : MonoBehaviour
         if (!_showingSkins && slot.RawData is InventoryItemResponse item)
         {
             Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
+
+            // Nếu món đồ chưa trang bị và slot của món đó ĐÃ CÓ trang bị sẵn: mở thẳng so sánh (EquipComparisonPanel)
+            if (IsEquipment(item) && !item.IsEquipped)
+            {
+                InventoryItemResponse oldItem = FindEquippedItemForSameSlot(item);
+                if (oldItem != null)
+                {
+                    Sprite oldIcon = ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType);
+                    itemDetailPopup?.Show(item, icon);
+                    itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
+                    return;
+                }
+            }
+
             itemDetailPopup?.Show(item, icon);
             return;
         }
@@ -240,6 +257,20 @@ public class InventoryManager : MonoBehaviour
             Sprite icon = ResolveIcon(skin.SkinId, skin.IconUrl);
             skinDetailPopup?.ShowSkinDetails(skin, icon);
         }
+    }
+
+    private InventoryItemResponse FindEquippedItemForSameSlot(InventoryItemResponse newItem)
+    {
+        if (_summary?.EquippedItems == null || newItem == null) return null;
+
+        foreach (var eq in _summary.EquippedItems)
+        {
+            if (eq != null && eq.IsEquipped && IsSameEquipSlot(eq, newItem))
+            {
+                return eq;
+            }
+        }
+        return null;
     }
 
     // =========================================================================
@@ -278,23 +309,11 @@ public class InventoryManager : MonoBehaviour
     {
         if (!CanEquipItem(newItem))
         {
-            ShowActionError("Quest items are only used for quests.");
+            ShowActionError("Quest items are only used for requests.");
             return;
         }
 
-        InventoryItemResponse oldItem = null;
-        if (_summary?.EquippedItems != null)
-        {
-            foreach (var eq in _summary.EquippedItems)
-            {
-                if (eq != null && eq.IsEquipped && IsSameEquipSlot(eq, newItem))
-                {
-                    oldItem = eq;
-                    break;
-                }
-            }
-        }
-
+        InventoryItemResponse oldItem = FindEquippedItemForSameSlot(newItem);
         if (oldItem == null)
         {
             // Nothing equipped in this slot, equip directly without comparison
@@ -302,7 +321,7 @@ public class InventoryManager : MonoBehaviour
         }
         else
         {
-            Sprite oldIcon = oldItem != null ? ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType) : null;
+            Sprite oldIcon = ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType);
             itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
         }
     }
@@ -1381,8 +1400,8 @@ public class InventoryManager : MonoBehaviour
         ("GlovesSlot",    new[] { "Gloves", "Hands" }),
         ("BootsSlot",     new[] { "Boots", "Feet" }),
         ("PantsSlot",     new[] { "Pants", "Legs" }),
-        ("ShieldSlot",    new[] { "Shield", "OffHand" }),
-        ("AccessorySlot", new[] { "Accessory", "Ring", "Necklace" }),
+        ("RingSlot",      new[] { "Ring", "Accessory" }),
+        ("NecklaceSlot",  new[] { "Necklace", "Shield", "OffHand" }),
     };
 
     private void UpdateEquipmentSlots()
@@ -1414,6 +1433,11 @@ public class InventoryManager : MonoBehaviour
     private Image FindEquipSlotIcon(string slotObjectName)
     {
         var slot = FindObject(slotObjectName);
+        if (slot == null && slotObjectName == "RingSlot")
+            slot = FindObject("AccessorySlot", "Ring");
+        if (slot == null && slotObjectName == "NecklaceSlot")
+            slot = FindObject("ShieldSlot", "Necklace");
+
         if (slot == null) return null;
 
         // Con tên "Image" là lớp vẽ icon; nếu prefab không có thì dùng luôn Image của ô.
