@@ -25,6 +25,8 @@ public class DailyLoginPanelRuntime : MonoBehaviour
     [SerializeField] private Sprite expIcon;
     [Tooltip("Icon hiển thị cho phần thưởng Gems/Diamond")]
     [SerializeField] private Sprite gemIcon;
+    [Tooltip("Icon hiển thị cho phần thưởng Energy")]
+    [SerializeField] private Sprite energyIcon;
 
     private readonly List<DailyLoginRewardResponse> rewards = new List<DailyLoginRewardResponse>();
     private PlayerDailyLoginResponse status;
@@ -371,17 +373,46 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         if (reward == null)
             return null;
 
-        // Priority: lookup by item name (stable, not affected by auto-increment IDs)
-        if (reward.RewardItemId != null && ItemIconDatabase.Instance != null)
+        // 1. If reward is an Item (has RewardItemName) -> Lookup in ItemIconDatabase
+        if (!string.IsNullOrWhiteSpace(reward.RewardItemName) && ItemIconDatabase.Instance != null)
         {
             var icon = ItemIconDatabase.Instance.GetIcon(reward.RewardItemName, null);
             if (icon != null) return icon;
         }
 
-        // Fallback: dùng icon mặc định theo loại phần thưởng
         var type = reward.RewardType ?? string.Empty;
+
+        // 2. Lookup in ItemIconDatabase by exact RewardType or synonyms (pass null for itemType to prevent unwanted "Currency" fallback to Gold)
+        if (!string.IsNullOrWhiteSpace(type) && ItemIconDatabase.Instance != null)
+        {
+            // Direct lookup by key (case-insensitive in ItemIconDatabase)
+            var typeIcon = ItemIconDatabase.Instance.GetIcon(type, null);
+            if (typeIcon != null) return typeIcon;
+
+            // Synonym key lookups
+            if (string.Equals(type, "Gems", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Gem", System.StringComparison.OrdinalIgnoreCase))
+            {
+                typeIcon = ItemIconDatabase.Instance.GetIcon("Gem", null) ?? ItemIconDatabase.Instance.GetIcon("Gems", null) ?? ItemIconDatabase.Instance.GetIcon("Diamond", null);
+                if (typeIcon != null) return typeIcon;
+            }
+            else if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase))
+            {
+                typeIcon = ItemIconDatabase.Instance.GetIcon("Exp", null) ?? ItemIconDatabase.Instance.GetIcon("EXP", null) ?? ItemIconDatabase.Instance.GetIcon("Experience", null);
+                if (typeIcon != null) return typeIcon;
+            }
+            else if (string.Equals(type, "Energy", System.StringComparison.OrdinalIgnoreCase))
+            {
+                typeIcon = ItemIconDatabase.Instance.GetIcon("Energy", null) ?? ItemIconDatabase.Instance.GetIcon("Stamina", null);
+                if (typeIcon != null) return typeIcon;
+            }
+        }
+
+        // 3. Fallback: Check serialized inspector fields if assigned
         if (string.Equals(type, "Gold", System.StringComparison.OrdinalIgnoreCase) && goldIcon != null)
             return goldIcon;
+        if ((string.Equals(type, "Energy", System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(type, "Stamina", System.StringComparison.OrdinalIgnoreCase)) && energyIcon != null)
+            return energyIcon;
         if ((string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) ||
              string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase)) && expIcon != null)
             return expIcon;
@@ -389,6 +420,23 @@ public class DailyLoginPanelRuntime : MonoBehaviour
              string.Equals(type, "Gems", System.StringComparison.OrdinalIgnoreCase) ||
              string.Equals(type, "Diamond", System.StringComparison.OrdinalIgnoreCase)) && gemIcon != null)
             return gemIcon;
+
+        // 4. Resources fallback lookup: "Icons/Gold", "Icons/Energy", "Icons/Exp", "Icons/Gem"
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            var loaded = Resources.Load<Sprite>($"Icons/{type}");
+            if (loaded != null) return loaded;
+            if (string.Equals(type, "Gems", System.StringComparison.OrdinalIgnoreCase))
+            {
+                loaded = Resources.Load<Sprite>("Icons/Gem");
+                if (loaded != null) return loaded;
+            }
+            if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase))
+            {
+                loaded = Resources.Load<Sprite>("Icons/Exp");
+                if (loaded != null) return loaded;
+            }
+        }
 
         return null;
     }

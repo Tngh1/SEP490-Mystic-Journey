@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using UnityEngine;
 using TMPro;
@@ -37,49 +38,103 @@ public class UIShopSlot : UIBaseItemSlot
         base.SetupCore(data);
         RawData = data;
 
-        if (shopNameText != null)
+        // 1. Tên vật phẩm: hiển thị tên sạch (không đính kèm số lượng), cân chỉnh căn giữa + Auto-size
+        TMP_Text nameLabel = shopNameText != null ? shopNameText : itemNameText;
+        if (nameLabel != null)
         {
-            shopNameText.text = data.itemName ?? string.Empty;
-            if (data.weeklyPurchaseLimit > 0)
+            nameLabel.enableAutoSizing = true;
+            nameLabel.fontSizeMin = 8f;
+            nameLabel.fontSizeMax = 12.5f;
+            nameLabel.alignment = TextAlignmentOptions.Center;
+            nameLabel.margin = new Vector4(2, 2, 2, 2);
+            nameLabel.text = data.itemName ?? string.Empty;
+        }
+
+        // 2. Tồn kho / Số lượng bán: Hiển thị ở TMP_Text "Quanlity" (quantityText) góc dưới ảnh Icon cho Daily Deals.
+        // Shop bình thường: KHÔNG hiển thị tồn kho.
+        if (quantityText != null)
+        {
+            quantityText.enableAutoSizing = true;
+            quantityText.fontSizeMin = 7f;
+            quantityText.fontSizeMax = 12f;
+
+            bool isDailyDeal = string.Equals(data.shopSection, "DailyDeals", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(data.shopSection, "DailyDeal", System.StringComparison.OrdinalIgnoreCase) ||
+                               data.HasDealPrice ||
+                               data.dailyPurchaseLimit > 0;
+
+            if (isDailyDeal)
             {
-                int remaining = Mathf.Max(0, data.remainingWeeklyPurchases);
-                shopNameText.text += $" ({remaining}/{data.weeklyPurchaseLimit})";
+                if (data.dailyPurchaseLimit > 0)
+                {
+                    int remaining = Mathf.Max(0, data.remainingDailyPurchases >= 0 ? data.remainingDailyPurchases : data.dailyPurchaseLimit - data.purchasedToday);
+                    quantityText.text = $"x{remaining}";
+                }
+                else if (data.weeklyPurchaseLimit > 0)
+                {
+                    int remaining = Mathf.Max(0, data.remainingWeeklyPurchases >= 0 ? data.remainingWeeklyPurchases : data.weeklyPurchaseLimit - data.purchasedThisWeek);
+                    quantityText.text = $"x{remaining}";
+                }
+                else if (!data.isUnlimitedStock && data.stock >= 0)
+                {
+                    quantityText.text = $"x{data.stock}";
+                }
+                else if (data.quantity > 1)
+                {
+                    quantityText.text = $"x{data.quantity}";
+                }
+                else
+                {
+                    quantityText.text = string.Empty;
+                }
+            }
+            else
+            {
+                // Shop bình thường: ẩn tồn kho
+                quantityText.text = string.Empty;
             }
         }
 
+        // 3. Giá tiền & Hiển thị Gem / Coin
         string curr = data.currency;
-        if (string.IsNullOrWhiteSpace(curr)) curr = "Gold"; // Mặc định là Gold
+        if (string.IsNullOrWhiteSpace(curr)) curr = "Gold";
 
-        bool isGem = curr.Equals("Gem", System.StringComparison.OrdinalIgnoreCase) || 
-                     curr.Equals("Gems", System.StringComparison.OrdinalIgnoreCase);
+        bool isGem = curr.Equals("Gem", StringComparison.OrdinalIgnoreCase) || 
+                     curr.Equals("Gems", StringComparison.OrdinalIgnoreCase);
 
-        // Bật/tắt Gem hoặc Coin tuỳ theo server
         if (isGem && gemGroup != null)
         {
-            // Hiện Gem, Ẩn Coin
             if (priceGroup != null) priceGroup.SetActive(false);
             gemGroup.SetActive(true);
             
             if (gemPriceText != null)
             {
+                gemPriceText.enableAutoSizing = true;
+                gemPriceText.fontSizeMin = 8.5f;
+                gemPriceText.fontSizeMax = 14f;
                 gemPriceText.richText = true;
+                gemPriceText.alignment = TextAlignmentOptions.Center;
+                gemPriceText.margin = new Vector4(2, 0, 2, 0);
                 gemPriceText.text = FormatDisplayPrice(data);
             }
         }
         else
         {
-            // Hiện Coin, Ẩn Gem
             if (priceGroup != null) priceGroup.SetActive(true);
             if (gemGroup != null) gemGroup.SetActive(false);
             
             if (priceText != null)
             {
+                priceText.enableAutoSizing = true;
+                priceText.fontSizeMin = 8.5f;
+                priceText.fontSizeMax = 14f;
                 priceText.richText = true;
+                priceText.alignment = TextAlignmentOptions.Center;
+                priceText.margin = new Vector4(2, 0, 2, 0);
                 priceText.text = FormatDisplayPrice(data);
             }
         }
 
-        // Vẫn giữ logic update ảnh cũ nếu user dùng 1 cái Image xài chung
         if (currencyIconImage != null && data.currencyIcon != null)
         {
             currencyIconImage.sprite = data.currencyIcon;
@@ -96,7 +151,9 @@ public class UIShopSlot : UIBaseItemSlot
         if (priceGroup != null) priceGroup.SetActive(false);
         if (gemGroup != null) gemGroup.SetActive(false);
         
-        if (shopNameText != null) shopNameText.text = string.Empty;
+        TMP_Text nameLabel = shopNameText != null ? shopNameText : itemNameText;
+        if (nameLabel != null) nameLabel.text = string.Empty;
+        if (quantityText != null) quantityText.text = string.Empty;
         if (buyButton != null) buyButton.interactable = true;
     }
 
@@ -105,7 +162,6 @@ public class UIShopSlot : UIBaseItemSlot
         if (RawData != null)
             OnSlotClicked?.Invoke(this);
     }
-
 
     private static string FormatDisplayPrice(UIItemDisplayData data)
     {
@@ -117,20 +173,12 @@ public class UIShopSlot : UIBaseItemSlot
             return currentPrice;
 
         string originalPrice = FormatPrice(data.originalUnitPrice, string.Empty);
-        return $"<s><color=#9CA3AF>{originalPrice}</color></s> <b><color=#FFD34D>{currentPrice}</color></b>";
+        return $"<size=80%><s><color=#9CA3AF>{originalPrice}</color></s></size> <b><color=#FFD34D>{currentPrice}</color></b>";
     }
 
     private static string FormatPrice(decimal amount, string currency)
     {
         string formatted = amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
-        
-        // Nếu không có tên tiền tệ, mặc định thêm chữ $ phía trước cho đẹp giống Prefab
-        if (string.IsNullOrWhiteSpace(currency))
-        {
-            return $"${formatted}";
-        }
-        
-        // Nếu tiền tệ là Gold, Gems... thì có thể để phía sau hoặc tuỳ biến
-        return $"${formatted}"; // Luôn có dấu $ như ý user muốn
+        return $"${formatted}";
     }
 }

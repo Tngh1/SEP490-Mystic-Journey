@@ -20,6 +20,7 @@ public class UIItemDisplayData
     public Sprite currencyIcon;
 
     public int shopItemId;
+    public string shopSection;
     public bool canPurchase = true;
     public string unavailableReason;
     public int stock = -1;
