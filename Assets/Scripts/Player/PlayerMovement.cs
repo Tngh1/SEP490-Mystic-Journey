@@ -247,6 +247,17 @@ public class PlayerMovement : NetworkBehaviour
     /// </summary>
     public void ApplyRoot(float duration, bool stackDuration = true, float maxCap = 5f)
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
+            return;
+        }
+
         if (stackDuration)
         {
             _rootTimer = Mathf.Min(_rootTimer + duration, maxCap);

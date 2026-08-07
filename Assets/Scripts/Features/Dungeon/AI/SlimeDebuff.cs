@@ -16,6 +16,18 @@ public class SlimeDebuff : MonoBehaviour
 
     public void Initialize(float slowMult, int dmg, float tickRate, float dur)
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
+            Destroy(this);
+            return;
+        }
+
         slowMultiplier = slowMult;
         damagePerTick = dmg;
         tickInterval = tickRate;
@@ -42,12 +54,23 @@ public class SlimeDebuff : MonoBehaviour
             }
         }
 
-        var buffMgr = GetComponent<BuffManager>();
         if (buffMgr != null) buffMgr.AddBuff("Slime Sludge", "slime_debuff_icon", duration, true);
     }
 
     public void Refresh(float newDuration)
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
+            RemoveDebuff();
+            return;
+        }
+
         // Khi bị trúng lại cọc slime, thời gian debuff sẽ được làm mới
         timer = 0f;
         if (newDuration > duration)
@@ -60,12 +83,20 @@ public class SlimeDebuff : MonoBehaviour
             playerMovement.ApplyRoot(duration);
         }
 
-        var buffMgr = GetComponent<BuffManager>();
         if (buffMgr != null) buffMgr.AddBuff("Slime Sludge", "slime_debuff_icon", duration, true);
     }
 
     private void Update()
     {
+        var combat = playerEntity != null ? playerEntity.GetComponent<PlayerCombat>() : GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (buffMgr != null) buffMgr.RemoveBuff("Slime Sludge");
+            RemoveDebuff();
+            return;
+        }
+
         timer += Time.deltaTime;
         tickTimer += Time.deltaTime;
 
@@ -75,12 +106,6 @@ public class SlimeDebuff : MonoBehaviour
             tickTimer = 0f;
             if (playerEntity != null && playerEntity.CurrentHealth > 0)
             {
-                var combat = playerEntity.GetComponent<PlayerCombat>();
-                if (combat != null && combat.IsDebuffImmune)
-                {
-                    Destroy(gameObject);
-                    return;
-                }
                 playerEntity.TakeDamage(damagePerTick);
             }
         }
@@ -117,6 +142,17 @@ public class SlimeDebuff : MonoBehaviour
     /// </summary>
     public static void ApplyTo(GameObject target, float slowMult, int dmg, float tickRate, float dur)
     {
+        var combat = target.GetComponent<PlayerCombat>();
+        var buffMgr = target.GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(target.transform.position, "Immunity", Color.cyan);
+            }
+            return;
+        }
+
         SlimeDebuff existingDebuff = target.GetComponent<SlimeDebuff>();
         if (existingDebuff != null)
         {

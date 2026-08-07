@@ -703,7 +703,12 @@ public class PlayerCombat : NetworkBehaviour
         if (debuffImmuneTimer > 0)
         {
             debuffImmuneTimer -= Time.deltaTime;
-            if (debuffImmuneTimer <= 0) IsDebuffImmune = false;
+            if (debuffImmuneTimer <= 0)
+            {
+                IsDebuffImmune = false;
+                var buffMgr = GetComponent<BuffManager>();
+                if (buffMgr != null) buffMgr.IsStatusImmune = false;
+            }
         }
         if (UnityEngine.EventSystems.EventSystem.current != null)
         {
@@ -877,8 +882,26 @@ public class PlayerCombat : NetworkBehaviour
         IsDebuffImmune = true;
         if (duration > debuffImmuneTimer) debuffImmuneTimer = duration;
         
+        var movement = GetComponent<PlayerMovement>();
+        if (movement != null) movement.SetMoveSpeedOverride(0f);
+        _silenceTimer = 0f;
+
         var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Kháng Hiệu Ứng", "immunity_icon", duration, false);
+        if (buffMgr != null)
+        {
+            buffMgr.IsStatusImmune = true;
+            buffMgr.ClearAllDebuffs();
+            buffMgr.AddBuff("Kháng Hiệu Ứng", "immunity_icon", duration, false);
+        }
+
+        var burn = GetComponent<BurnDebuff>();
+        if (burn != null) Destroy(burn);
+
+        var slime = GetComponent<SlimeDebuff>();
+        if (slime != null) Destroy(slime);
+
+        var curse = GetComponentInChildren<DarknessCurseSkill>();
+        if (curse != null) Destroy(curse.gameObject);
     }
 
     private IEnumerator ExecuteSkillWithDelay(GameObject prefab, int slotIndex, float delay, Vector3? targetPosition = null)

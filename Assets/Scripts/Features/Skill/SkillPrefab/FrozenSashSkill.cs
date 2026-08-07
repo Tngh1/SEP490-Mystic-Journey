@@ -24,11 +24,11 @@ public class FrozenSashSkill : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("Monster"))
+        EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
+        if (enemy != null || collision.CompareTag("Monster"))
         {
             if (!_damagedEnemies.Contains(collision))
             {
-                EnemyEntity enemy = collision.GetComponent<EnemyEntity>();
                 if (enemy != null)
                 {
                     bool isCrit = Random.Range(0f, 100f) <= 20f;

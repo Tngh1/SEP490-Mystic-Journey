@@ -54,10 +54,11 @@ public class NetworkSkillAoE : NetworkBehaviour
         // before touching any networked state.
         if (Object == null || !Object.IsValid) return;
         if (!HasStateAuthority) return;
-        if (!collision.CompareTag("Monster")) return;
         if (_damaged.Contains(collision)) return;
 
-        var enemy = collision.GetComponent<EnemyEntity>();
+        var enemy = collision.GetComponentInParent<EnemyEntity>();
+        if (enemy == null && !collision.CompareTag("Monster")) return;
+
         if (enemy == null) return;
 
         _damaged.Add(collision);

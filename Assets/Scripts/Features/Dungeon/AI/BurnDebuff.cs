@@ -21,6 +21,18 @@ public class BurnDebuff : MonoBehaviour
 
     public void InitializePercent(float percentDmg, float interval, float dur)
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
+            Destroy(this);
+            return;
+        }
+
         percentPerTick = percentDmg;
         tickInterval = interval;
         duration = dur;
@@ -32,12 +44,23 @@ public class BurnDebuff : MonoBehaviour
         playerEntity = GetComponent<PlayerEntity>();
         networkPlayer = GetComponent<NetworkPlayer>();
 
-        var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, false);
+        if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, true);
     }
 
     public void InitializeFlat(int flatDmg, float interval, float dur)
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
+            Destroy(this);
+            return;
+        }
+
         flatDamagePerTick = flatDmg;
         tickInterval = interval;
         duration = dur;
@@ -49,24 +72,43 @@ public class BurnDebuff : MonoBehaviour
         playerEntity = GetComponent<PlayerEntity>();
         networkPlayer = GetComponent<NetworkPlayer>();
 
-        var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, false);
+        if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, true);
     }
 
     public void Refresh(float newDuration)
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
+            Destroy(this);
+            return;
+        }
+
         timer = 0f;
         if (newDuration > duration)
         {
             duration = newDuration;
         }
 
-        var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, false);
+        if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, true);
     }
 
     private void Update()
     {
+        var combat = GetComponent<PlayerCombat>();
+        var buffMgr = GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (buffMgr != null) buffMgr.RemoveBuff("Burning");
+            Destroy(this);
+            return;
+        }
+
         timer += Time.deltaTime;
         tickTimer += Time.deltaTime;
 
@@ -131,6 +173,17 @@ public class BurnDebuff : MonoBehaviour
     /// </summary>
     public static void ApplyPercentTo(GameObject target, float percentDmg = 3f, float interval = 1f, float dur = 3f)
     {
+        var combat = target.GetComponent<PlayerCombat>();
+        var buffMgr = target.GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(target.transform.position, "Immunity", Color.cyan);
+            }
+            return;
+        }
+
         BurnDebuff existing = target.GetComponent<BurnDebuff>();
         if (existing != null)
         {
@@ -148,6 +201,17 @@ public class BurnDebuff : MonoBehaviour
     /// </summary>
     public static void ApplyFlatTo(GameObject target, int flatDmg = 5, float interval = 1f, float dur = 3f)
     {
+        var combat = target.GetComponent<PlayerCombat>();
+        var buffMgr = target.GetComponent<BuffManager>();
+        if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+        {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(target.transform.position, "Immunity", Color.cyan);
+            }
+            return;
+        }
+
         BurnDebuff existing = target.GetComponent<BurnDebuff>();
         if (existing != null)
         {

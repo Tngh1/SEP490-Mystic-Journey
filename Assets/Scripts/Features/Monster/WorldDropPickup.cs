@@ -33,7 +33,8 @@ namespace MysticJourney.Features.Monster
         private SpriteRenderer _spriteRenderer;
         private Vector3 _landPosition;
         private bool _isSpawning = true;
-        private bool _isBeingMagnetized = true;
+        private bool _isBeingMagnetized = false;
+        private float magnetDelayTimer = 0.5f; // Chờ 0.5s trên mặt đất trước khi tự động hút
         private float _bobTimer = 0f;
         private Transform _playerTransform;
 
@@ -44,10 +45,11 @@ namespace MysticJourney.Features.Monster
             amount = qty;
             glowColor = color;
             _landPosition = targetLandPos;
-            _isBeingMagnetized = true;
+            _isBeingMagnetized = false;
+            magnetDelayTimer = 0.5f;
 
-            // Scale down physical drop to neat world size (0.35 world units)
-            transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+            // Scale vật phẩm rõ ràng trên bản đồ (0.5 world units)
+            transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
             EnsureComponents();
 
@@ -63,7 +65,17 @@ namespace MysticJourney.Features.Monster
                 }
 
                 _spriteRenderer.color = Color.white;
-                _spriteRenderer.sortingOrder = 35; // Render neatly above ground and grass
+                
+                // Đảm bảo nổi hoàn toàn lên trên các lớp Tilemap / đất / cỏ
+                try
+                {
+                    _spriteRenderer.sortingLayerName = "Units";
+                }
+                catch
+                {
+                    // Fallback nếu layer Units chưa khai báo
+                }
+                _spriteRenderer.sortingOrder = 100;
             }
 
             StartCoroutine(PopAnimationSequence(targetLandPos));
@@ -114,29 +126,32 @@ namespace MysticJourney.Features.Monster
         {
             if (_isSpawning || _isCollected) return;
 
+            // 1. Giai đoạn chờ trên mặt đất (0.5s): Vật phẩm bồng bềnh nhẹ để mắt người chơi nhận biết
+            if (magnetDelayTimer > 0f)
+            {
+                magnetDelayTimer -= Time.deltaTime;
+                _bobTimer += Time.deltaTime * 3f;
+                float offset = Mathf.Sin(_bobTimer) * 0.05f;
+                transform.position = new Vector3(_landPosition.x, _landPosition.y + offset, _landPosition.z);
+                return;
+            }
+
+            // 2. Giai đoạn tự động hút về phía người chơi
             FindPlayer();
 
             if (_playerTransform != null)
             {
-                float dist = Vector3.Distance(transform.position, _playerTransform.position);
+                _isBeingMagnetized = true;
 
-                if (dist <= magnetDistance)
+                // Bay mượt về phía người chơi
+                Vector3 targetPos = _playerTransform.position + Vector3.up * 0.5f;
+                transform.position = Vector3.MoveTowards(transform.position, targetPos, magnetSpeed * Time.deltaTime);
+
+                // Khi đến gần người chơi -> Nhặt thành công!
+                if (Vector3.Distance(transform.position, targetPos) <= collectDistance)
                 {
-                    _isBeingMagnetized = true;
-                }
-
-                if (_isBeingMagnetized)
-                {
-                    // Bay mượt về phía người chơi
-                    Vector3 targetPos = _playerTransform.position + Vector3.up * 0.5f;
-                    transform.position = Vector3.MoveTowards(transform.position, targetPos, magnetSpeed * Time.deltaTime);
-
-                    // Khi đến gần người chơi -> Nhặt thành công!
-                    if (Vector3.Distance(transform.position, targetPos) <= collectDistance)
-                    {
-                        CollectItem();
-                        return;
-                    }
+                    CollectItem();
+                    return;
                 }
             }
 

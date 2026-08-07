@@ -109,9 +109,9 @@ public class PumpkinMagicSkill : MonoBehaviour
 
         foreach (var col in hitColliders)
         {
-            if (col.CompareTag("Monster"))
+            EnemyEntity enemy = col.GetComponentInParent<EnemyEntity>();
+            if (enemy != null || col.CompareTag("Monster"))
             {
-                EnemyEntity enemy = col.GetComponent<EnemyEntity>();
                 if (enemy != null && !damagedEnemies.Contains(enemy))
                 {
                     damagedEnemies.Add(enemy);

@@ -32,6 +32,18 @@ public class DarknessCurseSkill : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
+            var combat = player.GetComponent<PlayerCombat>();
+            var buffMgr = player.GetComponent<BuffManager>();
+            if ((combat != null && combat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune))
+            {
+                if (DamagePopupManager.Instance != null)
+                {
+                    DamagePopupManager.Instance.CreateText(player.transform.position, "Immunity", Color.cyan);
+                }
+                Destroy(gameObject);
+                return;
+            }
+
             // Bám chặt vào người chơi
             transform.SetParent(player.transform);
             transform.localPosition = Vector3.zero; // Nằm ngay chính giữa
@@ -47,7 +59,6 @@ public class DarknessCurseSkill : MonoBehaviour
             }
 
             // Bắt đầu chu kỳ gây sát thương và cộng dồn hắc hoá
-            var buffMgr = player.GetComponent<BuffManager>();
             if (buffMgr != null) buffMgr.AddBuff("Lời Nguyền Bóng Đêm", "curse_icon", duration, true);
             StartCoroutine(CurseRoutine());
 

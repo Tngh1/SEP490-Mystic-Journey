@@ -63,12 +63,13 @@ public class NetworkSkillProjectile : NetworkBehaviour
         // Bỏ qua va chạm với Player (người tung skill hoặc đồng đội)
         if (collision.CompareTag("Player")) return;
 
-        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
-        if (collision.isTrigger && !collision.CompareTag("Monster")) return;
+        var enemy = collision.GetComponentInParent<EnemyEntity>();
 
-        if (collision.CompareTag("Monster"))
+        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
+        if (collision.isTrigger && enemy == null && !collision.CompareTag("Monster")) return;
+
+        if (enemy != null || collision.CompareTag("Monster"))
         {
-            var enemy = collision.GetComponent<EnemyEntity>();
             if (enemy != null)
             {
                 bool isCrit = Random.Range(0f, 100f) <= 20f;
@@ -77,6 +78,8 @@ public class NetworkSkillProjectile : NetworkBehaviour
                 enemy.TakeDamage(dmg);
                 RPC_ShowPopup(enemy.transform.position, dmg, isCrit);
             }
+            Runner.Despawn(Object);
+            return;
         }
 
         // Đạn va chạm bất kỳ vật thể nào trên bản đồ (Monster, tường, địa hình, chướng ngại vật...) đều nổ / biến mất
