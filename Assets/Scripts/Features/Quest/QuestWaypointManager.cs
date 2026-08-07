@@ -298,7 +298,7 @@ namespace MysticJourney.Features.Quest
             // 2. Không có liên kết id (NPC chưa được BE gắn dialogue): so tên questGiver.
             if (!string.IsNullOrWhiteSpace(wantedGiver))
             {
-                var npc = FindMatchingNpc(interactables, wantedGiver);
+                var npc = FindMatchingNpc(interactables, wantedGiver, questId);
                 if (npc != null) return npc;
             }
 
@@ -306,7 +306,7 @@ namespace MysticJourney.Features.Quest
             //    tên vật/địa điểm nên rất dễ khớp bừa vào NPC.
             if (!string.IsNullOrWhiteSpace(wantedTarget))
             {
-                var npc = FindMatchingNpc(interactables, wantedTarget);
+                var npc = FindMatchingNpc(interactables, wantedTarget, questId);
                 if (npc != null) return npc;
             }
 
@@ -322,7 +322,11 @@ namespace MysticJourney.Features.Quest
             return cleaned.Trim();
         }
 
-        private Transform FindMatchingNpc(WorldInteractable[] interactables, string nameToMatch)
+        /// <summary>
+        /// Tìm NPC khớp tên trong danh sách interactables. currentQuestId dùng để loại bỏ
+        /// NPC/object rõ ràng thuộc quest KHÁC (có LinkedQuestIds nhưng không chứa quest hiện tại).
+        /// </summary>
+        private Transform FindMatchingNpc(WorldInteractable[] interactables, string nameToMatch, int currentQuestId = 0)
         {
             if (string.IsNullOrWhiteSpace(nameToMatch)) return null;
             string cleanTarget = CleanNpcName(nameToMatch);
@@ -334,6 +338,12 @@ namespace MysticJourney.Features.Quest
             foreach (var i in interactables)
             {
                 if (i.Kind != WorldInteractableKind.Npc) continue;
+
+                // NPC rõ ràng thuộc quest KHÁC: có LinkedQuestIds nhưng không chứa quest hiện tại.
+                // Trước đây NPC trùng tên gần player hơn luôn thắng — giờ loại bỏ sớm.
+                if (currentQuestId > 0 && i.LinkedQuestIds != null && i.LinkedQuestIds.Count > 0 &&
+                    !System.Linq.Enumerable.Contains(i.LinkedQuestIds, currentQuestId))
+                    continue;
 
                 string cleanDisplay = CleanNpcName(i.DisplayName);
                 string cleanKey = CleanNpcName(i.ObjectKey);
@@ -408,12 +418,17 @@ namespace MysticJourney.Features.Quest
 
                 // Cùng luật TargetMatches như mọi nơi khác, thay cho IndexOf hai chiều không giới
                 // hạn (tên vật nằm trong mục tiêu là đủ khớp → "Tree", "Box" khớp bừa cả scene).
-                // Đã bỏ nhánh hardcode "Elder Rowan" → MageOld/Elder/Rowan: Elder Rowan luôn được
-                // WorldSceneInteractableBootstrap.ConfigureFallback cấu hình thành NPC
-                // WorldInteractable với DisplayName "Elder Rowan", nên lượt quét WorldInteractable
-                // ở trên đã bắt được; nhánh này chỉ là lưới cuối cho GameObject trơ.
                 if (QuestUtils.TargetMatches(cleanTarget, gName, null))
                 {
+                    // Loại bỏ object rõ ràng thuộc quest KHÁC: nếu có WorldInteractable với
+                    // QuestId hoặc LinkedQuestIds trỏ sang quest khác, nó không phải target của ta.
+                    if (currentQuestId > 0)
+                    {
+                        var goInteractable = go.GetComponentInParent<WorldInteractable>();
+                        if (goInteractable != null && IsExplicitlyOtherQuest(goInteractable, currentQuestId))
+                            continue;
+                    }
+
                     if (playerTransform != null)
                     {
                         float dist = Vector3.Distance(playerPos, go.transform.position);
@@ -439,6 +454,30 @@ namespace MysticJourney.Features.Quest
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// True nếu interactable được gán rõ ràng cho một quest KHÁC currentQuestId.
+        /// "Rõ ràng" = có QuestId hoặc LinkedQuestIds trỏ sang quest cụ thể mà quest đó
+        /// không phải quest hiện tại. Object không gán quest nào (QuestId=0, LinkedQuestIds rỗng)
+        /// KHÔNG bị loại — chúng có thể là target chưa được BE liên kết.
+        /// </summary>
+        private static bool IsExplicitlyOtherQuest(WorldInteractable interactable, int currentQuestId)
+        {
+            if (currentQuestId <= 0) return false;
+
+            // Có QuestId rõ ràng khác quest hiện tại
+            if (interactable.QuestId.HasValue && interactable.QuestId.Value > 0 &&
+                interactable.QuestId.Value != currentQuestId)
+                return true;
+
+            // Có LinkedQuestIds nhưng không chứa quest hiện tại
+            var linked = interactable.LinkedQuestIds;
+            if (linked != null && linked.Count > 0 &&
+                !System.Linq.Enumerable.Contains(linked, currentQuestId))
+                return true;
+
+            return false;
         }
 
         private static bool Matches(string a, string b)
@@ -503,7 +542,7 @@ namespace MysticJourney.Features.Quest
             // 1. Talk to NPC
             if (objType.Equals("Talk", System.StringComparison.OrdinalIgnoreCase))
             {
-                var talkNpc = FindMatchingNpc(interactables, targetName);
+                var talkNpc = FindMatchingNpc(interactables, targetName, quest.QuestId);
                 if (talkNpc != null) return talkNpc;
             }
 
@@ -601,6 +640,10 @@ namespace MysticJourney.Features.Quest
                         // Cùng lý do như trên: chặn NPC lọt vào qua phép so tên chiều ngược.
                         if (parentInteractable != null && parentInteractable.Kind == WorldInteractableKind.Npc)
                             continue;
+                        // Object rõ ràng thuộc quest KHÁC: skip để không chỉ mũi tên vào vật
+                        // cùng tên nhưng không phải target của nhiệm vụ hiện tại.
+                        if (parentInteractable != null && IsExplicitlyOtherQuest(parentInteractable, quest.QuestId))
+                            continue;
 
                         float d = Vector3.Distance(playerPos, go.transform.position);
                         if (d < minGoDist)
@@ -680,6 +723,12 @@ namespace MysticJourney.Features.Quest
                             : IsEnemyMatch(go.name, targetName);
                         if (!isMatch) continue;
 
+                        // Object rõ ràng thuộc quest KHÁC: skip. Ví dụ cùng tên "Golem" nhưng
+                        // một con gắn cho quest 15, quest hiện tại là 20 → chỉ lấy con đúng.
+                        var goInteractable = go.GetComponentInParent<WorldInteractable>();
+                        if (goInteractable != null && IsExplicitlyOtherQuest(goInteractable, quest.QuestId))
+                            continue;
+
                         float d = Vector3.Distance(playerPos, go.transform.position);
                         if (d < minSpawnerDist)
                         {
@@ -704,8 +753,24 @@ namespace MysticJourney.Features.Quest
             // --- Fallback chain: không resolve được target cụ thể (vd boss trong dungeon chưa
             //     spawn). Dẫn người chơi tới bước đi HỢP LÝ tiếp theo thay vì để mũi tên biến mất.
             // 4a. Cổng Dungeon (khi boss/mục tiêu nằm trong dungeon — user gắn "Dungeon Entrance").
-            var dungeon = FindDungeonEntrance(interactables);
-            if (dungeon != null) return dungeon;
+            bool isDungeonQuest = (!string.IsNullOrWhiteSpace(targetName) &&
+                                   (targetName.IndexOf("Dungeon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    targetName.IndexOf("Temple", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    targetName.IndexOf("Mines", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    targetName.IndexOf("Crypt", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    targetName.IndexOf("Lair", System.StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                                  (!string.IsNullOrWhiteSpace(quest.ObjectiveLocation) &&
+                                   (quest.ObjectiveLocation.IndexOf("Dungeon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    quest.ObjectiveLocation.IndexOf("Temple", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    quest.ObjectiveLocation.IndexOf("Mines", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    quest.ObjectiveLocation.IndexOf("Crypt", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    quest.ObjectiveLocation.IndexOf("Lair", System.StringComparison.OrdinalIgnoreCase) >= 0));
+
+            if (isDungeonQuest)
+            {
+                var dungeon = FindDungeonEntrance(interactables);
+                if (dungeon != null) return dungeon;
+            }
 
             // 4b. Portal tới map/khu vực nhắc trong ObjectiveLocation.
             var locPortal = FindPortalToMap(quest.ObjectiveLocation);

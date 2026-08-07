@@ -7,13 +7,21 @@ public class QuestTrackerHover : MonoBehaviour,
 {
     [SerializeField] private Animator animator;
 
+    private void Awake()
+    {
+        if (animator == null)
+            animator = GetComponent<Animator>();
+    }
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        animator.SetBool("Expanded", true);
+        if (animator != null)
+            animator.SetBool("Expanded", true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        animator.SetBool("Expanded", false);
+        if (animator != null)
+            animator.SetBool("Expanded", false);
     }
 }
