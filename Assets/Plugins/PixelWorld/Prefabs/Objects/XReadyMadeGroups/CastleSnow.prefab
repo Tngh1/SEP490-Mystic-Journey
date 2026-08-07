@@ -49,6 +49,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -70,8 +75,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 4
   m_Sprite: {fileID: -1527764954, guid: b1b6552fd87e94142a0fe8eb2b389df5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -133,6 +139,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -154,8 +165,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 4
   m_Sprite: {fileID: -1527764954, guid: b1b6552fd87e94142a0fe8eb2b389df5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -255,6 +267,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -276,8 +293,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 4
   m_Sprite: {fileID: -1527764954, guid: b1b6552fd87e94142a0fe8eb2b389df5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -339,6 +357,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -360,8 +383,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 4
   m_Sprite: {fileID: -1527764954, guid: b1b6552fd87e94142a0fe8eb2b389df5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -423,6 +447,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -444,8 +473,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 4
   m_Sprite: {fileID: -1527764954, guid: b1b6552fd87e94142a0fe8eb2b389df5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -889,6 +919,22 @@ PrefabInstance:
     - target: {fileID: 4096864331287920645, guid: d13cedfd3bc444c418c74baca157a5b8, type: 3}
       propertyPath: m_Name
       value: CastleTower
+      objectReference: {fileID: 0}
+    - target: {fileID: 6704629822415447383, guid: d13cedfd3bc444c418c74baca157a5b8, type: 3}
+      propertyPath: m_Size.x
+      value: 4.30072
+      objectReference: {fileID: 0}
+    - target: {fileID: 6704629822415447383, guid: d13cedfd3bc444c418c74baca157a5b8, type: 3}
+      propertyPath: m_Size.y
+      value: 10.057304
+      objectReference: {fileID: 0}
+    - target: {fileID: 6704629822415447383, guid: d13cedfd3bc444c418c74baca157a5b8, type: 3}
+      propertyPath: m_Offset.x
+      value: 0.15555191
+      objectReference: {fileID: 0}
+    - target: {fileID: 6704629822415447383, guid: d13cedfd3bc444c418c74baca157a5b8, type: 3}
+      propertyPath: m_Offset.y
+      value: 6.0003185
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
