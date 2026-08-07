@@ -54,6 +54,19 @@ public class SlimeMiniSkill : MonoBehaviour
         {
             _isTriggered = true;
 
+            PlayerCombat playerCombat = col.GetComponent<PlayerCombat>();
+            BuffManager buffMgr = col.GetComponent<BuffManager>();
+            bool isImmune = (playerCombat != null && playerCombat.IsDebuffImmune) || (buffMgr != null && buffMgr.IsStatusImmune);
+
+            if (isImmune)
+            {
+                if (DamagePopupManager.Instance != null)
+                {
+                    DamagePopupManager.Instance.CreateText(col.transform.position, "Immunity", Color.cyan);
+                }
+                return;
+            }
+
             // 1. Áp dụng hiệu ứng Khóa chân (Root) cho Player
             PlayerMovement playerMovement = col.GetComponent<PlayerMovement>();
             if (playerMovement != null)
@@ -62,7 +75,6 @@ public class SlimeMiniSkill : MonoBehaviour
             }
 
             // 2. Áp dụng hiệu ứng Cấm đánh & Khóa kỹ năng (Silence) cho Player
-            PlayerCombat playerCombat = col.GetComponent<PlayerCombat>();
             if (playerCombat != null)
             {
                 playerCombat.ApplySilence(silenceDuration);

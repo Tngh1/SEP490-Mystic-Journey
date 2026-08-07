@@ -13,6 +13,18 @@ public class DamagePopup : MonoBehaviour
         textMesh = GetComponent<TextMeshPro>();
     }
 
+    public void SetupText(string text, Color color, float fontSize = 4.5f)
+    {
+        if (textMesh == null) textMesh = GetComponent<TextMeshPro>();
+        textMesh.text = text;
+        textMesh.color = color;
+        textMesh.fontSize = fontSize;
+
+        textColor = textMesh.color;
+        disappearTimer = 1f; // Chữ tồn tại trong 1 giây
+        moveVector = new Vector3(0, 2.5f, 0) * 1.5f; // Tốc độ bay lên
+    }
+
     public void Setup(int damageAmount, bool isCritical, bool isPlayerTakingDamage = false, bool isHeal = false)
     {
         textMesh.text = isHeal ? $"+{damageAmount}" : damageAmount.ToString();
