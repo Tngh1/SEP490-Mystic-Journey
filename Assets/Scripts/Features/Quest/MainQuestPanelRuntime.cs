@@ -82,6 +82,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
             gameObject.AddComponent<MysticJourney.Features.Quest.QuestWaypointManager>();
     }
 
+    private Coroutine waitForQuestDataRoutine;
+
     private IEnumerator Start()
     {
         yield return null;
@@ -96,6 +98,16 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
             QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+            QuestManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
+        }
+
+        // Nếu sau BindUi + Refresh mà vẫn không có quest (QuestManager chưa load xong API),
+        // bắt đầu retry để đảm bảo tracker cập nhật ngay khi dữ liệu sẵn sàng.
+        if (quests.Count == 0)
+        {
+            if (waitForQuestDataRoutine != null) StopCoroutine(waitForQuestDataRoutine);
+            waitForQuestDataRoutine = StartCoroutine(WaitForQuestData());
         }
     }
 
@@ -107,6 +119,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (QuestManager.Instance != null)
         {
             QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
         }
 
         if (Instance == this)
@@ -116,6 +129,61 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private void OnQuestProgressChangedHandler(int questId)
     {
         RefreshWorldAndQuests();
+    }
+
+    /// <summary>
+    /// Gọi khi QuestManager load xong quest từ server (HandleLoadedQuestResponses).
+    /// Đảm bảo tracker cập nhật ngay mà không cần chờ QuestsChanged event.
+    /// </summary>
+    private void OnQuestsLoadedHandler()
+    {
+        // Hủy retry nếu đang chạy — quest đã sẵn sàng.
+        if (waitForQuestDataRoutine != null)
+        {
+            StopCoroutine(waitForQuestDataRoutine);
+            waitForQuestDataRoutine = null;
+        }
+
+        // Đăng ký lại QuestManager events phòng trường hợp QuestManager bị tạo lại.
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+            QuestManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
+        }
+
+        RefreshWorldAndQuests();
+    }
+
+    /// <summary>
+    /// Retry coroutine: nếu QuestManager chưa sẵn sàng hoặc chưa load xong quest từ API,
+    /// thử lại mỗi 0.5s tối đa 10 lần (5 giây). Cover trường hợp QuestManager được tạo
+    /// SAU MainQuestPanelRuntime và OnQuestsLoaded không được đăng ký kịp.
+    /// </summary>
+    private IEnumerator WaitForQuestData()
+    {
+        var wait = new WaitForSeconds(0.5f);
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            yield return wait;
+
+            // QuestManager có thể xuất hiện muộn (UIManager.EnsureQuestManager) → đăng ký lại.
+            if (QuestManager.Instance != null)
+            {
+                QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+                QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+                QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+                QuestManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
+            }
+
+            RefreshWorldAndQuests();
+
+            if (quests.Count > 0)
+                break;
+        }
+
+        waitForQuestDataRoutine = null;
     }
 
     public void OpenQuestPanel()

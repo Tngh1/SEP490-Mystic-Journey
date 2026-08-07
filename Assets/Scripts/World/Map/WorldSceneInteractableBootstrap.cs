@@ -335,19 +335,40 @@ public static class WorldSceneInteractableBootstrap
     /// <summary>
     /// Tìm tất cả GameObject trong scene có tên CHỨA <paramref name="nameFragment"/> (case-insensitive).
     /// Trả về exact-match trước rồi mới partial-match để ưu tiên đúng object khi có nhiều kết quả.
+    /// Đã sửa lỗi partial match quá lỏng lẻo (trước đây "flower" khớp luôn "FlowersRandom" làm
+    /// mũi tên nhiệm vụ chỉ bậy vào các bụi cây trang trí).
     /// </summary>
     private static List<GameObject> FindSceneObjects(Scene scene, string nameFragment)
     {
         var exact   = new List<GameObject>();
         var partial = new List<GameObject>();
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
+        
+        string lowerFragment = nameFragment.ToLowerInvariant();
+
         foreach (var obj in objects)
         {
             if (obj == null || obj.scene != scene) continue;
-            if (string.Equals(obj.name, nameFragment, StringComparison.OrdinalIgnoreCase))
+            
+            string lowerName = obj.name.ToLowerInvariant();
+
+            if (lowerName == lowerFragment)
+            {
                 exact.Add(obj);
-            else if (obj.name.IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
-                partial.Add(obj);
+            }
+            else if (lowerName.StartsWith(lowerFragment))
+            {
+                // Chỉ cho phép khớp partial nếu phần đuôi là (Clone) hoặc dạng _1, _2 (do Unity spawn/duplicate).
+                // Ngăn chặn "flower" khớp bừa vào "FlowersRandom" hoặc "FlowerPot".
+                string remainder = lowerName.Substring(lowerFragment.Length).Trim();
+                if (remainder == "(clone)" || 
+                    (remainder.StartsWith("_") && int.TryParse(remainder.Substring(1), out _)) ||
+                    (remainder.StartsWith("(") && remainder.EndsWith(")") && int.TryParse(remainder.Substring(1, remainder.Length - 2), out _)) ||
+                    (remainder.StartsWith(" ") && int.TryParse(remainder.Substring(1), out _)))
+                {
+                    partial.Add(obj);
+                }
+            }
         }
         exact.AddRange(partial);
         return exact;
