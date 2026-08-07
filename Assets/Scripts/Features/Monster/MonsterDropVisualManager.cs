@@ -32,6 +32,7 @@ namespace MysticJourney.Features.Monster
 
         [Header("Prefab & Styling Options")]
         [SerializeField] private GameObject dropTextPrefab;
+        [SerializeField] private TMP_FontAsset dropFont; // Gán Silver SDF từ Inspector
         [SerializeField] private Color expColor = new Color(0.3f, 0.85f, 1f);      // Cyan / Blue
         [SerializeField] private Color goldColor = new Color(1f, 0.85f, 0.15f);    // Gold / Yellow
         [SerializeField] private Color gemColor = new Color(0.85f, 0.35f, 1f);     // Magenta / Gem Purple
@@ -249,6 +250,12 @@ namespace MysticJourney.Features.Monster
                 tmp.alignment = TextAlignmentOptions.Center;
                 tmp.fontSize = 4.5f;
                 tmp.sortingOrder = 50;
+
+                // Gán font Silver SDF nếu có
+                if (dropFont != null)
+                {
+                    tmp.font = dropFont;
+                }
             }
 
             var floating = dropGO.GetComponent<FloatingDropText>();

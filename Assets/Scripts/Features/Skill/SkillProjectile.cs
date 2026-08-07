@@ -29,12 +29,13 @@ public class SkillProjectile : MonoBehaviour
         // Bỏ qua va chạm với Player (người tung skill hoặc đồng đội)
         if (collision.CompareTag("Player")) return;
 
-        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
-        if (collision.isTrigger && !collision.CompareTag("Monster")) return;
+        EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
 
-        if (collision.CompareTag("Monster"))
+        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
+        if (collision.isTrigger && enemy == null && !collision.CompareTag("Monster")) return;
+
+        if (enemy != null || collision.CompareTag("Monster"))
         {
-            EnemyEntity enemy = collision.GetComponent<EnemyEntity>();
             if (enemy != null)
             {
                 // 👇 Thêm logic Chí mạng cho Kỹ năng (Tạm để 20% crit, x1.5 sát thương)
@@ -50,6 +51,8 @@ public class SkillProjectile : MonoBehaviour
                     DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
                 }
             }
+            OnHitTarget();
+            return;
         }
 
         // Đạn va chạm bất kỳ vật thể nào trên bản đồ (Monster, tường, địa hình, chướng ngại vật...) đều nổ / biến mất

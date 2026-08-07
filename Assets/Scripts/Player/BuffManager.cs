@@ -57,8 +57,15 @@ public class BuffManager : MonoBehaviour
 
     public void AddBuff(string name, string iconName, float duration, bool isDebuff)
     {
-        if (isDebuff && IsStatusImmune)
+        var combat = GetComponent<PlayerCombat>();
+        bool immune = IsStatusImmune || (combat != null && combat.IsDebuffImmune);
+
+        if (isDebuff && immune)
         {
+            if (DamagePopupManager.Instance != null)
+            {
+                DamagePopupManager.Instance.CreateText(transform.position, "Immunity", Color.cyan);
+            }
             return; // Immune to debuffs
         }
 
@@ -78,6 +85,15 @@ public class BuffManager : MonoBehaviour
             });
         }
         OnBuffsUpdated?.Invoke();
+    }
+
+    public void ClearAllDebuffs()
+    {
+        int removed = ActiveBuffs.RemoveAll(b => b.IsDebuff);
+        if (removed > 0)
+        {
+            OnBuffsUpdated?.Invoke();
+        }
     }
 
     public void RemoveBuff(string name)
