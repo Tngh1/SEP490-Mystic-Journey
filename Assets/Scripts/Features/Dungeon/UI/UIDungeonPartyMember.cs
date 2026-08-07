@@ -15,6 +15,7 @@ using TMPro;
 public class UIDungeonPartyMember : MonoBehaviour
 {
     [SerializeField] private TMP_Text nameText;
+    [SerializeField] private TMP_Text levelText;   // "LevelText" child — level badge below the avatar
     [SerializeField] private Image avatarImage;
     [SerializeField] private Image hpFill;
     [SerializeField] private TMP_Text hpText;
@@ -32,11 +33,25 @@ public class UIDungeonPartyMember : MonoBehaviour
     {
         _targetPlayer = target;
 
+        // Reset caches so RefreshIdentity() always fires on the first poll — even
+        // when the proxy's initial replicated value equals the C# default (0 / "").
+        _lastLevel     = -1;
+        _lastName      = null;
+        _lastAvatarUrl = null;
+        _lastHp        = -1;
+        _lastMaxHp     = -1;
+        _buffPanelBound = false;
+
+        // Blank the text immediately so stale content from a previous target is not
+        // visible on the frame before the first RefreshIdentity() runs.
+        if (nameText  != null) nameText.text  = "...";
+        if (levelText != null) levelText.text = "-";
+
         if (_targetPlayer != null)
         {
             RefreshIdentity();
             TryBindBuffPanel();
-            UpdateHpUI(true); // Force initial update
+            UpdateHpUI(true);
         }
     }
 
@@ -65,13 +80,21 @@ public class UIDungeonPartyMember : MonoBehaviour
         int level = _targetPlayer.Level;
         string playerName = _targetPlayer.PlayerName.ToString();
 
-        if (nameText != null && (level != _lastLevel || playerName != _lastName))
+        // Name text — player name only; level is shown in the separate LevelText badge.
+        if (nameText != null && playerName != _lastName)
         {
-            _lastLevel = level;
             _lastName = playerName;
             nameText.text = string.IsNullOrWhiteSpace(playerName)
-                ? "..."                                 // identity has not replicated yet
-                : $"Lv.{Mathf.Max(1, level)} {playerName}";
+                ? "..."        // identity has not replicated yet
+                : playerName;
+        }
+
+        // Level badge — update independently so a late-arriving Level value still shows.
+        if (level != _lastLevel)
+        {
+            _lastLevel = level;
+            if (levelText != null)
+                levelText.text = Mathf.Max(1, level).ToString();
         }
 
         string avatarUrl = _targetPlayer.AvatarUrl.ToString();
