@@ -3,6 +3,7 @@ using System.Linq;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 public class PlayerWorldInteractor : MonoBehaviour
@@ -406,10 +407,10 @@ public class PlayerWorldInteractor : MonoBehaviour
         //    comes back with questId 0 and would otherwise slip through ungated.
         foreach (var quest in responses.Values)
         {
-            if (!IsWorldObjective(quest))
+            if (!QuestUtils.IsWorldObjective(quest))
                 continue;
 
-            if (!TargetMatches(quest.ObjectiveTarget, item.ObjectKey, item.DisplayName))
+            if (!QuestUtils.TargetMatches(quest.ObjectiveTarget, item.ObjectKey, item.DisplayName))
                 continue;
 
             governed = true;
@@ -420,53 +421,9 @@ public class PlayerWorldInteractor : MonoBehaviour
         return !governed;
     }
 
-    /// <summary>
-    /// Only objectives a world object can actually satisfy. Talk/Defeat/Explore targets are
-    /// NPC and monster names, and matching those would gate props by coincidence.
-    /// </summary>
-    private static bool IsWorldObjective(PlayerQuestResponse quest)
-    {
-        if (quest == null)
-            return false;
-
-        return string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(quest.ObjectiveType, "Interact", System.StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(quest.ObjectiveType, "Gather", System.StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// ObjectiveTarget is prose ("Natalie's Memory", "Tide-Knell Remembrance") while ObjectKey
-    /// is compacted ("AbandonedCastle.Natalie'sMemory"), so a plain Contains misses on the
-    /// space alone. Compare with punctuation and spacing stripped.
-    /// </summary>
-    private static bool TargetMatches(string objectiveTarget, string objectKey, string displayName)
-    {
-        var target = Normalize(objectiveTarget);
-        // Guard against a target so short it matches half the scene.
-        if (target.Length < 4)
-            return false;
-
-        var key = Normalize(objectKey);
-        var name = Normalize(displayName);
-
-        return (key.Length > 0 && (key.Contains(target) || target.Contains(key))) ||
-               (name.Length > 0 && (name.Contains(target) || target.Contains(name)));
-    }
-
-    private static string Normalize(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return string.Empty;
-
-        var builder = new System.Text.StringBuilder(value.Length);
-        foreach (var c in value)
-        {
-            if (char.IsLetterOrDigit(c))
-                builder.Append(char.ToLowerInvariant(c));
-        }
-
-        return builder.ToString();
-    }
+    // IsWorldObjective / TargetMatches / Normalize đã chuyển sang QuestUtils để mũi tên
+    // (QuestWaypointManager) và cổng tương tác này dùng CÙNG một luật so khớp — trước đây mỗi
+    // bên tự viết luật riêng nên mũi tên có thể chỉ vào vật mà cổng này từ chối.
 
     private WorldInteractable FindNearestWorldObject()
     {

@@ -155,7 +155,10 @@ public class DailyLoginPanelRuntime : MonoBehaviour
 
     private void ClaimAvailableReward()
     {
-        if (requestInFlight || status != null && status.ClaimedDays != null && status.ClaimedDays.Contains(DateTime.Now.Day))
+        // UtcNow, không phải Now: backend chốt ngày theo UTC (DailyLoginRewardService).
+        // Ở UTC+7 thì 07:00-24:00 giờ VN đã sang ngày mới theo local nhưng vẫn là ngày cũ
+        // theo UTC, nên dùng Now sẽ so sai ngày và guard chống nhận trùng bị hỏng.
+        if (requestInFlight || status != null && status.ClaimedDays != null && status.ClaimedDays.Contains(DateTime.UtcNow.Day))
             return;
 
         requestInFlight = true;
@@ -181,7 +184,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
                 }
 
                 if (status.ClaimedDays == null) status.ClaimedDays = new List<int>();
-                status.ClaimedDays.Add(DateTime.Now.Day);
+                status.ClaimedDays.Add(DateTime.UtcNow.Day);
                 status.TotalDaysClaimed = response?.TotalDaysClaimed ?? status.TotalDaysClaimed + 1;
                 Render();
             },

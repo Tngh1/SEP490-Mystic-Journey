@@ -154,6 +154,74 @@ namespace MysticJourney.Core.Utilities
             };
         }
 
+        // ─── Nhận diện mục tiêu nhiệm vụ (dùng chung) ────────────────────────────────
+        // BE chỉ mô tả mục tiêu bằng CHUỖI: PlayerQuestResponse có ObjectiveType /
+        // ObjectiveTarget / ObjectiveLocation và KHÔNG có ObjectiveTargetId. Vì vậy client
+        // buộc phải tự suy ra "object nào là của nhiệm vụ", và mỗi nơi tự viết luật so tên
+        // riêng thì mũi tên (QuestWaypointManager) có thể chỉ vào vật mà cổng tương tác
+        // (PlayerWorldInteractor) từ chối. Ba hàm dưới là bộ so khớp duy nhất cho cả hai.
+        //
+        // ponytail: so theo tên vẫn chỉ là phỏng đoán — hai vật cùng tên thì không cách nào
+        // phân biệt. Cách dứt điểm là BE trả thêm ObjectiveTargetId (hoặc ObjectKey) trong
+        // PlayerQuestResponse; khi có field đó thì so id ở đây và xoá hẳn nhánh so tên.
+
+        /// <summary>
+        /// Bỏ mọi ký tự không phải chữ/số rồi hạ chữ thường. ObjectiveTarget là văn xuôi
+        /// ("Natalie's Memory") còn ObjectKey bị nén ("AbandonedCastle.Natalie'sMemory"),
+        /// nên so thô trượt ngay ở dấu cách/dấu nháy.
+        /// </summary>
+        public static string NormalizeIdentity(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+
+            var builder = new System.Text.StringBuilder(value.Length);
+            foreach (var c in value)
+            {
+                if (char.IsLetterOrDigit(c))
+                    builder.Append(char.ToLowerInvariant(c));
+            }
+
+            return builder.ToString();
+        }
+
+        /// <summary>
+        /// Chỉ những ObjectiveType mà một vật thể trong thế giới có thể hoàn thành.
+        /// Talk/Defeat/Explore có target là tên NPC / tên quái / tên map, so tên với chúng
+        /// sẽ khớp bừa vào đồ trang trí.
+        /// </summary>
+        public static bool IsWorldObjective(PlayerQuestResponse quest)
+        {
+            if (quest == null) return false;
+
+            return string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(quest.ObjectiveType, "Interact", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(quest.ObjectiveType, "Gather", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(quest.ObjectiveType, "Fetch", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Vật thể này có mang đúng tên mục tiêu không. Ngưỡng 4 ký tự là bắt buộc: mục tiêu
+        /// ngắn hơn thế khớp với nửa scene.
+        /// </summary>
+        public static bool TargetMatches(string objectiveTarget, string objectKey, string displayName)
+        {
+            var target = NormalizeIdentity(objectiveTarget);
+            if (target.Length < 4) return false;
+
+            return Contains(NormalizeIdentity(objectKey), target) ||
+                   Contains(NormalizeIdentity(displayName), target);
+
+            // Chiều ngược (mục tiêu chứa tên vật) là nguồn khớp bừa chính: tên vật ngắn như
+            // "tree", "box", "cay" nằm trong hàng chục mục tiêu khác nhau. Chỉ cho phép
+            // containment khi cả hai phía đủ dài; ngắn hơn thì buộc phải trùng khít.
+            static bool Contains(string candidate, string target)
+            {
+                if (candidate.Length == 0) return false;
+                if (string.Equals(candidate, target)) return true;
+                return candidate.Length >= 4 && (candidate.Contains(target) || target.Contains(candidate));
+            }
+        }
+
         public static string ObjectiveLine(PlayerQuestResponse quest)
         {
             if (quest == null) return string.Empty;
