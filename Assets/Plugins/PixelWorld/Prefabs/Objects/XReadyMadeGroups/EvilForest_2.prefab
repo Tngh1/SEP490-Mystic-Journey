@@ -1284,6 +1284,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2537772756713387778}
     m_Modifications:
+    - target: {fileID: 4969208469617209666, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
+      propertyPath: m_Size.x
+      value: 1.9818268
+      objectReference: {fileID: 0}
+    - target: {fileID: 4969208469617209666, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
+      propertyPath: m_Size.y
+      value: 2.7237034
+      objectReference: {fileID: 0}
+    - target: {fileID: 4969208469617209666, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
+      propertyPath: m_Offset.x
+      value: -0.21401215
+      objectReference: {fileID: 0}
+    - target: {fileID: 4969208469617209666, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
+      propertyPath: m_Offset.y
+      value: 2.1284132
+      objectReference: {fileID: 0}
     - target: {fileID: 5612182440345975701, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.14605713
@@ -1328,16 +1344,98 @@ PrefabInstance:
       propertyPath: m_Name
       value: TreeEvil12
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4969208469617209666, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 28281590572508336, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3221127417189276884}
   m_SourcePrefab: {fileID: 100100000, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
 --- !u!4 &1498909490382519460 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5612182440345975701, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
   m_PrefabInstance: {fileID: 6426434412060575537}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6434291435477296001 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 28281590572508336, guid: 8dcac09606ad43549a0c04bb9b706758, type: 3}
+  m_PrefabInstance: {fileID: 6426434412060575537}
+  m_PrefabAsset: {fileID: 0}
+--- !u!60 &3221127417189276884
+PolygonCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6434291435477296001}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.067226894}
+    oldSize: {x: 2.375, y: 3.71875}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Points:
+    m_Paths:
+    - - {x: 0.875, y: 1.03125}
+      - {x: 1.1875, y: 1.40625}
+      - {x: 1.1875, y: 2.25}
+      - {x: 0.96875, y: 2.59375}
+      - {x: 0.9375, y: 2.8125}
+      - {x: 0.875, y: 3.125}
+      - {x: 0.53125, y: 3.46875}
+      - {x: -0.375, y: 3.46875}
+      - {x: -0.71875, y: 3.3125}
+      - {x: -1, y: 3.1875}
+      - {x: -1.0625, y: 3}
+      - {x: -0.96875, y: 2.65625}
+      - {x: -1.1875, y: 2.375}
+      - {x: -1.1875, y: 1.84375}
+      - {x: -1.15625, y: 1.71875}
+      - {x: -1.15625, y: 1.21875}
+      - {x: -0.53125, y: 0.90625}
+      - {x: -0.25, y: 0.90625}
+      - {x: -0.25, y: 0.125}
+      - {x: -0.34375, y: -0.125}
+      - {x: -0.1875, y: -0.25}
+      - {x: 0.28125, y: -0.25}
+      - {x: 0.375, y: -0.1875}
+      - {x: 0.34375, y: 0}
+      - {x: 0.21875, y: 0.875}
+      - {x: 0.4375, y: 0.84375}
+  m_UseDelaunayMesh: 0
 --- !u!1001 &6790056807527371018
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1761,6 +1859,22 @@ PrefabInstance:
     - target: {fileID: 2493943675978396194, guid: dbe7cc0353d06384786bdd9a8dd4ed45, type: 3}
       propertyPath: m_Name
       value: TreeEvil7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8252981592193268718, guid: dbe7cc0353d06384786bdd9a8dd4ed45, type: 3}
+      propertyPath: m_Size.x
+      value: 4.26857
+      objectReference: {fileID: 0}
+    - target: {fileID: 8252981592193268718, guid: dbe7cc0353d06384786bdd9a8dd4ed45, type: 3}
+      propertyPath: m_Size.y
+      value: 5.6501846
+      objectReference: {fileID: 0}
+    - target: {fileID: 8252981592193268718, guid: dbe7cc0353d06384786bdd9a8dd4ed45, type: 3}
+      propertyPath: m_Offset.x
+      value: 0.06815338
+      objectReference: {fileID: 0}
+    - target: {fileID: 8252981592193268718, guid: dbe7cc0353d06384786bdd9a8dd4ed45, type: 3}
+      propertyPath: m_Offset.y
+      value: 3.257801
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

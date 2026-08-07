@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 4784560564611486403}
   - component: {fileID: 4324273940915480200}
   - component: {fileID: 920995951832991520}
+  - component: {fileID: 1863662511788265652}
+  - component: {fileID: 7322253475306814397}
   m_Layer: 0
   m_Name: Scarecrow2
   m_TagString: Untagged
@@ -51,6 +53,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -72,8 +79,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: -1321738484, guid: f15262aba4c530c4db90310e7fe57a29, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -94,6 +102,7 @@ CircleCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4606040567523669714}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -117,10 +126,93 @@ CircleCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 0
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: 0.07623863, y: 0.027424335}
-  serializedVersion: 2
   m_Radius: 0.111242294
+--- !u!60 &1863662511788265652
+PolygonCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4606040567523669714}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5119048, y: 0.07070707}
+    oldSize: {x: 2.625, y: 3.09375}
+    newSize: {x: 2.625, y: 3.09375}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Points:
+    m_Paths:
+    - - {x: 1.28125, y: 1.53125}
+      - {x: 1.28125, y: 2.21875}
+      - {x: 1.03125, y: 2.34375}
+      - {x: 0.5, y: 2.0625}
+      - {x: 0.53125, y: 2.84375}
+      - {x: 0.40625, y: 2.875}
+      - {x: -0.3125, y: 2.875}
+      - {x: -0.4375, y: 2.5625}
+      - {x: -0.4375, y: 2.40625}
+      - {x: -0.40625, y: 2.3125}
+      - {x: -0.78125, y: 1.90625}
+      - {x: -1.0625, y: 2.125}
+      - {x: -1.34375, y: 2.0625}
+      - {x: -1.34375, y: 1.375}
+      - {x: -1.03125, y: 1.125}
+      - {x: -0.25, y: 1.28125}
+      - {x: -0.25, y: 0.875}
+      - {x: -0.15625, y: 0.75}
+      - {x: -0.106098175, y: 0.48916435}
+      - {x: 0.005393982, y: 0.4131565}
+      - {x: 0.17091751, y: 0.39309597}
+      - {x: 0.28240967, y: 0.47026253}
+      - {x: 0.34375, y: 0.65625}
+      - {x: 0.84375, y: 1.625}
+  m_UseDelaunayMesh: 0
+--- !u!114 &7322253475306814397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4606040567523669714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03da34c53a7b24a4f96391ddfe9ad440, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingFader3
 --- !u!1 &8033371181530641735
 GameObject:
   m_ObjectHideFlags: 0
@@ -170,6 +262,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -191,8 +288,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -1017881387
-  m_SortingLayer: 2
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: 1107281379, guid: bfdd77a8044e6d24b9c45b0c7c5a6311, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.2784314}
