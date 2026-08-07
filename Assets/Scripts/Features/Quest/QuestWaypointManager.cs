@@ -281,21 +281,10 @@ namespace MysticJourney.Features.Quest
             string wantedGiver = (questGiver ?? "").Trim();
             string wantedTarget = (objectiveTarget ?? "").Trim();
 
-            // 1. First Priority: Try matching specified quest giver NPC by name (e.g., "Elder Rowan", "Fa", "Tristan", "Arthur")
-            if (!string.IsNullOrWhiteSpace(wantedGiver))
-            {
-                var npc = FindMatchingNpc(interactables, wantedGiver);
-                if (npc != null) return npc;
-            }
-
-            // 2. Second Priority: Try matching objective target NPC name (e.g., "Elder Rowan", "Tristan", "Arthur")
-            if (!string.IsNullOrWhiteSpace(wantedTarget))
-            {
-                var npc = FindMatchingNpc(interactables, wantedTarget);
-                if (npc != null) return npc;
-            }
-
-            // 3. Fallback: Check if any NPC contains questId in LinkedQuestIds
+            // 1. Liên kết ĐÍCH DANH trước tiên: WorldSceneInteractableBootstrap đã nạp
+            //    LinkedQuestIds từ dialogue của BE (NPCResponse.Dialogues.LinkedQuestId), nên đây
+            //    là bằng chứng chắc chắn NPC này giao/nhận quest — không phải phỏng đoán theo tên.
+            //    Trước đây khối này nằm CUỐI, nên một NPC trùng tên gần player hơn vẫn thắng.
             if (questId > 0)
             {
                 foreach (var i in interactables)
@@ -304,6 +293,21 @@ namespace MysticJourney.Features.Quest
                     if (i.LinkedQuestIds != null && System.Linq.Enumerable.Contains(i.LinkedQuestIds, questId))
                         return i.transform;
                 }
+            }
+
+            // 2. Không có liên kết id (NPC chưa được BE gắn dialogue): so tên questGiver.
+            if (!string.IsNullOrWhiteSpace(wantedGiver))
+            {
+                var npc = FindMatchingNpc(interactables, wantedGiver);
+                if (npc != null) return npc;
+            }
+
+            // 3. Cuối cùng mới tới ObjectiveTarget — chỉ đúng với quest Talk; với quest khác nó là
+            //    tên vật/địa điểm nên rất dễ khớp bừa vào NPC.
+            if (!string.IsNullOrWhiteSpace(wantedTarget))
+            {
+                var npc = FindMatchingNpc(interactables, wantedTarget);
+                if (npc != null) return npc;
             }
 
             return null;
@@ -392,7 +396,7 @@ namespace MysticJourney.Features.Quest
 
             if (bestMatch != null) return bestMatch.transform;
 
-            // --- FALLBACK: Nếu không có WorldInteractable nào khớp, tìm tất cả GameObject trong scene khớp MageOld / Elder Rowan ---
+            // --- FALLBACK: Không WorldInteractable nào khớp → quét GameObject trơ trong scene ---
             var allGo = FindObjectsOfType<GameObject>();
             GameObject bestGo = null;
             float minGoDist = float.MaxValue;
@@ -402,22 +406,13 @@ namespace MysticJourney.Features.Quest
                 if (!go.activeInHierarchy) continue;
                 string gName = go.name;
 
-                bool isGoMatch = false;
-                if (!string.IsNullOrWhiteSpace(cleanTarget))
-                {
-                    if (gName.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        cleanTarget.IndexOf(gName, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        isGoMatch = true;
-                    }
-                    else if (cleanTarget.IndexOf("Elder Rowan", System.StringComparison.OrdinalIgnoreCase) >= 0 &&
-                             (gName.IndexOf("MageOld", System.StringComparison.OrdinalIgnoreCase) >= 0 || gName.IndexOf("Elder", System.StringComparison.OrdinalIgnoreCase) >= 0 || gName.IndexOf("Rowan", System.StringComparison.OrdinalIgnoreCase) >= 0))
-                    {
-                        isGoMatch = true;
-                    }
-                }
-
-                if (isGoMatch)
+                // Cùng luật TargetMatches như mọi nơi khác, thay cho IndexOf hai chiều không giới
+                // hạn (tên vật nằm trong mục tiêu là đủ khớp → "Tree", "Box" khớp bừa cả scene).
+                // Đã bỏ nhánh hardcode "Elder Rowan" → MageOld/Elder/Rowan: Elder Rowan luôn được
+                // WorldSceneInteractableBootstrap.ConfigureFallback cấu hình thành NPC
+                // WorldInteractable với DisplayName "Elder Rowan", nên lượt quét WorldInteractable
+                // ở trên đã bắt được; nhánh này chỉ là lưới cuối cho GameObject trơ.
+                if (QuestUtils.TargetMatches(cleanTarget, gName, null))
                 {
                     if (playerTransform != null)
                     {
@@ -534,44 +529,50 @@ namespace MysticJourney.Features.Quest
                     cleanTarget = cleanTarget.Split(new string[] { " at ", " At ", " AT " }, System.StringSplitOptions.None)[0].Trim();
                 }
 
-                foreach (var i in interactables)
+                // HAI LƯỢT, KHÔNG TRỘN. Trước đây id và tên nằm chung một if/else nên cả hai kiểu
+                // khớp cùng đổ vào một vòng "chọn gần nhất": một vật TRÙNG TÊN nhưng không thuộc
+                // nhiệm vụ vẫn thắng vật đã được BE gắn đúng questId, chỉ vì nó đứng gần player hơn.
+                // Lượt 1 là liên kết đích danh (WorldSceneInteractableBootstrap ghi questId từ API),
+                // và chỉ khi lượt 1 trắng tay mới cho phép đoán theo tên ở lượt 2.
+                for (int pass = 0; pass < 2 && bestItem == null; pass++)
                 {
-                    if (i == null || !IsAvailableWaypointTarget(i)) continue;
+                    minDistance = float.MaxValue;
 
-                    // Vật cần nhặt không bao giờ là NPC. Phép so tên bên dưới có chiều
-                    // ngược (cleanTarget chứa gName), nên NPC "Natalie" khớp với mục tiêu
-                    // "Natalie's Memory" rồi thắng ở vòng chọn "gần nhất" khi player đứng
-                    // cạnh NPC — mũi tên chỉ sai về NPC thay vì căn nhà chứa vật phẩm.
-                    if (i.Kind == WorldInteractableKind.Npc) continue;
-
-                    bool isMatch = false;
-                    if (i.QuestId.HasValue && i.QuestId.Value == quest.QuestId && quest.QuestId > 0)
+                    foreach (var i in interactables)
                     {
-                        isMatch = true;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(cleanTarget))
-                    {
-                        string gName = i.gameObject.name.Trim();
-                        string dName = (i.DisplayName ?? "").Trim();
-                        string oKey = (i.ObjectKey ?? "").Trim();
+                        if (i == null || !IsAvailableWaypointTarget(i)) continue;
 
-                        if (Matches(oKey, cleanTarget) || Matches(dName, cleanTarget) || Matches(gName, cleanTarget) ||
-                            (!string.IsNullOrWhiteSpace(oKey) && cleanTarget.IndexOf(oKey, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                            (!string.IsNullOrWhiteSpace(dName) && cleanTarget.IndexOf(dName, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                            (!string.IsNullOrWhiteSpace(gName) && cleanTarget.IndexOf(gName, System.StringComparison.OrdinalIgnoreCase) >= 0) ||
-                            (cleanTarget.IndexOf("Flower", System.StringComparison.OrdinalIgnoreCase) >= 0 && (gName.IndexOf("flower", System.StringComparison.OrdinalIgnoreCase) >= 0 || dName.IndexOf("flower", System.StringComparison.OrdinalIgnoreCase) >= 0)))
+                        // Vật cần nhặt không bao giờ là NPC. Phép so tên có chiều ngược (mục tiêu
+                        // chứa tên vật), nên NPC "Natalie" khớp với mục tiêu "Natalie's Memory" rồi
+                        // thắng ở vòng chọn "gần nhất" khi player đứng cạnh NPC — mũi tên chỉ sai
+                        // về NPC thay vì căn nhà chứa vật phẩm.
+                        if (i.Kind == WorldInteractableKind.Npc) continue;
+
+                        bool isMatch;
+                        if (pass == 0)
                         {
-                            isMatch = true;
+                            isMatch = quest.QuestId > 0 &&
+                                      ((i.QuestId.HasValue && i.QuestId.Value == quest.QuestId) ||
+                                       (i.LinkedQuestIds != null &&
+                                        System.Linq.Enumerable.Contains(i.LinkedQuestIds, quest.QuestId)));
                         }
-                    }
-
-                    if (isMatch)
-                    {
-                        float dist = Vector3.Distance(playerPos, i.transform.position);
-                        if (dist < minDistance)
+                        else
                         {
-                            minDistance = dist;
-                            bestItem = i;
+                            // Cùng một luật so khớp với cổng tương tác (PlayerWorldInteractor):
+                            // trước đây mỗi bên tự viết luật riêng nên mũi tên chỉ vào vật mà cổng
+                            // đó từ chối. TargetMatches có chuẩn hoá + chặn tên quá ngắn.
+                            isMatch = QuestUtils.TargetMatches(cleanTarget, i.ObjectKey, i.DisplayName) ||
+                                      QuestUtils.TargetMatches(cleanTarget, i.gameObject.name, null);
+                        }
+
+                        if (isMatch)
+                        {
+                            float dist = Vector3.Distance(playerPos, i.transform.position);
+                            if (dist < minDistance)
+                            {
+                                minDistance = dist;
+                                bestItem = i;
+                            }
                         }
                     }
                 }
@@ -588,15 +589,11 @@ namespace MysticJourney.Features.Quest
                     string gName = go.name.Trim();
                     if (string.IsNullOrWhiteSpace(gName)) continue;
 
-                    bool matchGo = false;
-                    if (!string.IsNullOrWhiteSpace(cleanTarget))
-                    {
-                        matchGo = gName.IndexOf(cleanTarget, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                  cleanTarget.IndexOf(gName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                  (cleanTarget.IndexOf("Flower", System.StringComparison.OrdinalIgnoreCase) >= 0 && gName.IndexOf("flower", System.StringComparison.OrdinalIgnoreCase) >= 0);
-                    }
-
-                    if (matchGo)
+                    // Lượt quét CẢ SCENE này là nguồn khớp bừa nặng nhất: nó xét mọi GameObject,
+                    // kể cả đồ trang trí không có WorldInteractable. Dùng đúng luật TargetMatches
+                    // (chuẩn hoá + chặn tên dưới 4 ký tự) thay cho IndexOf hai chiều: trước đây
+                    // mục tiêu chứa tên vật là đủ, nên tên ngắn như "Tree"/"Box" khớp hàng loạt.
+                    if (QuestUtils.TargetMatches(cleanTarget, gName, null))
                     {
                         var parentInteractable = go.GetComponentInParent<WorldInteractable>();
                         if (parentInteractable != null && !IsAvailableWaypointTarget(parentInteractable))
@@ -630,11 +627,28 @@ namespace MysticJourney.Features.Quest
                 float minEnemyDist = float.MaxValue;
                 Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
 
-                foreach (var e in allEnemies)
+                // Quái KHÔNG có liên kết đích danh nào để dựa vào: PlayerQuestResponse chỉ có
+                // ObjectiveTarget dạng chuỗi, và EnemyEntity.MonsterId của quái đặt sẵn trong
+                // scene thường là 0 (chỉ DungeonSpawner mới bơm id). Nên ở đây phải phân TẦNG:
+                // lượt 0 chỉ nhận trùng tên khít (chuẩn hoá), lượt 1 mới nới ra IsEnemyMatch
+                // (khớp theo token >= 3 ký tự). Trước đây chỉ có lượt nới, nên mục tiêu
+                // "Ice Golem" bắt luôn con "Golem" thường đứng gần hơn.
+                //
+                // ponytail: chỉ hết hẳn nhập nhằng khi BE trả MonsterId trong PlayerQuestResponse
+                // — lúc đó so e.MonsterId == quest.MonsterId ở lượt 0 và bỏ hẳn lượt so tên.
+                for (int pass = 0; pass < 2 && bestEnemy == null; pass++)
                 {
-                    if (e == null || !e.gameObject.activeInHierarchy) continue;
-                    if (IsEnemyMatch(e.name, targetName))
+                    minEnemyDist = float.MaxValue;
+
+                    foreach (var e in allEnemies)
                     {
+                        if (e == null || !e.gameObject.activeInHierarchy) continue;
+
+                        bool isMatch = pass == 0
+                            ? QuestUtils.TargetMatches(targetName, e.name, null)
+                            : IsEnemyMatch(e.name, targetName);
+                        if (!isMatch) continue;
+
                         float d = Vector3.Distance(playerPos, e.transform.position);
                         if (d < minEnemyDist)
                         {
@@ -646,15 +660,26 @@ namespace MysticJourney.Features.Quest
 
                 if (bestEnemy != null) return bestEnemy.transform;
 
-                // Fallback: Tìm Spawner hoặc GameObject trong scene khớp tên quái (vd DragonIceSpawner_Zone1)
+                // Fallback: Tìm Spawner hoặc GameObject trong scene khớp tên quái (vd DragonIceSpawner_Zone1).
+                // Cũng chia hai lượt như trên: lượt quét CẢ SCENE này xét cả đồ trang trí không có
+                // EnemyEntity, nên nếu để IsEnemyMatch (token >= 3 ký tự) chạy ngay thì mục tiêu
+                // "Ice Dragon" khớp luôn một tảng băng trang trí tên "IceRock" đứng gần hơn.
                 var allSceneObjs = FindObjectsOfType<GameObject>();
                 GameObject bestSpawner = null;
                 float minSpawnerDist = float.MaxValue;
-                foreach (var go in allSceneObjs)
+                for (int pass = 0; pass < 2 && bestSpawner == null; pass++)
                 {
-                    if (go == null || !go.activeInHierarchy) continue;
-                    if (IsEnemyMatch(go.name, targetName))
+                    minSpawnerDist = float.MaxValue;
+
+                    foreach (var go in allSceneObjs)
                     {
+                        if (go == null || !go.activeInHierarchy) continue;
+
+                        bool isMatch = pass == 0
+                            ? QuestUtils.TargetMatches(targetName, go.name, null)
+                            : IsEnemyMatch(go.name, targetName);
+                        if (!isMatch) continue;
+
                         float d = Vector3.Distance(playerPos, go.transform.position);
                         if (d < minSpawnerDist)
                         {
@@ -736,32 +761,6 @@ namespace MysticJourney.Features.Quest
         }
 
 
-
-        private Transform FindMatchingSceneObject(string targetName)
-        {
-            if (string.IsNullOrWhiteSpace(targetName)) return null;
-
-            var allSceneObjs = FindObjectsOfType<GameObject>();
-            GameObject bestGo = null;
-            float minDist = float.MaxValue;
-            Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
-
-            foreach (var go in allSceneObjs)
-            {
-                if (go == null || !go.activeInHierarchy) continue;
-                if (IsEnemyMatch(go.name, targetName))
-                {
-                    float d = Vector3.Distance(playerPos, go.transform.position);
-                    if (d < minDist)
-                    {
-                        minDist = d;
-                        bestGo = go;
-                    }
-                }
-            }
-
-            return bestGo != null ? bestGo.transform : null;
-        }
 
         private Transform FindBoatTransform()
         {
