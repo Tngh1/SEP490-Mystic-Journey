@@ -300,6 +300,7 @@ public class UIShop : MonoBehaviour
             quantity = 0,
             rarity = item?.Rarity,
             category = string.IsNullOrWhiteSpace(itemType) ? "Other" : itemType,
+            shopSection = item?.ShopSection,
             price = ToLegacyPrice(unitPrice),
             unitPrice = unitPrice,
             originalUnitPrice = item?.OriginalPrice ?? 0,
