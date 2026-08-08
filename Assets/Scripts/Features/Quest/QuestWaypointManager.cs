@@ -277,7 +277,7 @@ namespace MysticJourney.Features.Quest
         // Tìm NPC giao/nhận nhiệm vụ theo questId, tên questGiver hoặc objectiveTarget (vd Mysterious Figure, Lyra, Tristan, Arthur).
         private Transform FindQuestGiverNpc(int questId, string questGiver, string objectiveTarget = null)
         {
-            var interactables = FindObjectsOfType<WorldInteractable>();
+            var interactables = WorldInteractable.All;
             string wantedGiver = (questGiver ?? "").Trim();
             string wantedTarget = (objectiveTarget ?? "").Trim();
 
@@ -326,7 +326,7 @@ namespace MysticJourney.Features.Quest
         /// Tìm NPC khớp tên trong danh sách interactables. currentQuestId dùng để loại bỏ
         /// NPC/object rõ ràng thuộc quest KHÁC (có LinkedQuestIds nhưng không chứa quest hiện tại).
         /// </summary>
-        private Transform FindMatchingNpc(WorldInteractable[] interactables, string nameToMatch, int currentQuestId = 0)
+        private Transform FindMatchingNpc(System.Collections.Generic.IList<WorldInteractable> interactables, string nameToMatch, int currentQuestId = 0)
         {
             if (string.IsNullOrWhiteSpace(nameToMatch)) return null;
             string cleanTarget = CleanNpcName(nameToMatch);
@@ -407,7 +407,7 @@ namespace MysticJourney.Features.Quest
             if (bestMatch != null) return bestMatch.transform;
 
             // --- FALLBACK: Không WorldInteractable nào khớp → quét GameObject trơ trong scene ---
-            var allGo = FindObjectsOfType<GameObject>();
+            var allGo = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
             GameObject bestGo = null;
             float minGoDist = float.MaxValue;
 
@@ -536,7 +536,7 @@ namespace MysticJourney.Features.Quest
 
 
             // Quest đang InProgress: thử resolve target cụ thể theo ObjectiveType.
-            var interactables = FindObjectsOfType<WorldInteractable>();
+            var interactables = WorldInteractable.All;
             bool skipQuestGiverFallback = false;
 
             // 1. Talk to NPC
@@ -619,7 +619,7 @@ namespace MysticJourney.Features.Quest
                 if (bestItem != null) return bestItem.transform;
 
                 // If not found in interactables, search scene GameObjects matching cleanTarget
-                var allObjs = FindObjectsOfType<GameObject>();
+                var allObjs = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
                 GameObject closestGo = null;
                 float minGoDist = float.MaxValue;
                 foreach (var go in allObjs)
@@ -665,7 +665,7 @@ namespace MysticJourney.Features.Quest
             // 3. Defeat Monster — boss có thể nằm TRONG dungeon nên không có mặt ở world scene.
             if (objType.Equals("Defeat", System.StringComparison.OrdinalIgnoreCase))
             {
-                var allEnemies = FindObjectsOfType<EnemyEntity>();
+                var allEnemies = Object.FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
                 EnemyEntity bestEnemy = null;
                 float minEnemyDist = float.MaxValue;
                 Vector3 playerPos = playerTransform != null ? playerTransform.position : Vector3.zero;
@@ -707,7 +707,7 @@ namespace MysticJourney.Features.Quest
                 // Cũng chia hai lượt như trên: lượt quét CẢ SCENE này xét cả đồ trang trí không có
                 // EnemyEntity, nên nếu để IsEnemyMatch (token >= 3 ký tự) chạy ngay thì mục tiêu
                 // "Ice Dragon" khớp luôn một tảng băng trang trí tên "IceRock" đứng gần hơn.
-                var allSceneObjs = FindObjectsOfType<GameObject>();
+                var allSceneObjs = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
                 GameObject bestSpawner = null;
                 float minSpawnerDist = float.MaxValue;
                 for (int pass = 0; pass < 2 && bestSpawner == null; pass++)
@@ -781,7 +781,7 @@ namespace MysticJourney.Features.Quest
             return FindQuestGiverNpc(quest.QuestId, questGiver, targetName);
         }
 
-        private Transform FindDungeonEntrance(WorldInteractable[] interactables)
+        private Transform FindDungeonEntrance(System.Collections.Generic.IList<WorldInteractable> interactables)
         {
             foreach (var i in interactables)
             {

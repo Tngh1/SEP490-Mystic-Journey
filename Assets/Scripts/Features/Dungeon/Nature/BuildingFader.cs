@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -7,6 +6,8 @@ public class BuildingFader3 : MonoBehaviour
 {
     const float VISIBLE_ALPHA = 1f;
     const float TRANSPARENT_ALPHA = 0.3f;
+    // Ngưỡng dừng: snap về target và tắt Update() để tiết kiệm CPU.
+    const float ALPHA_EPSILON = 0.005f;
 
     private SpriteRenderer[] m_SpriteRenderers;
     private Tilemap[] m_Tilemaps;
@@ -27,39 +28,38 @@ public class BuildingFader3 : MonoBehaviour
         }
     }
 
-    void Start()
+    void Awake()
     {
         m_SpriteRenderers = GetComponentsInChildren<SpriteRenderer>();
         m_Tilemaps = GetComponentsInChildren<Tilemap>();
+        // Idle ngay từ đầu — OnTriggerEnter2D sẽ bật lại khi cần
+        this.enabled = false;
     }
 
     void Update()
     {
-        bool hasGraphics = (m_SpriteRenderers != null && m_SpriteRenderers.Length > 0) || 
+        bool hasGraphics = (m_SpriteRenderers != null && m_SpriteRenderers.Length > 0) ||
                            (m_Tilemaps != null && m_Tilemaps.Length > 0);
-        if (!hasGraphics) return;
+        if (!hasGraphics) { this.enabled = false; return; }
 
-        if (m_FadeOutEnabled && BackgroundObjectAlpha > TRANSPARENT_ALPHA)
-        {
-            FadeOut();
+        float currentAlpha = BackgroundObjectAlpha;
+        float targetAlpha = m_FadeOutEnabled ? TRANSPARENT_ALPHA : VISIBLE_ALPHA;
+        float diff = Mathf.Abs(currentAlpha - targetAlpha);
 
-            if (BackgroundObjectAlpha <= TRANSPARENT_ALPHA)
-            {
-                if (m_InteractorRenderer != null) 
-                {
-                    // Optionally adjust sorting order if Unity's Y-Axis Custom Sort isn't enough
-                    // m_InteractorRenderer.sortingOrder = -10; 
-                }
-            }
-        }
-        else if (!m_FadeOutEnabled && BackgroundObjectAlpha < VISIBLE_ALPHA)
+        if (diff <= ALPHA_EPSILON)
         {
-            FadeIn();
-            if (m_InteractorRenderer != null) 
-            {
+            // Snap và tắt Update — building không tốn CPU khi không có player
+            ApplyAlpha(targetAlpha);
+            if (!m_FadeOutEnabled && m_InteractorRenderer != null)
                 m_InteractorRenderer.sortingOrder = m_InitialSortOrder;
-            }
+            this.enabled = false;
+            return;
         }
+
+        if (m_FadeOutEnabled)
+            FadeOut();
+        else
+            FadeIn();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -73,6 +73,7 @@ public class BuildingFader3 : MonoBehaviour
             {
                 m_InitialSortOrder = m_InteractorRenderer.sortingOrder;
                 m_FadeOutEnabled = true;
+                this.enabled = true; // Bật Update để fade out
             }
         }
     }
@@ -84,35 +85,39 @@ public class BuildingFader3 : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             m_FadeOutEnabled = false;
+            this.enabled = true; // Bật Update để fade in
         }
     }
 
     private void FadeOut()
     {
         if (m_SpriteRenderers != null)
-        {
             foreach (var renderer in m_SpriteRenderers)
                 ChangeSpriteOpacity(renderer, TRANSPARENT_ALPHA);
-        }
         if (m_Tilemaps != null)
-        {
             foreach (var map in m_Tilemaps)
                 ChangeTilemapOpacity(map, TRANSPARENT_ALPHA);
-        }
     }
 
     private void FadeIn()
     {
         if (m_SpriteRenderers != null)
-        {
             foreach (var renderer in m_SpriteRenderers)
                 ChangeSpriteOpacity(renderer, VISIBLE_ALPHA);
-        }
         if (m_Tilemaps != null)
-        {
             foreach (var map in m_Tilemaps)
                 ChangeTilemapOpacity(map, VISIBLE_ALPHA);
-        }
+    }
+
+    /// <summary>Snap alpha ngay lập tức — không lerp, dùng khi đã đủ gần target.</summary>
+    private void ApplyAlpha(float alpha)
+    {
+        if (m_SpriteRenderers != null)
+            foreach (var r in m_SpriteRenderers)
+                if (r != null) { var c = r.color; r.color = new Color(c.r, c.g, c.b, alpha); }
+        if (m_Tilemaps != null)
+            foreach (var t in m_Tilemaps)
+                if (t != null) { var c = t.color; t.color = new Color(c.r, c.g, c.b, alpha); }
     }
 
     private void ChangeSpriteOpacity(SpriteRenderer renderer, float targetAlpha)

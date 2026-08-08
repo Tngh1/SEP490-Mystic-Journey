@@ -36,6 +36,8 @@ namespace MysticJourney.UI.Effects
             gameObject.SetActive(false);
         }
 
+        private int m_LastDistInt = -1;
+
         private void LateUpdate()
         {
             if (NetworkPlayer.Local != null)
@@ -89,13 +91,8 @@ namespace MysticJourney.UI.Effects
             Vector3 worldDir = (target.position - player.position).normalized;
 
             // Đặt mũi tên quanh người chơi theo khoảng cách radius, cộng bounce dao động
-            // dọc theo hướng chỉ để mũi tên "nảy" thu hút mắt.
             float bounce = Mathf.Sin(Time.time * 6f) * 0.2f;
 
-            // Kẹp theo khoảng cách tới mục tiêu: mũi tên luôn đứng ở giữa đường, KHÔNG được
-            // chạm tới mục tiêu. Trước đây luôn đặt ở đúng radius (2.5) quanh người chơi, nên khi
-            // mục tiêu cách ~2.5-3.5m thì mũi tên rơi trúng đầu NPC/vật thể và che mất nó
-            // (sortingOrder 9999 vẽ trên mọi thứ). Chừa TargetClearance để còn thấy mục tiêu.
             float arrowDist = Mathf.Min(radius + bounce, dist - TargetClearance);
             transform.position = player.position + worldDir * arrowDist;
 
@@ -105,7 +102,12 @@ namespace MysticJourney.UI.Effects
 
             if (distanceLabel != null)
             {
-                distanceLabel.text = $"{Mathf.RoundToInt(dist)}m";
+                int roundedDist = Mathf.RoundToInt(dist);
+                if (m_LastDistInt != roundedDist)
+                {
+                    m_LastDistInt = roundedDist;
+                    distanceLabel.text = $"{roundedDist}m";
+                }
                 // Giữ chữ luôn nằm ngang
                 distanceLabel.transform.rotation = Quaternion.identity;
                 distanceLabel.transform.position = transform.position + new Vector3(0.6f, 0, 0);

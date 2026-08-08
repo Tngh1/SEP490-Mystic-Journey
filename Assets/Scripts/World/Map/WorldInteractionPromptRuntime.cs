@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-
 using TMPro;
 
 public class WorldInteractionPromptRuntime : MonoBehaviour
@@ -10,6 +9,7 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
     private TMP_Text promptTMP;
 
     private static Font font;
+    private string lastMessage;
 
     private static Font RuntimeFont
     {
@@ -33,24 +33,44 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        if (instance == this)
+            instance = null;
+    }
+
     public static void Show(string message)
     {
         var prompt = EnsureInstance();
         if (prompt == null)
             return;
 
+        string targetMsg = message ?? string.Empty;
+
+        // Tối ưu: Nếu message không đổi và prompt đang hiển thị thì KHÔNG làm gì cả
+        // Tránh dirty UI Canvas và gán text lại mỗi frame ở 60 FPS
+        if (prompt.lastMessage == targetMsg && prompt.gameObject.activeSelf)
+            return;
+
+        prompt.lastMessage = targetMsg;
+
         if (prompt.promptTMP != null)
-            prompt.promptTMP.text = message ?? string.Empty;
+            prompt.promptTMP.text = targetMsg;
         else if (prompt.promptText != null)
-            prompt.promptText.text = message ?? string.Empty;
-            
-        prompt.gameObject.SetActive(true);
+            prompt.promptText.text = targetMsg;
+
+        if (!prompt.gameObject.activeSelf)
+            prompt.gameObject.SetActive(true);
     }
 
     public static void Hide()
     {
         if (instance != null)
-            instance.gameObject.SetActive(false);
+        {
+            instance.lastMessage = null;
+            if (instance.gameObject.activeSelf)
+                instance.gameObject.SetActive(false);
+        }
     }
 
     private static WorldInteractionPromptRuntime EnsureInstance()
@@ -58,20 +78,16 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         if (instance != null)
             return instance;
 
-        // Try to find an existing InteractionPrompt in the scene (e.g. from the user's Prefab)
-        var existing = FindMainSceneObject("InteractionPrompt");
-        if (existing != null)
+        // Dùng FindFirstObjectByType nhanh gọn thay vì quét Resources.FindObjectsOfTypeAll đắt đỏ mỗi frame
+        instance = Object.FindFirstObjectByType<WorldInteractionPromptRuntime>(FindObjectsInactive.Include);
+        if (instance != null)
         {
-            instance = existing.GetComponent<WorldInteractionPromptRuntime>();
-            if (instance == null)
-                instance = existing.AddComponent<WorldInteractionPromptRuntime>();
-            
-            instance.promptText = existing.GetComponentInChildren<Text>(true);
-            instance.promptTMP = existing.GetComponentInChildren<TMP_Text>(true);
+            if (instance.promptText == null) instance.promptText = instance.GetComponentInChildren<Text>(true);
+            if (instance.promptTMP == null) instance.promptTMP = instance.GetComponentInChildren<TMP_Text>(true);
             return instance;
         }
 
-        var canvas = FindCanvas();
+        var canvas = Object.FindFirstObjectByType<Canvas>();
         if (canvas == null)
             return null;
 
@@ -105,39 +121,17 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
 
         var text = textObject.GetComponent<Text>();
         text.font = RuntimeFont;
-        text.fontSize = 18; // Tăng cỡ chữ lên xíu
+        text.fontSize = 18;
         text.fontStyle = FontStyle.Bold;
         text.alignment = TextAnchor.MiddleCenter;
-        text.color = new Color(1f, 0.95f, 0.8f); // Trắng hơi ngả vàng cho hợp style RPG
+        text.color = new Color(1f, 0.95f, 0.8f);
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
 
-        // Thêm viền đen cho chữ dễ đọc
         var outline = textObject.AddComponent<Outline>();
         outline.effectColor = Color.black;
         outline.effectDistance = new Vector2(1, -1);
         
         return text;
-    }
-
-    private static Canvas FindCanvas()
-    {
-        var canvasObject = FindMainSceneObject("Canvas");
-        if (canvasObject != null && canvasObject.TryGetComponent(out Canvas canvas))
-            return canvas;
-
-        return FindFirstObjectByType<Canvas>();
-    }
-
-    private static GameObject FindMainSceneObject(string objectName)
-    {
-        var objects = Resources.FindObjectsOfTypeAll<GameObject>();
-        foreach (var obj in objects)
-        {
-            if (obj.name == objectName && obj.scene.IsValid() && !string.IsNullOrEmpty(obj.scene.name))
-                return obj;
-        }
-
-        return null;
     }
 }

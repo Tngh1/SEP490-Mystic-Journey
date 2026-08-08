@@ -1,44 +1,39 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BushShake3 : MonoBehaviour
-
-{    
-    private BoxCollider2D boxCollider;
-    private GameObject bush;
-    private Collider2D trCollider;
-    
-    void Start()
-    {
-        boxCollider = GetComponent<BoxCollider2D>();
-        bush = GetComponent<GameObject>();
-    }
-       
+{
+    private bool m_IsShaking = false;
+    private Coroutine m_ShakeCoroutine;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        trCollider = other;
+        if (m_IsShaking) return;
 
-        if (trCollider.gameObject.tag == "Player")
+        if (other.CompareTag("Player"))
         {
-            gameObject.transform.Rotate(0, 25, 0);
-            StartCoroutine(Coroutine());
-            
+            if (m_ShakeCoroutine != null) StopCoroutine(m_ShakeCoroutine);
+            m_ShakeCoroutine = StartCoroutine(ShakeRoutine());
         }
     }
 
-    private IEnumerator Coroutine()
+    private IEnumerator ShakeRoutine()
     {
-        yield return new WaitForSeconds(0.07f);
-        gameObject.transform.Rotate(0, -25, 0);
+        m_IsShaking = true;
+        Quaternion startRotation = transform.localRotation;
 
-        yield return new WaitForSeconds(0.1f);
-        gameObject.transform.Rotate(0, 20, 0);
+        // Rung nhẹ theo trục Z (2D tilt), không quay Y-axis (3D) làm hỏng batching của 2D Sprite
+        transform.localRotation = startRotation * Quaternion.Euler(0, 0, 8f);
+        yield return new WaitForSeconds(0.06f);
 
-        yield return new WaitForSeconds(0.07f);
-        gameObject.transform.Rotate(0, -20, 0);
+        transform.localRotation = startRotation * Quaternion.Euler(0, 0, -8f);
+        yield return new WaitForSeconds(0.06f);
 
-    }    
-   
+        transform.localRotation = startRotation * Quaternion.Euler(0, 0, 4f);
+        yield return new WaitForSeconds(0.06f);
+
+        transform.localRotation = startRotation;
+        m_IsShaking = false;
+        m_ShakeCoroutine = null;
+    }
 }
