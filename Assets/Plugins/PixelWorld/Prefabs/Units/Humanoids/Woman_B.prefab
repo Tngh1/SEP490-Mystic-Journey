@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 3104293141578938146}
   - component: {fileID: 6240416266215048661}
   - component: {fileID: 6961131053210684313}
-  - component: {fileID: 8920359924427926645}
   - component: {fileID: 2455361678517671891}
   m_Layer: 0
   m_Name: Woman_B
@@ -225,23 +224,6 @@ PolygonCollider2D:
       - {x: 0.8755375, y: 0.41710162}
       - {x: 0.76644707, y: 0.8117101}
   m_UseDelaunayMesh: 0
---- !u!114 &8920359924427926645
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4076494404184008814}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 0
-  monsterId: 0
-  monsterSpawnId: 0
-  useApiStats: 1
-  def: 0
 --- !u!114 &2455361678517671891
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -394,7 +376,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyBehaviour: {fileID: 0}
-  enemyEntity: {fileID: 8920359924427926645}
+  enemyEntity: {fileID: 0}
 --- !u!1 &7608699514872472747
 GameObject:
   m_ObjectHideFlags: 0
