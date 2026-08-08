@@ -171,6 +171,11 @@ public class MapSceneController : MonoBehaviour
             if (vcam != null)
             {
                 vcam.Follow = player.transform;
+                var composer = vcam.GetComponent<Unity.Cinemachine.CinemachinePositionComposer>();
+                if (composer != null)
+                {
+                    composer.Damping = new Vector3(0.05f, 0.05f, 0.05f);
+                }
             }
 
             // Re-initialize minimap for the newly loaded map scene

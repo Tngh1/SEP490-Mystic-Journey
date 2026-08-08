@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 2950848076897695332}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.09, y: -0.208, z: 0}
+  m_LocalPosition: {x: -0.255, y: 0.305, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -293,8 +293,8 @@ MonoBehaviour:
   animation: {fileID: 0}
   maxCastRange: 6
   aoeIndicatorPrefab: {fileID: 2471827344372199260, guid: 4b888d36b20ff894eac2d1d2dcb95d8e, type: 3}
-  baseAttackCooldown: 0.5
-  basicAttackDelay: 0.2
+  baseAttackCooldown: 1.2
+  basicAttackDelay: 0.8
   basicAttackDamage: 25
   critRate: 20
   critDamageMultiplier: 1.5

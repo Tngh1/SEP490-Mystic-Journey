@@ -214,7 +214,8 @@ public class PlayerCombat : NetworkBehaviour
                         {
                             float speedMultiplier = 100f / response.AttackSpeed;
                             currentAttackCooldown = speedMultiplier * baseAttackCooldown;
-                            currentAttackDelay = speedMultiplier * basicAttackDelay;
+                            // Clamp currentAttackDelay (tối thiểu 0.2s) để đạn sinh ra đúng mốc thả cung / giơ gậy phép
+                            currentAttackDelay = Mathf.Max(0.2f, speedMultiplier * basicAttackDelay);
                         }
                         
                         var buffMgr = GetComponent<BuffManager>();
@@ -421,13 +422,35 @@ public class PlayerCombat : NetworkBehaviour
         else PerformMeleeSweep();
     }
 
+    private Transform GetActiveFirePoint(Vector2 direction)
+    {
+        if (firePoint == null) return transform;
+
+        if (Mathf.Abs(firePoint.localPosition.x) > 0.001f)
+        {
+            float absX = Mathf.Abs(firePoint.localPosition.x);
+            Vector3 pos = firePoint.localPosition;
+            if (direction.x < -0.01f)
+            {
+                pos.x = -absX;
+            }
+            else if (direction.x > 0.01f)
+            {
+                pos.x = absX;
+            }
+            firePoint.localPosition = pos;
+        }
+
+        return firePoint;
+    }
+
     private void SpawnBasicAttackProjectile()
     {
-        Transform spawnPoint = firePoint != null ? firePoint : transform;
-
         PlayerMovement pm = GetComponent<PlayerMovement>();
         Vector2 direction = pm != null ? pm.LastMove : Vector2.right;
         if (direction == Vector2.zero) direction = Vector2.right;
+
+        Transform spawnPoint = GetActiveFirePoint(direction);
 
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         Quaternion rotation = Quaternion.Euler(0, 0, angle);

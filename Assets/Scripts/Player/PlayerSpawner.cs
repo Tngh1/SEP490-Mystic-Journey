@@ -288,7 +288,14 @@ public class PlayerSpawner : MonoBehaviour
     {
         var cam = FindSceneComponent<CinemachineCamera>(gameObject.scene) ?? FindFirstObjectByType<CinemachineCamera>();
         if (cam != null)
+        {
             cam.Follow = player;
+            var composer = cam.GetComponent<CinemachinePositionComposer>();
+            if (composer != null)
+            {
+                composer.Damping = new Vector3(0.05f, 0.05f, 0.05f);
+            }
+        }
         else
             Debug.LogWarning("[PlayerSpawner] CinemachineCamera not found for player follow.");
     }

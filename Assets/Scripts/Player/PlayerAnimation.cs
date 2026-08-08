@@ -41,10 +41,19 @@ public class PlayerAnimation : MonoBehaviour
     // Unity lifecycle
     // ─────────────────────────────────────────────────────────────────────────
 
+    private Transform _firePoint;
+    private float _firePointAbsX;
+
     private void Awake()
     {
         if (animator == null) animator = GetComponent<Animator>();
         if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+
+        _firePoint = transform.Find("FirePoint");
+        if (_firePoint != null)
+        {
+            _firePointAbsX = Mathf.Abs(_firePoint.localPosition.x);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -100,6 +109,13 @@ public class PlayerAnimation : MonoBehaviour
         {
             bool shouldFlip = move.x < 0f;
             spriteRenderer.flipX = invertFlipX ? !shouldFlip : shouldFlip;
+
+            if (_firePoint != null && _firePointAbsX > 0.001f)
+            {
+                Vector3 fPos = _firePoint.localPosition;
+                fPos.x = move.x < 0f ? -_firePointAbsX : _firePointAbsX;
+                _firePoint.localPosition = fPos;
+            }
         }
     }
 

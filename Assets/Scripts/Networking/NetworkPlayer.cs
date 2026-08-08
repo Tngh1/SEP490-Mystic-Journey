@@ -635,7 +635,14 @@ public class NetworkPlayer : NetworkBehaviour
     {
         var cam = FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
         if (cam != null)
+        {
             cam.Follow = transform;
+            var composer = cam.GetComponent<Unity.Cinemachine.CinemachinePositionComposer>();
+            if (composer != null)
+            {
+                composer.Damping = new Vector3(0.05f, 0.05f, 0.05f);
+            }
+        }
         else
             Debug.LogWarning("[NetworkPlayer] CinemachineCamera not found for local player follow.");
 
