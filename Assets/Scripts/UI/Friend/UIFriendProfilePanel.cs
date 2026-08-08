@@ -74,6 +74,7 @@ namespace UI.Friend
         [SerializeField] private TMP_Text achievementDetailRewardText;
         [SerializeField] private TMP_Text achievementDetailStatusText;
         [SerializeField] private TMP_Text achievementDetailBuffText;
+        [SerializeField] private Button claimAchievementButton;
         [SerializeField] private Button viewAchievementListButton;
 
         private readonly List<GameObject> _achievementItemInstances = new();
@@ -110,6 +111,9 @@ namespace UI.Friend
 
             if (achievementDetailCloseButton != null)
                 achievementDetailCloseButton.onClick.AddListener(CloseAchievementPopup);
+
+            if (claimAchievementButton != null)
+                claimAchievementButton.onClick.AddListener(OnClaimAchievementClicked);
 
             if (achievementDetailPanel != null)
                 achievementDetailPanel.SetActive(false);
@@ -564,11 +568,11 @@ namespace UI.Friend
             {
                 achievementDetailRewardText.text = $"Reward: {achievement.RewardGold} gold, {achievement.RewardGem} gem, {achievement.RewardQuantity} item(s)";
             }
+            bool isUnlocked = ownedAchievement != null && (ownedAchievement.IsCompleted || ownedAchievement.IsRewardClaimed || ownedAchievement.Progress >= achievement.RequiredValue);
+
             if (achievementDetailStatusText != null)
             {
-                achievementDetailStatusText.text = ownedAchievement != null && ownedAchievement.IsCompleted
-                    ? "Status: Unlocked"
-                    : "Status: Locked";
+                achievementDetailStatusText.text = isUnlocked ? "Status: Unlocked" : "Status: Locked";
             }
 
             if (achievementDetailIconImage != null && !string.IsNullOrEmpty(achievement.IconUrl))
@@ -578,8 +582,7 @@ namespace UI.Friend
                 {
                     achievementDetailIconImage.sprite = sprite;
                     achievementDetailIconImage.enabled = true; // MUST ENABLE THE IMAGE
-                    // Optional: You can make it opaque if unlocked, slightly transparent if locked
-                    achievementDetailIconImage.color = (ownedAchievement != null && ownedAchievement.IsCompleted) 
+                    achievementDetailIconImage.color = isUnlocked 
                         ? new Color(1f, 1f, 1f, 1f) 
                         : new Color(1f, 1f, 1f, 0.55f);
                 }
@@ -611,6 +614,58 @@ namespace UI.Friend
             {
                 ApplyAchievementIcon(achievement.IconUrl);
             }
+
+            if (claimAchievementButton == null && achievementDetailPanel != null)
+            {
+                var buttons = achievementDetailPanel.GetComponentsInChildren<Button>(true);
+                foreach (var b in buttons)
+                {
+                    if (b != achievementDetailCloseButton)
+                    {
+                        claimAchievementButton = b;
+                        claimAchievementButton.onClick.RemoveListener(OnClaimAchievementClicked);
+                        claimAchievementButton.onClick.AddListener(OnClaimAchievementClicked);
+                        break;
+                    }
+                }
+            }
+
+            if (claimAchievementButton != null)
+            {
+                claimAchievementButton.gameObject.SetActive(_isCurrentPlayerProfile);
+                claimAchievementButton.interactable = false;
+
+                var btnText = claimAchievementButton.GetComponentInChildren<TMP_Text>();
+                if (btnText != null)
+                {
+                    btnText.text = isUnlocked ? "Unlocked" : "Locked";
+                }
+            }
+        }
+
+        private void OnClaimAchievementClicked()
+        {
+            if (_selectedAchievement == null || claimAchievementButton == null)
+                return;
+
+            claimAchievementButton.interactable = false;
+            AchievementApi.Instance.UnlockAchievement(
+                _selectedAchievement.PlayerAchievementId,
+                response =>
+                {
+                    Debug.Log($"[UIFriendProfilePanel] Unlocked achievement {_selectedAchievement.PlayerAchievementId} successfully.");
+                    _selectedAchievement.IsCompleted = true;
+                    _selectedAchievement.IsRewardClaimed = true;
+                    if (achievementDetailStatusText != null) achievementDetailStatusText.text = "Status: Unlocked";
+                    var btnText = claimAchievementButton.GetComponentInChildren<TMP_Text>();
+                    if (btnText != null) btnText.text = "Unlocked";
+                    LoadOwnedAchievements();
+                },
+                error =>
+                {
+                    Debug.LogError($"[UIFriendProfilePanel] Failed to unlock achievement: {error.Message}");
+                    claimAchievementButton.interactable = true;
+                });
         }
 
         public void ShowAchievementListView()

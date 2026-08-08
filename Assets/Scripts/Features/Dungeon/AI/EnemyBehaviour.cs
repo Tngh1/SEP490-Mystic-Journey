@@ -618,11 +618,13 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void CheckSkillCasting()
     {
+        // Chỉ thi triển skill khi Quái/Boss đang ở trạng thái Chasing (truy đuổi) hoặc Attack (tấn công)
+        if (currentState != State.Chasing && currentState != State.Attack) return;
         if (currentTarget == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, currentTarget.position);
 
-        if (distanceToPlayer <= chasingDistance * 2f)
+        if (distanceToPlayer <= chasingDistance)
         {
             // Kiểm tra Skill 2 trước (ưu tiên)
             if (canCastSkill2 && skill2Prefab != null && Time.time >= nextSkill2Time)

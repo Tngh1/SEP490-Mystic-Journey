@@ -185,6 +185,7 @@ namespace MysticJourney.API.Core
         // ═══════════════════════════════════════════════════════════════════════
         public const string AchievementAll = "/api/achievements";
         public const string AchievementMe = "/api/achievements/me";
+        public const string AchievementUnlock = "/api/achievements/me/{0}/unlock";
 
         // ═══════════════════════════════════════════════════════════════════════
         // SHOP ITEMS CONTROLLER - Vật phẩm cửa hàng
