@@ -87,7 +87,27 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
             return instance;
         }
 
-        var canvas = Object.FindFirstObjectByType<Canvas>();
+        Canvas canvas = null;
+        foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (c.renderMode == RenderMode.ScreenSpaceOverlay && (c.name == "Canvas" || c.name == "HUD" || c.name == "MainCanvas"))
+            {
+                canvas = c;
+                break;
+            }
+        }
+        if (canvas == null)
+        {
+            foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (c.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    canvas = c;
+                    break;
+                }
+            }
+        }
+        if (canvas == null) canvas = Object.FindFirstObjectByType<Canvas>();
         if (canvas == null)
             return null;
 

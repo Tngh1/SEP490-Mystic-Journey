@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 9213002631503932339}
   - component: {fileID: 7902776333109153448}
   - component: {fileID: 7809485293507602739}
-  - component: {fileID: 7911450939213614838}
   m_Layer: 0
   m_Name: Graphics
   m_TagString: Untagged
@@ -128,32 +127,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ac3894736ba7d849a9cc7dd8ff15337, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyBehaviour: {fileID: 6648376782292973500}
-  enemyEntity: {fileID: 8030219583024100599}
---- !u!114 &7911450939213614838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2162109233147329311}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 599140ebe7fdbcd478997d26c19882c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WorldInteractable
-  kind: 0
-  npcId: 0
-  displayName: Interactable
-  description: 
-  greetingText: 
-  interactionRadius: 2.25
-  objectKey: 
-  interactionType: Interact
-  questId: 0
-  progressDelta: 1
-  linkedQuestIds: 
-  portraitSprite: {fileID: -3319773608257860708, guid: 5a0b8e5be882acb488dfe369af8bc81f, type: 3}
+  enemyBehaviour: {fileID: 0}
+  enemyEntity: {fileID: 0}
 --- !u!1 &2529736000550606288
 GameObject:
   m_ObjectHideFlags: 0
@@ -168,8 +143,6 @@ GameObject:
   - component: {fileID: 4219059665623746669}
   - component: {fileID: 3283386780309927533}
   - component: {fileID: 4515423512445062042}
-  - component: {fileID: 8030219583024100599}
-  - component: {fileID: 6648376782292973500}
   - component: {fileID: 410115835539150701}
   m_Layer: 0
   m_Name: Worker
@@ -380,65 +353,6 @@ PolygonCollider2D:
       - {x: 1.1560665, y: 0.5104425}
       - {x: 0.96232986, y: 0.78170276}
   m_UseDelaunayMesh: 0
---- !u!114 &8030219583024100599
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2529736000550606288}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5df39c3800c98446bda31806a44dc94, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 2
-  monsterId: 0
-  monsterSpawnId: 0
-  useApiStats: 1
-  def: 0
---- !u!114 &6648376782292973500
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2529736000550606288}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6dbcc92e44457541a7702f9a8b72815, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startingState: 1
-  roamingDistanceMax: 1
-  roamingDistanceMin: 0.5
-  roamingTimeMax: 12
-  isChasingEnemy: 0
-  isAttackingEnemy: 0
-  attackDamage: 10
-  critRate: 0
-  critDamageMultiplier: 1.5
-  chasingDistance: 4
-  chasingSpeedMultiplier: 2
-  attackDistance: 2
-  attackRate: 2
-  leashDistance: 15
-  isRanged: 0
-  iconHeightOffset: 1.8
-  useProjectileAttack: 0
-  attackProjectilePrefab: {fileID: 0}
-  projectileSpawnPoint: {fileID: 0}
-  projectileSpeed: 8
-  attackDelay: 0.2
-  canCastSkill: 0
-  skillPrefab: {fileID: 0}
-  skillCooldown: 7
-  skillSpawnDelay: 0.5
-  skillSpawnPoint: {fileID: 0}
-  canCastSkill2: 0
-  skill2Prefab: {fileID: 0}
-  skill2Cooldown: 20
-  skill2SpawnDelay: 0.5
 --- !u!114 &410115835539150701
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -453,7 +367,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WorldInteractable
   kind: 0
   npcId: 0
-  displayName: Interactable
+  displayName: Fa
   description: 
   greetingText: 
   interactionRadius: 2.25
@@ -462,7 +376,7 @@ MonoBehaviour:
   questId: 0
   progressDelta: 1
   linkedQuestIds: 
-  portraitSprite: {fileID: 0}
+  portraitSprite: {fileID: -3319773608257860708, guid: 5a0b8e5be882acb488dfe369af8bc81f, type: 3}
 --- !u!1 &8170178638137196069
 GameObject:
   m_ObjectHideFlags: 0
