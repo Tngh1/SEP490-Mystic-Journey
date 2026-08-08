@@ -23,6 +23,10 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
     [Tooltip("Bán kính tối đa xuất hiện xung quanh Boss")]
     [SerializeField] private float maxRadius = 4.5f;
 
+    [Header("Combat Settings")]
+    [Tooltip("Phạm vi nhận diện giao tranh với Player (mét) - Chỉ triệu hồi khi Player trong phạm vi này")]
+    [SerializeField] private float combatDetectionRange = 8.0f;
+
     [Header("Audio")]
     [SerializeField] private AudioClip summonSound;
     [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
@@ -38,7 +42,14 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
     private void Update()
     {
         // Nếu Boss đã chết thì ngừng triệu hồi
-        if (_enemyEntity != null && _enemyEntity.CurrentHealth <= 0) return;
+        if (_enemyEntity != null && (_enemyEntity.IsDead || _enemyEntity.CurrentHealth <= 0)) return;
+
+        Transform targetPlayer = FindPlayerTarget();
+        if (targetPlayer == null) return;
+
+        // Chỉ triệu hồi khi Player tiến vào phạm vi giao tranh
+        float distance = Vector3.Distance(transform.position, targetPlayer.position);
+        if (distance > combatDetectionRange) return;
 
         _timer += Time.deltaTime;
         if (_timer >= spawnInterval)
@@ -46,6 +57,17 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
             _timer = 0f;
             SummonSlimeMinis();
         }
+    }
+
+    private Transform FindPlayerTarget()
+    {
+        if (PlayerMovement.Instance != null && PlayerMovement.Instance.gameObject.activeInHierarchy)
+        {
+            return PlayerMovement.Instance.transform;
+        }
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        return player != null && player.activeInHierarchy ? player.transform : null;
     }
 
     /// <summary>

@@ -112,11 +112,7 @@ public class PlayerMovement : NetworkBehaviour
 
         _rb.gravityScale = 0f;
         _rb.freezeRotation = true;
-        // Must be None, not Interpolate. ApplyRaw() below writes transform.position
-        // directly every Fusion tick (a teleport-style write, not a physics step), so
-        // there is no sequence of physics-simulation snapshots for Interpolate to
-        // smooth between — it would just add a frame of lag for no benefit.
-        _rb.interpolation = RigidbodyInterpolation2D.None;
+        _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
 
         _currentMoveSpeed = baseMoveSpeed;
     }
@@ -288,8 +284,8 @@ public class PlayerMovement : NetworkBehaviour
 
         if (input.sqrMagnitude > 0.01f)
         {
-            transform.position += (Vector3)(_moveInput * _currentMoveSpeed * deltaTime);
-            Physics2D.SyncTransforms();
+            Vector2 deltaPos = _moveInput * _currentMoveSpeed * deltaTime;
+            _rb.MovePosition(_rb.position + deltaPos);
         }
     }
 

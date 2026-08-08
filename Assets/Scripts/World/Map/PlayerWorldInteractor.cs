@@ -262,19 +262,21 @@ public class PlayerWorldInteractor : MonoBehaviour
         var bestDistance = float.MaxValue;
         var position = transform.position;
 
-        foreach (var item in interactables)
+        for (int i = 0; i < interactables.Count; i++)
         {
+            var item = interactables[i];
             if (item == null || !item.gameObject.activeInHierarchy)
                 continue;
 
             if (kind.HasValue && item.Kind != kind.Value)
                 continue;
 
-            if (item.Kind == WorldInteractableKind.Npc && !IsNpcReachable(item))
-                continue;
-
+            // Distance check TRƯỚC TIÊN — nếu ở ngoài bán kính tương tác thì bỏ qua ngay (0ms)
             var distance = Vector2.Distance(position, item.transform.position);
             if (distance > item.InteractionRadius || distance >= bestDistance)
+                continue;
+
+            if (item.Kind == WorldInteractableKind.Npc && !IsNpcReachable(item))
                 continue;
 
             nearest = item;
@@ -431,31 +433,31 @@ public class PlayerWorldInteractor : MonoBehaviour
         var bestDistance = float.MaxValue;
         var position = transform.position;
 
-        foreach (var item in interactables)
+        for (int i = 0; i < interactables.Count; i++)
         {
+            var item = interactables[i];
             if (item == null || !item.gameObject.activeInHierarchy)
                 continue;
 
             if (item.Kind != WorldInteractableKind.Object && item.Kind != WorldInteractableKind.QuestItem)
                 continue;
 
-            // Xác/hộp sọ (Corpse_1, Corpse_2) KHÔNG có Collider nào, nên bộ lọc collider
-            // dưới đây không chặn được chúng -> cùng một xác có thể khám nhiều lần.
-            // InvestigationConsumed là cổng chặn thật sự.
+            // 1. Distance check TRƯỚC TIÊN — loại bỏ 99.9% vật thể ở xa trước khi chạy GetComponent / Quest check đắt đỏ
+            var distance = Vector2.Distance(position, item.transform.position);
+            if (distance > item.InteractionRadius || distance >= bestDistance)
+                continue;
+
+            // 2. Kiểm tra xác/hộp sọ đã bị khám phá chưa
             if (item.InvestigationConsumed)
                 continue;
 
-            // Bỏ qua nếu collider đã bị tắt (đã tương tác xong)
+            // 3. Bỏ qua nếu collider đã bị tắt (đã tương tác xong)
             var col2D = item.GetComponent<UnityEngine.Collider2D>();
             var col = item.GetComponent<UnityEngine.Collider>();
             if ((col2D != null && !col2D.enabled) || (col != null && !col.enabled))
                 continue;
 
             if (!IsWorldObjectReachable(item))
-                continue;
-
-            var distance = Vector2.Distance(position, item.transform.position);
-            if (distance > item.InteractionRadius || distance >= bestDistance)
                 continue;
 
             nearest = item;
@@ -475,9 +477,10 @@ public class PlayerWorldInteractor : MonoBehaviour
     private void RefreshInteractables()
     {
         interactables.Clear();
-        var found = Resources.FindObjectsOfTypeAll<WorldInteractable>();
-        foreach (var item in found)
+        var all = WorldInteractable.All;
+        for (int i = 0; i < all.Count; i++)
         {
+            var item = all[i];
             if (item == null)
                 continue;
 

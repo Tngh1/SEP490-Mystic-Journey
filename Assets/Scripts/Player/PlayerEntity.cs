@@ -115,6 +115,8 @@ public class PlayerEntity : MonoBehaviour
     private void OnDisable()
     {
         AllPlayers.Remove(this);
+        // Xoá khỏi collider cache của TilemapAutoFader khi player leave
+        TilemapAutoFader.InvalidatePlayerCache(this);
     }
 
     private void OnDestroy()

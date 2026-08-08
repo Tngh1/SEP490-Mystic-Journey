@@ -23,12 +23,13 @@ public static class WorldSceneInteractableBootstrap
             return;
 
         // Xóa sạch các Skeleton bị gán nhầm script WorldInteractable (quái không được làm NPC)
-        var interactables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
-        foreach (var i in interactables)
+        var interactables = WorldInteractable.All;
+        for (int i = interactables.Count - 1; i >= 0; i--)
         {
-            if (i.gameObject.scene == scene && (i.gameObject.name.Contains("Skeleton") || i.DisplayName == "Skeleton"))
+            var item = interactables[i];
+            if (item != null && item.gameObject.scene == scene && (item.gameObject.name.Contains("Skeleton") || item.DisplayName == "Skeleton"))
             {
-                UnityEngine.Object.Destroy(i); // Xóa component bị gán nhầm
+                UnityEngine.Object.Destroy(item); // Xóa component bị gán nhầm
             }
         }
 
@@ -62,7 +63,7 @@ public static class WorldSceneInteractableBootstrap
 
     private static void ConfigureFallback(Scene scene)
     {
-        var allInteractables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
+        var allInteractables = WorldInteractable.All;
         var elder = allInteractables.FirstOrDefault(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc &&
             (string.Equals(i.DisplayName.Trim(), "Elder Rowan", StringComparison.OrdinalIgnoreCase) ||
              i.gameObject.name.Contains("MageOld", StringComparison.OrdinalIgnoreCase) ||
@@ -89,7 +90,7 @@ public static class WorldSceneInteractableBootstrap
         if (state == null)
             return;
 
-        var allInteractables = Resources.FindObjectsOfTypeAll<WorldInteractable>();
+        var allInteractables = WorldInteractable.All;
         var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
         var hideNatalie = IsQuestCompletedOrClaimed(state, 33);
 

@@ -1,115 +1,180 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Tạo dấu chân khi nhân vật di chuyển.
+/// Dùng Object Pool để tránh Instantiate/Destroy liên tục gây GC pressure và giật nhỏ.
+/// </summary>
 public class FootstepController : MonoBehaviour
 {
     [Header("Footstep Settings")]
-    [SerializeField] private GameObject footstepPrefab; // Assign your footprint prefab
-    [SerializeField] private float stepInterval = 0.5f; // Time between footsteps
-    [SerializeField] private float footstepLifetime = 5f; // How long footsteps stay visible
-    [SerializeField] private float fadeStartTime = 3f; // When to start fading
-    [SerializeField] private Vector2 footstepOffset = new Vector2(0, -0.5f); // Offset from character
-    
+    [SerializeField] private GameObject footstepPrefab;
+    [SerializeField] private float stepInterval = 0.5f;
+    [SerializeField] private float footstepLifetime = 5f;
+    [SerializeField] private float fadeStartTime = 3f;
+    [SerializeField] private Vector2 footstepOffset = new Vector2(0, -0.5f);
+
     [Header("Movement Detection")]
-    [SerializeField] private float movementThreshold = 0.1f; // Minimum speed to create footsteps
-    
+    [SerializeField] private float movementThreshold = 0.1f;
+
+    [Header("Pool Settings")]
+    [Tooltip("Số footstep object khởi tạo trước trong pool.")]
+    [SerializeField] private int poolInitialSize = 10;
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Runtime
+    // ──────────────────────────────────────────────────────────────────────────
+
     private float stepTimer;
     private Vector2 lastPosition;
-    private Rigidbody2D rb;
-    private bool isLeftFoot = true; // Alternate between left and right
-    
+    private bool isLeftFoot = true;
+
+    // Pool — dùng Stack cho O(1) push/pop
+    private Stack<GameObject> m_Pool;
+    private Transform m_PoolRoot; // parent để giữ hierarchy gọn
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Unity lifecycle
+    // ──────────────────────────────────────────────────────────────────────────
+
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
         lastPosition = transform.position;
-        stepTimer = stepInterval; // Start ready to make a footstep
+        stepTimer = stepInterval;
+
+        if (footstepPrefab == null) return;
+
+        // Tạo pool root ẩn
+        m_PoolRoot = new GameObject("[FootstepPool]").transform;
+        m_PoolRoot.SetParent(null);
+
+        m_Pool = new Stack<GameObject>(poolInitialSize);
+        for (int i = 0; i < poolInitialSize; i++)
+            m_Pool.Push(CreatePooledObject());
     }
-    
+
     void Update()
     {
-        // Calculate movement speed
+        if (footstepPrefab == null) return;
+
         float distanceMoved = Vector2.Distance(transform.position, lastPosition);
         lastPosition = transform.position;
-        
-        // Check if character is moving
+
         if (distanceMoved > movementThreshold * Time.deltaTime)
         {
             stepTimer += Time.deltaTime;
-            
-            // Time to create a new footstep
             if (stepTimer >= stepInterval)
             {
-                CreateFootstep();
+                SpawnFootstep();
                 stepTimer = 0f;
             }
         }
     }
-    
-    void CreateFootstep()
+
+    private void OnDestroy()
     {
-        if (footstepPrefab == null)
+        // Dọn sạch pool root khi object bị destroy
+        if (m_PoolRoot != null)
+            Destroy(m_PoolRoot.gameObject);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Pool helpers
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private GameObject CreatePooledObject()
+    {
+        var go = Instantiate(footstepPrefab, m_PoolRoot);
+        go.SetActive(false);
+        return go;
+    }
+
+    private GameObject GetFromPool()
+    {
+        if (m_Pool == null) return null;
+
+        GameObject go;
+        // Lọc object bị destroy ngoài ý muốn (edge case khi scene change)
+        while (m_Pool.Count > 0)
         {
-            Debug.LogWarning("Footstep prefab is not assigned!");
-            return;
+            go = m_Pool.Pop();
+            if (go != null) return go;
         }
-        
-        // Calculate footstep position
-        Vector2 footstepPosition = (Vector2)transform.position + footstepOffset;
-        
-        // Alternate between left and right foot positions
-        float horizontalOffset = isLeftFoot ? -0.15f : 0.15f;
-        footstepPosition.x += horizontalOffset;
-        
-        // Instantiate the footstep prefab
-        GameObject footstep = Instantiate(footstepPrefab, footstepPosition, Quaternion.identity);
-        
-        // Get the SpriteRenderer from the prefab
-        SpriteRenderer spriteRenderer = footstep.GetComponent<SpriteRenderer>();
-        
-        if (spriteRenderer != null)
+
+        // Pool rỗng → tạo thêm 1 object (pool tự grow)
+        return CreatePooledObject();
+    }
+
+    private void ReturnToPool(GameObject go)
+    {
+        if (go == null) return;
+        go.SetActive(false);
+        go.transform.SetParent(m_PoolRoot);
+        m_Pool.Push(go);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Footstep logic
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private void SpawnFootstep()
+    {
+        var footstep = GetFromPool();
+        if (footstep == null) return;
+
+        // Đặt vị trí và bỏ khỏi pool root để nằm trong scene
+        Vector2 pos = (Vector2)transform.position + footstepOffset;
+        pos.x += isLeftFoot ? -0.15f : 0.15f;
+
+        footstep.transform.SetParent(null);
+        footstep.transform.position = pos;
+        footstep.transform.rotation = Quaternion.identity;
+        footstep.SetActive(true);
+
+        var sr = footstep.GetComponent<SpriteRenderer>();
+        if (sr != null)
         {
-            // Optional: Flip the sprite for left/right foot
-            spriteRenderer.flipX = isLeftFoot;
-            
-            // Match character's facing direction (optional)
-            if (transform.localScale.x < 0)
+            sr.flipX = isLeftFoot;
+            sr.flipY = transform.localScale.x < 0;
+            // Reset alpha về 1 (quan trọng khi reuse từ pool)
+            var c = sr.color;
+            sr.color = new Color(c.r, c.g, c.b, 1f);
+        }
+
+        isLeftFoot = !isLeftFoot;
+
+        StartCoroutine(FadeAndReturn(footstep, sr));
+    }
+
+    private IEnumerator FadeAndReturn(GameObject footstep, SpriteRenderer sr)
+    {
+        // Chờ trước khi fade
+        yield return new WaitForSeconds(fadeStartTime);
+
+        float fadeDuration = footstepLifetime - fadeStartTime;
+        float elapsed = 0f;
+
+        if (sr != null)
+        {
+            Color originalColor = sr.color;
+            while (elapsed < fadeDuration)
             {
-                spriteRenderer.flipY = true;
+                // Guard: object có thể bị return về pool sớm nếu thiếu object
+                if (footstep == null || !footstep.activeSelf) yield break;
+
+                elapsed += Time.deltaTime;
+                float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+                sr.color = new Color(originalColor.r, originalColor.g, originalColor.b, alpha);
+                yield return null;
             }
-            
-            // Start the fade coroutine
-            StartCoroutine(FadeAndDestroyFootstep(footstep, spriteRenderer));
         }
         else
         {
-            // If no SpriteRenderer, just destroy after lifetime
-            Destroy(footstep, footstepLifetime);
+            yield return new WaitForSeconds(fadeDuration);
         }
-        
-        // Toggle foot
-        isLeftFoot = !isLeftFoot;
-    }
-    
-    IEnumerator FadeAndDestroyFootstep(GameObject footstep, SpriteRenderer spriteRenderer)
-    {
-        Color originalColor = spriteRenderer.color;
-        
-        // Wait before starting to fade
-        yield return new WaitForSeconds(fadeStartTime);
-        
-        // Fade out over remaining time
-        float fadeDuration = footstepLifetime - fadeStartTime;
-        float elapsed = 0f;
-        
-        while (elapsed < fadeDuration)
-        {
-            elapsed += Time.deltaTime;
-            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
-            spriteRenderer.color = new Color(originalColor.r, originalColor.g, originalColor.b, alpha);
-            yield return null;
-        }
-        
-        // Destroy the footstep GameObject
-        Destroy(footstep);
+
+        // Trả về pool thay vì Destroy
+        ReturnToPool(footstep);
     }
 }

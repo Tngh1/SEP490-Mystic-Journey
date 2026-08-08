@@ -58,5 +58,19 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        public void UnlockAchievement(int playerAchievementId, Action<PlayerAchievementResponse> onSuccess, Action<ApiException> onError)
+        {
+            string endpoint = string.Format(ApiConfig.AchievementUnlock, playerAchievementId);
+            SafeDebugLog($"UnlockAchievement → {endpoint}");
+            ApiClient.Instance.PostEmpty<PlayerAchievementResponse>(
+                endpoint,
+                response => onSuccess?.Invoke(response),
+                error =>
+                {
+                    SafeDebugError($"UnlockAchievement FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
     }
 }

@@ -12,6 +12,18 @@ public enum WorldInteractableKind
 
 public class WorldInteractable : MonoBehaviour
 {
+    public static readonly List<WorldInteractable> All = new List<WorldInteractable>();
+
+    private void OnEnable()
+    {
+        if (!All.Contains(this)) All.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        All.Remove(this);
+    }
+
     private Canvas overheadCanvas;
     private TextMeshProUGUI overheadText;
     private Coroutine overheadCoroutine;
