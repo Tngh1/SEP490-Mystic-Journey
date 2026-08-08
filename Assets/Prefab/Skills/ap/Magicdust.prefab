@@ -131,7 +131,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ca09a2127ccaff40934f29d5d906926, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillProjectile
-  speed: 5
+  speed: 7.5
   castSound: {fileID: 0}
   hitSound: {fileID: 0}
   soundVolume: 1
@@ -248,5 +248,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecfaff85ce049784ebc44f33639e76d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkSkillProjectile
-  speed: 10
-  lifeSeconds: 1
+  speed: 7.5
+  lifeSeconds: 1.5
