@@ -116,7 +116,7 @@ namespace UI.Friend
 
                 if (btnText != null)
                 {
-                    btnText.enableWordWrapping = false;
+                    btnText.textWrappingMode = TextWrappingModes.NoWrap;
                     btnText.overflowMode = TextOverflowModes.Overflow;
                 }
 

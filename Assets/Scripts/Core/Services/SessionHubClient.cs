@@ -28,10 +28,10 @@ namespace MysticJourney.Core.Services
     {
         // SignalR phân tách các message trong cùng một khung WebSocket bằng ký tự này (0x1E),
         // nên một lần Receive có thể chứa nhiều message hoặc nửa message.
-        private const char RecordSeparator = '';
+        private const char RecordSeparator = '\x1E';
 
-        private const string HandshakeRequest = "{\"protocol\":\"json\",\"version\":1}";
-        private const string PingMessage = "{\"type\":6}";
+        private const string HandshakeRequest = "{\"protocol\":\"json\",\"version\":1}\x1E";
+        private const string PingMessage = "{\"type\":6}\x1E";
 
         // Server đóng kết nối nếu client im lặng quá ClientTimeoutInterval (mặc định 30s), nên
         // client phải tự gửi ping. 15s là nửa khoảng đó — mất một ping vẫn chưa bị đóng.

@@ -383,7 +383,7 @@ public class MainMapPanelRuntime : MonoBehaviour
     /// <summary>
     /// Bật lại mọi cấp cha đang tắt của <paramref name="target"/>, dừng ở Canvas.
     /// Cần vì popup sống ở Canvas/PopupLayer: chỉ cần một cấp cha bị tắt (lỡ tay trong Editor,
-    /// hoặc MainQuestPanelRuntime tắt PopupLayer sau khi chạy hết queue popup quest) là popup
+    /// hoặc MainQuestPanelRuntime tắt PopupLayer sau khi chạy hết queue PaperPopup) là popup
     /// dịch chuyển map không bao giờ hiện, dù code vẫn gọi SetActive(true) đúng.
     /// </summary>
     private static void EnsureAncestorsActive(Transform target)

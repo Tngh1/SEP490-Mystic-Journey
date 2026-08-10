@@ -154,7 +154,7 @@ public class MinimapMarkerLayer : MonoBehaviour
             text.alignment = TextAlignmentOptions.Top;
             text.color = Color.white;
             text.raycastTarget = false;
-            text.enableWordWrapping = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
             text.overflowMode = TextOverflowModes.Ellipsis;
             marker.Label = text;
         }

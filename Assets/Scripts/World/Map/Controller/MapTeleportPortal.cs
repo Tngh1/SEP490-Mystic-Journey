@@ -22,7 +22,7 @@ public class MapTeleportPortal : MonoBehaviour
     {
         if (mapSceneController == null)
         {
-            mapSceneController = FindObjectOfType<MapSceneController>();
+            mapSceneController = FindFirstObjectByType<MapSceneController>();
         }
     }
 
@@ -93,7 +93,7 @@ public class MapTeleportPortal : MonoBehaviour
                         QuestManager.Instance.AddProgress(q.QuestId, 1);
                         justExplored = true;
                         // KHÔNG popup ở đây: "Explored: X" không chứa từ khoá nào nên InferKind trả None
-                        // -> UIQuestPopupView hiện title "Quest not complete" dù vừa hoàn thành mục tiêu.
+                        // -> PaperPopup sẽ hiện một thông báo không có loại cụ thể dù vừa hoàn thành mục tiêu.
                         // BatchSyncLoop sẽ Complete + Claim và bắn popup "Reward Claimed!" duy nhất.
                     }
                 }
@@ -112,7 +112,7 @@ public class MapTeleportPortal : MonoBehaviour
             // Kind None tường minh: msg chứa chữ "completed" nên InferKind sẽ đoán sai thành
             // "Quest Completed!" + stamp xanh, dù đây là thông báo CHẶN không cho vào map.
             if (MainQuestPanelRuntime.Instance != null)
-                MainQuestPanelRuntime.Instance.ShowQuestPopup(msg, UIQuestPopupView.QuestPopupKind.None);
+                MainQuestPanelRuntime.Instance.ShowPaperPopup(msg, UIPaperPopupView.PaperPopupKind.None);
                 
             isTeleporting = false;
             return;

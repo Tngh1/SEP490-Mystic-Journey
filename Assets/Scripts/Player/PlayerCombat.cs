@@ -5,6 +5,7 @@ using Fusion;
 using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Combat executor for the local player. Owns attack timing, skill cooldowns,
@@ -42,7 +43,10 @@ public class PlayerCombat : NetworkBehaviour
     [Header("Animator / Aim")]
     [Tooltip("Animator that plays Attack / Skill1/2/3 triggers. If null, fetched via GetComponent.")]
     [SerializeField] private Animator animator;
-    [SerializeField] private PlayerAnimation animation; // Phase 6 wrapper; optional
+    // Renamed from "animation" (shadowed the deprecated Component.animation).
+    // FormerlySerializedAs keeps skin_knight.prefab's existing wiring intact.
+    [FormerlySerializedAs("animation")]
+    [SerializeField] private PlayerAnimation playerAnimation; // Phase 6 wrapper; optional
 
     [Header("AoE Settings")]
     [SerializeField] private float maxCastRange = 6f;
@@ -153,7 +157,7 @@ public class PlayerCombat : NetworkBehaviour
     private void Awake()
     {
         if (animator == null) animator = GetComponent<Animator>();
-        if (animation == null) animation = GetComponent<PlayerAnimation>();
+        if (playerAnimation == null) playerAnimation = GetComponent<PlayerAnimation>();
         currentAttackCooldown = baseAttackCooldown;
         currentAttackDelay = basicAttackDelay;
 
@@ -172,7 +176,7 @@ public class PlayerCombat : NetworkBehaviour
     public void SetVisualComponents(Animator newAnimator, PlayerAnimation newAnimation)
     {
         animator = newAnimator;
-        animation = newAnimation;
+        playerAnimation = newAnimation;
     }
 
     public void CopyCombatSettingsFrom(PlayerCombat source)
@@ -304,7 +308,7 @@ public class PlayerCombat : NetworkBehaviour
 
         // Local client plays attack animation immediately for responsiveness,
         // server will validate cooldown and broadcast the authoritative trigger.
-        if (animation != null) animation.TriggerAttack();
+        if (playerAnimation != null) playerAnimation.TriggerAttack();
 
         RPC_Attack(aimWorldPosition);
     }
@@ -352,14 +356,14 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayAttackAnim()
     {
-        if (animation != null) animation.TriggerAttack();
+        if (playerAnimation != null) playerAnimation.TriggerAttack();
         else if (animator != null) animator.SetTrigger("Attack");
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlaySkillAnim(int slotIndex)
     {
-        if (animation != null) animation.TriggerSkill(slotIndex);
+        if (playerAnimation != null) playerAnimation.TriggerSkill(slotIndex);
         else
         {
             string trigger = slotIndex == 0 ? "Skill1" : slotIndex == 1 ? "Skill2" : "Skill3";
@@ -409,7 +413,7 @@ public class PlayerCombat : NetworkBehaviour
         Debug.Log($"[PlayerCombat] Attack triggered. Cooldown: {currentAttackCooldown}, Delay: {currentAttackDelay}");
         nextAttackTime = Time.time + currentAttackCooldown;
 
-        if (animation != null) animation.TriggerAttack();
+        if (playerAnimation != null) playerAnimation.TriggerAttack();
         else if (animator != null) animator.SetTrigger("Attack");
         StartCoroutine(ExecuteBasicAttackWithDelay(currentAttackDelay));
     }
@@ -627,7 +631,7 @@ public class PlayerCombat : NetworkBehaviour
             RPC_PlaySkillAnim(slotIndex);
         }
 
-        if (animation != null) animation.TriggerSkill(slotIndex);
+        if (playerAnimation != null) playerAnimation.TriggerSkill(slotIndex);
         else if (animator != null) animator.SetTrigger(animTrigger);
         OnSkillCast?.Invoke(slotIndex, cooldown);
 

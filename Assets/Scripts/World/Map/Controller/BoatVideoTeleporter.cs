@@ -24,7 +24,7 @@ public class BoatVideoTeleporter : MapTeleportPortal
     private void Start()
     {
         if (mapSceneController == null)
-            mapSceneController = FindObjectOfType<MapSceneController>();
+            mapSceneController = FindFirstObjectByType<MapSceneController>();
 
         if (videoPlayer != null)
             videoPlayer.playOnAwake = false;
@@ -42,7 +42,7 @@ public class BoatVideoTeleporter : MapTeleportPortal
         PlayerPrefs.Save();
 
         if (mapSceneController == null)
-            mapSceneController = FindObjectOfType<MapSceneController>();
+            mapSceneController = FindFirstObjectByType<MapSceneController>();
 
         // Toàn bộ trình tự nằm ở BoatVoyageSequence (object DontDestroyOnLoad). KHÔNG chạy coroutine
         // ở đây: thuyền thuộc scene AutumnPumpkin và bị unload giữa lúc đổi map, coroutine chết theo

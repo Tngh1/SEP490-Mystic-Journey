@@ -54,13 +54,23 @@ namespace UI.Friend
         [SerializeField] private GameObject achievementItemPrefab;
         [SerializeField] private TMP_Text achievementSummaryText;
 
+        [Tooltip("AchievementListPanel/NoAchievementText - hiện khi catalog rỗng.")]
+        [SerializeField] private GameObject noAchievementText;
+
+        [Header("Achievement Rarity Badges")]
+        // Gán tay: mấy file Gacha*.png nằm ngoài Assets/Resources nên không Resources.Load được.
+        [SerializeField] private Sprite commonBadgeIcon;
+        [SerializeField] private Sprite uncommonBadgeIcon;
+        [SerializeField] private Sprite rareBadgeIcon;
+        [SerializeField] private Sprite legendaryBadgeIcon;
+
         [Header("Achievement Pagination")]
         [SerializeField] private Button achievementPrevButton;
         [SerializeField] private Button achievementNextButton;
         [SerializeField] private TMP_Text achievementPageText;
 
         private int _currentAchievementPage = 1;
-        private const int ACHIEVEMENTS_PER_PAGE = 5;
+        private const int ACHIEVEMENTS_PER_PAGE = 3;
 
         [Header("Achievement Detail")]
         [SerializeField] private GameObject achievementDetailPanel;
@@ -68,14 +78,24 @@ namespace UI.Friend
         [SerializeField] private Image achievementDetailIconImage;
         [SerializeField] private TMP_Text achievementDetailBadgeText;
         [SerializeField] private TMP_Text achievementDetailNameText;
-        [SerializeField] private TMP_Text achievementDetailTypeText;
-        [SerializeField] private TMP_Text achievementDetailDescriptionText;
-        [SerializeField] private TMP_Text achievementDetailProgressText;
-        [SerializeField] private TMP_Text achievementDetailRewardText;
-        [SerializeField] private TMP_Text achievementDetailStatusText;
-        [SerializeField] private TMP_Text achievementDetailBuffText;
-        [SerializeField] private Button claimAchievementButton;
         [SerializeField] private Button viewAchievementListButton;
+
+        [Header("Achievement Detail - Reward Icons")]
+        [SerializeField] private Image goldIcon;
+        [SerializeField] private TMP_Text goldAmountText;
+        [SerializeField] private Image gemIcon;
+        [SerializeField] private TMP_Text gemAmountText;
+        [SerializeField] private Transform itemSlotContainer;
+        [SerializeField] private Transform buffContainer;
+        [SerializeField] private GameObject inventorySlotPrefab;
+        [SerializeField] private GameObject buffSlotPrefab;
+
+        [Header("Stat Icons")]
+        [SerializeField] private Sprite atkStatIcon;
+        [SerializeField] private Sprite defStatIcon;
+        [SerializeField] private Sprite hpStatIcon;
+        [SerializeField] private Sprite critStatIcon;
+        [SerializeField] private Sprite spdStatIcon;
 
         private readonly List<GameObject> _achievementItemInstances = new();
         private readonly Dictionary<int, PlayerAchievementResponse> _ownedAchievementMap = new();
@@ -112,11 +132,12 @@ namespace UI.Friend
             if (achievementDetailCloseButton != null)
                 achievementDetailCloseButton.onClick.AddListener(CloseAchievementPopup);
 
-            if (claimAchievementButton != null)
-                claimAchievementButton.onClick.AddListener(OnClaimAchievementClicked);
-
             if (achievementDetailPanel != null)
                 achievementDetailPanel.SetActive(false);
+
+            // Scene để panel này activeSelf=true; chỉ ShowAchievementListView mới được mở nó.
+            if (achievementListPanel != null)
+                achievementListPanel.SetActive(false);
 
             if (editAvatarButton != null)
                 editAvatarButton.onClick.AddListener(OpenAvatarSelection);
@@ -201,7 +222,7 @@ namespace UI.Friend
         private void ApplyProfile(FriendProfileDto profile)
         {
             if (nameText != null) nameText.text = profile.CharacterName;
-            if (levelText != null) levelText.text = $"Level {profile.Level}";
+            if (levelText != null) levelText.text = profile.Level.ToString();
             string className = string.IsNullOrEmpty(profile.Class) ? "Knight" : profile.Class;
             if (classText != null) classText.text = className;
             ApplyClassArt(className);
@@ -440,49 +461,7 @@ namespace UI.Friend
                     : null;
                 var isOwned = owned != null;
 
-                var canvasGroup = item.GetComponent<CanvasGroup>() ?? item.AddComponent<CanvasGroup>();
-                canvasGroup.alpha = isOwned ? 1f : 0.35f;
-                canvasGroup.interactable = isOwned;
-                canvasGroup.blocksRaycasts = isOwned;
-
-                string rarityHex = GetRarityColorHex(achievement.Point);
-                string rarityLabel = GetRarityLabel(achievement.Point);
-                string statusLabel = owned != null 
-                    ? (owned.IsCompleted ? "Unlocked" : $"{owned.Progress}/{achievement.RequiredValue}") 
-                    : $"0/{achievement.RequiredValue}";
-                string displayText = $"<color={rarityHex}>{achievement.Name}</color>\n<size=70%>{rarityLabel}</size>\n<size=60%>{statusLabel}</size>";
-
-                var titleTextTransform = item.transform.Find("TitleText");
-                var tmpText = titleTextTransform != null ? titleTextTransform.GetComponent<TMP_Text>() : item.GetComponentInChildren<TMP_Text>(true);
-                
-                if (tmpText != null)
-                {
-                    tmpText.text = displayText;
-                }
-                else
-                {
-                    var legacyText = item.GetComponentInChildren<UnityEngine.UI.Text>(true);
-                    if (legacyText != null)
-                    {
-                        legacyText.text = $"{achievement.Name}\n{rarityLabel}\n{statusLabel}";
-                    }
-                }
-
-                var iconTransform = item.transform.Find("Icon");
-                var image = iconTransform != null ? iconTransform.GetComponent<Image>() : item.GetComponent<Image>();
-                
-                if (image != null)
-                {
-                    image.color = isOwned ? new Color(1f, 1f, 1f, 1f) : new Color(1f, 1f, 1f, 0.55f);
-                    if (!string.IsNullOrEmpty(achievement.IconUrl))
-                    {
-                        var sprite = Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
-                        if (sprite != null)
-                        {
-                            image.sprite = sprite;
-                        }
-                    }
-                }
+                BindAchievementRow(item.transform, achievement, owned);
 
                 var button = item.GetComponent<Button>() ?? item.GetComponentInChildren<Button>(true);
                 if (button != null)
@@ -498,12 +477,73 @@ namespace UI.Friend
                 }
             }
 
+            if (noAchievementText != null)
+                noAchievementText.SetActive(totalItems == 0);
+
             if (achievementScrollRect != null)
             {
                 achievementScrollRect.verticalNormalizedPosition = 1f;
             }
 
             UpdatePaginationUI(totalPages);
+        }
+
+        // Row layout mới (AchievementItem.prefab): mỗi dữ liệu một widget riêng thay vì nhồi
+        // hết vào một label rich-text.
+        private void BindAchievementRow(Transform row, AchievementResponse achievement, PlayerAchievementResponse owned)
+        {
+            bool isOwned = owned != null;
+            int required = Mathf.Max(1, achievement.RequiredValue);
+            int progress = Mathf.Clamp(owned?.Progress ?? 0, 0, required);
+            bool isUnlocked = isOwned && (owned.IsCompleted || owned.Progress >= achievement.RequiredValue);
+            float ratio = isUnlocked ? 1f : (float)progress / required;
+
+            SetRowText(row, "TitleText", achievement.Name);
+            SetRowText(row, "Description", achievement.Description);
+            SetRowText(row, "PercentText", $"{Mathf.RoundToInt(ratio * 100f)}%");
+
+            var fill = row.Find("ProgressBar/ProgressFill")?.GetComponent<Image>();
+            if (fill != null) fill.fillAmount = ratio;
+
+            var badge = row.Find("Type")?.GetComponent<Image>();
+            if (badge != null)
+            {
+                var badgeSprite = GetRarityBadge(achievement.Point);
+                badge.sprite = badgeSprite;
+                badge.enabled = badgeSprite != null;
+            }
+
+            var icon = row.Find("IconBg/Icon")?.GetComponent<Image>();
+            if (icon != null)
+            {
+                var sprite = string.IsNullOrEmpty(achievement.IconUrl)
+                    ? null
+                    : Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
+                if (sprite != null) icon.sprite = sprite;
+                icon.color = isUnlocked ? Color.white : new Color(1f, 1f, 1f, 0.55f);
+            }
+
+            // Khoá = ổ khoá trên icon, không dim cả row nữa: row bị CanvasGroup alpha 0.35 thì
+            // đọc không nổi chữ mà cũng chẳng biết vì sao.
+            row.Find("IconBg/LockBg")?.gameObject.SetActive(!isUnlocked);
+            row.Find("IconBg/LockIcon")?.gameObject.SetActive(!isUnlocked);
+        }
+
+        private void SetRowText(Transform row, string childName, string value)
+        {
+            var text = row.Find(childName)?.GetComponent<TMP_Text>();
+            if (text != null) text.text = value ?? string.Empty;
+        }
+
+        private Sprite GetRarityBadge(int point)
+        {
+            return GetRarityTier(point) switch
+            {
+                0 => commonBadgeIcon,
+                1 => uncommonBadgeIcon,
+                2 => rareBadgeIcon,
+                _ => legendaryBadgeIcon
+            };
         }
 
         private void UpdatePaginationUI(int totalPages)
@@ -557,42 +597,36 @@ namespace UI.Friend
                 achievementDetailPanel.SetActive(true);
 
             if (achievementDetailNameText != null) achievementDetailNameText.text = achievement.Name;
-            if (achievementDetailTypeText != null) achievementDetailTypeText.text = $"Rarity: {GetRarityLabel(achievement.Point)}";
-            if (achievementDetailDescriptionText != null) achievementDetailDescriptionText.text = achievement.Description ?? "No description.";
-            if (achievementDetailProgressText != null)
-            {
-                int progress = ownedAchievement?.Progress ?? 0;
-                achievementDetailProgressText.text = $"Progress: {progress}/{achievement.RequiredValue}";
-            }
-            if (achievementDetailRewardText != null)
-            {
-                achievementDetailRewardText.text = $"Reward: {achievement.RewardGold} gold, {achievement.RewardGem} gem, {achievement.RewardQuantity} item(s)";
-            }
+
+            // --- Reward: Icon Gold + Icon Gem ---
+            if (goldAmountText != null)
+                goldAmountText.text = achievement.RewardGold.ToString("0");
+            if (gemAmountText != null)
+                gemAmountText.text = achievement.RewardGem.ToString();
+
+            // --- Reward Item: InventorySlot_Prefab ---
+            PopulateItemSlots(achievement);
+
+            // --- Buff: Icon + Number (InventorySlot_Prefab) ---
+            PopulateBuffSlots(achievement);
+
             bool isUnlocked = ownedAchievement != null && (ownedAchievement.IsCompleted || ownedAchievement.IsRewardClaimed || ownedAchievement.Progress >= achievement.RequiredValue);
 
-            if (achievementDetailStatusText != null)
+            var detailSprite = string.IsNullOrEmpty(achievement.IconUrl)
+                ? null
+                : Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
+            if (detailSprite != null && achievementDetailIconImage != null)
             {
-                achievementDetailStatusText.text = isUnlocked ? "Status: Unlocked" : "Status: Locked";
+                achievementDetailIconImage.sprite = detailSprite;
+                achievementDetailIconImage.enabled = true;
+                achievementDetailIconImage.color = isUnlocked
+                    ? new Color(1f, 1f, 1f, 1f)
+                    : new Color(1f, 1f, 1f, 0.55f);
             }
-
-            if (achievementDetailIconImage != null && !string.IsNullOrEmpty(achievement.IconUrl))
+            else
             {
-                var sprite = Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
-                if (sprite != null)
-                {
-                    achievementDetailIconImage.sprite = sprite;
-                    achievementDetailIconImage.enabled = true; // MUST ENABLE THE IMAGE
-                    achievementDetailIconImage.color = isUnlocked 
-                        ? new Color(1f, 1f, 1f, 1f) 
-                        : new Color(1f, 1f, 1f, 0.55f);
-                }
-            }
-
-            if (achievementDetailBuffText != null)
-            {
-                achievementDetailBuffText.text = !string.IsNullOrEmpty(achievement.BuffDescription) 
-                    ? achievement.BuffDescription 
-                    : GetBuffDescription(achievement.Point, achievement.Type);
+                // IconUrl rỗng hoặc không có file trong Resources → thử URL tuyệt đối.
+                ApplyAchievementIcon(achievement.IconUrl);
             }
 
             if (achievementDetailBadgeText != null)
@@ -600,72 +634,116 @@ namespace UI.Friend
                 achievementDetailBadgeText.text = GetRarityLabel(achievement.Point);
                 achievementDetailBadgeText.color = GetRarityColor(achievement.Point);
             }
+        }
 
-            // Apply custom icon from Resources based on IconUrl
-            if (!string.IsNullOrEmpty(achievement.IconUrl))
-            {
-                var sprite = Resources.Load<Sprite>($"Icons/Titles/{achievement.IconUrl}");
-                if (sprite != null && achievementDetailIconImage != null)
-                {
-                    achievementDetailIconImage.sprite = sprite;
-                }
-            }
-            else
-            {
-                ApplyAchievementIcon(achievement.IconUrl);
-            }
+        private void PopulateItemSlots(AchievementResponse achievement)
+        {
+            ClearContainer(itemSlotContainer);
 
-            if (claimAchievementButton == null && achievementDetailPanel != null)
+            if (itemSlotContainer == null || inventorySlotPrefab == null)
+                return;
+
+            if (achievement.RewardItemId.HasValue && achievement.RewardItemId.Value > 0 && achievement.RewardQuantity > 0)
             {
-                var buttons = achievementDetailPanel.GetComponentsInChildren<Button>(true);
-                foreach (var b in buttons)
+                var slotGo = Instantiate(inventorySlotPrefab, itemSlotContainer);
+                slotGo.transform.localScale = Vector3.one;
+                var slot = slotGo.GetComponent<UIBaseItemSlot>();
+                if (slot != null)
                 {
-                    if (b != achievementDetailCloseButton)
+                    string itemName = !string.IsNullOrEmpty(achievement.RewardItemName) ? achievement.RewardItemName : "Item";
+                    Sprite itemIcon = null;
+                    // Try to load item icon from Resources
+                    if (!string.IsNullOrEmpty(achievement.RewardItemName))
                     {
-                        claimAchievementButton = b;
-                        claimAchievementButton.onClick.RemoveListener(OnClaimAchievementClicked);
-                        claimAchievementButton.onClick.AddListener(OnClaimAchievementClicked);
-                        break;
+                        itemIcon = Resources.Load<Sprite>($"Item/{achievement.RewardItemName}")
+                                ?? Resources.Load<Sprite>($"Icons/Items/{achievement.RewardItemName}");
                     }
-                }
-            }
-
-            if (claimAchievementButton != null)
-            {
-                claimAchievementButton.gameObject.SetActive(_isCurrentPlayerProfile);
-                claimAchievementButton.interactable = false;
-
-                var btnText = claimAchievementButton.GetComponentInChildren<TMP_Text>();
-                if (btnText != null)
-                {
-                    btnText.text = isUnlocked ? "Unlocked" : "Locked";
+                    string amountText = achievement.RewardQuantity > 1 ? $"x{achievement.RewardQuantity}" : "";
+                    slot.SetupCustom(itemName, amountText, itemIcon);
                 }
             }
         }
 
-        private void OnClaimAchievementClicked()
+        private void PopulateBuffSlots(AchievementResponse achievement)
         {
-            if (_selectedAchievement == null || claimAchievementButton == null)
+            ClearContainer(buffContainer);
+
+            if (buffContainer == null)
                 return;
 
-            claimAchievementButton.interactable = false;
-            AchievementApi.Instance.UnlockAchievement(
-                _selectedAchievement.PlayerAchievementId,
-                response =>
+            string buffDesc = !string.IsNullOrEmpty(achievement.BuffDescription)
+                ? achievement.BuffDescription
+                : GetBuffDescription(achievement.Point, achievement.Type);
+
+            // Remove "Buff: " prefix and " | Type: xxx" suffix if present
+            if (buffDesc.StartsWith("Buff: "))
+                buffDesc = buffDesc.Substring(6);
+            int pipeIdx = buffDesc.IndexOf(" | ");
+            if (pipeIdx >= 0)
+                buffDesc = buffDesc.Substring(0, pipeIdx);
+
+            GameObject prefabToUse = buffSlotPrefab != null ? buffSlotPrefab : inventorySlotPrefab;
+            if (prefabToUse == null) return;
+
+            // Parse "+1 ATK, +2 DEF, +1 HP, +1 Crit" → individual stat entries
+            string[] parts = buffDesc.Split(',');
+            foreach (string raw in parts)
+            {
+                string part = raw.Trim();
+                if (string.IsNullOrEmpty(part)) continue;
+
+                // Extract stat name and value, e.g. "+2 ATK" → statName="ATK", statValue="+2"
+                string statName = "";
+                string statValue = "";
+                int spaceIdx = part.IndexOf(' ');
+                if (spaceIdx > 0)
                 {
-                    Debug.Log($"[UIFriendProfilePanel] Unlocked achievement {_selectedAchievement.PlayerAchievementId} successfully.");
-                    _selectedAchievement.IsCompleted = true;
-                    _selectedAchievement.IsRewardClaimed = true;
-                    if (achievementDetailStatusText != null) achievementDetailStatusText.text = "Status: Unlocked";
-                    var btnText = claimAchievementButton.GetComponentInChildren<TMP_Text>();
-                    if (btnText != null) btnText.text = "Unlocked";
-                    LoadOwnedAchievements();
-                },
-                error =>
+                    statValue = part.Substring(0, spaceIdx);  // "+2"
+                    statName = part.Substring(spaceIdx + 1);   // "ATK"
+                }
+                else
                 {
-                    Debug.LogError($"[UIFriendProfilePanel] Failed to unlock achievement: {error.Message}");
-                    claimAchievementButton.interactable = true;
-                });
+                    statName = part;
+                }
+
+                var slotGo = Instantiate(prefabToUse, buffContainer);
+                slotGo.transform.localScale = Vector3.one;
+
+                Sprite statIcon = GetStatIcon(statName);
+
+                var buffSlot = slotGo.GetComponent<UIBuffSlot>();
+                if (buffSlot != null)
+                {
+                    buffSlot.Setup(part, statIcon);
+                }
+                else
+                {
+                    var baseSlot = slotGo.GetComponent<UIBaseItemSlot>();
+                    if (baseSlot != null)
+                    {
+                        baseSlot.SetupCustom(statName, statValue, statIcon);
+                    }
+                }
+            }
+        }
+
+        private Sprite GetStatIcon(string statName)
+        {
+            if (string.Equals(statName, "ATK", StringComparison.OrdinalIgnoreCase)) return atkStatIcon;
+            if (string.Equals(statName, "DEF", StringComparison.OrdinalIgnoreCase)) return defStatIcon;
+            if (string.Equals(statName, "HP", StringComparison.OrdinalIgnoreCase)) return hpStatIcon;
+            if (string.Equals(statName, "CRIT", StringComparison.OrdinalIgnoreCase)) return critStatIcon;
+            if (string.Equals(statName, "SPD", StringComparison.OrdinalIgnoreCase)) return spdStatIcon;
+            return null;
+        }
+
+        private void ClearContainer(Transform container)
+        {
+            if (container == null) return;
+            for (int i = container.childCount - 1; i >= 0; i--)
+            {
+                Destroy(container.GetChild(i).gameObject);
+            }
         }
 
         public void ShowAchievementListView()
@@ -768,18 +846,18 @@ namespace UI.Friend
         private void ClearAchievementDetail()
         {
             if (achievementDetailNameText != null) achievementDetailNameText.text = string.Empty;
-            if (achievementDetailTypeText != null) achievementDetailTypeText.text = string.Empty;
-            if (achievementDetailDescriptionText != null) achievementDetailDescriptionText.text = string.Empty;
-            if (achievementDetailProgressText != null) achievementDetailProgressText.text = string.Empty;
-            if (achievementDetailRewardText != null) achievementDetailRewardText.text = string.Empty;
-            if (achievementDetailStatusText != null) achievementDetailStatusText.text = string.Empty;
-            if (achievementDetailBuffText != null) achievementDetailBuffText.text = string.Empty;
             if (achievementDetailBadgeText != null) achievementDetailBadgeText.text = string.Empty;
             if (achievementDetailIconImage != null)
             {
                 achievementDetailIconImage.sprite = null;
                 achievementDetailIconImage.enabled = false;
             }
+
+            // Clear reward icons
+            if (goldAmountText != null) goldAmountText.text = "0";
+            if (gemAmountText != null) gemAmountText.text = "0";
+            ClearContainer(itemSlotContainer);
+            ClearContainer(buffContainer);
 
             _selectedAchievement = null;
         }

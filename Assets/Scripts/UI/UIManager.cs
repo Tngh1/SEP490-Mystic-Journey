@@ -229,6 +229,7 @@ public class UIManager : MonoBehaviour
     {
         EnsureQuestManager();
         EnsureRuntime<MainQuestPanelRuntime>();
+        EnsureRuntime<AchievementPopupRuntime>();
         EnsureRuntime<MainNpcPanelRuntime>();
         EnsureRuntime<PlayerUIHotkeys>();
         EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");

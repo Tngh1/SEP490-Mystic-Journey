@@ -604,7 +604,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         {
             questPanelRuntime.OpenQuestPanelForReward(questId);
             if (!string.IsNullOrWhiteSpace(message))
-                questPanelRuntime.ShowQuestPopup(message);
+                questPanelRuntime.ShowPaperPopup(message);
         }
         else if (UIManager.Instance != null)
         {
@@ -796,7 +796,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         if (MainQuestPanelRuntime.Instance == null && FindQuestPanelRuntime() == null)
         {
             var title = Safe(quest?.QuestTitle, Safe(dialogue?.LinkedQuestTitle, "New quest"));
-            Debug.Log($"[QuestPopup] Quest Accepted! {title} has been added to your quest log.");
+            Debug.Log($"[PaperPopup] Quest Accepted! {title} has been added to your quest log.");
         }
     }
     private void OnQuestionAction()

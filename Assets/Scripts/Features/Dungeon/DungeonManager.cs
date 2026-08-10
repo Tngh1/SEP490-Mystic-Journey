@@ -1101,7 +1101,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     {
         Debug.LogWarning($"[DungeonManager] {message}");
         if (MainQuestPanelRuntime.Instance != null)
-            MainQuestPanelRuntime.Instance.ShowQuestPopup(message, UIQuestPopupView.QuestPopupKind.None);
+            MainQuestPanelRuntime.Instance.ShowPaperPopup(message, UIPaperPopupView.PaperPopupKind.None);
     }
 
     /// <summary>

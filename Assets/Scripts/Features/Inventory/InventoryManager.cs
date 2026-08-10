@@ -156,7 +156,7 @@ public class InventoryManager : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
         var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
 #else
-        var manager = UnityEngine.Object.FindObjectOfType<InventoryManager>(true);
+        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
 #endif
         manager?.LoadInventory(force: true, refreshStats: refreshStats);
     }
@@ -825,7 +825,7 @@ public class InventoryManager : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
                 itemDetailPopup = UnityEngine.Object.FindFirstObjectByType<UIItemDetailPopup>(FindObjectsInactive.Include);
 #else
-                itemDetailPopup = UnityEngine.Object.FindObjectOfType<UIItemDetailPopup>(true);
+                itemDetailPopup = UnityEngine.Object.FindFirstObjectByType<UIItemDetailPopup>(FindObjectsInactive.Include);
 #endif
             }
         }
@@ -837,7 +837,7 @@ public class InventoryManager : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
                 skinDetailPopup = UnityEngine.Object.FindFirstObjectByType<UISkinDetailPopup>(FindObjectsInactive.Include);
 #else
-                skinDetailPopup = UnityEngine.Object.FindObjectOfType<UISkinDetailPopup>(true);
+                skinDetailPopup = UnityEngine.Object.FindFirstObjectByType<UISkinDetailPopup>(FindObjectsInactive.Include);
 #endif
             }
         }
@@ -1283,7 +1283,7 @@ public class InventoryManager : MonoBehaviour
 
             if (valueText != null)
             {
-                valueText.enableWordWrapping = false;
+                valueText.textWrappingMode = TextWrappingModes.NoWrap;
                 valueText.text = value;
             }
             else

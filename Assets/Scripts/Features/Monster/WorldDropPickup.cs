@@ -26,7 +26,6 @@ namespace MysticJourney.Features.Monster
         public Color glowColor = Color.yellow;
 
         [Header("Settings")]
-        [SerializeField] private float magnetDistance = 9999f; // Bay trực tiếp về người chơi ngay lập tức
         [SerializeField] private float collectDistance = 0.5f; // Khoảng cách thực sự nhặt vật phẩm
         [SerializeField] private float magnetSpeed = 12.0f;    // Tốc độ bay mượt về người chơi
 

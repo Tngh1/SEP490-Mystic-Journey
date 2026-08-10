@@ -13,7 +13,7 @@ public class Quest26VideoTrigger : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Init()
     {
-        if (FindObjectOfType<Quest26VideoTrigger>() != null) return;
+        if (FindFirstObjectByType<Quest26VideoTrigger>() != null) return;
         var go = new GameObject("Quest26VideoTrigger");
         DontDestroyOnLoad(go);
         go.AddComponent<Quest26VideoTrigger>();

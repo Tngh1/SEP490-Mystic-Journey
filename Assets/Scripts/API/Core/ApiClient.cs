@@ -227,6 +227,12 @@ namespace MysticJourney.API.Core
                         var logoutReason = !string.IsNullOrEmpty(rejectMessage)
                             ? rejectMessage
                             : "Your session has ended. Please log in again.";
+                        
+                        if (logoutReason.ToLower().Contains("invalid refresh token"))
+                        {
+                            logoutReason = "Your account has been logged in on another device.";
+                        }
+
                         MysticJourney.Core.Services.SessionService.Logout(logoutReason);
                         onError?.Invoke(new ApiException
                         {
@@ -416,7 +422,14 @@ namespace MysticJourney.API.Core
                 {
                     Debug.LogWarning("[ApiClient] Session overridden or unauthorized. Clearing token and logging out to MainMenu.");
                     ClearToken();
-                    MysticJourney.Core.Services.SessionService.Logout(!string.IsNullOrEmpty(errorMsg) ? errorMsg : "Your session has ended. Please log in again.");
+                    
+                    string logoutReason = errorMsg;
+                    if (string.IsNullOrEmpty(logoutReason) || logoutReason.ToLower().Contains("invalid refresh token"))
+                    {
+                        logoutReason = "Your account has been logged in on another device.";
+                    }
+                    
+                    MysticJourney.Core.Services.SessionService.Logout(logoutReason);
                 }
 
                 onError?.Invoke(new ApiException

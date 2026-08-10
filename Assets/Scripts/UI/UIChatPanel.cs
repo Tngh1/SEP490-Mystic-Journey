@@ -740,7 +740,7 @@ public class UIChatPanel : MonoBehaviour
 
         if (reportConfirmPopup == null)
         {
-            reportConfirmPopup = FindObjectOfType<UIReportConfirmPopup>(true);
+            reportConfirmPopup = FindFirstObjectByType<UIReportConfirmPopup>(FindObjectsInactive.Include);
         }
 
         string targetDescription = item != null && !string.IsNullOrWhiteSpace(item.SenderProfileId > 0 ? $"Player {item.SenderProfileId}" : null)

@@ -206,7 +206,7 @@ public class QuestManager : MonoBehaviour
                 
                 string qTitle = response?.QuestTitle ?? GetQuestTitle(questId);
                 if (MainQuestPanelRuntime.Instance != null && !string.IsNullOrWhiteSpace(qTitle))
-                    MainQuestPanelRuntime.Instance.ShowQuestPopup(qTitle, UIQuestPopupView.QuestPopupKind.Accepted);
+                    MainQuestPanelRuntime.Instance.ShowPaperPopup(qTitle, UIPaperPopupView.PaperPopupKind.Accepted);
 
                 OnQuestAccepted?.Invoke(questId);
                 WorldRuntimeEvents.RaiseQuestsChanged();
@@ -345,7 +345,7 @@ public class QuestManager : MonoBehaviour
                 {
                     string qTitle = response?.QuestTitle ?? GetQuestTitle(questId);
                     if (MainQuestPanelRuntime.Instance != null && !string.IsNullOrWhiteSpace(qTitle))
-                        MainQuestPanelRuntime.Instance.ShowQuestPopup(qTitle, UIQuestPopupView.QuestPopupKind.Claimed);
+                        MainQuestPanelRuntime.Instance.ShowPaperPopup(qTitle, UIPaperPopupView.PaperPopupKind.Claimed);
                 }
 
                 OnQuestClaimed?.Invoke(questId);

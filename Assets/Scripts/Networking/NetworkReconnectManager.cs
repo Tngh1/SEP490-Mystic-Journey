@@ -23,7 +23,6 @@ namespace MysticJourney.Networking
         private bool _wasInDungeon = false;
         private Coroutine _reconnectCoroutine;
         private bool _userClickedReturnToMenu = false;
-        private float _lastPingTime = 0f;
         private const float PING_INTERVAL = 2.5f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

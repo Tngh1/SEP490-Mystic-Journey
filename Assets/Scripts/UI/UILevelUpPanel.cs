@@ -213,7 +213,7 @@ public class UILevelUpPanel : MonoBehaviour
                     PlayerHUDController.Instance.RefreshHUD();
                 }
                 
-                var inventory = FindObjectOfType<InventoryManager>();
+                var inventory = FindFirstObjectByType<InventoryManager>();
                 if (inventory != null)
                 {
                     inventory.LoadInventory(force: true, refreshStats: true);

@@ -18,7 +18,7 @@ namespace MysticJourney.Features.Monster
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<MonsterDropVisualManager>();
+                    _instance = FindFirstObjectByType<MonsterDropVisualManager>();
                     if (_instance == null)
                     {
                         var go = new GameObject("[MonsterDropVisualManager]");

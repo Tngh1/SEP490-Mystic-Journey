@@ -20,11 +20,9 @@ namespace MysticJourney.Core.Services
         // nên MainMenuScene tải bình thường không hiện popup nào.
         public static string PendingLogoutReason { get; private set; }
 
-        public static string ConsumePendingLogoutReason()
+        public static void ClearPendingLogoutReason()
         {
-            var reason = PendingLogoutReason;
             PendingLogoutReason = null;
-            return reason;
         }
 
         public static void Logout(string reason = null)

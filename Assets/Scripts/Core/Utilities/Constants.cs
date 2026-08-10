@@ -24,7 +24,7 @@ namespace MysticJourney.Core.Utilities
         {
             public const string QuestPanel = "QuestPanel";
             public const string QuestTracker = "QuestTracker";
-            public const string QuestPopup = "QuestPopup";
+            public const string PaperPopup = "PaperPopup";
             public const string PopupLayer = "PopupLayer";
             public const string NPCPanel = "NPCPanel";
 

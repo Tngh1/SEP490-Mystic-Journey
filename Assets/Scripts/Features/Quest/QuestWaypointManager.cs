@@ -229,7 +229,7 @@ namespace MysticJourney.Features.Quest
             if (p != null)
                 return p.transform;
 
-            var pe = FindObjectOfType<PlayerEntity>();
+            var pe = FindFirstObjectByType<PlayerEntity>();
             if (pe != null)
                 return pe.transform;
 
@@ -815,7 +815,7 @@ namespace MysticJourney.Features.Quest
         private Transform FindPortalToMap(string mapName)
         {
             if (string.IsNullOrWhiteSpace(mapName)) return null;
-            var portals = FindObjectsOfType<MapTeleportPortal>();
+            var portals = FindObjectsByType<MapTeleportPortal>(FindObjectsSortMode.None);
             foreach (var p in portals)
             {
                 if (p != null && p.gameObject.activeInHierarchy &&
@@ -829,18 +829,18 @@ namespace MysticJourney.Features.Quest
 
         private Transform FindBoatTransform()
         {
-            var boatTeleporter = FindObjectOfType<BoatVideoTeleporter>();
+            var boatTeleporter = FindFirstObjectByType<BoatVideoTeleporter>();
             if (boatTeleporter != null && boatTeleporter.gameObject.activeInHierarchy)
                 return boatTeleporter.transform;
 
-            var allPortals = FindObjectsOfType<MapTeleportPortal>();
+            var allPortals = FindObjectsByType<MapTeleportPortal>(FindObjectsSortMode.None);
             foreach (var p in allPortals)
             {
                 if (p != null && p.gameObject.activeInHierarchy && p.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     return p.transform;
             }
 
-            var allObjs = FindObjectsOfType<GameObject>();
+            var allObjs = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
             foreach (var go in allObjs)
             {
                 if (go != null && go.activeInHierarchy && (go.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0 || go.name.IndexOf("Thuyen", System.StringComparison.OrdinalIgnoreCase) >= 0))
@@ -852,14 +852,14 @@ namespace MysticJourney.Features.Quest
 
         private Transform FindAnyMapPortal()
         {
-            var portals = FindObjectsOfType<MapTeleportPortal>();
+            var portals = FindObjectsByType<MapTeleportPortal>(FindObjectsSortMode.None);
             foreach (var p in portals)
             {
                 if (p != null && p.gameObject.activeInHierarchy)
                     return p.transform;
             }
 
-            var interactables = FindObjectsOfType<WorldInteractable>();
+            var interactables = FindObjectsByType<WorldInteractable>(FindObjectsSortMode.None);
             foreach (var i in interactables)
             {
                 if (i != null && i.gameObject.activeInHierarchy)

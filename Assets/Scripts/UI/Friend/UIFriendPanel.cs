@@ -15,6 +15,10 @@ namespace UI.Friend
         [SerializeField] private Button friendTabButton;
         [SerializeField] private Button addTabButton;
 
+        [Header("Tab Sprites")]
+        [SerializeField] private Sprite activeTabSprite;
+        [SerializeField] private Sprite inactiveTabSprite;
+
         [Header("Panels")]
         [SerializeField] private GameObject friendPanel; // Contains friendListContainer and detailPanelObj
         [SerializeField] private GameObject addPanel; // Contains requestListContainer, searchInput, searchListContainer
@@ -61,6 +65,7 @@ namespace UI.Friend
         
         private int selectedProfileId;
         private string selectedFriendName;
+        private bool started;
 
         private void Start()
         {
@@ -73,11 +78,16 @@ namespace UI.Friend
             
             SetupDetailButtons();
 
+            started = true;
             ShowFriendTab();
         }
 
         private void OnEnable()
         {
+            // Start() runs after the first OnEnable() and calls ShowFriendTab(),
+            // which loads the same data - skip the duplicate request round-trip.
+            if (!started) return;
+
             RefreshData();
         }
 
@@ -132,8 +142,11 @@ namespace UI.Friend
         {
             SetAllPanelsActive(false);
             friendPanel?.SetActive(true);
-            HideDetailPanel(); // Hide until a friend is clicked
+            // Also closes the chat: it stays open from the previous selection otherwise.
+            ClearSelectedFriendState(true); // Hide until a friend is clicked
+            UpdateCountTexts();
             LoadFriends();
+
             HighlightTab(friendTabButton, addTabButton);
         }
 
@@ -141,6 +154,7 @@ namespace UI.Friend
         {
             SetAllPanelsActive(false);
             addPanel?.SetActive(true);
+            UpdateCountTexts();
             LoadRequests(); // Left column of Add tab
             
             // Automatically trigger search to get random players when tab opens
@@ -152,10 +166,20 @@ namespace UI.Friend
         private void HighlightTab(Button activeTab, Button inactiveTab)
         {
             if (activeTab != null && activeTab.GetComponent<Image>() != null)
-                activeTab.GetComponent<Image>().color = Color.white;
+            {
+                var img = activeTab.GetComponent<Image>();
+                img.color = Color.white;
+                if (activeTabSprite != null)
+                    img.sprite = activeTabSprite;
+            }
                 
             if (inactiveTab != null && inactiveTab.GetComponent<Image>() != null)
-                inactiveTab.GetComponent<Image>().color = new Color(0.6f, 0.6f, 0.6f, 1f); // Màu xám tối
+            {
+                var img = inactiveTab.GetComponent<Image>();
+                img.color = new Color(0.6f, 0.6f, 0.6f, 1f); // Màu xám tối
+                if (inactiveTabSprite != null)
+                    img.sprite = inactiveTabSprite;
+            }
         }
 
         private void SetAllPanelsActive(bool active)
@@ -465,8 +489,7 @@ namespace UI.Friend
                 entry.SetupAsFriend(friend, this);
             }
 
-            if (friendCountText != null)
-                friendCountText.text = $"Friends: {currentFriends.Count}/100"; // Can be adjusted with limits later
+            UpdateCountTexts();
 
             CloseChatIfSelectedFriendIsGone();
         }
@@ -501,8 +524,24 @@ namespace UI.Friend
                 entry.SetupAsRequest(req, this);
             }
 
+            UpdateCountTexts();
+        }
+
+        private void UpdateCountTexts()
+        {
+            if (friendCountText != null && friendCountText == requestCountText)
+            {
+                friendCountText.text = addPanel != null && addPanel.activeSelf
+                    ? $"{currentRequests.Count}/100"
+                    : $"Friends: {currentFriends.Count}/100";
+                return;
+            }
+
+            if (friendCountText != null)
+                friendCountText.text = $"Friends: {currentFriends.Count}/100";
+
             if (requestCountText != null)
-                requestCountText.text = $"{currentRequests.Count}/100"; // As seen in image 2
+                requestCountText.text = $"{currentRequests.Count}/100";
         }
 
         private void OnSearchClicked()

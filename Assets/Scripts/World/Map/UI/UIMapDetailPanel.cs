@@ -31,7 +31,7 @@ public class UIMapDetailPanel : MonoBehaviour
 
         if (mapManager == null)
         {
-            mapManager = FindObjectOfType<MapSceneController>();
+            mapManager = FindFirstObjectByType<MapSceneController>();
         }
     }
 
@@ -46,7 +46,7 @@ public class UIMapDetailPanel : MonoBehaviour
     {
         if (mapManager == null)
         {
-            mapManager = FindObjectOfType<MapSceneController>();
+            mapManager = FindFirstObjectByType<MapSceneController>();
         }
         
         if (mapManager != null && currentMap != null)

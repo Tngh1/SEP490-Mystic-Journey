@@ -248,30 +248,37 @@ public class UIPartyPanel : MonoBehaviour
             return;
         }
 
-        FindReferences();
-
-        var party = PartyLobby.Local;
-        bool nonHostMember = party != null && !party.IsLocalHost;
-
-        // Header dungeon name: a non-host member reads the host's published selection.
-        string dungeonName = selectedDungeonName;
-        if (nonHostMember && !string.IsNullOrEmpty(party.DungeonName.Value))
-            dungeonName = party.DungeonName.Value;
-
-        if (dungeonNameText != null)
+        try
         {
-            // Tên chưa về (hoặc server trả rỗng): nhãn trung tính, KHÔNG đoán tên dungeon.
-            dungeonNameText.text = string.IsNullOrWhiteSpace(dungeonName) ? "Dungeon" : dungeonName;
-            dungeonNameText.textWrappingMode = TextWrappingModes.NoWrap;
-            dungeonNameText.enableAutoSizing = true;
-            dungeonNameText.fontSizeMax = 48;
-            dungeonNameText.fontSizeMin = 18;
-        }
+            FindReferences();
 
-        UpdateDungeonInfoPanel();
-        UpdateEnergyCostLabel();
-        UpdatePlayersPanel();
-        UpdateBottomBar();
+            var party = PartyLobby.Local;
+            bool nonHostMember = party != null && !party.IsLocalHost;
+
+            // Header dungeon name: a non-host member reads the host's published selection.
+            string dungeonName = selectedDungeonName;
+            if (nonHostMember && !string.IsNullOrEmpty(party.DungeonName.Value))
+                dungeonName = party.DungeonName.Value;
+
+            if (dungeonNameText != null)
+            {
+                // Tên chưa về (hoặc server trả rỗng): nhãn trung tính, KHÔNG đoán tên dungeon.
+                dungeonNameText.text = string.IsNullOrWhiteSpace(dungeonName) ? "Dungeon" : dungeonName;
+                dungeonNameText.textWrappingMode = TextWrappingModes.NoWrap;
+                dungeonNameText.enableAutoSizing = true;
+                dungeonNameText.fontSizeMax = 48;
+                dungeonNameText.fontSizeMin = 18;
+            }
+
+            UpdateDungeonInfoPanel();
+            UpdateEnergyCostLabel();
+            UpdatePlayersPanel();
+            UpdateBottomBar();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogException(ex);
+        }
     }
 
     private void UpdateDungeonInfoPanel()
@@ -631,6 +638,12 @@ public class UIPartyPanel : MonoBehaviour
         }
 
         EnsureAvatarDb();
+        
+        // Safety check: ensure slots array is never null or empty
+        if (slots == null || slots.Length == 0)
+        {
+            Debug.LogWarning("[UIPartyPanel] No party slots found under 'Players'. UI may not display correctly.");
+        }
     }
 
     private void EnsureAvatarDb()
@@ -641,12 +654,14 @@ public class UIPartyPanel : MonoBehaviour
 
     private Sprite FlagFor(CharacterClass cls)
     {
-        return avatarDatabase != null ? avatarDatabase.GetFlag(cls) : null;
+        if (avatarDatabase == null) return null;
+        return avatarDatabase.GetFlag(cls);
     }
 
     private Sprite NameplateFor(CharacterClass cls)
     {
-        return avatarDatabase != null ? avatarDatabase.GetNameplate(cls) : null;
+        if (avatarDatabase == null) return null;
+        return avatarDatabase.GetNameplate(cls);
     }
 
     /// <summary>Portrait for a member's equipped skin — the same preview sprite the
@@ -655,7 +670,8 @@ public class UIPartyPanel : MonoBehaviour
     {
         if (skinId <= 0) return null;
         if (skinDatabase == null) skinDatabase = SkinDatabaseSO.LoadDefault();
-        return skinDatabase != null ? skinDatabase.GetPreviewSprite(skinId) : null;
+        if (skinDatabase == null) return null;
+        return skinDatabase.GetPreviewSprite(skinId);
     }
 
     private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)
@@ -772,11 +788,14 @@ public class UIPartyPanel : MonoBehaviour
         if (PartyLobby.Local != null)
         {
             PartyService.LeaveParty();
+
+            // Only show "expedition cancelled" message to party members, not the host.
+            // Close the party panel regardless of role.
+            if (!PartyLobby.Local.IsLocalHost)
+            {
+                UIPopupBox.Notify(transform, "Notice", "Dungeon expedition cancelled.");
+            }
         }
-        // Notify BEFORE Close(): the popup is located via GetComponentInParent<Canvas>() from this
-        // transform, and that skips inactive objects — after Close() this panel is deactivated, the
-        // Canvas lookup returns null, and the message degrades to a warning with nothing shown.
-        UIPopupBox.Notify(transform, "Notice", "Dungeon expedition cancelled.");
         Close();
     }
 
