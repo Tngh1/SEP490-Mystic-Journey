@@ -370,8 +370,43 @@ public class MainQuestPanelRuntime : MonoBehaviour
             BindPanelButton("CloseButton", CloseQuestPanel);
 
         BindTrackButton();
+        AddHoverEffects();
 
         didBind = true;
+    }
+
+    // UIHoverScaleEffect (Assets/Scripts/UI/UIHoverScaleEffect.cs) là hover dùng chung.
+    // UIManager.EnsureButtonHoverEffects đã quét sẵn toàn scene lúc Awake, nên vòng này chỉ
+    // còn cần cho các dòng quest Instantiate lúc runtime. Phải quét 3 root riêng: tracker và
+    // QuestPopup không phải con của QuestPanel nên một lần quét từ panel sẽ bỏ sót.
+    // Gọi sau BindTrackButton để bắt cả Button mà BindButton vừa AddComponent.
+    private void AddHoverEffects()
+    {
+        AddHoverIn(questPanel);
+        AddHoverIn(questTracker);
+        AddHoverIn(questPopup);
+    }
+
+    // Quét Selectable chứ không phải Button: filter trong TopBar là Toggle (xem BindFilterButton).
+    private static void AddHoverIn(GameObject root)
+    {
+        if (root == null)
+            return;
+
+        // true: nút trong popup đang tắt vẫn phải được gắn, nếu không popup mở ra là mất hover.
+        foreach (var selectable in root.GetComponentsInChildren<Selectable>(true))
+        {
+            if (selectable == null)
+                continue;
+            if (!(selectable is Button || selectable is Toggle))
+                continue;
+            // DimBackground là lớp phủ mờ toàn màn hình (bấm ra ngoài để đóng); phóng to nó
+            // sẽ kéo giãn cả mảng tối mỗi khi chuột đi qua vùng trống.
+            if (selectable.name == "DimBackground")
+                continue;
+            if (selectable.GetComponent<UIHoverScaleEffect>() == null)
+                selectable.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
     }
 
     private void BindTrackButton()
@@ -875,6 +910,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
             Debug.LogError($"[MainQuestPanelRuntime] Quest slot prefab '{questSlotPrefab.name}' is missing a UIQuestListItem component.", slotObj);
             return null;
         }
+
+        // Slot sinh sau BindUi nên AddHoverEffects không với tới; gắn ngay lúc tạo.
+        // UIQuestListItem.Bind sẽ tự AddComponent<Button> làm raycast target cho hover.
+        if (slotObj.GetComponent<UIHoverScaleEffect>() == null)
+            slotObj.AddComponent<UIHoverScaleEffect>();
 
         questSlots.Add(slot);
         return slot;

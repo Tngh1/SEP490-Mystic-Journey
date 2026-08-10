@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Endpoints;
+using MysticJourney.API.Models;
 using MysticJourney.API.Models.Response;
 
 /// <summary>
@@ -892,33 +893,41 @@ public class UIPartyPanel : MonoBehaviour
         ctRt.anchorMax = Vector2.one;
         ctRt.sizeDelta = Vector2.zero;
 
-        PlayerApi.Instance.GetFriends(
+        // FriendApi (/api/friend), NOT PlayerApi.GetFriends: the latter returns
+        // PlayerProfileResponse, which carries no online flag at all — so every friend
+        // was listed and an offline one only failed later, at PartyService.InviteByProfileId
+        // (FriendOffline). FriendDto has IsOnline, and an invite can only reach a friend
+        // who is present in the social lobby, so offline rows are filtered out here.
+        FriendApi.GetFriendList(
             response =>
             {
-                if (response != null && response.Length > 0)
+                int shown = 0;
+                if (response != null)
                 {
                     foreach (var friend in response)
                     {
-                        if (friend == null) continue;
+                        if (friend == null || !friend.IsOnline) continue;
                         AddFriendRow(scrollAreaObj.transform, friend);
+                        shown++;
                     }
                 }
-                else
+
+                if (shown == 0)
                 {
                     AddNoFriendsLabel(scrollAreaObj.transform);
                 }
             },
             error =>
             {
-                Debug.LogWarning($"[UIPartyPanel] GetFriends failed: {error.Message}");
+                Debug.LogWarning($"[UIPartyPanel] GetFriendList failed: {error.Message}");
                 AddNoFriendsLabel(scrollAreaObj.transform);
             }
         );
     }
 
-    private void AddFriendRow(Transform parent, PlayerProfileResponse friend)
+    private void AddFriendRow(Transform parent, FriendDto friend)
     {
-        GameObject row = new GameObject($"FriendRow_{friend.DisplayName}", typeof(RectTransform), typeof(Image));
+        GameObject row = new GameObject($"FriendRow_{friend.FriendName}", typeof(RectTransform), typeof(Image));
         row.transform.SetParent(parent, false);
         row.GetComponent<Image>().color = new Color(0.2f, 0.2f, 0.24f, 0.6f);
         row.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 45);
@@ -926,7 +935,7 @@ public class UIPartyPanel : MonoBehaviour
         GameObject textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(row.transform, false);
         TextMeshProUGUI txt = textObj.GetComponent<TextMeshProUGUI>();
-        txt.text = $"👤 {friend.DisplayName} (Lv.{friend.Level} {friend.PlayerClass})";
+        txt.text = $"👤 {friend.FriendName} (Lv.{friend.FriendLevel} {friend.Class})";
         txt.fontSize = 12;
         txt.color = Color.white;
         txt.alignment = TextAlignmentOptions.MidlineLeft;
@@ -951,7 +960,7 @@ public class UIPartyPanel : MonoBehaviour
         btnRt.sizeDelta = new Vector2(60, 28);
 
         // Already in the party?
-        bool alreadyInParty = IsProfileInParty(friend.PlayerProfileId);
+        bool alreadyInParty = IsProfileInParty(friend.FriendProfileId);
         btnImg.color = alreadyInParty ? new Color(0.4f, 0.4f, 0.4f, 0.5f) : new Color(0.2f, 0.5f, 0.2f);
         btn.interactable = !alreadyInParty;
 
@@ -970,8 +979,8 @@ public class UIPartyPanel : MonoBehaviour
 
         if (!alreadyInParty)
         {
-            int profileId = friend.PlayerProfileId;
-            string friendName = friend.DisplayName;
+            int profileId = friend.FriendProfileId;
+            string friendName = friend.FriendName;
             btn.onClick.AddListener(() =>
             {
                 var result = PartyService.InviteByProfileId(profileId);
@@ -1029,62 +1038,6 @@ public class UIPartyPanel : MonoBehaviour
         if (go.GetComponent<UIHoverScaleEffect>() == null)
         {
             go.AddComponent<UIHoverScaleEffect>();
-        }
-    }
-}
-
-public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPointerEnterHandler, UnityEngine.EventSystems.IPointerExitHandler
-{
-    private Vector3 originalScale;
-    private Vector3 targetScale;
-    private bool _initialized;
-
-    private void Awake()
-    {
-        InitScale();
-    }
-
-    private void Start()
-    {
-        InitScale();
-    }
-
-    private void InitScale()
-    {
-        if (!_initialized || originalScale == Vector3.zero)
-        {
-            originalScale = transform.localScale != Vector3.zero ? transform.localScale : Vector3.one;
-            targetScale = originalScale;
-            _initialized = true;
-        }
-    }
-
-    private void Update()
-    {
-        if (transform.localScale != targetScale)
-        {
-            transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * 15f);
-        }
-    }
-
-    public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData)
-    {
-        InitScale();
-        targetScale = originalScale * 1.08f;
-    }
-
-    public void OnPointerExit(UnityEngine.EventSystems.PointerEventData eventData)
-    {
-        InitScale();
-        targetScale = originalScale;
-    }
-
-    private void OnDisable()
-    {
-        if (_initialized && originalScale != Vector3.zero)
-        {
-            transform.localScale = originalScale;
-            targetScale = originalScale;
         }
     }
 }

@@ -36,7 +36,7 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Movement")]
     [Tooltip("Base movement speed in world units per second. The actual speed " +
              "may be scaled by PlayerEntity.MoveSpeed in a future phase.")]
-    [SerializeField] private float baseMoveSpeed = 4f;
+    [SerializeField] private float baseMoveSpeed = 5f;
 
     [Tooltip("If true and this GameObject has no NetworkObject, read WASD directly " +
              "and move the body locally. Disable only when a different script owns " +

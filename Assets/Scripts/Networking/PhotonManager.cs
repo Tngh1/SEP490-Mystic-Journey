@@ -641,60 +641,60 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
     /// to everyone else). We therefore ignore joins for other players — their
     /// avatars arrive as replicated NetworkObjects.
     /// </summary>
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
-    {
-        Debug.Log($"[PhotonManager] OnPlayerJoined: {player} (local={runner.LocalPlayer}, phase={Phase})");
-
-        // Lobby phase: no gameplay avatar. Each client spawns ONLY its own lightweight
-        // PlayerPresence (identity + invite mailbox) so others can discover/invite it.
-        if (Phase != PartyPhase.Dungeon)
+        public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
         {
-            if (player == runner.LocalPlayer)
+            Debug.Log($"[PhotonManager] OnPlayerJoined: {player} (local={runner.LocalPlayer}, phase={Phase})");
+
+            // Lobby phase: no gameplay avatar. Each client spawns ONLY its own lightweight
+            // PlayerPresence (identity + invite mailbox) so others can discover/invite it.
+            if (Phase != PartyPhase.Dungeon)
             {
-                SpawnLocalPresence(runner);
-            }
-            return;
-        }
-
-        if (player != runner.LocalPlayer)
-        {
-            return;
-        }
-
-        if (_spawnedPlayers.Contains(player))
-        {
-            return;
-        }
-
-        var spawnPosition = ResolveSpawnPosition();
-        var playerObject = runner.Spawn(
-            playerPrefab,
-            spawnPosition,
-            Quaternion.identity,
-            player,
-            (r, obj) =>
-            {
-                var netPlayer = obj.GetComponent<NetworkPlayer>();
-                if (netPlayer != null)
+                if (player == runner.LocalPlayer)
                 {
-                    string className = WorldState.PlayerClass ?? "Knight";
-                    if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
-                        parsed = CharacterClass.Knight;
-
-                    netPlayer.PlayerClass = (int)parsed;
-                    netPlayer.PlayerName = WorldState.PlayerName ?? "Player";
-                    netPlayer.PlayerProfileId = WorldState.PlayerProfileId;
-                    netPlayer.Level = Mathf.Max(1, WorldState.PlayerLevel);
-                    netPlayer.EquippedSkinId = Mathf.Max(0, WorldState.EquippedSkinId);
+                    SpawnLocalPresence(runner);
                 }
-            });
+                return;
+            }
 
-        if (playerObject != null)
-        {
-            _spawnedPlayers.Add(player);
-            OnPlayerJoinedNetwork?.Invoke(player);
+            if (player != runner.LocalPlayer)
+            {
+                return;
+            }
+
+            if (_spawnedPlayers.Contains(player))
+            {
+                return;
+            }
+
+            var spawnPosition = ResolveSpawnPosition();
+            var playerObject = runner.Spawn(
+                playerPrefab,
+                spawnPosition,
+                Quaternion.identity,
+                player,
+                (r, obj) =>
+                {
+                    var netPlayer = obj.GetComponent<NetworkPlayer>();
+                    if (netPlayer != null)
+                    {
+                        string className = WorldState.PlayerClass ?? "Knight";
+                        if (!Enum.TryParse<CharacterClass>(className, true, out var parsed))
+                            parsed = CharacterClass.Knight;
+
+                        netPlayer.PlayerClass = (int)parsed;
+                        netPlayer.PlayerName = WorldState.PlayerName ?? "Player";
+                        netPlayer.PlayerProfileId = WorldState.PlayerProfileId;
+                        netPlayer.Level = Mathf.Max(1, WorldState.PlayerLevel);
+                        netPlayer.EquippedSkinId = Mathf.Max(0, WorldState.EquippedSkinId);
+                    }
+                });
+
+            if (playerObject != null)
+            {
+                _spawnedPlayers.Add(player);
+                OnPlayerJoinedNetwork?.Invoke(player);
+            }
         }
-    }
 
     private static Vector3 ResolveSpawnPosition()
     {

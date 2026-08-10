@@ -730,7 +730,31 @@ public class GachaUIManager : MonoBehaviour
 
         if (result.PulledItems != null)
         {
+            // Gộp item trùng thành 1 card + badge xN, giữ đúng thứ tự quay được
+            var order = new List<GachaPullResultResponse>();
+            var counts = new Dictionary<int, int>();
+
             foreach (var item in result.PulledItems)
+            {
+                // PulledItemId <= 0 là lần quay backend trả lỗi -> để riêng, không gộp
+                if (item.PulledItemId > 0 && counts.ContainsKey(item.PulledItemId))
+                {
+                    counts[item.PulledItemId]++;
+                }
+                else
+                {
+                    if (item.PulledItemId > 0) counts[item.PulledItemId] = 1;
+                    order.Add(item);
+                }
+
+                // Ưu tiên dùng pity trả về từ backend
+                if (item.CurrentPity >= 0)
+                {
+                    currentPity = item.CurrentPity;
+                }
+            }
+
+            foreach (var item in order)
             {
                 GameObject newItemUI = Instantiate(pulledItemPrefab, resultItemContainer);
 
@@ -763,18 +787,16 @@ public class GachaUIManager : MonoBehaviour
                         }
                     }
 
+                    string hexColor = GetRarityColorHex(item.PulledItemRarity);
+
                     // Prefab hiện tại không còn TMP tên vật phẩm, để trống thì bỏ qua
                     if (ui.itemNameText != null)
                     {
-                        string hexColor = GetRarityColorHex(item.PulledItemRarity);
                         ui.itemNameText.text = $"<color={hexColor}>{item.PulledItemName}</color>";
                     }
-                }
 
-                // Ưu tiên dùng pity trả về từ backend
-                if (item.CurrentPity >= 0)
-                {
-                    currentPity = item.CurrentPity;
+                    int count;
+                    ui.SetQuantity(counts.TryGetValue(item.PulledItemId, out count) ? count : 1, hexColor);
                 }
             }
         }

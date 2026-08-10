@@ -42,6 +42,10 @@ namespace MysticJourney.API.Core
         public const string AuthLogout = "/api/auth/logout";
         public const string AuthRefreshToken = "/api/auth/refresh-token";
 
+        // Hub SignalR: đẩy sự kiện "phiên bị đè" xuống ngay, không phải đợi request kế tiếp.
+        // Nối bằng ws:// hoặc wss:// tuỳ scheme của BaseUrl.
+        public const string GameHub = "/hubs/game";
+
         // ═══════════════════════════════════════════════════════════════════════
         // PLAYER CONTROLLER - Trạng thái online
         // ═══════════════════════════════════════════════════════════════════════

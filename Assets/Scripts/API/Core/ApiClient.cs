@@ -193,7 +193,12 @@ namespace MysticJourney.API.Core
                         }
 
                         var outcome = RefreshOutcome.Rejected;
-                        yield return StartCoroutine(RefreshAccessTokenCoroutine(rt, r => outcome = r));
+                        string rejectMessage = null;
+                        yield return StartCoroutine(RefreshAccessTokenCoroutine(rt, (r, msg) =>
+                        {
+                            outcome = r;
+                            rejectMessage = msg;
+                        }));
 
                         if (outcome == RefreshOutcome.Success)
                         {
@@ -215,15 +220,19 @@ namespace MysticJourney.API.Core
                             yield break;
                         }
 
-                        // Rejected: server từ chối refresh token (hết hạn hoặc session bị đè).
-                        Debug.LogWarning("[ApiClient] Refresh token rejected. Session expired or overridden.");
+                        // Rejected: server từ chối refresh token (hết hạn, session bị đè, hoặc
+                        // tài khoản vừa bị ban). Giữ message của server để lý do ban tới được người chơi.
+                        Debug.LogWarning("[ApiClient] Refresh token rejected. Session expired, overridden, or account banned.");
                         ClearToken();
-                        MysticJourney.Core.Services.SessionService.Logout("Your session has ended. Please log in again.");
+                        var logoutReason = !string.IsNullOrEmpty(rejectMessage)
+                            ? rejectMessage
+                            : "Your session has ended. Please log in again.";
+                        MysticJourney.Core.Services.SessionService.Logout(logoutReason);
                         onError?.Invoke(new ApiException
                         {
                             StatusCode = 401,
                             ErrorCode = "SESSION_EXPIRED",
-                            Message = "Your session has ended. Please log in again."
+                            Message = logoutReason
                         });
                         yield break;
                     }
@@ -258,12 +267,15 @@ namespace MysticJourney.API.Core
 
         // Coroutine gọi /api/auth/refresh-token.
         // Trả về NetworkError nếu không gọi được server (giữ session), Rejected nếu server từ chối.
-        private IEnumerator RefreshAccessTokenCoroutine(string refreshToken, Action<RefreshOutcome> onDone)
+        // rejectMessage mang message của server khi bị từ chối — tài khoản bị ban giữa phiên
+        // sẽ bị chặn ở đây, và lý do ban nằm trong message đó nên không được bỏ đi.
+        private IEnumerator RefreshAccessTokenCoroutine(string refreshToken, Action<RefreshOutcome, string> onDone)
         {
             _isRefreshing = true;
             string url = ApiConfig.BaseUrl + ApiConfig.AuthRefreshToken;
             string body = JsonConvert.SerializeObject(new { refreshToken });
             var outcome = RefreshOutcome.Rejected;
+            string rejectMessage = null;
 
             using (var req = new UnityWebRequest(url, "POST"))
             {
@@ -311,11 +323,20 @@ namespace MysticJourney.API.Core
                 else
                 {
                     Debug.LogWarning($"[ApiClient] Token refresh rejected. Code={req.responseCode}");
+                    try
+                    {
+                        var errObj = JsonConvert.DeserializeObject<ErrorBodyResponse>(req.downloadHandler?.text ?? string.Empty);
+                        rejectMessage = errObj?.message;
+                    }
+                    catch
+                    {
+                        // Body không phải JSON → để null, caller dùng message mặc định.
+                    }
                 }
             }
 
             _isRefreshing = false;
-            onDone?.Invoke(outcome);
+            onDone?.Invoke(outcome, rejectMessage);
         }
 
         // ── Internal Helpers ──────────────────────────────────────

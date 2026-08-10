@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
@@ -234,6 +235,7 @@ public class UIManager : MonoBehaviour
         EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
         EnsurePanelRuntime<UIChestRewardPanel>(chestPanel, "ChestPanel");
         EnsurePanelRuntime<UIPartyPanel>(dungeonPanel, "TeamPanel");
+        EnsureButtonHoverEffects();
 
         if (DungeonManager.Instance == null)
         {
@@ -291,6 +293,61 @@ public class UIManager : MonoBehaviour
 
         if (panel != null)
             panel.AddComponent<T>();
+    }
+
+    /// <summary>
+    /// Gắn <see cref="UIHoverScaleEffect"/> cho MỌI Button/Toggle có sẵn trong scene, một lần lúc Awake.
+    ///
+    /// Vòng quét này phủ MỌI button dựng sẵn trong scene, nên panel mới không cần tự viết
+    /// lại vòng AddComponent cho các button tĩnh của nó. Vòng quét riêng ở từng panel giờ
+    /// chỉ còn cần cho button chúng tự Instantiate lúc runtime (xem ponytail bên dưới).
+    ///
+    /// Dùng Resources.FindObjectsOfTypeAll thay cho FindObjectsByType: popup dưới
+    /// Canvas/PopupLayer đều đang tắt lúc Awake theo thiết kế, FindObjectsByType sẽ bỏ sót hết.
+    /// Bù lại nó cũng trả về prefab asset, nên phải lọc scene.IsValid() — thiếu bước này là
+    /// AddComponent thẳng vào file prefab trong Assets/.
+    /// </summary>
+    // ponytail: chỉ quét một lần lúc Awake nên button Instantiate sau đó KHÔNG được phủ.
+    // Hiện 16 panel tự gọi AddComponent cho dòng/ô chúng sinh lúc runtime (entry bạn bè,
+    // slot guild, ô shop/inventory/daily) — đó là phần vòng quét này không thay thế được.
+    // Nâng cấp: class đã nằm ở file riêng nên gắn sẵn được vào từng prefab dòng/ô qua
+    // Inspector, bỏ dần 16 vòng đó; hoặc một EventTrigger dùng chung đặt ở Canvas.
+    private static void EnsureButtonHoverEffects()
+    {
+        // Quét Selectable chứ không phải Button: Toggle KHÔNG kế thừa Button (cả hai đều là
+        // con của Selectable), nên vòng quét cũ theo Button bỏ sót toàn bộ tab/filter dạng
+        // Toggle — 3 tab QuestPanel, 2 tab + 9 filter InventoryPanel, ToggleRequireApproval
+        // của GuildPanel đều không có hover trong khi nút thường ngay bên cạnh thì có.
+        var selectables = Resources.FindObjectsOfTypeAll<Selectable>();
+        foreach (var selectable in selectables)
+        {
+            if (selectable == null)
+                continue;
+
+            if (!(selectable is Button || selectable is Toggle))
+                continue;
+
+            var go = selectable.gameObject;
+            if (!go.scene.IsValid() || string.IsNullOrEmpty(go.scene.name))
+                continue;
+
+            // Item trong Template của Dropdown được sinh/huỷ lại mỗi lần bung danh sách,
+            // và lúc Awake nó chỉ là mẫu đang tắt — gắn hover vào mẫu này vừa vô ích vừa
+            // làm mỗi dòng trong danh sách bung ra phình lên khi chuột quét qua.
+            if (selectable.GetComponentInParent<TMPro.TMP_Dropdown>(true) != null)
+                continue;
+
+            // BackgroundBlocker (con của ReportConfirmPopup và PlayerContextMenu) là lớp
+            // chặn click phủ TOÀN màn hình — anchor 0,0→1,1 — và nó cũng là Button nên rơi
+            // vào vòng quét này. Gắn hover vào đó thì chỉ cần đưa chuột vào bất kỳ đâu trên
+            // màn hình là cả lớp phủ phình lên 1.08. UIPlayerContextMenu.EnsureHoverEffects
+            // né sẵn chuyện này bằng cách gắn tay cho đúng 3 nút thay vì quét cả cây.
+            if (go.name == "BackgroundBlocker")
+                continue;
+
+            if (go.GetComponent<UIHoverScaleEffect>() == null)
+                go.AddComponent<UIHoverScaleEffect>();
+        }
     }
 
     // 3. Khai báo panel vào danh sách để nó tự đóng khi gọi CloseAll()

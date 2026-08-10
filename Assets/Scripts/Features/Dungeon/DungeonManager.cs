@@ -437,16 +437,25 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             Debug.Log($"[DungeonManager] Found {targetSpawnPoint.name} at {spawnPos}. Teleporting player.");
             if (player != null)
             {
+                var np = player.GetComponent<NetworkPlayer>();
+                var nt = player.GetComponent<Fusion.NetworkTransform>();
+                var entity = player.GetComponent<PlayerEntity>();
+
+                // Every client runs this with the SAME PlayerSpawn, so without a per-player
+                // offset all party avatars land on the exact same point. They are DYNAMIC
+                // Rigidbody2D bodies with non-trigger colliders that collide with each other,
+                // so fully-overlapped avatars are stuck in the solver and nobody can move —
+                // the "joined the dungeon together and can't walk" bug. Reuses the same
+                // fan-out NetworkPlayer.Spawned already applies at world spawn.
+                if (np != null && np.Object != null && np.Object.IsValid)
+                    spawnPos += NetworkPlayer.FanOutOffset(np.Object.InputAuthority.PlayerId);
+
                 var rb = player.GetComponent<Rigidbody2D>();
                 if (rb != null)
                 {
                     rb.linearVelocity = Vector2.zero;
                     rb.position = spawnPos;
                 }
-                
-                var np = player.GetComponent<NetworkPlayer>();
-                var nt = player.GetComponent<Fusion.NetworkTransform>();
-                var entity = player.GetComponent<PlayerEntity>();
 
                 if (np != null && NetworkPlayer.Local == np && np.Object != null && np.Object.IsValid)
                 {
@@ -1500,7 +1509,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 if (targetSpawnPoint != null)
                 {
                     Vector3 spawnPos = targetSpawnPoint.transform.position;
-                    
+
+                    // Same per-player fan-out as the entry path: every client restarts to the
+                    // same PlayerSpawn, and fully-overlapped dynamic colliders wedge each other.
+                    var npRestart = player.GetComponent<NetworkPlayer>();
+                    if (npRestart != null && npRestart.Object != null && npRestart.Object.IsValid)
+                        spawnPos += NetworkPlayer.FanOutOffset(npRestart.Object.InputAuthority.PlayerId);
+
                     var nt = player.GetComponent<NetworkTransform>();
                     if (nt != null)
                     {
@@ -1564,7 +1579,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             {
                 if (p != null)
                 {
-                    p.ResetForRestart(finalSpawnPos);
+                    // Per-player offset, not the bare shared spawn: ResetForRestart only
+                    // applies to the avatar this client owns, but every client would pass the
+                    // identical point and the avatars end up interpenetrating and immobile.
+                    Vector3 target = finalSpawnPos;
+                    if (p.Object != null && p.Object.IsValid)
+                        target += NetworkPlayer.FanOutOffset(p.Object.InputAuthority.PlayerId);
+                    p.ResetForRestart(target);
                 }
             }
         }

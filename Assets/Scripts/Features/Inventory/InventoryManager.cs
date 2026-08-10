@@ -784,19 +784,28 @@ public class InventoryManager : MonoBehaviour
                 }
             });
 
+            const int MaxStackSize = 99;
             foreach (var item in allItems)
             {
                 Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
-                displayList.Add(new UIItemDisplayData
+                // Tách ô nếu số lượng > 99: mỗi ô tối đa MaxStackSize, phần dư sang ô tiếp theo.
+                // Equipped items có Quantity=0 vẫn cần 1 ô nên dùng Mathf.Max(1, ...).
+                int remaining = Mathf.Max(1, item.Quantity);
+                while (remaining > 0)
                 {
-                    itemId = item.InventoryItemId,
-                    itemName = item.ItemName,
-                    icon = icon,
-                    quantity = item.Quantity,
-                    rarity = item.ItemRarity,
-                    isEquipped = item.IsEquipped && CanEquipItem(item),
-                    rawData = item  // InventoryItemResponse để popup dùng
-                });
+                    int stackQty = Mathf.Min(remaining, MaxStackSize);
+                    displayList.Add(new UIItemDisplayData
+                    {
+                        itemId = item.InventoryItemId,
+                        itemName = item.ItemName,
+                        icon = icon,
+                        quantity = stackQty,
+                        rarity = item.ItemRarity,
+                        isEquipped = item.IsEquipped && CanEquipItem(item),
+                        rawData = item  // InventoryItemResponse để popup dùng
+                    });
+                    remaining -= stackQty;
+                }
             }
             uiInventory.Refresh(displayList);
         }
@@ -1220,6 +1229,11 @@ public class InventoryManager : MonoBehaviour
     {
         Debug.LogWarning($"[InventoryManager] Action error: {msg}");
         SetError(msg);
+
+        // errorText không được gán trong Main.unity (errorText: {fileID: 0}), nên SetError là
+        // no-op và mọi lỗi hành động — kể cả "HP đã đầy" khi uống bình máu — chỉ hiện trong
+        // Console. Đẩy qua popup dùng chung để người chơi thật sự thấy.
+        MysticJourney.UI.UIPopupManager.Instance?.ShowAlert("Notice", msg);
     }
 
     private void LoadPlayerStats()
