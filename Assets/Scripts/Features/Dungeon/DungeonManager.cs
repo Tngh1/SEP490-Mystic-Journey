@@ -67,6 +67,7 @@ public class DungeonManager : MonoBehaviour
     // WorldApi.GetState hydration that lands mid-load — so the event's name check can
     // reject the very scene we just loaded and no enemies ever spawn).
     private bool _spawnStarted = false;
+    private bool _isRestarting = false;
 
     // ── Saved state for RestartDungeon ──
     private List<string> _currentPartyMembers = new();
@@ -177,6 +178,7 @@ public class DungeonManager : MonoBehaviour
         _normalEnemies.Clear();
         _bossEnemies.Clear();
         _seenEnemies.Clear();
+        EnemyProgress.Clear();
         _bossDeathPosition = Vector3.zero;
         _masterSpawnRetried = false;
         _spawnStarted = false;
@@ -322,6 +324,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _normalEnemies.Clear();
         _bossEnemies.Clear();
         _seenEnemies.Clear();
+        EnemyProgress.Clear();
         _bossDeathPosition = Vector3.zero;
         _masterSpawnRetried = false;
         _spawnStarted = false;
@@ -522,6 +525,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     /// </summary>
     private void BeginEnemySpawn(string mapName)
     {
+        _isRestarting = false;
         if (_spawnStarted) return;
         _spawnStarted = true;
 
@@ -791,7 +795,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     public void RegisterNetworkedEnemy(EnemyEntity enemy)
     {
-        if (enemy == null) return;
+        if (enemy == null || _isRestarting) return;
 
         // One registration per enemy per run, tracked in _seenEnemies rather than in
         // _normalEnemies: the latter has the dead removed from it, so a corpse that is
@@ -855,6 +859,9 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 cleanName = cleanName.Substring(0, lastUnderscore);
             }
         }
+
+        // Remove any remaining underscores so "slime_ice" matches "SlimeIce" case-insensitively
+        cleanName = cleanName.Replace("_", "");
         
         return cleanName;
     }
@@ -1418,6 +1425,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     public void RestartDungeon()
     {
         Debug.Log("[DungeonManager] Restarting Dungeon...");
+        _isRestarting = true;
         EnemiesKilledCount = 0;
         bossKilled = false;
         _currentPhase = DungeonPhase.Normal;
