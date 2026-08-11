@@ -194,7 +194,7 @@ public class WorldInteractable : MonoBehaviour
         
         overheadText = textGo.AddComponent<TextMeshProUGUI>();
         overheadText.alignment = TextAlignmentOptions.Center;
-        overheadText.enableWordWrapping = false;
+        overheadText.textWrappingMode = TextWrappingModes.NoWrap;
         overheadText.overflowMode = TextOverflowModes.Overflow;
         
         // Crisp text with TMP

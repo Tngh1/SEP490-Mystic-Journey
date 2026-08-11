@@ -17,7 +17,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     [Header("Scene UI")]
     [SerializeField] private GameObject questTracker;
     [SerializeField] private GameObject questPanel;
-    [SerializeField] private GameObject questPopup;
+    [SerializeField] private GameObject paperPopup;
 
     private Transform questListContent;
     private GameObject questSlotPrefab;
@@ -34,7 +34,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
     private GameObject popupLayer;
     private UIQuestPanelView questPanelView;
-    private UIQuestPopupView questPopupView;
+    private UIPaperPopupView paperPopupView;
 
     private Button trackButton;
     private Image trackButtonImage;
@@ -64,7 +64,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private readonly Dictionary<string, GameObject> filterHighlights = new Dictionary<string, GameObject>();
     private readonly Dictionary<string, Toggle> filterToggles = new Dictionary<string, Toggle>();
     private int pendingSelectedQuestId;
-    private bool popupLayerActivatedByQuest;
+    private bool popupLayerActivatedByPaperPopup;
     private bool didWarnMissingListTemplate;
     private bool didBind;
 
@@ -283,7 +283,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     {
         questTracker = questTracker != null ? questTracker : (gameObject.name == "QuestTracker" ? gameObject : FindSceneObject("QuestTracker"));
         questPanel = questPanel != null ? questPanel : FindSceneObject("QuestPanel");
-        questPopup = questPopup != null ? questPopup : FindSceneObject("QuestPopup");
+        paperPopup = paperPopup != null ? paperPopup : FindSceneObject("PaperPopup");
         popupLayer = popupLayer != null ? popupLayer : FindSceneObject("PopupLayer");
 
         if (questTracker != null)
@@ -351,12 +351,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         EnsureRewardContentLayout();
         EnsureQuestListContentLayout();
 
-        if (questPopup != null)
+        if (paperPopup != null)
         {
-            questPopupView = questPopupView != null ? questPopupView : questPopup.GetComponent<UIQuestPopupView>();
-            popupText = popupText.IsValid ? popupText : FindTextSlot(questPopup.transform, "PopupText", "MessageText", "TitleText", "Text (TMP)");
+            paperPopupView = paperPopupView != null ? paperPopupView : paperPopup.GetComponent<UIPaperPopupView>();
+            popupText = popupText.IsValid ? popupText : FindTextSlot(paperPopup.transform, "PopupText", "MessageText", "TitleText", "Text (TMP)");
             if (!didBind)
-                questPopup.SetActive(false);
+                paperPopup.SetActive(false);
         }
 
         BindFilterButton("AllButton", "All", "All");
@@ -370,8 +370,43 @@ public class MainQuestPanelRuntime : MonoBehaviour
             BindPanelButton("CloseButton", CloseQuestPanel);
 
         BindTrackButton();
+        AddHoverEffects();
 
         didBind = true;
+    }
+
+    // UIHoverScaleEffect (Assets/Scripts/UI/UIHoverScaleEffect.cs) là hover dùng chung.
+    // UIManager.EnsureButtonHoverEffects đã quét sẵn toàn scene lúc Awake, nên vòng này chỉ
+    // còn cần cho các dòng quest Instantiate lúc runtime. Phải quét 3 root riêng: tracker và
+    // PaperPopup không phải con của QuestPanel nên một lần quét từ panel sẽ bỏ sót.
+    // Gọi sau BindTrackButton để bắt cả Button mà BindButton vừa AddComponent.
+    private void AddHoverEffects()
+    {
+        AddHoverIn(questPanel);
+        AddHoverIn(questTracker);
+        AddHoverIn(paperPopup);
+    }
+
+    // Quét Selectable chứ không phải Button: filter trong TopBar là Toggle (xem BindFilterButton).
+    private static void AddHoverIn(GameObject root)
+    {
+        if (root == null)
+            return;
+
+        // true: nút trong popup đang tắt vẫn phải được gắn, nếu không popup mở ra là mất hover.
+        foreach (var selectable in root.GetComponentsInChildren<Selectable>(true))
+        {
+            if (selectable == null)
+                continue;
+            if (!(selectable is Button || selectable is Toggle))
+                continue;
+            // DimBackground là lớp phủ mờ toàn màn hình (bấm ra ngoài để đóng); phóng to nó
+            // sẽ kéo giãn cả mảng tối mỗi khi chuột đi qua vùng trống.
+            if (selectable.name == "DimBackground")
+                continue;
+            if (selectable.GetComponent<UIHoverScaleEffect>() == null)
+                selectable.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
     }
 
     private void BindTrackButton()
@@ -713,7 +748,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private struct PopupData
     {
         public string announce;
-        public UIQuestPopupView.QuestPopupKind kind;
+        public UIPaperPopupView.PaperPopupKind kind;
         public bool inferKind;
     }
 
@@ -722,17 +757,17 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private string lastPopupKey = string.Empty;
     private float lastPopupTime;
 
-    public void ShowQuestPopup(string message)
+    public void ShowPaperPopup(string message)
     {
-        ShowPopup(message, UIQuestPopupView.QuestPopupKind.None, inferKind: true);
+        ShowPopup(message, UIPaperPopupView.PaperPopupKind.None, inferKind: true);
     }
 
-    public void ShowQuestPopup(string questTitle, UIQuestPopupView.QuestPopupKind kind)
+    public void ShowPaperPopup(string questTitle, UIPaperPopupView.PaperPopupKind kind)
     {
         ShowPopup(questTitle, kind, inferKind: false);
     }
 
-    private void ShowPopup(string announce, UIQuestPopupView.QuestPopupKind kind, bool inferKind)
+    private void ShowPopup(string announce, UIPaperPopupView.PaperPopupKind kind, bool inferKind)
     {
         if (string.IsNullOrWhiteSpace(announce))
             return;
@@ -770,26 +805,26 @@ public class MainQuestPanelRuntime : MonoBehaviour
             BindUi();
 
 
-            if (questPopup != null)
+            if (paperPopup != null)
             {
                 if (popupLayer != null && !popupLayer.activeSelf)
                 {
                     popupLayer.SetActive(true);
-                    popupLayerActivatedByQuest = true;
+                    popupLayerActivatedByPaperPopup = true;
                 }
 
-                if (questPopupView != null)
+                if (paperPopupView != null)
                 {
                     if (data.inferKind)
-                        questPopupView.Show(data.announce);
+                        paperPopupView.Show(data.announce);
                     else
-                        questPopupView.Show(data.announce, data.kind);
+                        paperPopupView.Show(data.announce, data.kind);
                 }
                 else
                 {
                     SetText(popupText, data.announce);
-                    questPopup.SetActive(true);
-                    questPopup.transform.SetAsLastSibling();
+                    paperPopup.SetActive(true);
+                    paperPopup.transform.SetAsLastSibling();
                 }
 
                 yield return new WaitForSeconds(2.2f);
@@ -797,12 +832,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
 
         // Đã hiện hết queue -> đóng popup
-        if (questPopupView != null)
-            questPopupView.Hide();
-        else if (questPopup != null)
-            questPopup.SetActive(false);
+        if (paperPopupView != null)
+            paperPopupView.Hide();
+        else if (paperPopup != null)
+            paperPopup.SetActive(false);
 
-        if (popupLayer != null && popupLayerActivatedByQuest)
+        if (popupLayer != null && popupLayerActivatedByPaperPopup)
         {
             // PopupLayer là container DÙNG CHUNG cho 14 popup (MapPopup, NPCPanel, ChestPanel...).
             // Tắt cả layer vì popup quest đã xong sẽ kéo theo mọi popup khác đang mở — người chơi
@@ -811,7 +846,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             if (!HasOtherActivePopup())
                 popupLayer.SetActive(false);
 
-            popupLayerActivatedByQuest = false;
+            popupLayerActivatedByPaperPopup = false;
         }
 
         isProcessingPopupQueue = false;
@@ -819,7 +854,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     }
 
     /// <summary>
-    /// True nếu trong PopupLayer còn popup nào khác (không phải QuestPopup) đang bật.
+    /// True nếu trong PopupLayer còn popup nào khác (không phải PaperPopup) đang bật.
     /// Xét activeSelf của con trực tiếp: mọi popup ở đây đều là sibling và tự bật/tắt chính nó,
     /// nên đó đúng là "đang mở" — không dùng activeInHierarchy vì lúc gọi hàm này layer có thể
     /// vẫn đang bật và ta cần biết trạng thái riêng của từng popup.
@@ -833,7 +868,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             var child = layerTransform.GetChild(i);
             if (child == null) continue;
-            if (questPopup != null && child.gameObject == questPopup) continue;
+            if (paperPopup != null && child.gameObject == paperPopup) continue;
 
             if (child.gameObject.activeSelf)
             {
@@ -875,6 +910,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
             Debug.LogError($"[MainQuestPanelRuntime] Quest slot prefab '{questSlotPrefab.name}' is missing a UIQuestListItem component.", slotObj);
             return null;
         }
+
+        // Slot sinh sau BindUi nên AddHoverEffects không với tới; gắn ngay lúc tạo.
+        // UIQuestListItem.Bind sẽ tự AddComponent<Button> làm raycast target cho hover.
+        if (slotObj.GetComponent<UIHoverScaleEffect>() == null)
+            slotObj.AddComponent<UIHoverScaleEffect>();
 
         questSlots.Add(slot);
         return slot;

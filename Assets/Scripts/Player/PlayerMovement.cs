@@ -36,7 +36,7 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Movement")]
     [Tooltip("Base movement speed in world units per second. The actual speed " +
              "may be scaled by PlayerEntity.MoveSpeed in a future phase.")]
-    [SerializeField] private float baseMoveSpeed = 4f;
+    [SerializeField] private float baseMoveSpeed = 3.75f;
 
     [Tooltip("If true and this GameObject has no NetworkObject, read WASD directly " +
              "and move the body locally. Disable only when a different script owns " +
@@ -179,12 +179,16 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        if (input == Vector2.zero) 
+        if (input == Vector2.zero)
         {
+            // Still commit the zero. Movement is velocity-driven now, so returning
+            // without touching the body would leave the last velocity integrating and
+            // the player would coast on after releasing the keys.
+            ApplyRaw(Vector2.zero, Time.deltaTime);
             if (_animation != null) _animation.SetMovement(Vector2.zero, isAlive);
             return;
         }
-        
+
         ApplyRaw(input, Time.deltaTime);
         if (_animation != null) _animation.SetMovement(input, isAlive);
     }
@@ -272,6 +276,9 @@ public class PlayerMovement : NetworkBehaviour
         {
             _rootTimer -= deltaTime;
             _moveInput = Vector2.zero;
+            // Velocity-driven now, so a root has to actively stop the body —
+            // otherwise it keeps coasting for the whole root duration.
+            _rb.linearVelocity = Vector2.zero;
             if (_animation != null) _animation.SetMovement(Vector2.zero, true);
             return;
         }
@@ -282,21 +289,15 @@ public class PlayerMovement : NetworkBehaviour
             _lastMove = _moveInput.normalized;
         }
 
-        if (input.sqrMagnitude > 0.01f)
-        {
-            Vector2 deltaPos = _moveInput * _currentMoveSpeed * deltaTime;
-            _rb.MovePosition(_rb.position + deltaPos);
-        }
+        _rb.linearVelocity = input.sqrMagnitude > 0.01f
+            ? _moveInput * _currentMoveSpeed
+            : Vector2.zero;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Speed control
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Override the current movement speed. Pass <= 0 to revert to
-    /// the inspector-configured base speed.
-    /// </summary>
     public void SetMoveSpeedOverride(float speed)
     {
         _currentMoveSpeed = speed > 0f ? speed : baseMoveSpeed;

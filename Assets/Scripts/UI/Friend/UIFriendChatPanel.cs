@@ -230,7 +230,7 @@ namespace UI.Friend
                 {
                     textComponent = CreateText("Text", viewport, string.Empty, 14, FontStyles.Normal, TextAlignmentOptions.Left);
                     textComponent.raycastTarget = true;
-                    textComponent.enableWordWrapping = false;
+                    textComponent.textWrappingMode = TextWrappingModes.NoWrap;
                     textComponent.overflowMode = TextOverflowModes.Overflow;
                     SetRect(textComponent.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
                 }
@@ -548,7 +548,7 @@ namespace UI.Friend
 
                 var systemText = CreateText("SystemMessage", row, message, 13, FontStyles.Italic, TextAlignmentOptions.Center);
                 systemText.color = systemNameColor;
-                systemText.enableWordWrapping = true;
+                systemText.textWrappingMode = TextWrappingModes.Normal;
                 systemText.gameObject.AddComponent<LayoutElement>().preferredWidth = 360f;
                 return;
             }
@@ -578,7 +578,7 @@ namespace UI.Friend
 
             var messageText = CreateText("Message", bubble, message, 14, FontStyles.Normal, TextAlignmentOptions.Left);
             messageText.color = isMine ? Color.white : new Color(0.16f, 0.08f, 0.02f, 1f);
-            messageText.enableWordWrapping = true;
+            messageText.textWrappingMode = TextWrappingModes.Normal;
             messageText.overflowMode = TextOverflowModes.Overflow;
 
             var messageLayout = messageText.gameObject.AddComponent<LayoutElement>();
@@ -938,14 +938,14 @@ namespace UI.Friend
 
             var placeholder = CreateText("Placeholder", textArea, "Type a message...", 14, FontStyles.Italic, TextAlignmentOptions.Left);
             placeholder.color = new Color(1f, 1f, 1f, 0.35f);
-            placeholder.enableWordWrapping = false;
+            placeholder.textWrappingMode = TextWrappingModes.NoWrap;
             placeholder.overflowMode = TextOverflowModes.Ellipsis;
             SetRect(placeholder.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
             var inputText = CreateText("Text", textArea, string.Empty, 14, FontStyles.Normal, TextAlignmentOptions.Left);
             // The TMP text must receive raycasts so the input caret can be placed by click.
             inputText.raycastTarget = true;
-            inputText.enableWordWrapping = false;
+            inputText.textWrappingMode = TextWrappingModes.NoWrap;
             inputText.overflowMode = TextOverflowModes.Overflow;
             SetRect(inputText.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 

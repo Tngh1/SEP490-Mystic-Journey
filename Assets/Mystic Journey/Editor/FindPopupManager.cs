@@ -5,7 +5,7 @@ using System.Linq;
 public class FindPopupManager {
     [MenuItem("Tools/FindPopupManager")]
     public static void Find() {
-        var popups = GameObject.FindObjectsOfType<MysticJourney.UI.UIPopupManager>(true);
+        var popups = GameObject.FindObjectsByType<MysticJourney.UI.UIPopupManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         foreach (var popup in popups) {
             Debug.Log("Found UIPopupManager on: " + popup.gameObject.name);
             var btnConfirm = popup.GetType().GetField("btnConfirm", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(popup) as UnityEngine.UI.Button;

@@ -62,6 +62,9 @@ public class QuestManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        // Con của "Managers" trong Main.unity: DontDestroyOnLoad bị Unity bỏ qua trên non-root,
+        // nên detach trước để manager (và coroutine của nó) sống qua scene change.
+        transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
         if (questDatabase != null)
             questDatabase.Initialize();
@@ -206,7 +209,7 @@ public class QuestManager : MonoBehaviour
                 
                 string qTitle = response?.QuestTitle ?? GetQuestTitle(questId);
                 if (MainQuestPanelRuntime.Instance != null && !string.IsNullOrWhiteSpace(qTitle))
-                    MainQuestPanelRuntime.Instance.ShowQuestPopup(qTitle, UIQuestPopupView.QuestPopupKind.Accepted);
+                    MainQuestPanelRuntime.Instance.ShowPaperPopup(qTitle, UIPaperPopupView.PaperPopupKind.Accepted);
 
                 OnQuestAccepted?.Invoke(questId);
                 WorldRuntimeEvents.RaiseQuestsChanged();
@@ -345,7 +348,7 @@ public class QuestManager : MonoBehaviour
                 {
                     string qTitle = response?.QuestTitle ?? GetQuestTitle(questId);
                     if (MainQuestPanelRuntime.Instance != null && !string.IsNullOrWhiteSpace(qTitle))
-                        MainQuestPanelRuntime.Instance.ShowQuestPopup(qTitle, UIQuestPopupView.QuestPopupKind.Claimed);
+                        MainQuestPanelRuntime.Instance.ShowPaperPopup(qTitle, UIPaperPopupView.PaperPopupKind.Claimed);
                 }
 
                 OnQuestClaimed?.Invoke(questId);

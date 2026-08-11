@@ -80,6 +80,10 @@ public class DungeonManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+            // Con của "Managers" trong Main.unity: DontDestroyOnLoad chỉ có tác dụng trên root,
+            // nên detach trước. Nếu không, manager chết ngay khi load scene dungeon — đúng lúc
+            // OnSceneLoaded bên dưới cần chạy.
+            transform.SetParent(null, true);
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
@@ -437,16 +441,25 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             Debug.Log($"[DungeonManager] Found {targetSpawnPoint.name} at {spawnPos}. Teleporting player.");
             if (player != null)
             {
+                var np = player.GetComponent<NetworkPlayer>();
+                var nt = player.GetComponent<Fusion.NetworkTransform>();
+                var entity = player.GetComponent<PlayerEntity>();
+
+                // Every client runs this with the SAME PlayerSpawn, so without a per-player
+                // offset all party avatars land on the exact same point. They are DYNAMIC
+                // Rigidbody2D bodies with non-trigger colliders that collide with each other,
+                // so fully-overlapped avatars are stuck in the solver and nobody can move —
+                // the "joined the dungeon together and can't walk" bug. Reuses the same
+                // fan-out NetworkPlayer.Spawned already applies at world spawn.
+                if (np != null && np.Object != null && np.Object.IsValid)
+                    spawnPos += NetworkPlayer.FanOutOffset(np.Object.InputAuthority.PlayerId);
+
                 var rb = player.GetComponent<Rigidbody2D>();
                 if (rb != null)
                 {
                     rb.linearVelocity = Vector2.zero;
                     rb.position = spawnPos;
                 }
-                
-                var np = player.GetComponent<NetworkPlayer>();
-                var nt = player.GetComponent<Fusion.NetworkTransform>();
-                var entity = player.GetComponent<PlayerEntity>();
 
                 if (np != null && NetworkPlayer.Local == np && np.Object != null && np.Object.IsValid)
                 {
@@ -559,11 +572,15 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             // master. On a RESTART the master was elected on the first entry and never
             // changes, so those 6s were pure dead time and the progress panel sat on
             // "Loading..." for 6s after pressing Again.
+            // Polled at 10Hz, not per frame: AnyEnemyInScene is a full-scene type scan and
+            // this loop runs during dungeon load-in, exactly when the frame budget is
+            // already tight. A 0.1s reaction delay on "has the master spawned yet" is
+            // invisible next to the 6s ceiling it is guarding.
             float waitMaster = 6f;
             while (waitMaster > 0f && !photon.IsHost && !AnyEnemyInScene())
             {
-                waitMaster -= Time.deltaTime;
-                yield return null;
+                waitMaster -= 0.1f;
+                yield return new WaitForSeconds(0.1f);
             }
             Debug.Log($"[DungeonManager] Spawn authority settled: IsHost={photon.IsHost} (IsPartyHost={IsPartyHost}).");
         }
@@ -696,11 +713,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // with an empty roster. The authority's own pipeline includes a backend round trip
         // (MonsterApi.GetSpawnsForMap) before it spawns anything, so "nothing yet" here is
         // normal rather than a failure.
+        // 10Hz for the same reason as the master-authority wait above: a per-frame
+        // full-scene scan during load-in is the one place we cannot afford it.
         float wait = 8f;
         while (wait > 0f && !AnyEnemyInScene())
         {
-            wait -= Time.deltaTime;
-            yield return null;
+            wait -= 0.1f;
+            yield return new WaitForSeconds(0.1f);
         }
 
         int first = ReconcileReplicatedEnemies();
@@ -1092,7 +1111,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     {
         Debug.LogWarning($"[DungeonManager] {message}");
         if (MainQuestPanelRuntime.Instance != null)
-            MainQuestPanelRuntime.Instance.ShowQuestPopup(message, UIQuestPopupView.QuestPopupKind.None);
+            MainQuestPanelRuntime.Instance.ShowPaperPopup(message, UIPaperPopupView.PaperPopupKind.None);
     }
 
     /// <summary>
@@ -1500,7 +1519,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
                 if (targetSpawnPoint != null)
                 {
                     Vector3 spawnPos = targetSpawnPoint.transform.position;
-                    
+
+                    // Same per-player fan-out as the entry path: every client restarts to the
+                    // same PlayerSpawn, and fully-overlapped dynamic colliders wedge each other.
+                    var npRestart = player.GetComponent<NetworkPlayer>();
+                    if (npRestart != null && npRestart.Object != null && npRestart.Object.IsValid)
+                        spawnPos += NetworkPlayer.FanOutOffset(npRestart.Object.InputAuthority.PlayerId);
+
                     var nt = player.GetComponent<NetworkTransform>();
                     if (nt != null)
                     {
@@ -1564,7 +1589,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             {
                 if (p != null)
                 {
-                    p.ResetForRestart(finalSpawnPos);
+                    // Per-player offset, not the bare shared spawn: ResetForRestart only
+                    // applies to the avatar this client owns, but every client would pass the
+                    // identical point and the avatars end up interpenetrating and immobile.
+                    Vector3 target = finalSpawnPos;
+                    if (p.Object != null && p.Object.IsValid)
+                        target += NetworkPlayer.FanOutOffset(p.Object.InputAuthority.PlayerId);
+                    p.ResetForRestart(target);
                 }
             }
         }

@@ -12,10 +12,6 @@ using UnityEngine;
 /// </summary>
 public class LocalInputCollector : MonoBehaviour
 {
-    [Header("Aim Settings")]
-    [Tooltip("Z depth used when projecting the pointer into world space.")]
-    [SerializeField] private float aimWorldDepth = 0f;
-
     // Cached provider for the local input-authority player. Re-resolved if the
     // player it belonged to was destroyed (e.g. respawn, scene change).
     private GameplayInputProvider _provider;

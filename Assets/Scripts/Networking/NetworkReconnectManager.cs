@@ -23,7 +23,6 @@ namespace MysticJourney.Networking
         private bool _wasInDungeon = false;
         private Coroutine _reconnectCoroutine;
         private bool _userClickedReturnToMenu = false;
-        private float _lastPingTime = 0f;
         private const float PING_INTERVAL = 2.5f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -158,7 +157,14 @@ namespace MysticJourney.Networking
                         {
                             IsReconnecting = false;
                             if (UIPopupManager.Instance != null) UIPopupManager.Instance.HidePopup();
-                            SessionService.Logout("Your session has ended. Please log in again.");
+
+                            // ApiClient đã tự logout với message CỦA SERVER trước khi gọi onError
+                            // này (401/SESSION_OVERRIDDEN), và nó chạy xong đồng bộ nên cờ chống
+                            // gọi 2 lần trong SessionService đã mở lại — gọi Logout vô điều kiện ở
+                            // đây sẽ ghi đè "đăng nhập ở thiết bị khác" thành câu chung chung.
+                            // Chỉ tự logout khi ApiClient chưa làm (vd SESSION_EXPIRED không kèm 401).
+                            if (string.IsNullOrEmpty(SessionService.PendingLogoutReason))
+                                SessionService.Logout("Your session has ended. Please log in again.");
                         }
                         else
                         {

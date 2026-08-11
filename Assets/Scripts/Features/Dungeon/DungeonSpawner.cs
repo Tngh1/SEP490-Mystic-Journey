@@ -428,7 +428,9 @@ public class DungeonSpawner : MonoBehaviour
             //
             // BUT Runner.Spawn drops the object into the ACTIVE scene, which is "Main" by
             // the time the spawner runs (TransitionToDungeon re-activates Main). Enemies
-            // must live in the dungeon scene so they unload with it and share its NavMesh.
+            // must live in the dungeon scene so they UNLOAD WITH IT — otherwise they leak
+            // into Main when the dungeon closes. (NavMesh access is not a reason: the
+            // navigation world is global, see the agent comment below.)
             // Move by SCENE MEMBERSHIP only (world position preserved, no transform
             // parent) — this restores what the reparent used to provide, without the
             // local-position offset.
@@ -436,20 +438,42 @@ public class DungeonSpawner : MonoBehaviour
             if (dungeonScene.IsValid() && dungeonScene.isLoaded)
                 SceneManager.MoveGameObjectToScene(netObj.gameObject, dungeonScene);
 
-            // Runner.Spawn instantiated the enemy in the Main scene (the active scene),
-            // whose has no NavMesh, so its NavMeshAgent logged "Failed to create agent"
-            // and never attached. Now that it lives in the dungeon scene (which DOES bake
-            // a NavMesh), re-initialise the agent so it binds to that NavMesh and the AI
-            // can move. This path only runs on the host (authority) — the proxy disables
-            // its agent in NetworkEnemy.Spawned, so we never fight that here.
+            // Re-initialise the agent so it binds to the NavMesh.
+            //
+            // NavMeshes are NOT per-scene: NavMeshSurface.OnEnable calls
+            // NavMesh.AddNavMeshData, which registers into ONE global navigation world.
+            // So the scene move above does not grant NavMesh access, and an agent
+            // instantiated in Main is not disadvantaged by that. What actually decides
+            // binding is whether a walkable surface exists at the spawn position.
+            // The toggle is kept because Runner.Spawn can instantiate before the dungeon
+            // surface has registered; re-enabling re-runs the bind against current data.
+            //
+            // This path only runs on the host (authority) — the proxy disables its agent
+            // in NetworkEnemy.Spawned, so we never fight that here.
             var agent = netObj.GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null)
             {
                 agent.enabled = false;
-                agent.enabled = true; // re-bind to the dungeon scene's NavMesh
-                // Note: removed agent.Warp(hit.position) because it might warp enemies under the floor.
-                // Unity automatically snaps the agent to the nearest NavMesh surface when enabled.
-                Debug.Log($"[DungeonSpawner] Spawned {prefab.name} at {position}. Agent bound to NavMesh.");
+                agent.enabled = true;
+                // Note: no agent.Warp(hit.position) — that could warp enemies under the floor.
+                // Unity snaps the agent to the nearest walkable surface when enabled.
+
+                // Report the bind result instead of asserting it. This used to log
+                // "Agent bound to NavMesh" unconditionally, which reported success while
+                // Unity was logging "Failed to create agent" for the same object — the
+                // reason an empty NavMesh bake stayed hidden. EnemyBehaviour gates all
+                // movement on isOnNavMesh, so a false here means the enemy cannot move.
+                if (agent.isOnNavMesh)
+                {
+                    Debug.Log($"[DungeonSpawner] Spawned {prefab.name} at {position}. Agent bound to NavMesh.");
+                }
+                else
+                {
+                    Debug.LogError($"[DungeonSpawner] Spawned {prefab.name} at {position} but its agent did " +
+                                   "NOT bind to the NavMesh — this enemy will not move. Check that the " +
+                                   $"'{WorldState.CurrentMapName}' NavMeshSurface is baked (a stale/empty bake " +
+                                   "is the usual cause) and that the spawn point sits on walkable geometry.");
+                }
             }
 
             return netObj.gameObject;

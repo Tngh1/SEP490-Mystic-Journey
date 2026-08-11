@@ -25,18 +25,18 @@ public static class UIPopupBox
     /// <summary>
     /// Message-only variant: OK and the X both just dismiss. Party feedback ("Invited X.", "party is
     /// full", ...) used to go through <c>WorldRuntimeEvents.RaiseMessage</c>, which has no subscriber,
-    /// so every one of those strings was silently dropped. Routing them to the quest popup instead is
-    /// wrong: its Kind.None branch stamps the title "Quest not complete" over whatever it is given.
+    /// so every one of those strings was silently dropped. PaperPopup remains a transient notification
+    /// queue, while this component is the dedicated message/confirmation dialog.
     /// </summary>
-    public static void Notify(Transform caller, string title, string message) => Show(caller, title, message, null);
+    public static bool Notify(Transform caller, string title, string message) => Show(caller, title, message, null);
 
     /// <summary>
     /// Opens the popup and runs <paramref name="onConfirm"/> if the player accepts. Passing null makes
     /// it a message box. If the popup cannot be found, <paramref name="onConfirm"/> runs immediately:
-    /// losing the confirmation step beats leaving the caller's button dead.
+    /// losing the confirmation step beats leaving the caller's button dead. Returns true if successfully shown.
     /// </summary>
     /// <param name="caller">Any UI node living under the same Canvas as PopupLayer.</param>
-    public static void Show(Transform caller, string titleText, string message, Action onConfirm, Action onCancel = null, string confirmText = null, string cancelText = null)
+    public static bool Show(Transform caller, string titleText, string message, Action onConfirm, Action onCancel = null, string confirmText = null, string cancelText = null)
     {
         // UIPopup is a child of PopupLayer — a different branch from the calling panel
         // (Canvas/PartyPanel, Canvas/PlayerProfilePanel, ...), so we walk up to the Canvas and back
@@ -54,7 +54,7 @@ public static class UIPopupBox
         // và chọn đúng cái sở hữu PopupLayer/UIPopup.
         if (popup == null)
         {
-            foreach (var c in UnityEngine.Object.FindObjectsOfType<Canvas>())
+            foreach (var c in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
             {
                 popup = c.transform.Find("PopupLayer/UIPopup");
                 if (popup != null) break;
@@ -65,7 +65,7 @@ public static class UIPopupBox
         {
             Debug.LogWarning("[UIPopupBox] Canvas/PopupLayer/UIPopup missing; continuing without confirmation.");
             onConfirm?.Invoke();
-            return;
+            return false;
         }
 
         bool isDecision = onConfirm != null || onCancel != null;
@@ -125,6 +125,8 @@ public static class UIPopupBox
         // of as a silently stuck UI.
         if (acceptButton == null && cancelButton == null && closeButton == null)
             Debug.LogWarning("[UIPopupBox] UIPopup has no usable buttons; popup cannot be dismissed.");
+            
+        return true;
     }
 
     private static void SetActive(Button button, bool visible)

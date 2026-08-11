@@ -2,14 +2,14 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIQuestPopupView : MonoBehaviour
+public class UIPaperPopupView : MonoBehaviour
 {
-    public enum QuestPopupKind { None, Accepted, Completed, Claimed }
+    public enum PaperPopupKind { None, Accepted, Completed, Claimed, AchievementUnlocked }
 
     [Header("Texts")]
-    // TileText = dòng trạng thái động (Quest Accepted! / Quest Completed! / Reward Claimed!)
+    // TileText = dòng trạng thái động của quest hoặc achievement.
     [SerializeField] private TMP_Text titleTMP;
-    // AnnounceText = nội dung lấy từ quest (tên nhiệm vụ)
+    // AnnounceText = tên quest/achievement hoặc nội dung thông báo.
     [SerializeField] private TMP_Text messageTMP;
     [SerializeField] private Text messageText;
 
@@ -33,7 +33,7 @@ public class UIQuestPopupView : MonoBehaviour
         Show(message, InferKind(message));
     }
 
-    public void Show(string message, QuestPopupKind kind)
+    public void Show(string message, PaperPopupKind kind)
     {
         SetMessage(message);
         ApplyKind(kind);
@@ -41,7 +41,7 @@ public class UIQuestPopupView : MonoBehaviour
         transform.SetAsLastSibling();
     }
 
-    private void ApplyKind(QuestPopupKind kind)
+    private void ApplyKind(PaperPopupKind kind)
     {
         Bind();
 
@@ -49,19 +49,24 @@ public class UIQuestPopupView : MonoBehaviour
         {
             titleTMP.text = kind switch
             {
-                QuestPopupKind.Accepted => "Quest Accepted!",
-                QuestPopupKind.Completed => "Quest Completed!",
-                QuestPopupKind.Claimed => "Reward Claimed!",
-                _ => "Quest not complete",
+                PaperPopupKind.Accepted => "Quest Accepted!",
+                PaperPopupKind.Completed => "Quest Completed!",
+                PaperPopupKind.Claimed => "Reward Claimed!",
+                PaperPopupKind.AchievementUnlocked => "Achievement Unlocked!",
+                _ => "Notification",
             };
         }
 
-        if (claimedIcon != null) claimedIcon.SetActive(kind == QuestPopupKind.Accepted || kind == QuestPopupKind.Claimed);
-        if (questCompletedIcon != null) questCompletedIcon.SetActive(kind == QuestPopupKind.Completed);
+        if (claimedIcon != null)
+            claimedIcon.SetActive(kind == PaperPopupKind.Accepted ||
+                                  kind == PaperPopupKind.Claimed ||
+                                  kind == PaperPopupKind.AchievementUnlocked);
+        if (questCompletedIcon != null)
+            questCompletedIcon.SetActive(kind == PaperPopupKind.Completed);
 
         if (stampAnimator != null)
         {
-            if (kind == QuestPopupKind.None)
+            if (kind == PaperPopupKind.None)
             {
                 stampAnimator.gameObject.SetActive(false);
             }
@@ -74,14 +79,15 @@ public class UIQuestPopupView : MonoBehaviour
         }
     }
 
-    private static QuestPopupKind InferKind(string message)
+    private static PaperPopupKind InferKind(string message)
     {
-        if (string.IsNullOrWhiteSpace(message)) return QuestPopupKind.None;
+        if (string.IsNullOrWhiteSpace(message)) return PaperPopupKind.None;
         var lower = message.ToLowerInvariant();
-        if (lower.Contains("accept")) return QuestPopupKind.Accepted;
-        if (lower.Contains("complete")) return QuestPopupKind.Completed;
-        if (lower.Contains("claim") || lower.Contains("reward")) return QuestPopupKind.Claimed;
-        return QuestPopupKind.None;
+        if (lower.Contains("achievement")) return PaperPopupKind.AchievementUnlocked;
+        if (lower.Contains("accept")) return PaperPopupKind.Accepted;
+        if (lower.Contains("complete")) return PaperPopupKind.Completed;
+        if (lower.Contains("claim") || lower.Contains("reward")) return PaperPopupKind.Claimed;
+        return PaperPopupKind.None;
     }
 
 

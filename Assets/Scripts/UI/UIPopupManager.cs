@@ -15,7 +15,7 @@ namespace MysticJourney.UI
                 if (_instance == null)
                 {
                     // Tìm kiếm cả object đang bị tắt (inactive)
-                    _instance = FindObjectOfType<UIPopupManager>(true);
+                    _instance = FindFirstObjectByType<UIPopupManager>(FindObjectsInactive.Include);
                     if (_instance != null && !_instance.gameObject.activeInHierarchy)
                     {
                         _instance.gameObject.SetActive(true);
@@ -103,7 +103,7 @@ namespace MysticJourney.UI
             }
 
             // Bật lại mọi cấp cha đang tắt. PopupLayer là container DÙNG CHUNG cho 14 popup và bị
-            // code khác tắt/bật (MainQuestPanelRuntime tắt nó sau khi chạy hết queue popup quest),
+            // code khác tắt/bật (MainQuestPanelRuntime tắt nó sau khi chạy hết queue PaperPopup),
             // nên không được coi là luôn bật.
             // PHẢI walk TRƯỚC khi bật popupContainer/blocker: trong scene cả PopupLayer lẫn
             // GameObject này đều đang tắt, nên Awake() chưa hề chạy — Unity chỉ chạy nó đúng vào

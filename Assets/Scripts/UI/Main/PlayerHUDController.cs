@@ -593,11 +593,16 @@ public class PlayerHUDController : MonoBehaviour
             // profile.ExperiencePoints là tổng lũy kế từ backend, không reset khi lên level,
             // nên phải trừ mốc EXP của level hiện tại mới ra đúng phần dư sau khi lên cấp
             // (VD: lên Level 4 với tổng 314 EXP, mốc Level 4 là 300 -> dư 14, không phải 314).
+            // Hai mốc tổng EXP, khớp với PlayerProfile.RequiredTotalExperienceForLevel ở backend:
+            // (level - 1) * 100 cho level hiện tại, level * 100 cho level kế tiếp.
             int currentLevelFloor = (level - 1) * 100;
-            int expIntoLevel = totalExp - currentLevelFloor;
+            int nextLevelFloor = level * 100;
 
-            // Mốc tổng EXP để lên cấp tiếp theo: level * 100 (Ví dụ: Level 5 cần 500 EXP tổng để lên Level 6)
-            int targetExp = level * 100;
+            int expIntoLevel = Mathf.Max(0, totalExp - currentLevelFloor);
+
+            // Thanh EXP đo phần dư trong level, nên mẫu số là khoảng cách giữa hai mốc
+            // (100 EXP), KHÔNG phải mốc tổng lũy kế (VD: Level 5 hiện 14/100, không phải 14/500).
+            int targetExp = nextLevelFloor - currentLevelFloor;
             if (targetExp <= 0) targetExp = 100;
 
             float expRatio = (float)expIntoLevel / targetExp;

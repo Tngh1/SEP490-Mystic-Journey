@@ -51,6 +51,9 @@ namespace MysticJourney.Screen.Mail
         [SerializeField] private Button popupOkButton;
         [SerializeField] private Button popupCancelButton;
 
+        // Popup đang ở chế độ xác nhận xóa (true) hay chỉ thông báo (false).
+        private bool _popupAllowsDelete = true;
+
         [Header("Main Setup")]
         [SerializeField] private Button closeButton;
 
@@ -494,12 +497,16 @@ namespace MysticJourney.Screen.Mail
         {
             if (_currentSelectedMailboxSummary == null || deleteButton == null) return;
 
+            // BR-147: thư còn quà chưa nhận thì không được xóa -> chỉ thông báo,
+            // không cho xác nhận xóa nữa (server cũng chặn, trước đây bấm OK là
+            // gọi API rồi thất bại im lặng).
             // Thư hết hạn thì quà không claim được nữa -> xóa thẳng, khỏi cảnh báo.
-            // Còn quà chưa nhận (và chưa hết hạn) -> bắt buộc mở popup xác nhận.
             if (_currentSelectedMailboxSummary.HasClaimableReward && !_currentSelectedMailboxSummary.IsClaimed
                 && !IsExpired(_currentSelectedMailboxSummary.ExpiredAt))
             {
-                ShowConfirmPopup("This mailbox still has unclaimed rewards. Are you sure you want to delete it?");
+                ShowConfirmPopup(
+                    "This mailbox still has unclaimed rewards.\nPlease claim the rewards before deleting it.",
+                    allowDelete: false);
             }
             else
             {
@@ -508,7 +515,8 @@ namespace MysticJourney.Screen.Mail
         }
 
         // --- POPUP ---
-        private void ShowConfirmPopup(string message)
+        // allowDelete = false: popup chỉ để thông báo, bấm OK là đóng chứ không xóa.
+        private void ShowConfirmPopup(string message, bool allowDelete = true)
         {
             if (confirmPanel == null)
             {
@@ -516,13 +524,17 @@ namespace MysticJourney.Screen.Mail
                 return;
             }
 
+            _popupAllowsDelete = allowDelete;
             if (popupMainText != null) popupMainText.text = message;
+            // Popup thông báo thì không cần nút Cancel.
+            if (popupCancelButton != null) popupCancelButton.gameObject.SetActive(allowDelete);
             confirmPanel.SetActive(true);
         }
 
         private void OnPopupOkClicked()
         {
             if (confirmPanel != null) confirmPanel.SetActive(false);
+            if (!_popupAllowsDelete) return;
             PerformDeleteMailbox();
         }
 
@@ -549,7 +561,15 @@ namespace MysticJourney.Screen.Mail
                     HideRightPanelContent();
                     LoadMailboxesFromBackend();
                 },
-                onError: err => Debug.LogError("[MailboxUI] Xóa thư thất bại")
+                onError: err =>
+                {
+                    // Server là nơi chốt BR-147, nên nếu nó từ chối thì phải cho
+                    // người chơi thấy lý do thay vì im lặng như trước.
+                    Debug.LogError($"[MailboxUI] Xóa thư thất bại: {err.Message}");
+                    ShowConfirmPopup(
+                        string.IsNullOrEmpty(err.Message) ? "Failed to delete this mail." : err.Message,
+                        allowDelete: false);
+                }
             );
         }
 

@@ -8,6 +8,8 @@ public class UIDailySlot : UIBaseItemSlot
     [SerializeField] private TMP_Text dayText;
     [SerializeField] private GameObject claimedOverlay;
     [SerializeField] private GameObject missedOverlay;
+    [SerializeField] private GameObject todayOverlay;
+    [SerializeField] private GameObject lockOverlay;
     [SerializeField] private Button claimButton;
 
     private UIItemDisplayData currentData;
@@ -36,11 +38,25 @@ public class UIDailySlot : UIBaseItemSlot
         if (dayText != null)
             dayText.text = "Day " + data.dayNumber;
 
+        if (quantityText != null)
+            quantityText.text = data.quantity > 1 ? data.quantity.ToString() : string.Empty;
+
+        // Trạng thái đã nhận thưởng
         if (claimedOverlay != null)
             claimedOverlay.SetActive(data.isClaimed);
 
+        // Trạng thái nhận bù (quên đăng nhập ngày trước)
         if (missedOverlay != null)
-            missedOverlay.SetActive(data.isMissed);
+            missedOverlay.SetActive(data.isMissed && !data.isClaimed);
+
+        // Trạng thái ngày hôm nay (sẵn sàng nhận)
+        if (todayOverlay != null)
+            todayOverlay.SetActive(data.isAvailable && !data.isClaimed);
+
+        // Trạng thái bị khóa (các ngày tương lai)
+        bool isLocked = !data.isClaimed && !data.isAvailable && !data.isMissed;
+        if (lockOverlay != null)
+            lockOverlay.SetActive(isLocked);
 
         if (claimButton != null)
         {
@@ -78,6 +94,10 @@ public class UIDailySlot : UIBaseItemSlot
             claimedOverlay.SetActive(false);
         if (missedOverlay != null)
             missedOverlay.SetActive(false);
+        if (todayOverlay != null)
+            todayOverlay.SetActive(false);
+        if (lockOverlay != null)
+            lockOverlay.SetActive(false);
         if (claimButton != null)
             claimButton.interactable = false;
     }
@@ -93,7 +113,13 @@ public class UIDailySlot : UIBaseItemSlot
         if (dayText == null)
             dayText = FindChild("DayText", "Day", "TitleText")?.GetComponent<TMP_Text>();
         if (claimedOverlay == null)
-            claimedOverlay = FindChild("ClaimedOverlay", "OverlayClaim", "OverlayReward")?.gameObject;
+            claimedOverlay = FindChild("ClaimedIcon", "ClaimedOverlay", "OverlayClaim", "OverlayReward", "Claimed")?.gameObject;
+        if (missedOverlay == null)
+            missedOverlay = FindChild("ReClaim", "MissedOverlay", "OverlayMissed", "ReclaimOverlay", "Reclaim")?.gameObject;
+        if (todayOverlay == null)
+            todayOverlay = FindChild("Today", "TodayOverlay", "TodayHighlight", "DailyItemToday")?.gameObject;
+        if (lockOverlay == null)
+            lockOverlay = FindChild("Lock", "LockOverlay", "Locked", "DailyLock")?.gameObject;
         if (claimButton == null)
             claimButton = GetComponent<Button>() ?? FindChild("ClaimButton", "Button")?.GetComponent<Button>();
     }

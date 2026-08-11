@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
@@ -7,6 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using MysticJourney.UI;
 
 namespace MysticJourney.Screen.Login
 {
@@ -37,6 +39,22 @@ namespace MysticJourney.Screen.Login
 
         private bool _isLoggingIn;
 
+        private void Awake()
+        {
+            // Bị buộc logout (session hết hạn/bị đè, mất kết nối) từ scene trước sẽ để lại lý do
+            // ở đây. PHẢI check trong Awake (không phải Start) và force active GameObject
+            // vì scene có thể load với LoginPanel inactive, Start() sẽ không được gọi.
+            var pendingReason = MysticJourney.Core.Services.SessionService.PendingLogoutReason;
+            if (!string.IsNullOrEmpty(pendingReason))
+            {
+                // Force active GameObject để popup hiển thị được
+                gameObject.SetActive(true);
+
+                // Trì hoãn 1 frame để đảm bảo scene đã load xong, rồi hiện popup
+                StartCoroutine(ShowLogoutNotificationDelayed(pendingReason));
+            }
+        }
+
         private void Start()
         {
             if (passwordInput != null)
@@ -54,12 +72,59 @@ namespace MysticJourney.Screen.Login
 
             // Load Remember Me data
             LoadRememberMeData();
+        }
 
-            // Bị buộc logout (session hết hạn/bị đè, mất kết nối) từ scene trước sẽ để lại lý do
-            // ở đây trước khi LoadScene — hiện lại bằng đúng popup lỗi login sẵn có.
-            var pendingReason = MysticJourney.Core.Services.SessionService.ConsumePendingLogoutReason();
-            if (!string.IsNullOrEmpty(pendingReason))
-                ShowErrorPopup(pendingReason);
+        private IEnumerator ShowLogoutNotificationDelayed(string reason)
+        {
+            yield return null; // Đợi 1 frame
+            ShowLogoutNotification(reason);
+        }
+
+        /// <summary>
+        /// Hiển thị thông báo logout (session hết hạn / bị đè bởi thiết bị khác) 
+        /// bằng UIPopupBox trong MainMenu Scene. Message bằng tiếng Anh.
+        /// </summary>
+        private void ShowLogoutNotification(string reason)
+        {
+            // Mặc định message bằng tiếng Anh
+            string title = "Logged Out";
+            string message = reason;
+
+            if (string.IsNullOrEmpty(message))
+            {
+                message = "Your session has ended. Please log in again.";
+            }
+
+            // Thử dùng UIPopupBox trước (popup chuẩn của game)
+            // Nếu không tìm thấy UIPopup trong scene, dùng failedPopup có sẵn
+            bool popupShown = TryShowUIPopupBox(title, message);
+
+            if (!popupShown && failedPopup != null)
+            {
+                // Fallback: dùng failedPopup có sẵn trong MainMenuScene
+                ShowErrorPopup(message);
+            }
+
+            Debug.Log($"[LoginUIManager] Logout notification shown: {reason}");
+            MysticJourney.Core.Services.SessionService.ClearPendingLogoutReason();
+        }
+
+        /// <summary>
+        /// Thử hiển thị bằng UIPopupBox. Trả về true nếu thành công.
+        /// </summary>
+        private bool TryShowUIPopupBox(string title, string message)
+        {
+            try
+            {
+                // UIPopupBox.Notify yêu cầu transform của caller để tìm Canvas
+                // Dùng transform của LoginUIManager (thường nằm trong Canvas)
+                return UIPopupBox.Notify(transform, title, message);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[LoginUIManager] Failed to show UIPopupBox: {ex.Message}");
+                return false;
+            }
         }
 
         private void OnDestroy()

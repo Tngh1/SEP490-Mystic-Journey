@@ -156,7 +156,7 @@ public class InventoryManager : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
         var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
 #else
-        var manager = UnityEngine.Object.FindObjectOfType<InventoryManager>(true);
+        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
 #endif
         manager?.LoadInventory(force: true, refreshStats: refreshStats);
     }
@@ -198,7 +198,7 @@ public class InventoryManager : MonoBehaviour
                 SetLoading(false);
                 if (response == null)
                 {
-                    SetError("Không tải được dữ liệu inventory.");
+                    SetError("Failed to load inventory data.");
                     return;
                 }
 
@@ -212,7 +212,7 @@ public class InventoryManager : MonoBehaviour
             {
                 _requestInFlight = false;
                 SetLoading(false);
-                SetError($"Lỗi tải inventory: {error.Message}");
+                SetError($"Failed to load inventory: {error.Message}");
                 Debug.LogError($"[InventoryManager] LoadInventory FAIL: {error.Message}");
             }
         );
@@ -297,7 +297,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ EquipItem FAIL: {error.Message}");
-                ShowActionError($"Equip thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Equip failed.");
             }
         );
     }
@@ -390,7 +390,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ UnequipItem FAIL: {error.Message}");
-                ShowActionError($"Unequip thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip failed.");
             }
         );
     }
@@ -432,7 +432,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ ConsumeItem FAIL: {error.Message}");
-                ShowActionError($"Dùng item thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Item use failed.");
             }
         );
     }
@@ -457,7 +457,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ EquipSkin FAIL: {error.Message}");
-                ShowActionError($"Equip skin thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Equip skin failed.");
             }
         );
     }
@@ -481,7 +481,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ UnequipSkin FAIL: {error.Message}");
-                ShowActionError($"Unequip skin thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip skin failed.");
             }
         );
     }
@@ -598,14 +598,14 @@ public class InventoryManager : MonoBehaviour
         
         string sortModeName = _currentSortIndex switch
         {
-            0 => "Mới nhất (Latest)",
-            1 => "Độ hiếm: Cao -> Thấp",
-            2 => "Độ hiếm: Thấp -> Cao",
-            _ => "Mặc định"
+            0 => "Latest",
+            1 => "Rarity: High -> Low",
+            2 => "Rarity: Low -> High",
+            _ => "Default"
         };
         
         Debug.Log($"[InventoryManager] Switched Sort Mode to: {sortModeName}");
-        SetError($"Sắp xếp: {sortModeName}");
+        SetError($"Sorted by: {sortModeName}");
         
         RefreshCurrentTab();
     }
@@ -784,19 +784,28 @@ public class InventoryManager : MonoBehaviour
                 }
             });
 
+            const int MaxStackSize = 99;
             foreach (var item in allItems)
             {
                 Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
-                displayList.Add(new UIItemDisplayData
+                // Tách ô nếu số lượng > 99: mỗi ô tối đa MaxStackSize, phần dư sang ô tiếp theo.
+                // Equipped items có Quantity=0 vẫn cần 1 ô nên dùng Mathf.Max(1, ...).
+                int remaining = Mathf.Max(1, item.Quantity);
+                while (remaining > 0)
                 {
-                    itemId = item.InventoryItemId,
-                    itemName = item.ItemName,
-                    icon = icon,
-                    quantity = item.Quantity,
-                    rarity = item.ItemRarity,
-                    isEquipped = item.IsEquipped && CanEquipItem(item),
-                    rawData = item  // InventoryItemResponse để popup dùng
-                });
+                    int stackQty = Mathf.Min(remaining, MaxStackSize);
+                    displayList.Add(new UIItemDisplayData
+                    {
+                        itemId = item.InventoryItemId,
+                        itemName = item.ItemName,
+                        icon = icon,
+                        quantity = stackQty,
+                        rarity = item.ItemRarity,
+                        isEquipped = item.IsEquipped && CanEquipItem(item),
+                        rawData = item  // InventoryItemResponse để popup dùng
+                    });
+                    remaining -= stackQty;
+                }
             }
             uiInventory.Refresh(displayList);
         }
@@ -816,7 +825,7 @@ public class InventoryManager : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
                 itemDetailPopup = UnityEngine.Object.FindFirstObjectByType<UIItemDetailPopup>(FindObjectsInactive.Include);
 #else
-                itemDetailPopup = UnityEngine.Object.FindObjectOfType<UIItemDetailPopup>(true);
+                itemDetailPopup = UnityEngine.Object.FindFirstObjectByType<UIItemDetailPopup>(FindObjectsInactive.Include);
 #endif
             }
         }
@@ -828,7 +837,7 @@ public class InventoryManager : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
                 skinDetailPopup = UnityEngine.Object.FindFirstObjectByType<UISkinDetailPopup>(FindObjectsInactive.Include);
 #else
-                skinDetailPopup = UnityEngine.Object.FindObjectOfType<UISkinDetailPopup>(true);
+                skinDetailPopup = UnityEngine.Object.FindFirstObjectByType<UISkinDetailPopup>(FindObjectsInactive.Include);
 #endif
             }
         }
@@ -913,7 +922,12 @@ public class InventoryManager : MonoBehaviour
         BindFilterAction("Consumable", false, "BtnFilterConsumable", "PotionButton", "ConsumableButton");
         BindFilterAction("Material", false, "BtnFilterMaterial", "MaterialButton");
         BindFilterAction("QuestItem", false, "BtnFilterQuest", "QuestButton");
-        BindFilterAction("Other", false, "BtnFilterOther", "OtherButton");
+        // Không bind "Other": FilterBar trong Main.unity chỉ có 6 nút filter (All/Weapon/Armor/
+        // Consumable/Material/Quest) + BtnSort, không có BtnFilterOther. Bind vào object không
+        // tồn tại chỉ tạo warning mỗi lần mở Inventory. Logic filter "Other" ở dòng ~757 vẫn giữ,
+        // nên chỉ cần thêm nút tên "BtnFilterOther" (hoặc "OtherButton") vào FilterBar rồi bỏ
+        // comment dòng dưới là chạy được, không phải sửa gì thêm.
+        // BindFilterAction("Other", false, "BtnFilterOther", "OtherButton");
 
         BindFilterAction("All", true, "BtnSkinFilterAll");
         BindFilterAction("Owned", true, "BtnSkinFilterOwned");
@@ -1220,6 +1234,11 @@ public class InventoryManager : MonoBehaviour
     {
         Debug.LogWarning($"[InventoryManager] Action error: {msg}");
         SetError(msg);
+
+        // errorText không được gán trong Main.unity (errorText: {fileID: 0}), nên SetError là
+        // no-op và mọi lỗi hành động — kể cả "HP đã đầy" khi uống bình máu — chỉ hiện trong
+        // Console. Đẩy qua UIPopupBox dùng chung của UI designer để người chơi thật sự thấy.
+        UIPopupBox.Notify(transform, "Notice", msg);
     }
 
     private void LoadPlayerStats()
@@ -1269,7 +1288,7 @@ public class InventoryManager : MonoBehaviour
 
             if (valueText != null)
             {
-                valueText.enableWordWrapping = false;
+                valueText.textWrappingMode = TextWrappingModes.NoWrap;
                 valueText.text = value;
             }
             else

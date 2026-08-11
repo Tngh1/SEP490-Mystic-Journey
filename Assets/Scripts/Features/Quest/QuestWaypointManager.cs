@@ -229,7 +229,7 @@ namespace MysticJourney.Features.Quest
             if (p != null)
                 return p.transform;
 
-            var pe = FindObjectOfType<PlayerEntity>();
+            var pe = FindFirstObjectByType<PlayerEntity>();
             if (pe != null)
                 return pe.transform;
 
@@ -339,17 +339,23 @@ namespace MysticJourney.Features.Quest
             {
                 if (i.Kind != WorldInteractableKind.Npc) continue;
 
-                // NPC rõ ràng thuộc quest KHÁC: có LinkedQuestIds nhưng không chứa quest hiện tại.
-                // Trước đây NPC trùng tên gần player hơn luôn thắng — giờ loại bỏ sớm.
-                if (currentQuestId > 0 && i.LinkedQuestIds != null && i.LinkedQuestIds.Count > 0 &&
-                    !System.Linq.Enumerable.Contains(i.LinkedQuestIds, currentQuestId))
-                    continue;
-
                 string cleanDisplay = CleanNpcName(i.DisplayName);
                 string cleanKey = CleanNpcName(i.ObjectKey);
                 string cleanGoName = CleanNpcName(i.gameObject.name);
 
-                bool isMatch = Matches(cleanDisplay, cleanTarget) || Matches(cleanKey, cleanTarget) || Matches(cleanGoName, cleanTarget);
+                bool isExactNameMatch = Matches(cleanDisplay, cleanTarget) || Matches(cleanKey, cleanTarget) || Matches(cleanGoName, cleanTarget);
+
+                // NPC rõ ràng thuộc quest KHÁC: có LinkedQuestIds nhưng không chứa quest hiện tại.
+                // LinkedQuestIds chỉ mang id các dialogue của NPC (WorldSceneInteractableBootstrap),
+                // KHÔNG phải mọi quest NPC tham gia — BE còn liên kết NPC theo QuestGiverName/
+                // ObjectiveTarget (WorldService.TalkToNpc). Một NPC là ĐÍCH của quest hiện tại
+                // (tên khớp thẳng với targetName) không được loại chỉ vì NPC đó chưa có dialogue
+                // riêng cho quest này — ví dụ NPC nhận hàng chỉ xuất hiện làm ObjectiveTarget.
+                if (!isExactNameMatch && currentQuestId > 0 && i.LinkedQuestIds != null && i.LinkedQuestIds.Count > 0 &&
+                    !System.Linq.Enumerable.Contains(i.LinkedQuestIds, currentQuestId))
+                    continue;
+
+                bool isMatch = isExactNameMatch;
 
                 if (!isMatch && !string.IsNullOrWhiteSpace(cleanDisplay) && !string.IsNullOrWhiteSpace(cleanTarget))
                 {
@@ -815,7 +821,7 @@ namespace MysticJourney.Features.Quest
         private Transform FindPortalToMap(string mapName)
         {
             if (string.IsNullOrWhiteSpace(mapName)) return null;
-            var portals = FindObjectsOfType<MapTeleportPortal>();
+            var portals = FindObjectsByType<MapTeleportPortal>(FindObjectsSortMode.None);
             foreach (var p in portals)
             {
                 if (p != null && p.gameObject.activeInHierarchy &&
@@ -829,18 +835,18 @@ namespace MysticJourney.Features.Quest
 
         private Transform FindBoatTransform()
         {
-            var boatTeleporter = FindObjectOfType<BoatVideoTeleporter>();
+            var boatTeleporter = FindFirstObjectByType<BoatVideoTeleporter>();
             if (boatTeleporter != null && boatTeleporter.gameObject.activeInHierarchy)
                 return boatTeleporter.transform;
 
-            var allPortals = FindObjectsOfType<MapTeleportPortal>();
+            var allPortals = FindObjectsByType<MapTeleportPortal>(FindObjectsSortMode.None);
             foreach (var p in allPortals)
             {
                 if (p != null && p.gameObject.activeInHierarchy && p.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     return p.transform;
             }
 
-            var allObjs = FindObjectsOfType<GameObject>();
+            var allObjs = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
             foreach (var go in allObjs)
             {
                 if (go != null && go.activeInHierarchy && (go.name.IndexOf("Boat", System.StringComparison.OrdinalIgnoreCase) >= 0 || go.name.IndexOf("Thuyen", System.StringComparison.OrdinalIgnoreCase) >= 0))
@@ -852,14 +858,14 @@ namespace MysticJourney.Features.Quest
 
         private Transform FindAnyMapPortal()
         {
-            var portals = FindObjectsOfType<MapTeleportPortal>();
+            var portals = FindObjectsByType<MapTeleportPortal>(FindObjectsSortMode.None);
             foreach (var p in portals)
             {
                 if (p != null && p.gameObject.activeInHierarchy)
                     return p.transform;
             }
 
-            var interactables = FindObjectsOfType<WorldInteractable>();
+            var interactables = FindObjectsByType<WorldInteractable>(FindObjectsSortMode.None);
             foreach (var i in interactables)
             {
                 if (i != null && i.gameObject.activeInHierarchy)

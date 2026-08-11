@@ -9,22 +9,26 @@ public class DailyTest : MonoBehaviour
 
         List<UIItemDisplayData> dailyItems = new List<UIItemDisplayData>();
 
-        // Kho d? li?u gi? ?? test hi?n th?
-        string[] fakeNames = { "??ng V�ng", "Kim C??ng", "B�nh M�u N??c L�", "M?nh T??ng", "V� Gacha" };
+        // Kho dữ liệu giả để test hiển thị. Tên phải khớp itemKey trong ItemIconDatabase,
+        // nếu không GetIcon trả null và ô quà sẽ trống.
+        string[] fakeNames = { "Gold", "Gem", "Small Health Potion", "Skill Upgrade Stone", "Lucky Ticket" };
+        string[] fakeTypes = { "Currency", "Currency", "Consumable", "Material", "QuestItem" };
         string[] rarities = { "common", "rare", "epic", "legendary" };
 
-        // Sinh ra ch?n 30 ng�y ?i?m danh
+        // Sinh ra chẵn 30 ngày điểm danh
         for (int i = 1; i <= 30; i++)
         {
             UIItemDisplayData item = new UIItemDisplayData();
 
-            // 1. Th�ng tin c? b?n
+            // 1. Thông tin cơ bản
+            int pick = Random.Range(0, fakeNames.Length);
             item.dayNumber = i;
-            item.itemId = Random.Range(1, 3); // Random ID t? 1 ??n 5 ?? l?y h�nh
-            item.itemName = fakeNames[Random.Range(0, fakeNames.Length)];
+            item.itemId = pick + 1;
+            item.itemName = fakeNames[pick];
+            item.category = fakeTypes[pick];
             item.rarity = rarities[Random.Range(0, rarities.Length)];
 
-            // 2. Setup s? l??ng: C�c ng�y chia h?t cho 7 (cu?i tu?n) s? ???c nhi?u ?? h?n
+            // 2. Setup số lượng: Các ngày chia hết cho 7 (cuối tuần) sẽ được nhiều đồ hơn
             if (i % 7 == 0)
             {
                 item.quantity = Random.Range(100, 500);
@@ -34,13 +38,13 @@ public class DailyTest : MonoBehaviour
                 item.quantity = Random.Range(2, 20);
             }
 
-            // 3. Gi? l?p t�nh tr?ng nh?n qu� (5 ng�y ??u ?� nh?n, ng�y 6 tr? ?i ch?a nh?n)
+            // 3. Giả lập tình trạng nhận quà (5 ngày đầu đã nhận, ngày 6 trở đi chưa nhận)
             item.isClaimed = (i <= 5);
 
-            // 4. G?n h�nh ?nh t? Database hi?n c�
-            item.icon = ItemIconDatabase.Instance.GetIcon(item.itemId);
+            // 4. Gắn hình ảnh từ Database hiện có
+            item.icon = ItemIconDatabase.Instance.GetIcon(item.itemName, item.category);
 
-            // 5. L?u l?i object g?c ?? sau n�y c�i h�m HandleSlotClicked l?y ra ??c d�ng Debug.Log
+            // 5. Lưu lại object gốc để sau này cái hàm HandleSlotClicked lấy ra đọc dùng Debug.Log
             item.rawData = item;
 
             dailyItems.Add(item);
@@ -48,7 +52,7 @@ public class DailyTest : MonoBehaviour
 
         Debug.Log("CALL REFRESH DAILY: " + dailyItems.Count + " days");
 
-        // ?? to�n b? d? li?u v�o b?ng ?i?m danh
+        // Đổ toàn bộ dữ liệu vào bảng điểm danh
         UIDailyLogin.Instance.RefreshDaily(dailyItems);
     }
 }

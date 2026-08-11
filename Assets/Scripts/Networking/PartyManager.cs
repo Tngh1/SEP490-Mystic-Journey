@@ -386,7 +386,7 @@ public class PartyManager : MonoBehaviour
         // Cùng kênh DungeonManager.NotifyBlocked dùng cho entry bị chặn.
         // (WorldRuntimeEvents.RaiseMessage không có subscriber nào — sẽ im lặng.)
         if (MainQuestPanelRuntime.Instance != null)
-            MainQuestPanelRuntime.Instance.ShowQuestPopup(message, UIQuestPopupView.QuestPopupKind.None);
+            MainQuestPanelRuntime.Instance.ShowPaperPopup(message, UIPaperPopupView.PaperPopupKind.None);
     }
 
     /// <summary>

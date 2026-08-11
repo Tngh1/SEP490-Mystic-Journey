@@ -34,8 +34,19 @@ public class MenuUIManager : MonoBehaviour
 
     private void Start()
     {
-        if (startPanel != null) startPanel.SetActive(true);
-        if (loginPanel != null) loginPanel.SetActive(false);
+        bool hasLogoutReason = !string.IsNullOrEmpty(MysticJourney.Core.Services.SessionService.PendingLogoutReason);
+
+        if (hasLogoutReason)
+        {
+            if (startPanel != null) startPanel.SetActive(false);
+            if (loginPanel != null) loginPanel.SetActive(true);
+        }
+        else
+        {
+            if (startPanel != null) startPanel.SetActive(true);
+            if (loginPanel != null) loginPanel.SetActive(false);
+        }
+
         if (websitePanel != null) websitePanel.SetActive(true);
     }
 

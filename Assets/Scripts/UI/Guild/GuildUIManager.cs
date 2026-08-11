@@ -206,7 +206,7 @@ namespace MysticJourney.UI.Guild
             if (currentGuild == null) return;
             
             // Try to find if not explicitly assigned
-            if (donatePanel == null) donatePanel = FindObjectOfType<UIGuildDonatePanel>(true);
+            if (donatePanel == null) donatePanel = FindFirstObjectByType<UIGuildDonatePanel>(FindObjectsInactive.Include);
 
             if (donatePanel != null)
             {

@@ -5,130 +5,136 @@ using MysticJourney.API.Models.Response;
 using UnityEngine;
 
 /// <summary>
-/// Shared party roster for the pre-dungeon lobby. Spawned ONCE by the host
-/// (master client) via <see cref="PhotonManager.EnsurePartyLobbySpawned"/> right
-/// after entering the party room. Every client reads the replicated member list
-/// to render the party slots + ready state in <see cref="UIPartyPanel"/>.
+/// Danh sách thành viên (roster) dùng chung cho party trước khi vào hầm ngục. 
+/// Chỉ được sinh ra (Spawn) DUY NHẤT một lần bởi chủ phòng (master client) 
+/// thông qua <see cref="PhotonManager.EnsurePartyLobbySpawned"/> ngay sau khi vào phòng mạng của party. 
+/// Mọi client khác sẽ đọc danh sách thành viên được đồng bộ này để vẽ giao diện các ô trống 
+/// và trạng thái sẵn sàng (ready) trong <see cref="UIPartyPanel"/>.
 ///
-/// Authority model (Shared Mode): the host holds StateAuthority over this object
-/// and is the only one that mutates the [Networked] arrays. Clients request
-/// changes (join / ready / kick / leave) via RPCs routed to the StateAuthority.
+/// Mô hình thẩm quyền (Authority model - Shared Mode): chủ phòng giữ quyền quản lý trạng thái (StateAuthority) 
+/// trên đối tượng này và là người duy nhất có quyền thay đổi các mảng có nhãn [Networked]. 
+/// Các client khác muốn thay đổi (tham gia / sẵn sàng / đuổi / rời đi) phải gửi yêu cầu thông qua RPC 
+/// tới người giữ StateAuthority.
 ///
-/// Party lifecycle:
-///   Lobby   → gathering members, inviting, ready-checking.
-///   Loading → host pressed Start; the group is transitioning into the dungeon.
-///   InDungeon → the dungeon session is live (avatars spawned, combat running).
+/// Vòng đời của Party:
+///   Lobby (Sảnh chờ) → Đang gom người, mời bạn bè, kiểm tra sẵn sàng.
+///   Loading (Đang tải) → Chủ phòng đã bấm Bắt đầu (Start); cả nhóm đang trong quá trình chuyển map vào hầm ngục.
+///   InDungeon (Trong hầm ngục) → Phiên chơi hầm ngục đang diễn ra (đã sinh nhân vật, đang chiến đấu).
 ///
-/// The party lives inside the shared SOCIAL LOBBY room (see PhotonManager) so a
-/// host can still reach idle friends via <see cref="PlayerPresence"/> invites.
+/// Party này tồn tại bên trong phòng chung của SẢNH XÃ HỘI (xem PhotonManager) nên một chủ phòng 
+/// vẫn có thể mời những người bạn đang đứng rảnh rỗi thông qua <see cref="PlayerPresence"/>.
 /// </summary>
 public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
 {
-    public const int MaxMembers = 4;
+    public const int MaxMembers = 4; // Số lượng thành viên tối đa
 
-    public enum PartyState { Lobby, Loading, InDungeon }
+    public enum PartyState { Lobby, Loading, InDungeon } // Các trạng thái của party
 
     /// <summary>
-    /// Every live party in the current room. Multiple parties can coexist in the
-    /// shared social lobby, so this is a set, not a singleton. Keyed by NetworkId.
+    /// Tất cả các party đang hoạt động trong phòng hiện tại. Do phòng sảnh xã hội chung
+    /// có thể chứa nhiều party cùng lúc, nên biến này là một danh sách (Dictionary), không phải dạng Singleton.
+    /// Khóa (Key) là NetworkId của đối tượng PartyLobby.
     /// </summary>
     private static readonly Dictionary<NetworkId, PartyLobby> _all = new();
 
-    /// <summary>Read-only view of all live parties in the room.</summary>
+    /// <summary>Chế độ xem chỉ đọc (Read-only) danh sách tất cả các party đang hoạt động trong phòng.</summary>
     public static IReadOnlyCollection<PartyLobby> All => _all.Values;
 
     /// <summary>
-    /// The party the local player currently belongs to (created or joined), or null.
-    /// Set when the local player is seated in a roster; cleared when it leaves.
+    /// Party hiện tại mà người chơi đang tham gia (tự tạo hoặc tham gia của người khác), hoặc null nếu chưa có.
+    /// Được gán giá trị khi người chơi chiếm một vị trí trong danh sách; và bị xóa (null) khi họ rời đi.
     /// </summary>
     public static PartyLobby Local { get; private set; }
 
-    /// <summary>Raised whenever <see cref="Local"/> changes (joined / left a party).</summary>
+    /// <summary>Sự kiện được gọi mỗi khi <see cref="Local"/> thay đổi (khi người chơi vào/ra một party).</summary>
     public static event Action OnLocalPartyChanged;
 
-    /// <summary>One party member row. NetworkStruct so it can live in a NetworkArray.</summary>
+    /// <summary>Dữ liệu của một thành viên trong party. Là dạng NetworkStruct để có thể lưu trữ trong NetworkArray.</summary>
     public struct Member : INetworkStruct
     {
-        public PlayerRef Player;          // default(PlayerRef) == empty slot
-        public int ProfileId;
-        public NetworkString<_32> Name;
-        public int PlayerClass;
-        public int Level;
-        public NetworkBool Ready;
-        public int SkinId;                // equipped skin — drives the slot portrait
+        public PlayerRef Player;          // Mã định danh người chơi, nếu = default(PlayerRef) nghĩa là ô trống
+        public int ProfileId;             // Mã profile trên hệ thống Backend
+        public NetworkString<_32> Name;   // Tên người chơi
+        public int PlayerClass;           // Lớp nhân vật (vd: Hiệp sĩ, Pháp sư...)
+        public int Level;                 // Cấp độ người chơi
+        public NetworkBool Ready;         // Trạng thái đã sẵn sàng chưa
+        public int SkinId;                // ID trang phục đang mặc — dùng để vẽ hình đại diện
 
-        public bool IsOccupied => Player != default;
+        // Hàm kiểm tra xem slot này đã có người chiếm chưa
+        public bool IsOccupied => Player != default; 
     }
 
-    [Networked, Capacity(MaxMembers)]
+    [Networked, Capacity(MaxMembers)] // Đánh dấu mảng này được đồng bộ qua mạng, chứa tối đa MaxMembers
     public NetworkArray<Member> Members => default;
 
-    [Networked] public PlayerRef HostPlayer { get; set; }
+    [Networked] public PlayerRef HostPlayer { get; set; } // Người chơi nào đang làm chủ phòng
 
-    [Networked] public PartyState State { get; set; }
+    [Networked] public PartyState State { get; set; } // Trạng thái hiện tại của party
 
     /// <summary>
-    /// Number of invites sent but not yet accepted/declined. Host-authority only.
-    /// Gates Start Dungeon ("no invite pending"). Kept as a simple counter — an
-    /// accept (<see cref="RPC_Join"/>) or a decline (<see cref="RPC_InviteResolved"/>)
-    /// decrements it.
+    /// Số lượng lời mời đã được gửi đi nhưng chưa được chấp nhận hay từ chối. 
+    /// Chỉ do máy chủ phòng (host) quản lý.
+    /// Dùng để làm điều kiện chặn không cho "Bắt đầu Hầm ngục" nếu vẫn còn "lời mời đang chờ". 
+    /// Nó chỉ là một biến đếm đơn giản — khi có một lượt chấp nhận (<see cref="RPC_Join"/>) 
+    /// hoặc từ chối (<see cref="RPC_InviteResolved"/>) thì sẽ trừ bớt biến này đi.
     /// </summary>
     [Networked] public int PendingInviteCount { get; set; }
 
-    // Dungeon target, published by the host on Start so every client transitions to
-    // the SAME scene/session. Members reuse the host's DungeonSessionId instead of
-    // calling the Enter API again (no backend duplication).
-    [Networked] public int DungeonConfigId { get; set; }
-    [Networked] public int DungeonSessionId { get; set; }
-    [Networked] public NetworkString<_32> DungeonSceneName { get; set; }
-    [Networked] public NetworkString<_32> DungeonName { get; set; }
+    // Thông tin về hầm ngục sẽ đánh, được chủ phòng cập nhật để mọi client cùng load
+    // chung một scene/session giống nhau. Các thành viên sẽ tái sử dụng DungeonSessionId của host
+    // thay vì phải gọi lại API Enter lên Backend (tránh bị trùng lặp phía máy chủ).
+    [Networked] public int DungeonConfigId { get; set; } // ID cấu hình hầm ngục
+    [Networked] public int DungeonSessionId { get; set; } // ID phiên đánh hầm ngục do backend cấp
+    [Networked] public NetworkString<_32> DungeonSceneName { get; set; } // Tên màn hình (Scene) sẽ load
+    [Networked] public NetworkString<_32> DungeonName { get; set; } // Tên hiển thị của hầm ngục
 
-    /// <summary>Raised on every client whenever the replicated roster/host changes.</summary>
+    /// <summary>Sự kiện được gọi trên tất cả các client mỗi khi danh sách thành viên/chủ phòng có thay đổi.</summary>
     public event Action OnRosterChanged;
 
-    /// <summary>Raised on every client whenever <see cref="State"/> changes.</summary>
+    /// <summary>Sự kiện được gọi trên tất cả các client mỗi khi trạng thái <see cref="State"/> thay đổi.</summary>
     public event Action<PartyState> OnPartyStateChanged;
 
     /// <summary>
-    /// Raised on the host when the party should begin dungeon entry (State just became
-    /// Loading). Step 5 wires this to DungeonManager. Args: configId, sceneName.
+    /// Sự kiện chỉ kích hoạt trên máy chủ phòng khi party sắp bước vào hầm ngục 
+    /// (Trạng thái vừa chuyển sang Loading). Bước 5 sẽ nối sự kiện này với DungeonManager. 
+    /// Tham số truyền vào: configId, sceneName.
     /// </summary>
     public event Action<int, string> OnDungeonStartRequested;
 
-    public event Action<PartyChatMessageResponse> PartyMessageReceived;
+    public event Action<PartyChatMessageResponse> PartyMessageReceived; // Sự kiện khi nhận được tin nhắn chat trong party
 
-    private ChangeDetector _changes;
+    private ChangeDetector _changes; // Bộ dò thay đổi thuộc tính mạng của Fusion
 
     public override void Spawned()
     {
-        _all[Object.Id] = this;
-        _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom);
+        _all[Object.Id] = this; // Đăng ký party này vào danh sách tổng
+        _changes = GetChangeDetector(ChangeDetector.Source.SnapshotFrom); // Khởi tạo bộ dò thay đổi
 
-        if (HasStateAuthority)
+        if (HasStateAuthority) // Nếu mình là người tạo party (chủ phòng)
         {
-            HostPlayer = Object.InputAuthority;
-            State = PartyState.Lobby;
-            // Seat the host in slot 0 from its local profile.
-            SeatSelf(0, ready: true);
+            HostPlayer = Object.InputAuthority; // Lưu lại người tạo là chủ
+            State = PartyState.Lobby; // Gán trạng thái ban đầu là Sảnh chờ
+            // Gán thông tin cá nhân của chủ phòng vào vị trí số 0 trong danh sách
+            SeatSelf(0, ready: true); 
         }
 
-        RefreshLocalMembership();
-        OnRosterChanged?.Invoke();
+        RefreshLocalMembership(); // Cập nhật lại xem bản thân mình có thuộc party này không
+        OnRosterChanged?.Invoke(); // Gọi sự kiện báo giao diện cập nhật danh sách
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
-        _all.Remove(Object.Id);
-        if (Local == this)
+        _all.Remove(Object.Id); // Gỡ party khỏi danh sách
+        if (Local == this) // Nếu đây là party mình đang tham gia
         {
-            Local = null;
-            OnLocalPartyChanged?.Invoke();
+            Local = null; // Xóa trạng thái party của mình
+            OnLocalPartyChanged?.Invoke(); // Báo cập nhật
         }
     }
 
     public override void Render()
     {
-        // Route networked changes to the relevant UI event.
+        // Điều phối các thay đổi dữ liệu mạng thành các sự kiện UI tương ứng
         foreach (var change in _changes.DetectChanges(this))
         {
             if (change == nameof(State))
@@ -137,36 +143,37 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
                 OnRosterChanged?.Invoke();
         }
 
-        RefreshLocalMembership();
+        RefreshLocalMembership(); // Liên tục kiểm tra xem mình còn ở trong party không
     }
 
     /// <summary>
-    /// Keep the static <see cref="Local"/> pointer in sync with roster membership:
-    /// this party becomes Local when the local player is seated in it, and is cleared
-    /// when the local player is no longer a member.
+    /// Giữ cho con trỏ tĩnh <see cref="Local"/> luôn đồng bộ với trạng thái thành viên:
+    /// Party này sẽ trở thành Local (party của mình) khi mình được xếp vào danh sách, 
+    /// và sẽ bị xóa khi mình không còn nằm trong danh sách nữa.
     /// </summary>
     private void RefreshLocalMembership()
     {
         if (Runner == null) return;
 
-        bool localSeated = FindSlot(Runner.LocalPlayer) >= 0;
+        bool localSeated = FindSlot(Runner.LocalPlayer) >= 0; // Tìm xem mình có vị trí trong mảng Members không
 
         if (localSeated && Local != this)
         {
-            Local = this;
-            OnLocalPartyChanged?.Invoke();
+            Local = this; // Cập nhật Local party
+            OnLocalPartyChanged?.Invoke(); // Thông báo
         }
         else if (!localSeated && Local == this)
         {
-            Local = null;
-            OnLocalPartyChanged?.Invoke();
+            Local = null; // Xóa Local party
+            OnLocalPartyChanged?.Invoke(); // Thông báo
         }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Local helpers (state authority only)
+    // Local helpers (Các hàm hỗ trợ - Chỉ dành cho State Authority)
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Lấy thông tin hiện hành từ WorldState để đẩy vào một vị trí trong mảng
     private void SeatSelf(int slot, bool ready)
     {
         string className = WorldState.PlayerClass ?? "Knight";
@@ -187,14 +194,17 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Queries
+    // Queries (Các hàm truy vấn lấy thông tin)
     // ─────────────────────────────────────────────────────────────────────────
 
     public bool IsLocalHost =>
-        Object != null && Runner != null && HostPlayer == Runner.LocalPlayer;
+        Object != null && Runner != null && HostPlayer == Runner.LocalPlayer; // Mình có phải là chủ phòng của party này không?
 
-    /// <summary>Profile id of the host member (stable across rooms), or 0 if not found.
-    /// Used to derive the dungeon room name so every member targets the same room.</summary>
+    /// <summary>
+    /// Lấy Profile ID của thành viên làm chủ phòng (id này không đổi kể cả khi qua phòng mạng khác), 
+    /// hoặc trả về 0 nếu không tìm thấy. Dùng id này để đặt tên chung cho phòng hầm ngục, 
+    /// để mọi người trong party cùng kết nối vào một phòng duy nhất.
+    /// </summary>
     public int HostProfileId
     {
         get
@@ -208,6 +218,21 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
     }
 
+    /// <summary>Tên hiển thị của chủ phòng, hoặc chuỗi rỗng nếu không tìm thấy ô của host.</summary>
+    public string HostDisplayName
+    {
+        get
+        {
+            for (int i = 0; i < MaxMembers; i++)
+            {
+                var m = Members[i];
+                if (m.IsOccupied && m.Player == HostPlayer) return m.Name.Value;
+            }
+            return string.Empty;
+        }
+    }
+
+    // Số lượng thành viên hiện tại có trong mảng
     public int MemberCount
     {
         get
@@ -219,6 +244,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
     }
 
+    // Số lượng người đã bấm Sẵn sàng
     public int ReadyCount
     {
         get
@@ -233,7 +259,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
     }
 
-    /// <summary>True when every occupied slot is marked ready (host counts as ready).</summary>
+    /// <summary>Trả về đúng (true) khi MỌI ô có người đều đã ở trạng thái sẵn sàng (chủ phòng tính là luôn sẵn sàng).</summary>
     public bool AllReady
     {
         get
@@ -242,23 +268,27 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             for (int i = 0; i < MaxMembers; i++)
             {
                 var m = Members[i];
-                if (!m.IsOccupied) continue;
+                if (!m.IsOccupied) continue; // Nếu ô trống thì bỏ qua
                 any = true;
-                if (!m.Ready) return false;
+                if (!m.Ready) return false; // Thấy 1 người chưa sẵn sàng là trả về false ngay
             }
-            return any;
+            return any; // Sẽ trả về true nếu có ít nhất 1 người và không ai vi phạm điều kiện trên
         }
     }
 
     /// <summary>
-    /// Host-only gate for Start Dungeon: at least 2 members, everyone ready, and no
-    /// invite still pending.
+    /// Điều kiện để Chủ phòng có thể bấm Bắt đầu hầm ngục: 
+    /// ít nhất 2 thành viên, tất cả đều sẵn sàng, không còn lời mời nào đang chờ phản hồi, 
+    /// và party đang ở trong sảnh chờ.
     /// </summary>
     public bool CanStartDungeon =>
         MemberCount >= 2 && AllReady && PendingInviteCount <= 0 && State == PartyState.Lobby;
+        
+    // Kiểm tra xem mình có đang thuộc party này không
     public bool IsLocalMember =>
         Runner != null && FindSlot(Runner.LocalPlayer) >= 0;
 
+    // Gửi tin nhắn chat trong nội bộ party
     public bool BroadcastPartyMessage(PartyChatMessageResponse message)
     {
         if (message == null || string.IsNullOrWhiteSpace(message.Content))
@@ -272,7 +302,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
 
         int senderId = WorldState.PlayerProfileId > 0 ? WorldState.PlayerProfileId : message.SenderId;
-        if (senderId <= 0 || !HasMemberProfileId(senderId))
+        if (senderId <= 0 || !HasMemberProfileId(senderId)) // Chỉ cho phép thành viên chat
         {
             return false;
         }
@@ -281,20 +311,20 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             ? WorldState.PlayerName
             : message.SenderName;
 
+        // Giới hạn độ dài nội dung để tránh vượt quá kích thước mạng
         string networkSenderName = NetworkChatText.ClampUtf8(senderName, NetworkChatText.MaxSenderNameBytes);
         string networkContent = NetworkChatText.ClampUtf8(message.Content, NetworkChatText.MaxContentBytes);
         string networkSentAt = NetworkChatText.ClampUtf8(
             string.IsNullOrWhiteSpace(message.SentAt) ? DateTime.UtcNow.ToString("O") : message.SentAt,
             NetworkChatText.MaxTimestampBytes);
 
-        RPC_PartyMessageReceived(senderId, networkSenderName, networkContent, networkSentAt);
+        RPC_PartyMessageReceived(senderId, networkSenderName, networkContent, networkSentAt); // Gọi RPC để phân phát tin nhắn
         return true;
     }
 
-    // Plain `string` params, NOT NetworkString<_N>: a NetworkString always costs its full width
-    // and _N counts 32-bit WORDS, so <_32>/<_128>/<_32> summed to 792 bytes against Fusion's
-    // 512-byte ceiling — Fusion dropped every send and logged "payload is too large". A string
-    // is weaved as variable-length UTF-8, so a short message now costs a few dozen bytes.
+    // Các tham số dạng chuỗi (string) thường, KHÔNG dùng NetworkString<_N> vì NetworkString 
+    // luôn chiếm toàn bộ dung lượng tĩnh của nó, trong khi string tự động cấp phát độ dài thay đổi theo UTF-8, 
+    // giúp tiết kiệm kích thước gói tin gửi qua mạng (Fusion giới hạn gói gửi 512-byte).
     [Rpc(RpcSources.All, RpcTargets.All)]
     private void RPC_PartyMessageReceived(
         int senderId,
@@ -304,11 +334,12 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     {
         RefreshLocalMembership();
 
-        if (Local != this || senderId <= 0 || !HasMemberProfileId(senderId))
+        if (Local != this || senderId <= 0 || !HasMemberProfileId(senderId)) // Nếu mình không trong party, hoặc người gửi sai thì bỏ qua
         {
             return;
         }
 
+        // Bắn event để UI cập nhật tin nhắn
         PartyMessageReceived?.Invoke(new PartyChatMessageResponse
         {
             SenderId = senderId,
@@ -319,6 +350,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         });
     }
 
+    // Kiểm tra xem party có ai trùng khớp Profile ID này không
     private bool HasMemberProfileId(int profileId)
     {
         for (int i = 0; i < MaxMembers; i++)
@@ -333,27 +365,31 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         return false;
     }
 
+    // Tìm xem người chơi PlayerRef này đang ở ô thứ mấy
     private int FindSlot(PlayerRef player)
     {
         for (int i = 0; i < MaxMembers; i++)
             if (Members[i].Player == player) return i;
-        return -1;
+        return -1; // Không tìm thấy
     }
 
+    // Lấy vị trí trống đầu tiên trong party
     private int FirstFreeSlot()
     {
         for (int i = 0; i < MaxMembers; i++)
             if (!Members[i].IsOccupied) return i;
-        return -1;
+        return -1; // Hết chỗ
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Invite bookkeeping (host state authority)
+    // Các hàm theo dõi số lượng lời mời - Chỉ chạy trên máy chủ
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Called locally on the host right after it dispatches an invite (via the target's
-    /// <see cref="PlayerPresence.RPC_ReceiveInvite"/>) so the pending counter reflects it.
+    /// Gọi nội bộ trên máy chủ phòng ngay sau khi gửi đi một lời mời 
+    /// (thông qua <see cref="PlayerPresence.RPC_ReceiveInvite"/> của người nhận) 
+    /// để tăng biến đếm số lượng đang chờ lên.
     /// </summary>
     public void RegisterPendingInvite()
     {
@@ -362,8 +398,8 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     /// <summary>
-    /// Client → host: an invite was resolved without a join (the invitee declined, or
-    /// the invite expired). Decrements the pending counter.
+    /// Yêu cầu từ Client gửi về Host: báo rằng một lời mời đã được giải quyết (nhưng không phải là đồng ý gia nhập). 
+    /// Có thể là người đó từ chối, hoặc lời mời hết hạn. Host sẽ giảm số đếm này đi.
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_InviteResolved()
@@ -373,25 +409,25 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RPCs — client request → host (StateAuthority) applies
+    // RPCs — yêu cầu từ Client gửi lên Host (người giữ StateAuthority) để áp dụng thay đổi
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Called by a client right after it joins the host's room, to register itself
-    /// in the roster. Identity comes from the joining client's WorldState, forwarded
-    /// here as arguments.
+    /// Được gọi bởi một client khác ngay sau khi họ xin gia nhập phòng của host thành công, 
+    /// nhằm đăng ký họ vào danh sách thành viên. Các thông tin định danh như tên, class, level
+    /// được Client lấy từ WorldState truyền qua các tham số.
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_Join(PlayerRef player, int profileId, NetworkString<_32> name, int playerClass, int level, int skinId)
     {
         if (!HasStateAuthority) return;
-        if (State != PartyState.Lobby) return; // cannot join a party already entering the dungeon
-        if (FindSlot(player) >= 0) return;      // already seated
+        if (State != PartyState.Lobby) return; // Không thể gia nhập khi party đang chuyển vào hầm ngục
+        if (FindSlot(player) >= 0) return;     // Đã có chỗ sẵn rồi thì bỏ qua
 
-        int slot = FirstFreeSlot();
-        if (slot < 0) return; // party full
+        int slot = FirstFreeSlot(); // Tìm ô trống
+        if (slot < 0) return; // Party đã đầy
 
-        var arr = Members;
+        var arr = Members; // Cập nhật mảng
         arr.Set(slot, new Member
         {
             Player = player,
@@ -399,94 +435,128 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
             Name = name,
             PlayerClass = playerClass,
             Level = level,
-            Ready = false,
+            Ready = false, // Vừa vào mặc định là chưa sẵn sàng
             SkinId = skinId,
         });
 
-        // The joiner filled a pending invite slot.
+        // Người vừa vào lấp chỗ cho 1 lời mời đang chờ, nên ta giảm số đếm chờ đi
         if (PendingInviteCount > 0) PendingInviteCount--;
     }
 
-    /// <summary>Toggle a member's ready flag. The host slot stays always-ready.</summary>
+    /// <summary>Bật/tắt trạng thái Sẵn sàng của thành viên. Ô của chủ phòng luôn mặc định là sẵn sàng.</summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_SetReady(PlayerRef player, NetworkBool ready)
     {
         if (!HasStateAuthority) return;
         int slot = FindSlot(player);
         if (slot < 0) return;
-        if (player == HostPlayer) return; // host is always ready
+        if (player == HostPlayer) return; // Chủ phòng thì bỏ qua, luôn là true
 
         var m = Members[slot];
-        m.Ready = ready;
+        m.Ready = ready; // Đổi trạng thái
         var arr = Members;
-        arr.Set(slot, m);
+        arr.Set(slot, m); // Lưu lại
     }
 
-    /// <summary>Host-only: remove a member from the roster (24.5 Kick).</summary>
+    /// <summary>Chỉ dành cho Host: Xóa một thành viên khỏi danh sách (24.5 Đuổi người - Kick).</summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_Kick(PlayerRef requester, PlayerRef target)
     {
         if (!HasStateAuthority) return;
-        if (requester != HostPlayer) return;   // only host may kick
-        if (target == HostPlayer) return;       // host cannot kick itself
+        if (requester != HostPlayer) return;   // Chỉ host mới có quyền đuổi
+        if (target == HostPlayer) return;      // Host không thể tự đuổi chính mình
 
         int slot = FindSlot(target);
         if (slot < 0) return;
 
         var arr = Members;
-        arr.Set(slot, default);
+        arr.Set(slot, default); // Xóa thông tin thành viên đó thành rỗng
     }
 
-    /// <summary>Client leaves the party (removes its own slot). Host leave is handled
-    /// separately by <see cref="LeaveAsHost"/> because it disbands the whole party.</summary>
+    /// <summary>
+    /// Một Client muốn rời khỏi party (xóa ô trống của họ). Việc Host rời đi được xử lý 
+    /// riêng bằng <see cref="LeaveAsHost"/> vì hành động đó sẽ giải tán toàn bộ party.
+    /// </summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_Leave(PlayerRef player)
     {
         if (!HasStateAuthority) return;
-        if (player == HostPlayer) return; // host uses LeaveAsHost()
+        if (player == HostPlayer) return; // Host thì dùng LeaveAsHost()
 
         int slot = FindSlot(player);
         if (slot < 0) return;
 
         var arr = Members;
-        arr.Set(slot, default);
+        arr.Set(slot, default); // Xóa thành viên
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Leave / disband (24.7)
+    // Leave / disband (24.7 Giải tán / Thoát party)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Host leave = disband. Runs on the host (state authority) and despawns the party
-    /// object, so every member's <see cref="Despawned"/> fires, clears <see cref="Local"/>
-    /// and raises <see cref="OnLocalPartyChanged"/> — which is what closes their panel.
+    /// Host rời đi = giải tán nhóm. Hàm này chạy trên Host: báo cho mọi thành viên biết
+    /// party bị giải tán (<see cref="NotifyMembersDisbanded"/>), rồi hủy sinh (despawn) đối tượng party.
+    /// Nhờ đó mọi thành viên khác đều nhận được <see cref="Despawned"/>, giúp họ xóa <see cref="Local"/>
+    /// và gọi <see cref="OnLocalPartyChanged"/> — qua đó đóng panel UI tương ứng của họ.
     ///
-    /// Authority is deliberately NOT transferred to a remaining member: the party belongs
-    /// to whoever created it, so when the host walks away the party stops existing for
-    /// everyone rather than silently continuing under a new owner the members never chose.
+    /// Quyền chủ phòng cố tình KHÔNG ĐƯỢC CHUYỂN GIAO cho thành viên còn lại: party thuộc 
+    /// về người tạo ra nó. Do đó khi host rời đi, party bị giải tán hoàn toàn chứ không âm thầm 
+    /// tiếp tục hoạt động dưới tên một người chủ mới mà các thành viên chưa bao giờ tự bầu.
     /// </summary>
     public void LeaveAsHost()
     {
         if (!HasStateAuthority) return;
 
+        // Báo TRƯỚC khi despawn: xem RPC_PartyDisbanded để biết vì sao thông báo phải
+        // đi trên presence của từng người thay vì trên đối tượng party này.
+        NotifyMembersDisbanded();
+
         if (Runner != null && Object != null)
-            Runner.Despawn(Object);
+            Runner.Despawn(Object); // Hủy đối tượng mạng này
     }
 
-    /// <summary>Fusion callback: our StateAuthority over this object changed.</summary>
+    /// <summary>
+    /// Gửi tin "party đã bị giải tán" tới mọi thành viên trừ chủ phòng.
+    ///
+    /// Nếu không có bước này thì thành viên chỉ thấy <see cref="Despawned"/> chạy và
+    /// danh sách rỗng đi — GIỐNG HỆT lúc bị đuổi bằng <see cref="RPC_Kick"/> (cũng chỉ
+    /// xóa ô của họ mà không nói gì). Đó chính là lý do việc host đóng party bị hiểu
+    /// thành "bị kick": cơ chế giải tán vốn đã đúng, chỉ thiếu lời thông báo.
+    /// </summary>
+    private void NotifyMembersDisbanded()
+    {
+        string hostName = HostDisplayName;
+
+        for (int i = 0; i < MaxMembers; i++)
+        {
+            var m = Members[i];
+            if (!m.IsOccupied) continue;
+            if (m.Player == HostPlayer) continue; // Host tự biết, không cần tự báo mình
+
+            // Tra theo ProfileId trước: PlayerRef bị Fusion tái sử dụng khi người chơi
+            // ra/vào phòng, nên nó không phải khóa định danh đáng tin (cùng lý do
+            // PartyService.AcceptInvite dùng profile id). Chỉ lùi về PlayerRef khi
+            // ProfileId chưa kịp đồng bộ.
+            var presence = PlayerPresence.Find(m.ProfileId) ?? PlayerPresence.FindByPlayer(m.Player);
+            presence?.RPC_PartyDisbanded(hostName);
+        }
+    }
+
+    /// <summary>Hàm gọi lại từ Fusion: Quyền StateAuthority của ta trên đối tượng này bị thay đổi.</summary>
     public void StateAuthorityChanged()
     {
-        // No-op: the host never hands this object to a member (host leave disbands the
-        // party). Kept because Fusion requires the IStateAuthorityChanged member.
+        // Không làm gì cả: host không bao giờ chuyển đối tượng này cho thành viên (host rời mạng thì giải tán).
+        // Hàm này giữ lại để thỏa mãn interface IStateAuthorityChanged mà Fusion yêu cầu.
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Start dungeon (host)
+    // Start dungeon (Bắt đầu hầm ngục - chức năng của host)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Host-only: publish the selected dungeon so every member's panel shows it (24.2).
-    /// Called when the host opens/changes the dungeon selection, before Start.
+    /// Chỉ host mới dùng: Công khai hầm ngục đã chọn để mọi người trong party cùng thấy (24.2). 
+    /// Được gọi ngay khi host đổi hoặc chọn map, TRƯỚC KHI ấn nút Start.
     /// </summary>
     public void HostSetDungeon(int configId, string sceneName, string dungeonName)
     {
@@ -497,26 +567,26 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     /// <summary>
-    /// Host-only: begin dungeon entry. Validates the gate, publishes the target
-    /// dungeon to all clients, flips State→Loading and raises
-    /// <see cref="OnDungeonStartRequested"/> on the host so DungeonManager can run the
-    /// Enter API (Step 5). Ignored if the gate is not satisfied.
+    /// Chỉ host mới dùng: Khởi động quá trình vào hầm ngục. Kiểm tra lại điều kiện, công khai 
+    /// hầm ngục mục tiêu, chuyển trạng thái State→Loading, sau đó gọi 
+    /// <see cref="OnDungeonStartRequested"/> trên máy host để DungeonManager bắt đầu gọi API Enter (Bước 5).
     /// </summary>
     public void HostStartDungeon(int configId, string sceneName)
     {
         if (!HasStateAuthority) return;
-        if (!CanStartDungeon) return;
+        if (!CanStartDungeon) return; // Nếu chưa đủ điều kiện thì chặn luôn
 
         DungeonConfigId = configId;
         DungeonSceneName = sceneName ?? string.Empty;
-        State = PartyState.Loading;
+        State = PartyState.Loading; // Chuyển state sang Loading
 
-        OnDungeonStartRequested?.Invoke(configId, sceneName);
+        OnDungeonStartRequested?.Invoke(configId, sceneName); // Gọi event kích hoạt tải map
     }
 
     /// <summary>
-    /// Host-only: publish the backend dungeon session id (from the Enter API) to the
-    /// party and mark the party in-dungeon so members transition without re-entering.
+    /// Chỉ host mới dùng: Công bố ID phiên hầm ngục nhận từ Backend cho toàn bộ party,
+    /// đồng thời đặt trạng thái party là in-dungeon để các thành viên dịch chuyển vào hầm
+    /// mà không cần phải gọi API Enter một lần nữa (tránh trùng dữ liệu backend).
     /// </summary>
     public void HostPublishDungeonSession(int sessionId)
     {
@@ -526,16 +596,16 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     }
 
     /// <summary>
-    /// Host-only: revert from <see cref="PartyState.Loading"/> back to
-    /// <see cref="PartyState.Lobby"/> when the dungeon entry pipeline fails (e.g.
-    /// backend rejected the Enter call). Resets the pending session id so the host
-    /// can retry without orphaning the party in Loading.
+    /// Chỉ host mới dùng: Lùi trạng thái từ <see cref="PartyState.Loading"/> về lại 
+    /// <see cref="PartyState.Lobby"/> trong trường hợp quy trình tải hầm ngục bị thất bại 
+    /// (ví dụ Backend từ chối do thiếu thể lực). Reset lại ID phiên bản để host có thể
+    /// chọn lại mà không khiến party bị kẹt vĩnh viễn ở trạng thái Đang tải.
     /// </summary>
     public void RevertToLobby()
     {
         if (!HasStateAuthority) return;
-        if (State != PartyState.Loading) return;
+        if (State != PartyState.Loading) return; // Đang không phải Loading thì bỏ qua
         DungeonSessionId = 0;
-        State = PartyState.Lobby;
+        State = PartyState.Lobby; // Trả lại sảnh chờ
     }
 }

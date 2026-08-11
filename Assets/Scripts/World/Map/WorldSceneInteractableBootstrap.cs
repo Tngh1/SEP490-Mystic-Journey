@@ -81,7 +81,10 @@ public static class WorldSceneInteractableBootstrap
             );
         }
 
-        ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", 0, 2.25f);
+        // "flower" chỉ tồn tại trong ElfForest.unity. Không gate theo scene thì lookup này chạy ở
+        // mọi world scene (Main, AbandonedCastle, ...) và luôn log warning "no objects found".
+        if (IsElfForest(scene))
+            ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", 0, 2.25f);
         ConfigureTaggedQuestItems(scene, null);
     }
 
@@ -92,7 +95,16 @@ public static class WorldSceneInteractableBootstrap
 
         var allInteractables = WorldInteractable.All;
         var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
-        var hideNatalie = IsQuestCompletedOrClaimed(state, 33);
+        // Chỉ ẩn Natalie khi quest 33 đã "Claimed", KHÔNG phải "Completed".
+        // Quest 33 ("[Chapter 4] Lay Natalie to Rest") có ObjectiveTarget = "Ivy Tree" nhưng
+        // QuestGiverName = "Natalie": mục tiêu hoàn thành ở Ivy Tree, còn phần trả nhiệm vụ
+        // (AutoClaimCompletedQuest trong MainNpcPanelRuntime) phải nói chuyện với Natalie.
+        // BatchUpdateProgress flip Status = "Completed" ngay khi chạm Ivy Tree
+        // (PlayerQuestService.BatchUpdateProgress), rồi RaiseQuestsChanged gọi lại hàm này
+        // → ẩn Natalie TRƯỚC khi người chơi kịp trả nhiệm vụ: "làm xong quest của NPC thì
+        // không interact được với NPC đó nữa". Gate theo "Claimed" giữ Natalie sống đúng
+        // một lượt nói chuyện cuối.
+        var hideNatalie = IsQuestClaimed(state, 33);
 
         if (string.Equals(scene.name, "AbandonedCastle", StringComparison.OrdinalIgnoreCase))
         {
@@ -105,18 +117,29 @@ public static class WorldSceneInteractableBootstrap
         // Standardized NPC configuration pipeline for ALL map NPCs
         foreach (var apiNpc in mapNpcs)
         {
+            // Bật/tắt Natalie TRƯỚC khi lọc `matches`.
+            //
+            // SetActive thay vì Destroy: hàm này chạy lại mỗi lần QuestsChanged (kể cả mỗi lần đóng
+            // panel NPC), nên Destroy là một chiều — bắn sai một lần là Natalie mất hẳn tới khi load
+            // lại scene. SetActive(false) còn cứu được vì FindSceneObject dùng
+            // Resources.FindObjectsOfTypeAll nên vẫn thấy object đang tắt.
+            //
+            // Phải đặt trên `matches`: WorldInteractable.OnDisable gỡ object khỏi
+            // WorldInteractable.All, nên lúc Natalie đang tắt thì `allInteractables` không chứa cô.
+            // Bật lại rồi mới lọc thì SetActive(true) → OnEnable → có mặt trong All ngay trong lần
+            // refresh này, khỏi phải chờ refresh sau mới được ConfigureNpc.
+            if (string.Equals(apiNpc.Name, "Natalie", StringComparison.OrdinalIgnoreCase))
+            {
+                SetSceneObjectActive(scene, apiNpc.Name, !hideNatalie);
+                if (hideNatalie)
+                    continue;
+            }
+
             var matches = allInteractables.Where(i => i.gameObject.scene == scene && i.Kind == WorldInteractableKind.Npc &&
                 (i.NpcId == apiNpc.NPCId ||
                  string.Equals(i.DisplayName.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(i.gameObject.name.Trim(), apiNpc.Name.Trim(), StringComparison.OrdinalIgnoreCase) ||
                  (string.Equals(apiNpc.Name, "Elder Rowan", StringComparison.OrdinalIgnoreCase) && i.gameObject.name.Contains("MageOld", StringComparison.OrdinalIgnoreCase)))).ToList();
-
-            if (hideNatalie && string.Equals(apiNpc.Name, "Natalie", StringComparison.OrdinalIgnoreCase))
-            {
-                foreach (var match in matches)
-                    UnityEngine.Object.Destroy(match.gameObject);
-                continue;
-            }
 
             foreach (var match in matches)
             {
@@ -135,7 +158,7 @@ public static class WorldSceneInteractableBootstrap
             q != null &&
             string.Equals(q.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase) &&
             Contains(q.ObjectiveTarget, "White Flower"));
-        if (flowerQuest != null)
+        if (flowerQuest != null && IsElfForest(scene))
             ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", flowerQuest.QuestId, 2.25f);
 
         var wardenQuest = state.Quests?.FirstOrDefault(q =>
@@ -156,15 +179,24 @@ public static class WorldSceneInteractableBootstrap
         ConfigureRespawnableCollectItems(scene, state);
     }
 
-    private static bool IsQuestCompletedOrClaimed(WorldStateResponse state, int questId)
+    /// <summary>
+    /// "Claimed" là trạng thái duy nhất bảo đảm người chơi ĐÃ trả nhiệm vụ xong.
+    /// "Completed" chỉ nói mục tiêu đã đạt (BatchUpdateProgress tự flip khi Progress đủ), phần trả
+    /// nhiệm vụ cho NPC thì chưa xảy ra — nên đừng dùng "Completed" để ẩn quest giver.
+    /// </summary>
+    private static bool IsQuestClaimed(WorldStateResponse state, int questId)
     {
         return state?.Quests != null && state.Quests.Any(q =>
             q != null && q.QuestId == questId &&
-            (string.Equals(q.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(q.Status, "Claimed", StringComparison.OrdinalIgnoreCase)));
+            string.Equals(q.Status, "Claimed", StringComparison.OrdinalIgnoreCase));
     }
 
 
+
+    private static bool IsElfForest(Scene scene)
+    {
+        return string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static void ConfigureObject(Scene scene, string sceneObjectName, string objectKey, string displayName, string interactionType, int questId, float radius)
     {

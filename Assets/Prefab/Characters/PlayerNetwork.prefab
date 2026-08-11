@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 939e08ef4d7c510469f7bb93954c99d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  baseMoveSpeed: 4
+  baseMoveSpeed: 3.75
   fallbackLocalInput: 1
 --- !u!114 &3917341008382606599
 MonoBehaviour:
@@ -236,7 +236,7 @@ MonoBehaviour:
   SyncScale: 0
   SyncParent: 0
   _autoAOIOverride: 1
-  DisableSharedModeInterpolation: 0
+  DisableSharedModeInterpolation: 1
 --- !u!114 &8537923246479854658
 MonoBehaviour:
   m_ObjectHideFlags: 0
