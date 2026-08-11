@@ -227,6 +227,47 @@ namespace MysticJourney.Features.Monster
             pickup.Setup(type, name, qty, sprite, color, landPos);
         }
 
+        private Coroutine _rewardRefreshRoutine;
+        private bool _pendingInventoryRefresh;
+
+        /// <summary>
+        /// Gộp các lần refresh UI của nhiều món rơi cùng lúc thành MỘT lần sau 0.25s.
+        /// Nhặt 5 món trước đây = 5 lần gọi API inventory + 10 lần FindFirstObjectByType.
+        /// </summary>
+        public void RequestRewardRefresh(bool inventoryAndSkill)
+        {
+            _pendingInventoryRefresh |= inventoryAndSkill;
+
+            // Debounce theo lần nhặt cuối: cả cụm drop cùng bay vào người chơi chỉ refresh 1 lần.
+            if (_rewardRefreshRoutine != null)
+                StopCoroutine(_rewardRefreshRoutine);
+            _rewardRefreshRoutine = StartCoroutine(FlushRewardRefresh());
+        }
+
+        private IEnumerator FlushRewardRefresh()
+        {
+            yield return new WaitForSeconds(0.25f);
+
+            if (PlayerHUDController.Instance != null)
+                PlayerHUDController.Instance.RefreshHUD();
+
+            if (_pendingInventoryRefresh)
+            {
+                InventoryManager.RefreshAny(refreshStats: true);
+
+                var skillPanel = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+                if (skillPanel != null)
+                    skillPanel.RefreshStoneCount();
+
+                var skillPopup = FindFirstObjectByType<SkillPopup>(FindObjectsInactive.Include);
+                if (skillPopup != null && skillPopup.gameObject.activeInHierarchy)
+                    skillPopup.AutoBindComponents();
+            }
+
+            _pendingInventoryRefresh = false;
+            _rewardRefreshRoutine = null;
+        }
+
         public void SpawnFloatingTextDirect(Vector3 position, string text, Color color)
         {
             SpawnFloatingText(position, text, color);

@@ -283,7 +283,10 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         // Kiểm tra xem đã vượt quá giới hạn 5 lần 1 tháng chưa
         if (status != null && status.RetroClaimCount >= 5)
         {
-            SetError("You have reached the limit of 5 retro-claims this month.");
+            UIPopupBox.Notify(
+                transform,
+                "Retro Claim Unavailable",
+                "You have reached the limit of 5 retro-claims this month.");
             return;
         }
 
