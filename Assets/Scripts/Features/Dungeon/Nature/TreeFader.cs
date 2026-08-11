@@ -71,9 +71,6 @@ public class TreeFader3 : MonoBehaviour
 
         if (collision.CompareTag("Player"))
         {
-            var playerEntity = collision.GetComponentInParent<PlayerEntity>();
-            if (playerEntity != null && playerEntity != PlayerEntity.Instance) return; // Only local player
-
             m_InteractorRenderer = collision.GetComponentInChildren<SpriteRenderer>();
             if (m_InteractorRenderer != null)
             {
@@ -90,9 +87,6 @@ public class TreeFader3 : MonoBehaviour
 
         if (collision.CompareTag("Player"))
         {
-            var playerEntity = collision.GetComponentInParent<PlayerEntity>();
-            if (playerEntity != null && playerEntity != PlayerEntity.Instance) return; // Only local player
-
             m_FadeOutEnabled = false;
             this.enabled = true; // Bật Update để fade in ngược lại
         }

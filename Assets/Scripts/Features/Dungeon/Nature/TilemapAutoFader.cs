@@ -45,7 +45,6 @@ public class TilemapAutoFader : MonoBehaviour
         {
             var player = allPlayers[i];
             if (player == null) continue;
-            if (player != PlayerEntity.Instance) continue; // Only process local player!
 
             // Dùng cached collider — không gọi GetComponentInChildren mỗi frame
             var col = GetPlayerCollider(player);
