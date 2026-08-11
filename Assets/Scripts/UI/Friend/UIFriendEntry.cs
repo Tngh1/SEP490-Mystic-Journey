@@ -67,7 +67,7 @@ namespace UI.Friend
                 if (System.DateTime.TryParse(req.CreatedAt, out var dt)) {
                     dateStr = dt.ToLocalTime().ToString("MM/dd HH:mm");
                 }
-                statusText.text = $"Sent: {dateStr}";
+                statusText.text = dateStr;
             }
 
             if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for requests

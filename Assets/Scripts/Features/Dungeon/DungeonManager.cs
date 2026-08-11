@@ -31,7 +31,7 @@ public class DungeonManager : MonoBehaviour
     /// ~1.2s shake window (phase BossSpawning) where BossCount is still 0.
     /// </summary>
     public bool IsDungeonCleared => _currentPhase == DungeonPhase.Complete;
-    public Dictionary<string, (int killed, int total)> EnemyProgress { get; private set; } = new();
+    public Dictionary<string, (int killed, int total)> EnemyProgress { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
     // Saved position in world map to return to
     public string PreviousMapSceneName { get; private set; } = "AbandonedCastle";
@@ -836,10 +836,15 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     private string GetCleanEnemyName(EnemyEntity enemy)
     {
-        if (enemy == null) return "Unknown";
+        if (enemy == null || enemy.gameObject == null) return "Unknown";
         string cleanName = enemy.gameObject.name.Replace("(Clone)", "").Trim();
+
+        // Strip Fusion network ID if present: " [123]"
+        int bracketIndex = cleanName.IndexOf(" [");
+        if (bracketIndex > 0) cleanName = cleanName.Substring(0, bracketIndex).Trim();
+        
         int spaceIndex = cleanName.IndexOf(" (");
-        if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex);
+        if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex).Trim();
         
         int lastUnderscore = cleanName.LastIndexOf('_');
         if (lastUnderscore > 0 && lastUnderscore < cleanName.Length - 1)
@@ -877,6 +882,20 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             var p = EnemyProgress[n];
             p.killed++;
             EnemyProgress[n] = p;
+        }
+        else
+        {
+            // Fallback for names that might have mutated or mismatch
+            foreach (var key in EnemyProgress.Keys)
+            {
+                if (n.Contains(key) || key.Contains(n))
+                {
+                    var p = EnemyProgress[key];
+                    p.killed++;
+                    EnemyProgress[key] = p;
+                    break;
+                }
+            }
         }
 
         int remaining  = _normalEnemies.Count;
@@ -1405,6 +1424,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         _normalEnemies.Clear();
         _bossEnemies.Clear();
         _seenEnemies.Clear();
+        EnemyProgress.Clear();
         _bossDeathPosition = Vector3.zero;
         _masterSpawnRetried = false;
         _spawnStarted = false;
