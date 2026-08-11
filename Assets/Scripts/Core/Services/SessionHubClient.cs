@@ -40,9 +40,19 @@ namespace MysticJourney.Core.Services
         // Nhịp đối chiếu "đang có token / đang nối" để tự nối lại sau khi rớt mạng.
         private const float ReconcileIntervalSeconds = 5f;
 
+        // Trần của backoff: hub chết cả buổi thì vẫn thử lại mỗi phút — đủ để tự hồi khi server
+        // bật lại, mà không biến console thành log rác.
+        private const float MaxReconnectDelaySeconds = 60f;
+
         private ClientWebSocket _socket;
         private CancellationTokenSource _cts;
         private float _lastPingTime;
+
+        // Backoff cho việc nối lại. Chỉ đọc/ghi trên main thread (Reconcile + hàng đợi trong
+        // Update), nên không cần lock dù nguồn báo lỗi là task chạy trên threadpool.
+        private int _consecutiveFailures;
+        private float _nextAttemptTime;
+        private string _lastFailureMessage;
 
         // Task nhận chạy trên threadpool, còn SessionService.Logout gọi SceneManager.LoadScene —
         // Unity API chỉ được đụng từ main thread, nên phải xếp hàng rồi chạy trong Update.
@@ -81,12 +91,15 @@ namespace MysticJourney.Core.Services
             if (!hasToken)
             {
                 if (_socket != null) Disconnect();
+                // Đăng xuất rồi đăng nhập lại phải nối ngay, không bắt chờ hết backoff của
+                // phiên trước.
+                ResetBackoff();
                 return;
             }
 
             if (_socket == null)
             {
-                Connect();
+                if (Time.unscaledTime >= _nextAttemptTime) Connect();
                 return;
             }
 
@@ -101,9 +114,10 @@ namespace MysticJourney.Core.Services
             }
 
             // Đang ở Connecting thì để yên; các state còn lại (Closed/Aborted/CloseReceived) là
-            // kết nối đã chết → dọn để vòng sau nối lại.
+            // kết nối đã chết. Đi qua OnDisconnected thay vì Disconnect() trực tiếp để mọi
+            // đường mất kết nối đều cộng vào cùng một bộ đếm backoff.
             if (_socket.State != WebSocketState.Connecting)
-                Disconnect();
+                OnDisconnected(_socket, $"Socket ở trạng thái {_socket.State}.");
         }
 
         private void Connect()
@@ -131,7 +145,16 @@ namespace MysticJourney.Core.Services
             {
                 await socket.ConnectAsync(uri, ct);
                 await SendRawAsync(socket, HandshakeRequest, ct);
+
+                // Xoá backoff chỉ khi đã nối được thật: nếu xoá ngay lúc bắt đầu thử thì một hub
+                // liên tục từ chối sẽ không bao giờ giãn nhịp ra.
+                _mainThreadQueue.Enqueue(() => OnConnected(socket));
+
                 await ReceiveLoopAsync(socket, ct);
+
+                // Vòng nhận thoát mà không có exception (server đóng đẹp) cũng là mất kết nối.
+                if (!ct.IsCancellationRequested)
+                    _mainThreadQueue.Enqueue(() => OnDisconnected(socket, "Server đã đóng kết nối."));
             }
             catch (OperationCanceledException)
             {
@@ -139,9 +162,54 @@ namespace MysticJourney.Core.Services
             }
             catch (Exception ex)
             {
-                // Hub chết hay chưa bật không được làm ảnh hưởng người chơi: nhánh 401 vẫn kick đúng.
-                Debug.LogWarning($"[SessionHubClient] Hub connection ended: {ex.Message}. Sẽ thử lại.");
+                // Báo lỗi phải về main thread: backoff được Reconcile đọc, và Debug.LogWarning từ
+                // threadpool thì mất stack trace của Unity.
+                string message = ex.Message;
+                _mainThreadQueue.Enqueue(() => OnDisconnected(socket, message));
             }
+        }
+
+        // Cả hai hàm dưới đều nhận socket đã gây ra sự kiện để bỏ qua báo cáo của socket cũ:
+        // logout-rồi-login tạo socket mới, mà task của socket cũ có thể báo lỗi muộn sau đó.
+        private void OnConnected(ClientWebSocket socket)
+        {
+            if (socket != _socket) return;
+
+            if (_consecutiveFailures > 0)
+                Debug.Log($"[SessionHubClient] Đã nối lại được hub sau {_consecutiveFailures} lần thử.");
+
+            ResetBackoff();
+        }
+
+        private void OnDisconnected(ClientWebSocket socket, string message)
+        {
+            if (socket != _socket) return;
+
+            _consecutiveFailures++;
+
+            // 5s, 10s, 20s, 40s, rồi chốt ở 60s.
+            float delay = Mathf.Min(
+                ReconcileIntervalSeconds * Mathf.Pow(2f, _consecutiveFailures - 1),
+                MaxReconnectDelaySeconds);
+            _nextAttemptTime = Time.unscaledTime + delay;
+
+            // Server chết cả buổi thì lý do không đổi — log một lần cho mỗi lần "đứt" thay vì mỗi
+            // nhịp Reconcile. Hub chỉ là kênh thông báo nhanh nên im lặng ở đây là chấp nhận được:
+            // nhánh 401/SESSION_OVERRIDDEN trong ApiClient vẫn kick đúng.
+            if (!string.Equals(_lastFailureMessage, message, StringComparison.Ordinal))
+            {
+                _lastFailureMessage = message;
+                Debug.LogWarning($"[SessionHubClient] Hub connection ended: {message} Thử lại sau {delay:0}s.");
+            }
+
+            Disconnect();
+        }
+
+        private void ResetBackoff()
+        {
+            _consecutiveFailures = 0;
+            _nextAttemptTime = 0f;
+            _lastFailureMessage = null;
         }
 
         private async Task ReceiveLoopAsync(ClientWebSocket socket, CancellationToken ct)

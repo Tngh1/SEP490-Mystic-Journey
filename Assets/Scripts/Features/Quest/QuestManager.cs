@@ -62,6 +62,9 @@ public class QuestManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        // Con của "Managers" trong Main.unity: DontDestroyOnLoad bị Unity bỏ qua trên non-root,
+        // nên detach trước để manager (và coroutine của nó) sống qua scene change.
+        transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
         if (questDatabase != null)
             questDatabase.Initialize();

@@ -218,6 +218,20 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
     }
 
+    /// <summary>Tên hiển thị của chủ phòng, hoặc chuỗi rỗng nếu không tìm thấy ô của host.</summary>
+    public string HostDisplayName
+    {
+        get
+        {
+            for (int i = 0; i < MaxMembers; i++)
+            {
+                var m = Members[i];
+                if (m.IsOccupied && m.Player == HostPlayer) return m.Name.Value;
+            }
+            return string.Empty;
+        }
+    }
+
     // Số lượng thành viên hiện tại có trong mảng
     public int MemberCount
     {
@@ -481,8 +495,9 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Host rời đi = giải tán nhóm. Hàm này chạy trên Host, hủy sinh (despawn) đối tượng party. 
-    /// Nhờ đó mọi thành viên khác đều nhận được <see cref="Despawned"/>, giúp họ xóa <see cref="Local"/> 
+    /// Host rời đi = giải tán nhóm. Hàm này chạy trên Host: báo cho mọi thành viên biết
+    /// party bị giải tán (<see cref="NotifyMembersDisbanded"/>), rồi hủy sinh (despawn) đối tượng party.
+    /// Nhờ đó mọi thành viên khác đều nhận được <see cref="Despawned"/>, giúp họ xóa <see cref="Local"/>
     /// và gọi <see cref="OnLocalPartyChanged"/> — qua đó đóng panel UI tương ứng của họ.
     ///
     /// Quyền chủ phòng cố tình KHÔNG ĐƯỢC CHUYỂN GIAO cho thành viên còn lại: party thuộc 
@@ -493,8 +508,39 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     {
         if (!HasStateAuthority) return;
 
+        // Báo TRƯỚC khi despawn: xem RPC_PartyDisbanded để biết vì sao thông báo phải
+        // đi trên presence của từng người thay vì trên đối tượng party này.
+        NotifyMembersDisbanded();
+
         if (Runner != null && Object != null)
             Runner.Despawn(Object); // Hủy đối tượng mạng này
+    }
+
+    /// <summary>
+    /// Gửi tin "party đã bị giải tán" tới mọi thành viên trừ chủ phòng.
+    ///
+    /// Nếu không có bước này thì thành viên chỉ thấy <see cref="Despawned"/> chạy và
+    /// danh sách rỗng đi — GIỐNG HỆT lúc bị đuổi bằng <see cref="RPC_Kick"/> (cũng chỉ
+    /// xóa ô của họ mà không nói gì). Đó chính là lý do việc host đóng party bị hiểu
+    /// thành "bị kick": cơ chế giải tán vốn đã đúng, chỉ thiếu lời thông báo.
+    /// </summary>
+    private void NotifyMembersDisbanded()
+    {
+        string hostName = HostDisplayName;
+
+        for (int i = 0; i < MaxMembers; i++)
+        {
+            var m = Members[i];
+            if (!m.IsOccupied) continue;
+            if (m.Player == HostPlayer) continue; // Host tự biết, không cần tự báo mình
+
+            // Tra theo ProfileId trước: PlayerRef bị Fusion tái sử dụng khi người chơi
+            // ra/vào phòng, nên nó không phải khóa định danh đáng tin (cùng lý do
+            // PartyService.AcceptInvite dùng profile id). Chỉ lùi về PlayerRef khi
+            // ProfileId chưa kịp đồng bộ.
+            var presence = PlayerPresence.Find(m.ProfileId) ?? PlayerPresence.FindByPlayer(m.Player);
+            presence?.RPC_PartyDisbanded(hostName);
+        }
     }
 
     /// <summary>Hàm gọi lại từ Fusion: Quyền StateAuthority của ta trên đối tượng này bị thay đổi.</summary>

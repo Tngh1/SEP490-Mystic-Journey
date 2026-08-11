@@ -50,6 +50,16 @@ public class PlayerPresence : NetworkBehaviour
     /// </summary>
     public static event Action<WorldChatMessageResponse> OnWorldMessageReceived;
 
+    /// <summary>
+    /// Raised on một THÀNH VIÊN khi chủ phòng giải tán party. Tham số: tên chủ phòng
+    /// (có thể rỗng nếu không đọc được ô của host).
+    ///
+    /// Static vì thông báo này phải sống sót sau khi đối tượng PartyLobby bị despawn:
+    /// lúc event chạy thì party đã không còn, nên không một event theo-instance nào
+    /// của PartyLobby còn có thể tới được UI.
+    /// </summary>
+    public static event Action<string> OnPartyDisbanded;
+
     [Networked, OnChangedRender(nameof(OnProfileIdChanged))]
     public int ProfileId { get; set; }
 
@@ -178,6 +188,23 @@ public class PlayerPresence : NetworkBehaviour
     public void RPC_ReceiveInvite(int inviterProfileId, NetworkString<_32> inviterName)
     {
         OnInviteReceived?.Invoke(inviterProfileId, inviterName.Value);
+    }
+
+    /// <summary>
+    /// Được HOST gọi trên presence của từng thành viên ngay TRƯỚC khi giải tán party,
+    /// để báo rằng party đã bị giải tán (chứ không phải họ bị đuổi khỏi nhóm).
+    ///
+    /// Vì sao thông báo này đi trên Presence chứ không đi trên PartyLobby: giải tán =
+    /// <c>Runner.Despawn(partyObject)</c>, mà Fusion chỉ gửi RPC ra ngoài ở cuối frame.
+    /// Một RPC phát trên chính đối tượng vừa bị despawn sẽ bị hủy KHÔNG BÁO LỖI, nên
+    /// thành viên sẽ không bao giờ nhận được tin. Presence của mỗi người vẫn tồn tại
+    /// suốt phiên (nó thuộc sảnh xã hội, không thuộc party), nên đây là kênh an toàn —
+    /// đúng như cách lời mời đang dùng.
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.InputAuthority)]
+    public void RPC_PartyDisbanded(NetworkString<_32> hostName)
+    {
+        OnPartyDisbanded?.Invoke(hostName.Value);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

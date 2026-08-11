@@ -339,17 +339,23 @@ namespace MysticJourney.Features.Quest
             {
                 if (i.Kind != WorldInteractableKind.Npc) continue;
 
-                // NPC rõ ràng thuộc quest KHÁC: có LinkedQuestIds nhưng không chứa quest hiện tại.
-                // Trước đây NPC trùng tên gần player hơn luôn thắng — giờ loại bỏ sớm.
-                if (currentQuestId > 0 && i.LinkedQuestIds != null && i.LinkedQuestIds.Count > 0 &&
-                    !System.Linq.Enumerable.Contains(i.LinkedQuestIds, currentQuestId))
-                    continue;
-
                 string cleanDisplay = CleanNpcName(i.DisplayName);
                 string cleanKey = CleanNpcName(i.ObjectKey);
                 string cleanGoName = CleanNpcName(i.gameObject.name);
 
-                bool isMatch = Matches(cleanDisplay, cleanTarget) || Matches(cleanKey, cleanTarget) || Matches(cleanGoName, cleanTarget);
+                bool isExactNameMatch = Matches(cleanDisplay, cleanTarget) || Matches(cleanKey, cleanTarget) || Matches(cleanGoName, cleanTarget);
+
+                // NPC rõ ràng thuộc quest KHÁC: có LinkedQuestIds nhưng không chứa quest hiện tại.
+                // LinkedQuestIds chỉ mang id các dialogue của NPC (WorldSceneInteractableBootstrap),
+                // KHÔNG phải mọi quest NPC tham gia — BE còn liên kết NPC theo QuestGiverName/
+                // ObjectiveTarget (WorldService.TalkToNpc). Một NPC là ĐÍCH của quest hiện tại
+                // (tên khớp thẳng với targetName) không được loại chỉ vì NPC đó chưa có dialogue
+                // riêng cho quest này — ví dụ NPC nhận hàng chỉ xuất hiện làm ObjectiveTarget.
+                if (!isExactNameMatch && currentQuestId > 0 && i.LinkedQuestIds != null && i.LinkedQuestIds.Count > 0 &&
+                    !System.Linq.Enumerable.Contains(i.LinkedQuestIds, currentQuestId))
+                    continue;
+
+                bool isMatch = isExactNameMatch;
 
                 if (!isMatch && !string.IsNullOrWhiteSpace(cleanDisplay) && !string.IsNullOrWhiteSpace(cleanTarget))
                 {

@@ -13,19 +13,21 @@ public class InventoryTest : MonoBehaviour
         {
             UIItemDisplayData item = new UIItemDisplayData();
 
-            // 1. G�n ID v� S? l??ng ng?u nhi�n
+            // 1. Gán ID và Số lượng ngẫu nhiên
             item.itemId = 1;
+            item.itemName = "Iron Sword";
+            item.category = "Weapon";
             item.quantity = Random.Range(1, 99);
 
-            // 2. [QUAN TR?NG] L?y Icon t? Database. N?u null, l??i s? kh�ng v? h�nh.
-            item.icon = ItemIconDatabase.Instance.GetIcon(item.itemId);
+            // 2. [QUAN TRỌNG] Lấy Icon từ Database. Nếu null, lưới sẽ không vẽ hình.
+            item.icon = ItemIconDatabase.Instance.GetIcon(item.itemName, item.category);
 
-            // 3. Test ?? m�u vi?n (Ph?m ch?t ng?u nhi�n)
+            // 3. Test đổ màu viền (Phẩm chất ngẫu nhiên)
             string[] rarities = { "common", "rare", "epic", "legendary" };
             item.rarity = rarities[Random.Range(0, rarities.Length)];
 
-            // 4. Test hi?n th? Icon "?ang trang b?" (D?u t�ch V)
-            // C? � n�o chia h?t cho 5 th� gi? v? nh? ?ang ???c m?c
+            // 4. Test hiển thị Icon "đang trang bị" (Dấu tích V)
+            // Cứ ô nào chia hết cho 5 thì giả vờ như đang được mặc
             item.isEquipped = (i % 5 == 0);
 
             items.Add(item);

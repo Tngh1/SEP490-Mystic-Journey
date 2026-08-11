@@ -695,9 +695,27 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Shared by every enemy in the scene. FindGameObjectsWithTag allocates a fresh
+    // array on each call, and Update() ran it once per enemy per frame — so cost
+    // scaled with enemy count, and a multiplayer dungeon carries both the locally
+    // spawned and the replicated enemy set. Resolving once per frame and sharing the
+    // result keeps the scan count at 1 regardless of how many enemies are alive.
+    private static GameObject[] _playersThisFrame = Array.Empty<GameObject>();
+    private static int _playersFrame = -1;
+
+    private static GameObject[] GetPlayersCached()
+    {
+        if (_playersFrame != Time.frameCount)
+        {
+            _playersFrame = Time.frameCount;
+            _playersThisFrame = GameObject.FindGameObjectsWithTag("Player");
+        }
+        return _playersThisFrame;
+    }
+
     private Transform FindNearestPlayer()
     {
-        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        GameObject[] players = GetPlayersCached();
         if (players == null || players.Length == 0)
         {
             if (PlayerMovement.Instance != null && PlayerMovement.Instance.gameObject.activeInHierarchy)

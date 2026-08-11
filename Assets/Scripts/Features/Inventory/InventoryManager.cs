@@ -922,7 +922,12 @@ public class InventoryManager : MonoBehaviour
         BindFilterAction("Consumable", false, "BtnFilterConsumable", "PotionButton", "ConsumableButton");
         BindFilterAction("Material", false, "BtnFilterMaterial", "MaterialButton");
         BindFilterAction("QuestItem", false, "BtnFilterQuest", "QuestButton");
-        BindFilterAction("Other", false, "BtnFilterOther", "OtherButton");
+        // Không bind "Other": FilterBar trong Main.unity chỉ có 6 nút filter (All/Weapon/Armor/
+        // Consumable/Material/Quest) + BtnSort, không có BtnFilterOther. Bind vào object không
+        // tồn tại chỉ tạo warning mỗi lần mở Inventory. Logic filter "Other" ở dòng ~757 vẫn giữ,
+        // nên chỉ cần thêm nút tên "BtnFilterOther" (hoặc "OtherButton") vào FilterBar rồi bỏ
+        // comment dòng dưới là chạy được, không phải sửa gì thêm.
+        // BindFilterAction("Other", false, "BtnFilterOther", "OtherButton");
 
         BindFilterAction("All", true, "BtnSkinFilterAll");
         BindFilterAction("Owned", true, "BtnSkinFilterOwned");

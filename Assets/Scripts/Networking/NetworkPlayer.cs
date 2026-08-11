@@ -563,7 +563,52 @@ public class NetworkPlayer : NetworkBehaviour
             All.Add(this);
         }
 
+        IgnoreCollisionsWithOtherPlayers();
+
         OnPlayerReady?.Invoke(this);
+    }
+
+    /// <summary>
+    /// Stop this avatar from physically colliding with the other players' avatars.
+    ///
+    /// Every avatar — local AND remote proxies — is a DYNAMIC Rigidbody2D with a
+    /// non-trigger CapsuleCollider2D on the Default layer, and the 2D collision
+    /// matrix is fully enabled. A remote proxy is not driven by physics: NetworkTransform
+    /// writes its position in Render(), i.e. it TELEPORTS every frame. When such a
+    /// teleport lands it overlapping the local avatar, the solver sees a deep
+    /// interpenetration and answers with a large depenetration impulse. That fights the
+    /// local velocity write every single tick, which reads to the player as
+    /// "movement is slow and stutters" — and only ever with 2+ players in the dungeon,
+    /// because solo there is no second body to contact.
+    ///
+    /// Pair-wise Physics2D.IgnoreCollision instead of a Player physics layer: the
+    /// avatars sit on Default (layer 0) and are found by tag, and several systems
+    /// (skill overlaps, enemy aggro, world interactables) raycast against that layer.
+    /// Moving avatars to the unused "Player" layer would silently change what all of
+    /// those hit. Ignoring the specific pairs removes ONLY player-vs-player contact
+    /// response and leaves every query untouched.
+    /// </summary>
+    private void IgnoreCollisionsWithOtherPlayers()
+    {
+        var mine = GetComponentsInChildren<Collider2D>(includeInactive: true);
+        if (mine.Length == 0) return;
+
+        for (int i = 0; i < All.Count; i++)
+        {
+            var other = All[i];
+            if (other == null || other == this) continue;
+
+            var theirs = other.GetComponentsInChildren<Collider2D>(includeInactive: true);
+            for (int m = 0; m < mine.Length; m++)
+            {
+                if (mine[m] == null) continue;
+                for (int t = 0; t < theirs.Length; t++)
+                {
+                    if (theirs[t] == null) continue;
+                    Physics2D.IgnoreCollision(mine[m], theirs[t], true);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -776,7 +821,15 @@ public class NetworkPlayer : NetworkBehaviour
         }
 
         var input = GetInput<NetworkInputData>();
-        if (!input.HasValue) return;
+        if (!input.HasValue)
+        {
+            // Movement is velocity-driven, so an input-less tick must actively stop the
+            // body. Returning bare would leave the previous velocity integrating and the
+            // avatar would drift on its own until the next tick that carries input.
+            _movement.Move(Vector2.zero, Runner.DeltaTime);
+            NetworkedMove = Vector2.zero;
+            return;
+        }
         var inputData = input.Value;
 
         NetworkedMove = inputData.Move;

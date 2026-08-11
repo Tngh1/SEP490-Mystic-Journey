@@ -202,7 +202,6 @@ GameObject:
   - component: {fileID: 5192526998410964755}
   - component: {fileID: 8473696805517807023}
   - component: {fileID: 8036076343939029903}
-  - component: {fileID: 3259748566784604465}
   m_Layer: 0
   m_Name: DoorDestroV
   m_TagString: Untagged
@@ -306,17 +305,3 @@ CapsuleCollider2D:
   m_Offset: {x: -0.011057019, y: 0.36443126}
   m_Size: {x: 0.18803716, y: 0.75165105}
   m_Direction: 0
---- !u!114 &3259748566784604465
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4052940734442589182}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea591431c211a314db834715dba1f5f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  anim: {fileID: 8903367171082058835}
-  box: {fileID: 4052940734442589182}

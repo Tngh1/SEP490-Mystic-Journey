@@ -80,6 +80,10 @@ public class DungeonManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+            // Con của "Managers" trong Main.unity: DontDestroyOnLoad chỉ có tác dụng trên root,
+            // nên detach trước. Nếu không, manager chết ngay khi load scene dungeon — đúng lúc
+            // OnSceneLoaded bên dưới cần chạy.
+            transform.SetParent(null, true);
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
@@ -568,11 +572,15 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             // master. On a RESTART the master was elected on the first entry and never
             // changes, so those 6s were pure dead time and the progress panel sat on
             // "Loading..." for 6s after pressing Again.
+            // Polled at 10Hz, not per frame: AnyEnemyInScene is a full-scene type scan and
+            // this loop runs during dungeon load-in, exactly when the frame budget is
+            // already tight. A 0.1s reaction delay on "has the master spawned yet" is
+            // invisible next to the 6s ceiling it is guarding.
             float waitMaster = 6f;
             while (waitMaster > 0f && !photon.IsHost && !AnyEnemyInScene())
             {
-                waitMaster -= Time.deltaTime;
-                yield return null;
+                waitMaster -= 0.1f;
+                yield return new WaitForSeconds(0.1f);
             }
             Debug.Log($"[DungeonManager] Spawn authority settled: IsHost={photon.IsHost} (IsPartyHost={IsPartyHost}).");
         }
@@ -705,11 +713,13 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // with an empty roster. The authority's own pipeline includes a backend round trip
         // (MonsterApi.GetSpawnsForMap) before it spawns anything, so "nothing yet" here is
         // normal rather than a failure.
+        // 10Hz for the same reason as the master-authority wait above: a per-frame
+        // full-scene scan during load-in is the one place we cannot afford it.
         float wait = 8f;
         while (wait > 0f && !AnyEnemyInScene())
         {
-            wait -= Time.deltaTime;
-            yield return null;
+            wait -= 0.1f;
+            yield return new WaitForSeconds(0.1f);
         }
 
         int first = ReconcileReplicatedEnemies();

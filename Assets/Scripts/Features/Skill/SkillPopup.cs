@@ -162,7 +162,10 @@ public class SkillPopup : MonoBehaviour
 
         if (popupStats != null)
         {
-            popupStats.text = "<b><color=#B22222>⚔️ Skill Upgrade Preview</color></b>";
+            // Không dùng emoji: font UI của game (Silver/ThaleahFat SDF) và LiberationSans SDF
+            // đều không có glyph emoji, và TMP Settings không khai fallback nào — emoji sẽ ra ô
+            // vuông □ kèm warning mỗi lần render.
+            popupStats.text = "<b><color=#B22222>Skill Upgrade Preview</color></b>";
         }
     }
 
@@ -274,7 +277,7 @@ public class SkillPopup : MonoBehaviour
         }
         else
         {
-            if (popupName != null) popupName.text = "<size=125%><color=#708090><b>🔒 Skill Locked</b></color></size>";
+            if (popupName != null) popupName.text = "<size=125%><color=#708090><b>Skill Locked</b></color></size>";
             if (topSkillName != null) topSkillName.text = "Skill Locked";
 
             if (popupDesc != null) popupDesc.text = "<color=#696969><i>You do not own this skill yet. Complete quests or reach the required level to unlock it.</i></color>";
@@ -291,7 +294,7 @@ public class SkillPopup : MonoBehaviour
             if (oldCooldownText != null) oldCooldownText.text = "0s";
             if (newCooldownText != null) newCooldownText.text = "0s";
 
-            if (popupStats != null) popupStats.text = "<b><color=#708090>🔒 Skill Locked</color></b>";
+            if (popupStats != null) popupStats.text = "<b><color=#708090>Skill Locked</color></b>";
 
             if (upgradeButton != null) upgradeButton.interactable = false;
         }

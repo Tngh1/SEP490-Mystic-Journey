@@ -84,6 +84,12 @@ public class UIPartyPanel : MonoBehaviour
             Destroy(this);
             return;
         }
+
+        // Đăng ký ở Awake (KHÔNG phải OnEnable): tin giải tán có thể tới lúc panel đang
+        // đóng, và OnDisable sẽ hủy đăng ký — thành viên nào đã đóng panel sẽ không bao
+        // giờ biết nhóm đã tan. Awake/OnDestroy phủ toàn bộ thời gian sống của panel.
+        PlayerPresence.OnPartyDisbanded += HandlePartyDisbanded;
+
         gameObject.SetActive(false);
     }
 
@@ -103,8 +109,26 @@ public class UIPartyPanel : MonoBehaviour
     {
         if (Instance == this)
         {
+            PlayerPresence.OnPartyDisbanded -= HandlePartyDisbanded;
             Instance = null;
         }
+    }
+
+    /// <summary>
+    /// Chủ phòng đã giải tán nhóm. Chỉ chạy trên máy THÀNH VIÊN (host không tự gửi cho
+    /// mình). Nếu không có hàm này, thành viên chỉ thấy danh sách trống đi rồi panel
+    /// nhảy về chế độ solo — không phân biệt được với việc bị host đuổi.
+    /// </summary>
+    private void HandlePartyDisbanded(string hostName)
+    {
+        string message = string.IsNullOrWhiteSpace(hostName)
+            ? "The party has been disbanded by the host."
+            : $"{hostName} has disbanded the party.";
+
+        UIPopupBox.Notify(transform, "Party", message);
+
+        // Party không còn tồn tại, nên đóng panel thay vì để nó tự vẽ lại ở chế độ solo.
+        Close();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -296,30 +320,74 @@ public class UIPartyPanel : MonoBehaviour
                 Destroy(child.gameObject);
             }
 
-            if (true) // Just to keep block indentation
+            // Đếm trước để chia cột: grid phải vừa bề ngang container, nếu không
+            // cột cuối bị cắt và nhãn số lượng của nó mất một phần chữ.
+            int dropCount = 0;
+            if (goldMaxReward > 0) dropCount++;
+            if (experienceReward > 0) dropCount++;
+            if (possibleDrops != null) dropCount += possibleDrops.Count;
+
+            ConfigureDropsGrid(dropCount);
+
+            // Spawn Gold if available
+            if (goldMaxReward > 0)
             {
-                // Spawn Gold if available
-                if (goldMaxReward > 0)
-                {
-                    SpawnDropItem("Gold", goldMinReward, goldMaxReward, null);
-                }
+                SpawnDropItem("Gold", goldMinReward, goldMaxReward, null);
+            }
 
-                // Spawn Exp if available
-                if (experienceReward > 0)
-                {
-                    SpawnDropItem("Experience", experienceReward, experienceReward, null);
-                }
+            // Spawn Exp if available
+            if (experienceReward > 0)
+            {
+                // "Exp" — đúng key trong ItemIconDatabase. Trước đây truyền "Experience",
+                // không khớp key nào nên icon rơi về sprite mặc định của prefab (đồng vàng),
+                // làm ô Exp trông y hệt ô Gold.
+                SpawnDropItem("Exp", experienceReward, experienceReward, null);
+            }
 
-                if (possibleDrops != null)
+            if (possibleDrops != null)
+            {
+                foreach (var drop in possibleDrops)
                 {
-                    foreach (var drop in possibleDrops)
-                    {
-                        SpawnDropItem(drop.ItemName, drop.QuantityMin, drop.QuantityMax, drop.ItemIconUrl);
-                    }
+                    SpawnDropItem(drop.ItemName, drop.QuantityMin, drop.QuantityMax, drop.ItemIconUrl);
                 }
             }
         }
     }
+
+    /// <summary>
+    /// Chỉnh GridLayoutGroup của dropsContainer theo bề ngang thật của nó.
+    /// Cell trong scene là 125x70 trong khi prefab ItemSlot là 150x80, và 3 cột
+    /// (3*125 + 2*10 = 395) rộng hơn container (~377) — nên ô cuối bị cắt và
+    /// nhãn "x50-100" tràn sang ô kế bên.
+    /// </summary>
+    private void ConfigureDropsGrid(int itemCount)
+    {
+        if (dropsContainer == null) return;
+
+        var grid = dropsContainer.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+        if (grid == null) return;
+
+        var rt = dropsContainer as RectTransform;
+        float available = rt != null ? rt.rect.width : 0f;
+        if (available <= 1f) return; // layout chưa tính xong — giữ nguyên cấu hình
+
+        float spacingX = Mathf.Max(0f, grid.spacing.x);
+        available -= grid.padding.left + grid.padding.right;
+
+        // Bao nhiêu cột vừa được với bề rộng ô mong muốn (bằng prefab: 150)
+        const float preferredCellWidth = 150f;
+        int columns = Mathf.FloorToInt((available + spacingX) / (preferredCellWidth + spacingX));
+        columns = Mathf.Clamp(columns, 1, Mathf.Max(1, itemCount));
+
+        float cellWidth = (available - spacingX * (columns - 1)) / columns;
+
+        grid.constraint = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = columns;
+        grid.cellSize = new Vector2(Mathf.Floor(cellWidth), DropCellHeight);
+    }
+
+    // Cao bằng prefab ItemSlot; cell 70 cắt mất khung nền 80 của nó.
+    private const float DropCellHeight = 80f;
 
     private void SpawnDropItem(string itemName, int minQty, int maxQty, string iconUrl)
     {
@@ -355,10 +423,16 @@ public class UIPartyPanel : MonoBehaviour
             {
                 sprite = ItemIconDatabase.Instance.GetIcon(itemName, null);
             }
-            
+
+            if (sprite == null && !string.IsNullOrEmpty(iconUrl))
+            {
+                sprite = Resources.Load<Sprite>(iconUrl);
+            }
+
+            // Icon thật nằm ở Resources/Item/, không phải Resources/Icons/Items/.
             if (sprite == null)
             {
-                sprite = Resources.Load<Sprite>(iconUrl) ?? Resources.Load<Sprite>("Icons/Items/" + itemName);
+                sprite = Resources.Load<Sprite>("Item/" + itemName);
             }
 
             if (sprite != null)
@@ -369,6 +443,9 @@ public class UIPartyPanel : MonoBehaviour
             }
             else
             {
+                // Tắt hẳn thay vì để nguyên sprite mặc định của prefab (đồng vàng):
+                // giữ lại thì item thiếu icon sẽ hiện SAI icon chứ không lộ ra là thiếu.
+                image.enabled = false;
                 Debug.LogWarning($"[UIPartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
             }
         }
@@ -381,7 +458,35 @@ public class UIPartyPanel : MonoBehaviour
                 qtyText.text = $"x{maxQty}";
             else
                 qtyText.text = $"x{minQty}-{maxQty}";
+
+            FitQuantityLabel(qtyText);
         }
+    }
+
+    /// <summary>
+    /// Nhãn số lượng trong prefab là rect 120 rộng, đặt lệch phải 45 — tức tràn khỏi
+    /// ô grid và đè sang ô kế bên. Kèm wrap + Ellipsis nên "x50-100" bị xuống dòng
+    /// rồi cắt thành "x50-…". Ghim nhãn vào phần bên phải của ô và cho co chữ.
+    /// </summary>
+    private void FitQuantityLabel(TMPro.TMP_Text label)
+    {
+        var rt = label.transform as RectTransform;
+        if (rt != null)
+        {
+            // Stretch ngang: từ sau khung icon (80) tới sát mép phải ô.
+            rt.anchorMin = new Vector2(0f, 0.5f);
+            rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = new Vector2(82f, -20f);
+            rt.offsetMax = new Vector2(-6f, 20f);
+        }
+
+        label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+        label.overflowMode = TMPro.TextOverflowModes.Overflow;
+        label.alignment = TMPro.TextAlignmentOptions.Left;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 12f;
+        label.fontSizeMax = 30f;
     }
 
     private void UpdateEnergyCostLabel()
@@ -784,14 +889,31 @@ public class UIPartyPanel : MonoBehaviour
 
     private void OnExitClick()
     {
+        var party = PartyLobby.Local;
+
         // Leaving the panel while in a party leaves the party too.
-        if (PartyLobby.Local != null)
+        if (party != null)
         {
+            // Đọc vai trò TRƯỚC khi rời: LeaveParty() despawn đối tượng party ngay trong
+            // frame này, Despawned() gán PartyLobby.Local = null, nên đọc lại
+            // PartyLobby.Local.IsLocalHost SAU lời gọi sẽ ném NullReferenceException và
+            // ăn luôn Close() phía dưới — panel của host kẹt lại trên màn hình.
+            bool wasHost = party.IsLocalHost;
+            int otherMembers = Mathf.Max(0, party.MemberCount - 1);
+
             PartyService.LeaveParty();
 
-            // Only show "expedition cancelled" message to party members, not the host.
-            // Close the party panel regardless of role.
-            if (!PartyLobby.Local.IsLocalHost)
+            if (wasHost)
+            {
+                // Host đóng party = GIẢI TÁN cả nhóm (PartyLobby.LeaveAsHost), không phải
+                // đuổi từng người. Thành viên nhận thông báo riêng qua
+                // PlayerPresence.OnPartyDisbanded; ở đây chỉ xác nhận lại cho host.
+                if (otherMembers > 0)
+                {
+                    UIPopupBox.Notify(transform, "Party", "You disbanded the party.");
+                }
+            }
+            else
             {
                 UIPopupBox.Notify(transform, "Notice", "Dungeon expedition cancelled.");
             }
@@ -954,7 +1076,10 @@ public class UIPartyPanel : MonoBehaviour
         GameObject textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(row.transform, false);
         TextMeshProUGUI txt = textObj.GetComponent<TextMeshProUGUI>();
-        txt.text = $"👤 {friend.FriendName} (Lv.{friend.FriendLevel} {friend.Class})";
+        // Không prefix emoji: text object này tạo runtime nên dùng font mặc định của TMP
+        // (LiberationSans SDF), vốn không có glyph emoji và TMP Settings không khai fallback —
+        // emoji sẽ thành ô vuông □ kèm warning mỗi lần danh sách bạn render.
+        txt.text = $"{friend.FriendName} (Lv.{friend.FriendLevel} {friend.Class})";
         txt.fontSize = 12;
         txt.color = Color.white;
         txt.alignment = TextAlignmentOptions.MidlineLeft;

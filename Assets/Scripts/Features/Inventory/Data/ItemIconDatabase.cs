@@ -32,6 +32,10 @@ public class ItemIconDatabase : MonoBehaviour
         }
 
         Instance = this;
+        // Unity chỉ nhận DontDestroyOnLoad trên root GameObject. Object này là con của
+        // "Managers" trong Main.unity, nên phải detach trước — không thì nó bị destroy
+        // khi đổi map và mọi GetIcon() sau đó ném NullReference.
+        transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
         BuildCache();
     }
