@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
@@ -60,7 +61,7 @@ namespace MysticJourney.Features.Monster
                 }
                 else
                 {
-                    _spriteRenderer.sprite = CreateProceduralSprite(type);
+                    _spriteRenderer.sprite = GetProceduralSprite(type);
                 }
 
                 _spriteRenderer.color = Color.white;
@@ -88,13 +89,10 @@ namespace MysticJourney.Features.Monster
                 _spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
             }
 
-            var col = GetComponent<Collider2D>();
-            if (col == null)
-            {
-                var circle = gameObject.AddComponent<CircleCollider2D>();
-                circle.isTrigger = true;
-                circle.radius = 0.5f;
-            }
+            // Không thêm Collider2D: việc nhặt xét bằng khoảng cách (collectDistance), không có
+            // OnTriggerEnter2D nào ở đây. Collider tĩnh mà di chuyển mỗi frame buộc physics
+            // rebuild broadphase, và còn lọt vào các OverlapCircleAll không dùng layer mask
+            // của skill (LightsaberSkill, ProtectiveShieldSkill...) thành hit rác.
         }
 
         private IEnumerator PopAnimationSequence(Vector3 landPos)
@@ -147,7 +145,8 @@ namespace MysticJourney.Features.Monster
                 transform.position = Vector3.MoveTowards(transform.position, targetPos, magnetSpeed * Time.deltaTime);
 
                 // Khi đến gần người chơi -> Nhặt thành công!
-                if (Vector3.Distance(transform.position, targetPos) <= collectDistance)
+                // So sánh bình phương để tránh sqrt cho từng drop ở mỗi frame.
+                if ((transform.position - targetPos).sqrMagnitude <= collectDistance * collectDistance)
                 {
                     CollectItem();
                     return;
@@ -163,14 +162,38 @@ namespace MysticJourney.Features.Monster
             }
         }
 
+        // Player được share giữa mọi drop: ưu tiên NetworkPlayer.Local (nguồn local-player
+        // chuẩn); FindWithTag chỉ còn fallback có throttle khi player chưa spawn xong.
+        private static Transform _sharedPlayer;
+        private static int _nextPlayerSearchFrame;
+
         private void FindPlayer()
         {
             if (_playerTransform != null && _playerTransform.gameObject.activeInHierarchy) return;
 
+            if (_sharedPlayer != null && _sharedPlayer.gameObject.activeInHierarchy)
+            {
+                _playerTransform = _sharedPlayer;
+                return;
+            }
+
+            // NetworkPlayer.Local là nguồn local-player chuẩn; FindWithTag chỉ là fallback khi
+            // player đang được spawn. Giới hạn fallback còn 4 lần/giây thay vì mỗi frame.
+            if (NetworkPlayer.Local != null && NetworkPlayer.Local.gameObject.activeInHierarchy)
+            {
+                _sharedPlayer = NetworkPlayer.Local.transform;
+                _playerTransform = _sharedPlayer;
+                return;
+            }
+
+            if (Time.frameCount < _nextPlayerSearchFrame) return;
+            _nextPlayerSearchFrame = Time.frameCount + 15;
+
             var player = GameObject.FindWithTag("Player");
             if (player != null)
             {
-                _playerTransform = player.transform;
+                _sharedPlayer = player.transform;
+                _playerTransform = _sharedPlayer;
             }
         }
 
@@ -211,33 +234,29 @@ namespace MysticJourney.Features.Monster
             // Server đã cộng vàng/exp/vật phẩm trong transaction của /monsters/{id}/defeat.
             // Ở đây chỉ đọc lại số liệu để UI khớp — không gửi gì lên nữa, vì client không có
             // thẩm quyền quyết định phần thưởng.
-            if (dropType == DropPickupType.Gold || dropType == DropPickupType.Exp)
-            {
-                // RefreshHUD (không phải ForceRefreshHUD) để cờ _isRefreshing gộp được các
-                // pickup rơi liên tiếp thành một lần gọi API.
-                if (PlayerHUDController.Instance != null)
-                {
-                    PlayerHUDController.Instance.RefreshHUD();
-                }
-            }
-            else
-            {
-                InventoryManager.RefreshAny(refreshStats: true);
-
-                var skillPanel = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
-                if (skillPanel != null)
-                {
-                    skillPanel.RefreshStoneCount();
-                }
-
-                var skillPopup = FindFirstObjectByType<SkillPopup>(FindObjectsInactive.Include);
-                if (skillPopup != null && skillPopup.gameObject.activeInHierarchy)
-                {
-                    skillPopup.AutoBindComponents();
-                }
-            }
+            //
+            // Một con quái rơi nhiều món và cả loạt được hút về người chơi trong vài frame, nên
+            // refresh ngay tại đây = N lần gọi API + N lần rebuild UI dồn vào một chỗ (đo được
+            // ~1.6ms chỉ riêng 2 FindFirstObjectByType mỗi món). Gộp về 1 lần qua manager.
+            MonsterDropVisualManager.Instance.RequestRewardRefresh(
+                inventoryAndSkill: dropType != DropPickupType.Gold && dropType != DropPickupType.Exp);
 
             Destroy(gameObject);
+        }
+
+        // Sprite dự phòng khi không tìm được icon: cache theo type vì Destroy(gameObject) KHÔNG
+        // giải phóng Texture2D tạo bằng new — mỗi drop trước đây rò rỉ một texture 32x32.
+        private static readonly Dictionary<DropPickupType, Sprite> _proceduralCache =
+            new Dictionary<DropPickupType, Sprite>();
+
+        private Sprite GetProceduralSprite(DropPickupType type)
+        {
+            if (_proceduralCache.TryGetValue(type, out var cached) && cached != null)
+                return cached;
+
+            var sprite = CreateProceduralSprite(type);
+            _proceduralCache[type] = sprite;
+            return sprite;
         }
 
         private Sprite CreateProceduralSprite(DropPickupType type)

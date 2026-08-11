@@ -782,11 +782,28 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         popupQueue.Enqueue(new PopupData { announce = announce, kind = kind, inferKind = inferKind });
 
-        if (!isProcessingPopupQueue)
+        // QuestVideoManager tắt cả QuestTracker (GameObject chứa script này) trong lúc chiếu video,
+        // nên không thể StartCoroutine ở đây. Cứ để popup nằm trong queue — OnEnable sẽ chạy tiếp
+        // khi QuestTracker được bật lại sau video.
+        if (!isProcessingPopupQueue && gameObject.activeInHierarchy)
         {
             if (popupRoutine != null) StopCoroutine(popupRoutine);
             popupRoutine = StartCoroutine(ProcessPopupQueue());
         }
+    }
+
+    private void OnEnable()
+    {
+        if (!isProcessingPopupQueue && popupQueue.Count > 0)
+            popupRoutine = StartCoroutine(ProcessPopupQueue());
+    }
+
+    private void OnDisable()
+    {
+        // Unity giết coroutine khi GameObject bị tắt, nhưng cờ vẫn đang bật -> OnEnable sẽ
+        // không chạy lại và MỌI popup sau đó im lặng. Reset để lần bật lại xử lý tiếp queue.
+        isProcessingPopupQueue = false;
+        popupRoutine = null;
     }
 
     private IEnumerator ProcessPopupQueue()

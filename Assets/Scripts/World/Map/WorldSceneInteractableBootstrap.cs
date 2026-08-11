@@ -27,7 +27,17 @@ public static class WorldSceneInteractableBootstrap
         for (int i = interactables.Count - 1; i >= 0; i--)
         {
             var item = interactables[i];
-            if (item != null && item.gameObject.scene == scene && (item.gameObject.name.Contains("Skeleton") || item.DisplayName == "Skeleton"))
+            if (item == null || item.gameObject.scene != scene)
+                continue;
+
+            // Q36's fourth Warden Relic uses the decorative Skeleton_b prop, not an enemy.
+            // ponytail: Remove the name fallback once quest items are identified before this cleanup by tag or kind.
+            if (item.gameObject.CompareTag("QuestItem") ||
+                item.Kind == WorldInteractableKind.QuestItem ||
+                item.gameObject.name.StartsWith("Warden Relic", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (item.gameObject.name.Contains("Skeleton") || item.DisplayName == "Skeleton")
             {
                 UnityEngine.Object.Destroy(item); // Xóa component bị gán nhầm
             }
