@@ -1675,14 +1675,7 @@ public class PlayerHUDController : MonoBehaviour
         _isDeathPopupShowing = false;
         if (deathPopupPanel != null)
         {
-            if (MysticJourney.UI.UIPopupManager.Instance != null && deathPopupPanel == MysticJourney.UI.UIPopupManager.Instance.PopupContainer)
-            {
-                MysticJourney.UI.UIPopupManager.Instance.HidePopup();
-            }
-            else
-            {
-                deathPopupPanel.SetActive(false);
-            }
+            deathPopupPanel.SetActive(false);
         }
         if (_deathRedOverlay != null)
         {
@@ -1748,12 +1741,8 @@ public class PlayerHUDController : MonoBehaviour
                 onConfirm: OnAgainClicked,
                 onCancel: OnQuitClicked,
                 confirmText: "Again",
-                cancelText: "Quit",
-                autoClose: false
+                cancelText: "Quit"
             );
-            
-            deathPopupPanel = MysticJourney.UI.UIPopupManager.Instance.PopupContainer;
-            btnAgain = MysticJourney.UI.UIPopupManager.Instance.BtnConfirm;
         }
     }
 

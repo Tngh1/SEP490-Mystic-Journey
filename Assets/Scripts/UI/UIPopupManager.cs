@@ -42,9 +42,6 @@ namespace MysticJourney.UI
         [Header("Background Blocker")]
         [SerializeField] private Button btnBackgroundBlocker;
 
-        public GameObject PopupContainer => popupContainer;
-        public Button BtnConfirm => btnConfirm;
-
         private Action onConfirmAction;
         private Action onCancelAction;
 
@@ -76,22 +73,18 @@ namespace MysticJourney.UI
         /// <summary>
         /// Hiện bảng thông báo (chỉ có nút OK). 
         /// </summary>
-        public void ShowAlert(string title, string message, Action onOk = null, string okText = "OK", bool autoClose = true)
+        public void ShowAlert(string title, string message, Action onOk = null, string okText = "OK")
         {
-            _autoClose = autoClose;
             SetupPopup(title, message, okText, "", onOk, null, showCancelButton: false);
         }
 
         /// <summary>
         /// Hiện bảng xác nhận (có nút Yes/No).
         /// </summary>
-        public void ShowConfirm(string title, string message, Action onConfirm, Action onCancel = null, string confirmText = "Yes", string cancelText = "No", bool autoClose = true)
+        public void ShowConfirm(string title, string message, Action onConfirm, Action onCancel = null, string confirmText = "Yes", string cancelText = "No")
         {
-            _autoClose = autoClose;
             SetupPopup(title, message, confirmText, cancelText, onConfirm, onCancel, showCancelButton: true);
         }
-
-        private bool _autoClose = true;
 
         private void SetupPopup(string title, string message, string confirmText, string cancelText, Action onConfirm, Action onCancel, bool showCancelButton)
         {
@@ -162,21 +155,18 @@ namespace MysticJourney.UI
 
         private void OnConfirmClicked()
         {
-            if (_autoClose)
-            {
-                if (popupContainer != null) popupContainer.SetActive(false);
-                if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
-            }
+            if (popupContainer != null) popupContainer.SetActive(false);
+            if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
+            // Không nên tắt cả gameObject nếu UIPopupManager nằm chung Canvas với UI khác
+            // gameObject.SetActive(false); 
             onConfirmAction?.Invoke();
         }
 
         private void OnCancelClicked()
         {
-            if (_autoClose)
-            {
-                if (popupContainer != null) popupContainer.SetActive(false);
-                if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
-            }
+            if (popupContainer != null) popupContainer.SetActive(false);
+            if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
+            // gameObject.SetActive(false);
             onCancelAction?.Invoke();
         }
     }
