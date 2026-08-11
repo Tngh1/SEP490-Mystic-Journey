@@ -688,7 +688,7 @@ public class GachaUIManager : MonoBehaviour
             {
                 ShowResultPopup(result);
                 LoadUserTicketCount();
-                InventoryManager.RefreshAny(refreshStats: false);
+                InventoryManager.RefreshAny(refreshStats: true);
             },
             onError: (error) =>
             {

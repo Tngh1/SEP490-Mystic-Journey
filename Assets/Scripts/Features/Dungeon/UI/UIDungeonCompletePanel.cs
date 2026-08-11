@@ -182,7 +182,8 @@ namespace MysticJourney.Features.Dungeon.UI
             // chung cho mọi lỗi claim nên không phân biệt được trường hợp thiếu năng lượng.
             if (error.Message != null && error.Message.Contains("Insufficient energy"))
             {
-                MysticJourney.UI.UIPopupManager.Instance?.ShowAlert(
+                UIPopupBox.Notify(
+                    transform,
                     "Not Enough Energy",
                     "You don't have enough energy to claim this chest.\n\n" +
                     "Energy regenerates over time — come back and clear the dungeon again once it has refilled.");

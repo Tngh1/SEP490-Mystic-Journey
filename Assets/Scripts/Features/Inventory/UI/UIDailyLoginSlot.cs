@@ -38,6 +38,9 @@ public class UIDailySlot : UIBaseItemSlot
         if (dayText != null)
             dayText.text = "Day " + data.dayNumber;
 
+        if (quantityText != null)
+            quantityText.text = data.quantity > 1 ? data.quantity.ToString() : string.Empty;
+
         // Trạng thái đã nhận thưởng
         if (claimedOverlay != null)
             claimedOverlay.SetActive(data.isClaimed);

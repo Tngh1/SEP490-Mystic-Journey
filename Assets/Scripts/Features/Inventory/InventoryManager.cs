@@ -198,7 +198,7 @@ public class InventoryManager : MonoBehaviour
                 SetLoading(false);
                 if (response == null)
                 {
-                    SetError("Không tải được dữ liệu inventory.");
+                    SetError("Failed to load inventory data.");
                     return;
                 }
 
@@ -212,7 +212,7 @@ public class InventoryManager : MonoBehaviour
             {
                 _requestInFlight = false;
                 SetLoading(false);
-                SetError($"Lỗi tải inventory: {error.Message}");
+                SetError($"Failed to load inventory: {error.Message}");
                 Debug.LogError($"[InventoryManager] LoadInventory FAIL: {error.Message}");
             }
         );
@@ -297,7 +297,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ EquipItem FAIL: {error.Message}");
-                ShowActionError($"Equip thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Equip failed.");
             }
         );
     }
@@ -390,7 +390,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ UnequipItem FAIL: {error.Message}");
-                ShowActionError($"Unequip thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip failed.");
             }
         );
     }
@@ -432,7 +432,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ ConsumeItem FAIL: {error.Message}");
-                ShowActionError($"Dùng item thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Item use failed.");
             }
         );
     }
@@ -457,7 +457,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ EquipSkin FAIL: {error.Message}");
-                ShowActionError($"Equip skin thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Equip skin failed.");
             }
         );
     }
@@ -481,7 +481,7 @@ public class InventoryManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError($"[InventoryManager] ❌ UnequipSkin FAIL: {error.Message}");
-                ShowActionError($"Unequip skin thất bại: {error.Message}");
+                ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip skin failed.");
             }
         );
     }
@@ -598,14 +598,14 @@ public class InventoryManager : MonoBehaviour
         
         string sortModeName = _currentSortIndex switch
         {
-            0 => "Mới nhất (Latest)",
-            1 => "Độ hiếm: Cao -> Thấp",
-            2 => "Độ hiếm: Thấp -> Cao",
-            _ => "Mặc định"
+            0 => "Latest",
+            1 => "Rarity: High -> Low",
+            2 => "Rarity: Low -> High",
+            _ => "Default"
         };
         
         Debug.Log($"[InventoryManager] Switched Sort Mode to: {sortModeName}");
-        SetError($"Sắp xếp: {sortModeName}");
+        SetError($"Sorted by: {sortModeName}");
         
         RefreshCurrentTab();
     }
@@ -1237,8 +1237,8 @@ public class InventoryManager : MonoBehaviour
 
         // errorText không được gán trong Main.unity (errorText: {fileID: 0}), nên SetError là
         // no-op và mọi lỗi hành động — kể cả "HP đã đầy" khi uống bình máu — chỉ hiện trong
-        // Console. Đẩy qua popup dùng chung để người chơi thật sự thấy.
-        MysticJourney.UI.UIPopupManager.Instance?.ShowAlert("Notice", msg);
+        // Console. Đẩy qua UIPopupBox dùng chung của UI designer để người chơi thật sự thấy.
+        UIPopupBox.Notify(transform, "Notice", msg);
     }
 
     private void LoadPlayerStats()

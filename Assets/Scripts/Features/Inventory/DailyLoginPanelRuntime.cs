@@ -114,8 +114,10 @@ public class DailyLoginPanelRuntime : MonoBehaviour
             return;
 
         int m = (status != null && status.CurrentMonth > 0) ? status.CurrentMonth : DateTime.UtcNow.Month;
-        int y = (status != null && status.CurrentYear > 0) ? status.CurrentYear : DateTime.UtcNow.Year;
-        monthsText.text = $"Month {m}/{y}";
+        int validMonth = Mathf.Clamp(m, 1, 12);
+        string monthName = System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(validMonth);
+
+        monthsText.text = monthName;
     }
 
     private void Render()
