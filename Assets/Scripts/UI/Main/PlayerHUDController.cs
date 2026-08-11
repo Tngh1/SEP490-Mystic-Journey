@@ -20,6 +20,9 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text expText;
     [SerializeField] private Image hpBarImage;
     [SerializeField] private TMP_Text hpText;
+    [SerializeField] private Image hpGlowImage;
+    [SerializeField] private Color healGlowColor = new Color(0.96f, 0.42f, 0.52f, 0.40f); // Soft Rose-Ruby Glow - Gentle & Soothing Aura Tint
+    [SerializeField] private float hpFillAnimDuration = 0.4f;
     [SerializeField] private TMP_Text energyText;
     [SerializeField] private TMP_Text goldText;
     [SerializeField] private TMP_Text gemText;
@@ -66,6 +69,25 @@ public class PlayerHUDController : MonoBehaviour
     private bool _isRefreshing;
     private bool _isCurrencyRefreshing;
 
+    private int _lastHp = -1;
+    private int _lastMaxHp = -1;
+    private bool _isHpInitialized = false;
+    private Coroutine _hpFillCoroutine;
+    private Coroutine _hpGlowCoroutine;
+    private Vector3 _hpBarOriginalScale = Vector3.one;
+    private Transform _hpBarContainer;
+
+    /// <summary>
+    /// Cached currency balance — updated every time the HUD receives a fresh balance
+    /// from the API. Used by UIConfirmPurchase to cap "Max" quantity to what the
+    /// player can actually afford without making a separate API call.
+    /// </summary>
+    public static decimal CachedGold { get; private set; } = -1m;
+    public static decimal CachedGems { get; private set; } = -1m;
+
+    public int CurrentHp => _lastHp >= 0 ? _lastHp : (PlayerEntity.Instance != null ? PlayerEntity.Instance.CurrentHealth : 0);
+    public int MaxHp => _lastMaxHp > 0 ? _lastMaxHp : (PlayerEntity.Instance != null ? PlayerEntity.Instance.MaxHealth : 0);
+
     // MenuButton (Toggle) trong Left: bấm để hiện/ẩn các nút còn lại cho gọn màn hình.
     // Dùng CanvasGroup trên Left để bật/tắt cả cụm — KHÔNG đụng SetActive của các nút, vì
     // visibility từng nút do 2 hệ level-gate độc lập quản (ApplyLevelGating +
@@ -93,8 +115,12 @@ public class PlayerHUDController : MonoBehaviour
         FindHUDReferences();
     }
 
+    private float _hudEnableTime = 0f;
+
     private void OnEnable()
     {
+        _hudEnableTime = Time.unscaledTime;
+        _isHpInitialized = false;
         StartHUDLoop();
         if (levelUpButton != null)
         {
@@ -204,6 +230,7 @@ public class PlayerHUDController : MonoBehaviour
         // sprite in the scene doesn't silently render the bar permanently full.
         MakeHorizontalFill(expBarImage);
         MakeHorizontalFill(hpBarImage);
+        SetupHpGlowImage();
         if (hpText == null) hpText = transform.Find("TopBar/Button/HPBar/HPNumber")?.GetComponent<TMP_Text>();
         if (energyText == null)
         {
@@ -562,6 +589,12 @@ public class PlayerHUDController : MonoBehaviour
 
         if (energyText != null)
         {
+            if (_lastEnergy >= 0 && profile.Energy > _lastEnergy)
+            {
+                // Energy tăng -> Tỏa Hào Quang Xanh Lục Bảo (#14FA70) + Phóng to 10% êm mắt
+                TriggerResourceGlowEffect(energyText, new Color(0.08f, 0.98f, 0.44f, 1.0f), "EnergyGlowAura");
+            }
+            _lastEnergy = profile.Energy;
             energyText.text = profile.Energy + "/" + profile.MaxEnergy;
         }
 
@@ -632,11 +665,40 @@ public class PlayerHUDController : MonoBehaviour
 
     private void UpdateStatsUI(int currentHp, int maxHp)
     {
-        float hpRatio = maxHp > 0 ? (float)currentHp / maxHp : 0f;
+        if (maxHp <= 0) return;
+
+        float targetRatio = Mathf.Clamp01((float)currentHp / (float)maxHp);
+        // Tính previousFill dựa trên _lastHp & _lastMaxHp trước đó để đảm bảo luôn chênh lệch mốc chuẩn
+        float previousFill = (_lastMaxHp > 0 && _lastHp >= 0 && _isHpInitialized) ? Mathf.Clamp01((float)_lastHp / (float)_lastMaxHp) : targetRatio;
+
+        // Guard: 2.5s đầu tiên sau khi Login/bật HUD là thời gian đồng bộ dữ liệu ban đầu từ Server.
+        bool isGracePeriod = (Time.unscaledTime - _hudEnableTime) < 2.5f;
+        bool isDamageHit = _isHpInitialized && !isGracePeriod && (currentHp < _lastHp);
+        bool isHeal = _isHpInitialized && !isGracePeriod && (currentHp > _lastHp);
+
+        if (_isHpInitialized && !isGracePeriod)
+        {
+            if (isHeal)
+            {
+                TriggerHealGlowEffect();
+            }
+            else if (isDamageHit)
+            {
+                TriggerDamagePulseEffect(); // Chỉ co nảy ngọn thanh HP ở bên phải, không dùng bất kỳ Hào quang viền đỏ nào
+            }
+        }
+        else
+        {
+            _isHpInitialized = true;
+        }
+
+        _lastHp    = currentHp;
+        _lastMaxHp = maxHp;
 
         if (hpBarImage != null)
         {
-            hpBarImage.fillAmount = Mathf.Clamp01(hpRatio);
+            if (_hpFillCoroutine != null) StopCoroutine(_hpFillCoroutine);
+            _hpFillCoroutine = StartCoroutine(AnimateHpFill(targetRatio, previousFill, isDamageHit, isGracePeriod));
         }
 
         if (hpText != null)
@@ -645,8 +707,305 @@ public class PlayerHUDController : MonoBehaviour
         }
     }
 
+    [SerializeField] private Image hpDamageCatchupImage;
+
+    private void SetupHpGlowImage()
+    {
+        if (hpBarImage == null) return;
+
+        if (_hpBarContainer == null)
+        {
+            _hpBarContainer = hpBarImage.transform.parent;
+            if (_hpBarContainer != null && _hpBarOriginalScale == Vector3.one)
+            {
+                _hpBarOriginalScale = _hpBarContainer.localScale;
+            }
+        }
+
+        // Tạo 2nd Layer: Lớp Máu Đuổi Sát Thương (Khớp 100% hình dáng & vị trí nội bộ của hpBarImage)
+        if (hpDamageCatchupImage == null && hpBarImage != null && hpBarImage.transform.parent != null)
+        {
+            Transform parent = hpBarImage.transform.parent;
+            var catchupTr = parent.Find("HPDamageCatchup");
+            if (catchupTr != null)
+            {
+                hpDamageCatchupImage = catchupTr.GetComponent<Image>();
+            }
+            else
+            {
+                GameObject catchupObj = new GameObject("HPDamageCatchup", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                catchupObj.transform.SetParent(parent, false);
+                
+                // Đặt ngay phía sau hpBarImage (Thấp hơn 1 bậc sibling)
+                int hpBarIndex = hpBarImage.transform.GetSiblingIndex();
+                catchupObj.transform.SetSiblingIndex(Mathf.Max(0, hpBarIndex));
+
+                hpDamageCatchupImage = catchupObj.GetComponent<Image>();
+            }
+        }
+
+        if (hpDamageCatchupImage != null && hpBarImage != null)
+        {
+            RectTransform barRt = hpBarImage.GetComponent<RectTransform>();
+            RectTransform catchupRt = hpDamageCatchupImage.GetComponent<RectTransform>();
+            if (barRt != null && catchupRt != null)
+            {
+                catchupRt.anchorMin = barRt.anchorMin;
+                catchupRt.anchorMax = barRt.anchorMax;
+                // Thụt lùi 4px bên phải và 2px trên dưới để dải máu trắng nằm gọn 100% trong lòng khung HP
+                catchupRt.offsetMin = new Vector2(barRt.offsetMin.x + 2f, barRt.offsetMin.y + 2f);
+                catchupRt.offsetMax = new Vector2(barRt.offsetMax.x - 4f, barRt.offsetMax.y - 2f);
+                catchupRt.pivot     = barRt.pivot;
+            }
+
+            hpDamageCatchupImage.sprite = GetSolidWhiteSprite();
+            hpDamageCatchupImage.type = Image.Type.Filled;
+            hpDamageCatchupImage.fillMethod = hpBarImage.fillMethod;
+            hpDamageCatchupImage.fillOrigin = hpBarImage.fillOrigin;
+            hpDamageCatchupImage.raycastTarget = false;
+            hpDamageCatchupImage.color = new Color(1.00f, 1.00f, 1.00f, 0.95f); // Màu TRẮNG TINH 100% rực rỡ nổi bật cực kỳ dễ nhìn
+            MakeHorizontalFill(hpDamageCatchupImage);
+        }
+
+        // Tạo Hào Quang Tỏa Ra Từ Viền Khung UI (Soft Gacha-style Frame Aura Radiating Outward)
+        if (hpGlowImage == null && _hpBarContainer != null)
+        {
+            var glowTr = _hpBarContainer.Find("HPFrameAura") ?? _hpBarContainer.Find("HPGlow");
+            if (glowTr != null)
+            {
+                hpGlowImage = glowTr.GetComponent<Image>();
+            }
+            else
+            {
+                GameObject glowObj = new GameObject("HPFrameAura", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                glowObj.transform.SetParent(_hpBarContainer, false);
+                glowObj.transform.SetAsFirstSibling();
+
+                RectTransform rect = glowObj.GetComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(-16, -16);
+                rect.offsetMax = new Vector2(16, 16);
+
+                hpGlowImage = glowObj.GetComponent<Image>();
+            }
+        }
+
+        if (hpGlowImage != null)
+        {
+            // Luôn dùng Sprite Hào Quang Loang Nhẹ Kiểu Gacha (GetSoftAuraSprite) để viền mượt mà, không bị thô
+            hpGlowImage.sprite = GetSoftAuraSprite();
+            hpGlowImage.type = Image.Type.Sliced;
+            hpGlowImage.raycastTarget = false;
+            if (hpGlowImage.color.a <= 0.01f)
+            {
+                hpGlowImage.color = new Color(healGlowColor.r, healGlowColor.g, healGlowColor.b, 0f);
+            }
+        }
+    }
+
+    private Coroutine _hpScalePulseCoroutine;
+
+    public void TriggerHealGlowEffect()
+    {
+        if (hpBarImage == null) return;
+        SetupHpGlowImage();
+
+        if (_hpGlowCoroutine != null) StopCoroutine(_hpGlowCoroutine);
+        _hpGlowCoroutine = StartCoroutine(HealGlowRoutine());
+    }
+
+    public void TriggerDamagePulseEffect()
+    {
+        if (hpBarImage == null) return;
+        SetupHpGlowImage();
+
+        if (_hpScalePulseCoroutine != null) StopCoroutine(_hpScalePulseCoroutine);
+        _hpScalePulseCoroutine = StartCoroutine(DamagePulseRoutine());
+    }
+
+    private IEnumerator DamagePulseRoutine()
+    {
+        if (hpBarImage == null) yield break;
+
+        float duration = 0.35f;
+        float elapsed = 0f;
+
+        // Ép Pivot về góc bên trái (0.0, 0.5)
+        // -> Phía bên trái dính liền Avatar CỐ ĐỊNH 100%, chỉ nảy co rút nhẹ ở ngọn đầu bên phải thanh HP
+        RectTransform barRt = hpBarImage.GetComponent<RectTransform>();
+        RectTransform catchupRt = hpDamageCatchupImage != null ? hpDamageCatchupImage.GetComponent<RectTransform>() : null;
+
+        Vector2 origPivot = barRt != null ? barRt.pivot : new Vector2(0f, 0.5f);
+        if (barRt != null) barRt.pivot = new Vector2(0f, 0.5f);
+        if (catchupRt != null) catchupRt.pivot = new Vector2(0f, 0.5f);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            float sin = Mathf.Sin(t * Mathf.PI);
+
+            // Co nảy 8% ở ngọn đầu bên phải
+            float scaleX = 1f - (sin * 0.08f);
+
+            if (barRt != null) barRt.localScale = new Vector3(scaleX, 1f, 1f);
+            if (catchupRt != null) catchupRt.localScale = new Vector3(scaleX, 1f, 1f);
+
+            yield return null;
+        }
+
+        if (barRt != null)
+        {
+            barRt.localScale = Vector3.one;
+            barRt.pivot = origPivot;
+        }
+        if (catchupRt != null)
+        {
+            catchupRt.localScale = Vector3.one;
+            catchupRt.pivot = origPivot;
+        }
+    }
+
+    private IEnumerator AnimateHpFill(float targetFill, float previousFill, bool isDamageHit, bool isGracePeriod)
+    {
+        if (hpBarImage == null) yield break;
+        SetupHpGlowImage();
+
+        // Nếu mới vào game / Login trong 2.5s đầu: Gán thẳng mốc HP chuẩn cho cả Máu Đỏ và Máu Trắng
+        if (isGracePeriod || !_isHpInitialized)
+        {
+            hpBarImage.fillAmount = targetFill;
+            if (hpDamageCatchupImage != null)
+            {
+                hpDamageCatchupImage.fillAmount = targetFill;
+            }
+            yield break;
+        }
+
+        // Nếu bị đánh mất HP (Damage hit): Máu Đỏ tụt ngay lập tức, Máu Truy Đổi phản ứng tức thì không bị trễ
+        if (isDamageHit || previousFill > targetFill + 0.005f)
+        {
+            if (hpDamageCatchupImage != null)
+            {
+                hpDamageCatchupImage.fillAmount = previousFill; // Giữ mốc máu cũ 100% rõ ràng
+                hpDamageCatchupImage.gameObject.SetActive(true);
+            }
+
+            hpBarImage.fillAmount = targetFill; // Máu chính tụt ngay lập tức
+
+            if (hpDamageCatchupImage != null)
+            {
+                // Phản ứng tức thì (chỉ nghỉ 0.05s siêu mượt)
+                yield return new WaitForSeconds(0.05f);
+
+                float catchupStart = hpDamageCatchupImage.fillAmount;
+                float duration = 0.35f;
+                float elapsed = 0f;
+
+                while (elapsed < duration)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                    hpDamageCatchupImage.fillAmount = Mathf.Lerp(catchupStart, targetFill, t);
+                    yield return null;
+                }
+
+                hpDamageCatchupImage.fillAmount = targetFill;
+            }
+        }
+        else
+        {
+            // Nếu HP tăng (Hồi máu): Máu Truy Đổi mở rộng trước, Máu chính lướt mượt lên theo
+            if (hpDamageCatchupImage != null)
+            {
+                hpDamageCatchupImage.fillAmount = targetFill;
+            }
+
+            float startFill = hpBarImage.fillAmount;
+            float duration = Mathf.Max(0.1f, hpFillAnimDuration);
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                hpBarImage.fillAmount = Mathf.Lerp(startFill, targetFill, t);
+                yield return null;
+            }
+
+            hpBarImage.fillAmount = targetFill;
+        }
+    }
+
+    private IEnumerator HealGlowRoutine()
+    {
+        if (hpBarImage == null) yield break;
+
+        float duration = 0.75f;
+        float elapsed = 0f;
+
+        RectTransform glowRt = hpGlowImage != null ? hpGlowImage.GetComponent<RectTransform>() : null;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float normalizedTime = elapsed / duration;
+            float sinPulse = Mathf.Sin(normalizedTime * Mathf.PI);
+
+            // Sóng Hào Quang Tỏa Rộng Mềm Mại Loang Nhẹ Kiểu Gacha (Soft Gacha Bloom Expansion)
+            float glowAlpha = sinPulse * healGlowColor.a;
+            float expandOffset = 16f + (sinPulse * 16f); // Tỏa mượt từ 16px ra ngoài 32px loang nhẹ mềm mại
+
+            if (hpGlowImage != null)
+            {
+                hpGlowImage.color = new Color(healGlowColor.r, healGlowColor.g, healGlowColor.b, glowAlpha);
+            }
+
+            if (glowRt != null)
+            {
+                glowRt.offsetMin = new Vector2(-expandOffset, -expandOffset);
+                glowRt.offsetMax = new Vector2(expandOffset, expandOffset);
+            }
+
+            yield return null;
+        }
+
+        if (hpGlowImage != null)
+        {
+            hpGlowImage.color = new Color(healGlowColor.r, healGlowColor.g, healGlowColor.b, 0f);
+        }
+
+        if (glowRt != null)
+        {
+            glowRt.offsetMin = new Vector2(-16f, -16f);
+            glowRt.offsetMax = new Vector2(16f, 16f);
+        }
+    }
+
+    private decimal _lastGold = -1m;
+    private decimal _lastGems = -1m;
+    private int _lastEnergy = -1;
+
     private void UpdateCurrencyUI(decimal gold, decimal gems)
     {
+        if (_lastGold >= 0m && gold > _lastGold && goldText != null)
+        {
+            // Vàng tăng -> Tỏa Hào Quang Vàng Thần Thánh (#FFD700) + Phóng to 10% êm mắt
+            TriggerResourceGlowEffect(goldText, new Color(1.00f, 0.84f, 0.15f, 1.0f), "GoldGlowAura");
+        }
+
+        if (_lastGems >= 0m && gems > _lastGems && gemText != null)
+        {
+            // Gem tăng -> Tỏa Hào Quang Kim Cương Cyan (#00E5FF) + Phóng to 10% êm mắt
+            TriggerResourceGlowEffect(gemText, new Color(0.00f, 0.90f, 1.00f, 1.0f), "GemGlowAura");
+        }
+
+        _lastGold = gold;
+        _lastGems = gems;
+        CachedGold = gold;
+        CachedGems = gems;
+
         if (goldText == null || gemText == null)
         {
             FindHUDReferences();
@@ -661,6 +1020,160 @@ public class PlayerHUDController : MonoBehaviour
         {
             gemText.text = FormatCurrencyAmount(gems);
         }
+    }
+
+    private static Sprite _solidWhiteSprite;
+
+    private static Sprite GetSolidWhiteSprite()
+    {
+        if (_solidWhiteSprite != null) return _solidWhiteSprite;
+
+        int sz = 64;
+        Texture2D tex = new Texture2D(sz, sz, TextureFormat.RGBA32, false)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear
+        };
+
+        Color32[] cols = new Color32[sz * sz];
+        float cornerRadius = 6f;
+
+        for (int y = 0; y < sz; y++)
+        {
+            for (int x = 0; x < sz; x++)
+            {
+                float dx = 0f;
+                float dy = 0f;
+
+                if (x < cornerRadius) dx = cornerRadius - x;
+                else if (x > sz - 1 - cornerRadius) dx = x - (sz - 1 - cornerRadius);
+
+                if (y < cornerRadius) dy = cornerRadius - y;
+                else if (y > sz - 1 - cornerRadius) dy = y - (sz - 1 - cornerRadius);
+
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                float alpha = dist > cornerRadius ? 0f : 1f;
+
+                cols[y * sz + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels32(cols);
+        tex.Apply();
+
+        _solidWhiteSprite = Sprite.Create(tex, new Rect(0, 0, sz, sz), new Vector2(0.5f, 0.5f), sz);
+        return _solidWhiteSprite;
+    }
+
+    private static Sprite _hudSoftAuraSprite;
+
+    private static Sprite GetSoftAuraSprite()
+    {
+        if (_hudSoftAuraSprite != null) return _hudSoftAuraSprite;
+
+        int w = 256;
+        int h = 96;
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear
+        };
+
+        Color32[] pixels = new Color32[w * h];
+        float borderWidth = 40f;
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float dx = Mathf.Max(0f, Mathf.Max(borderWidth - x, x - (w - 1 - borderWidth)));
+                float dy = Mathf.Max(0f, Mathf.Max(borderWidth - y, y - (h - 1 - borderWidth)));
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                // Smoothstep + Exponential falloff cho viền aura loang nhẹ cực kỳ mềm mại kiểu gacha
+                float norm = Mathf.Clamp01(dist / borderWidth);
+                float alpha = Mathf.SmoothStep(1f, 0f, norm);
+                alpha = Mathf.Pow(alpha, 1.6f);
+
+                pixels[y * w + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+
+        _hudSoftAuraSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(40, 40, 40, 40));
+        return _hudSoftAuraSprite;
+    }
+
+    private void TriggerResourceGlowEffect(TMP_Text targetText, Color auraColor, string glowName)
+    {
+        if (targetText == null) return;
+        Transform container = targetText.transform.parent;
+        if (container == null) container = targetText.transform;
+
+        StartCoroutine(ResourceGlowRoutine(container, targetText, auraColor, glowName));
+    }
+
+    private IEnumerator ResourceGlowRoutine(Transform container, TMP_Text targetText, Color auraColor, string glowName)
+    {
+        Vector3 origScale = container.localScale;
+        Color origTextColor = targetText.color;
+
+        Image glowImg = null;
+        Transform glowTr = container.Find(glowName);
+        if (glowTr != null)
+        {
+            glowImg = glowTr.GetComponent<Image>();
+        }
+        else
+        {
+            GameObject glowObj = new GameObject(glowName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            glowObj.transform.SetParent(container, false);
+            glowObj.transform.SetAsFirstSibling();
+
+            RectTransform rt = glowObj.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(-16, -16); // Hào quang tỏa 16px xung quanh ô tài nguyên
+            rt.offsetMax = new Vector2(16, 16);
+            rt.anchoredPosition = Vector2.zero;
+
+            glowImg = glowObj.GetComponent<Image>();
+            glowImg.sprite = GetSoftAuraSprite();
+            glowImg.type = Image.Type.Simple;
+            glowImg.raycastTarget = false;
+        }
+
+        float duration = 0.70f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            float sinPulse = Mathf.Sin(t * Mathf.PI);
+
+            // Phóng to nhẹ 10% và nhấp nháy hào quang sinh động
+            float scaleMultiplier = 1f + (sinPulse * 0.10f);
+            container.localScale = origScale * scaleMultiplier;
+
+            if (glowImg != null)
+            {
+                glowImg.color = new Color(auraColor.r, auraColor.g, auraColor.b, sinPulse * 0.95f);
+            }
+
+            targetText.color = Color.Lerp(origTextColor, auraColor, sinPulse * 0.75f);
+
+            yield return null;
+        }
+
+        if (glowImg != null)
+        {
+            glowImg.color = new Color(auraColor.r, auraColor.g, auraColor.b, 0f);
+        }
+        container.localScale = origScale;
+        targetText.color = origTextColor;
     }
 
     private static void ConfigureResourceText(TMP_Text text)

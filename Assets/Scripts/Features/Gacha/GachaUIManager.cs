@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using TMPro;
 using System.Collections.Generic;
 using MysticJourney.API.Endpoints;
@@ -85,6 +86,18 @@ public class GachaUIManager : MonoBehaviour
     public GameObject warningPopupPanel;
     public TextMeshProUGUI warningMessageText;
     public Button btnCloseWarning;
+
+    [Header("--- Gacha Video Animation ---")]
+    public VideoPlayer videoPlayer;
+    public RawImage videoRawImage;
+    public GameObject videoPanel;
+    public Button btnSkipVideo;
+    public VideoClip videoClipX1;
+    public VideoClip videoClipX10;
+
+    private System.Action _onVideoComplete;
+    private bool _isVideoPlaying;
+    private RenderTexture _videoTexture;
 
     [Header("--- Free Pull ---")]
     public TextMeshProUGUI freeCountdownText;
@@ -252,6 +265,17 @@ public class GachaUIManager : MonoBehaviour
         if (btnDetailPrevPage != null) btnDetailPrevPage.onClick.RemoveAllListeners();
         if (btnDetailNextPage != null) btnDetailNextPage.onClick.RemoveAllListeners();
         if (btnCloseWarning != null) btnCloseWarning.onClick.RemoveAllListeners();
+        if (btnSkipVideo != null) btnSkipVideo.onClick.RemoveAllListeners();
+    }
+
+    private void OnDestroy()
+    {
+        if (_videoTexture != null)
+        {
+            _videoTexture.Release();
+            Destroy(_videoTexture);
+            _videoTexture = null;
+        }
     }
 
     private void CloseMainPanel()
@@ -686,27 +710,307 @@ public class GachaUIManager : MonoBehaviour
         GachaApi.Instance.Pull(currentBannerId, amount, isFreePull,
             onSuccess: (result) =>
             {
-                ShowResultPopup(result);
-                LoadUserTicketCount();
-                InventoryManager.RefreshAny(refreshStats: true);
+                VideoClip clipToPlay = ResolveVideoClip(amount);
+                PlayGachaVideo(clipToPlay, () =>
+                {
+                    ShowResultPopup(result);
+                    LoadUserTicketCount();
+                    InventoryManager.RefreshAny(refreshStats: true);
+                });
             },
             onError: (error) =>
             {
                 Debug.LogWarning("[GachaUI] Pull failed: " + error.Message);
 
-                // Nếu có lỗi, hoàn lại lượt free (tuỳ logic, tạm thời có thể hoàn lại nếu server từ chối)
+                // Nếu có lỗi, hoàn lại lượt free
                 if (isFreePull)
                 {
                     PlayerPrefs.DeleteKey(LastFreePullKey);
                     PlayerPrefs.Save();
                 }
 
-                // 👇 HIỂN THỊ POPUP NẾU QUAY LỖI (Ví dụ: Server báo không đủ vé)
                 ShowWarningPopup("Not enough tickets or an error occurred!\n" + error.Message);
-
                 SetButtonsInteractable(true);
             }
         );
+    }
+
+    private VideoClip ResolveVideoClip(int amount)
+    {
+        VideoClip clip = (amount >= 10) ? videoClipX10 : videoClipX1;
+
+#if UNITY_EDITOR
+        if (clip == null)
+        {
+            string path = (amount >= 10) ? "Assets/UI/Videos/GachaX10.mp4" : "Assets/UI/Videos/GachaX1.mp4";
+            clip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>(path);
+        }
+#endif
+
+        if (clip == null)
+        {
+            string resName = (amount >= 10) ? "Videos/GachaX10" : "Videos/GachaX1";
+            clip = Resources.Load<VideoClip>(resName);
+        }
+
+        return clip;
+    }
+
+    private void PlayGachaVideo(VideoClip clip, System.Action onComplete)
+    {
+        if (clip == null)
+        {
+            Debug.LogWarning("[GachaUI] VideoClip is null, skipping video animation.");
+            onComplete?.Invoke();
+            return;
+        }
+
+        EnsureVideoComponents();
+
+        // Reparent videoPanel lên Canvas gốc của màn hình để đảm bảo tràn viền FULL SCREEN 100%
+        Canvas rootCanvas = GetComponentInParent<Canvas>();
+        if (rootCanvas == null)
+        {
+            foreach (var c in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            {
+                if (c.renderMode == RenderMode.ScreenSpaceOverlay || c.name.Equals("Canvas", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    rootCanvas = c;
+                    break;
+                }
+            }
+        }
+
+        if (rootCanvas != null && videoPanel != null)
+        {
+            if (videoPanel.transform.parent != rootCanvas.transform)
+            {
+                videoPanel.transform.SetParent(rootCanvas.transform, false);
+            }
+        }
+
+        if (videoPanel != null)
+        {
+            var canvasComp = videoPanel.GetComponent<Canvas>();
+            if (canvasComp == null) canvasComp = videoPanel.AddComponent<Canvas>();
+            canvasComp.overrideSorting = true;
+            canvasComp.sortingOrder = 9998;
+
+            if (videoPanel.GetComponent<GraphicRaycaster>() == null)
+                videoPanel.AddComponent<GraphicRaycaster>();
+
+            RectTransform rt = videoPanel.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+
+            videoPanel.transform.SetAsLastSibling();
+            videoPanel.SetActive(true);
+        }
+
+        if (_videoTexture != null)
+        {
+            _videoTexture.Release();
+            Destroy(_videoTexture);
+        }
+
+        // Tự động điều chỉnh độ phân giải RenderTexture theo video gốc hoặc màn hình máy người chơi
+        int texW = (clip != null && clip.width > 0) ? (int)clip.width : Screen.width;
+        int texH = (clip != null && clip.height > 0) ? (int)clip.height : Screen.height;
+        if (texW <= 0) texW = 1920;
+        if (texH <= 0) texH = 1080;
+
+        _videoTexture = new RenderTexture(texW, texH, 16, RenderTextureFormat.ARGB32);
+        _videoTexture.Create();
+
+        if (videoRawImage != null)
+        {
+            RectTransform rawRt = videoRawImage.GetComponent<RectTransform>();
+            rawRt.anchorMin = new Vector2(0.5f, 0.5f);
+            rawRt.anchorMax = new Vector2(0.5f, 0.5f);
+            rawRt.pivot = new Vector2(0.5f, 0.5f);
+            rawRt.anchoredPosition = Vector2.zero;
+            rawRt.sizeDelta = new Vector2(Screen.width, Screen.height);
+            rawRt.localScale = Vector3.one;
+
+            // AspectRatioFitter EnvelopeParent giúp video tự động co giãn vừa khít 100% mọi tỉ lệ màn hình
+            // (16:9, 16:10, 21:9 Ultrawide...) mà không bị méo hình hay hở viền đen
+            var fitter = videoRawImage.GetComponent<AspectRatioFitter>();
+            if (fitter == null) fitter = videoRawImage.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = (float)texW / (float)texH;
+
+            videoRawImage.texture = _videoTexture;
+            videoRawImage.color = Color.white;
+        }
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.targetTexture = _videoTexture;
+            videoPlayer.clip = clip;
+            videoPlayer.isLooping = false;
+            videoPlayer.playOnAwake = false;
+        }
+
+        if (videoRawImage != null)
+        {
+            videoRawImage.texture = _videoTexture;
+        }
+
+        _onVideoComplete = onComplete;
+        _isVideoPlaying = true;
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.loopPointReached -= OnVideoLoopPointReached;
+            videoPlayer.loopPointReached += OnVideoLoopPointReached;
+            videoPlayer.Play();
+        }
+        else
+        {
+            FinishGachaVideo();
+        }
+    }
+
+    private void OnVideoLoopPointReached(VideoPlayer vp)
+    {
+        FinishGachaVideo();
+    }
+
+    private void SkipGachaVideo()
+    {
+        FinishGachaVideo();
+    }
+
+    private void FinishGachaVideo()
+    {
+        if (!_isVideoPlaying && (videoPanel == null || !videoPanel.activeSelf)) return;
+        _isVideoPlaying = false;
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.loopPointReached -= OnVideoLoopPointReached;
+            videoPlayer.Stop();
+        }
+
+        if (videoPanel != null) videoPanel.SetActive(false);
+
+        var callback = _onVideoComplete;
+        _onVideoComplete = null;
+        callback?.Invoke();
+    }
+
+    private void EnsureVideoComponents()
+    {
+        if (videoPanel == null)
+        {
+            Transform found = transform.Find("VideoPanel") ?? transform.Find("GachaVideoPanel");
+            if (found != null)
+            {
+                videoPanel = found.gameObject;
+            }
+            else
+            {
+                videoPanel = new GameObject("GachaVideoPanel", typeof(RectTransform));
+                videoPanel.transform.SetParent(transform, false);
+            }
+        }
+
+        if (videoPanel != null)
+        {
+            // Bắt buộc Canvas con overrideSorting = 9998 phủ KÍN TOÀN MÀN HÌNH (Full Screen)
+            var canvas = videoPanel.GetComponent<Canvas>();
+            if (canvas == null) canvas = videoPanel.AddComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 9998;
+
+            if (videoPanel.GetComponent<GraphicRaycaster>() == null)
+                videoPanel.AddComponent<GraphicRaycaster>();
+
+            RectTransform rt = videoPanel.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+            videoPanel.transform.SetAsLastSibling();
+        }
+
+        if (videoRawImage == null && videoPanel != null)
+        {
+            videoRawImage = videoPanel.GetComponentInChildren<RawImage>(true);
+            if (videoRawImage == null)
+            {
+                GameObject rawGo = new GameObject("VideoRawImage", typeof(RectTransform), typeof(RawImage));
+                rawGo.transform.SetParent(videoPanel.transform, false);
+                videoRawImage = rawGo.GetComponent<RawImage>();
+            }
+        }
+
+        if (videoRawImage != null)
+        {
+            RectTransform rt = videoRawImage.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+            videoRawImage.color = Color.white;
+            videoRawImage.raycastTarget = false;
+        }
+
+        if (videoPlayer == null && videoPanel != null)
+        {
+            videoPlayer = videoPanel.GetComponent<VideoPlayer>();
+            if (videoPlayer == null)
+            {
+                videoPlayer = videoPanel.AddComponent<VideoPlayer>();
+            }
+        }
+
+        if (btnSkipVideo == null && videoPanel != null)
+        {
+            btnSkipVideo = videoPanel.GetComponentInChildren<Button>(true);
+            if (btnSkipVideo == null)
+            {
+                GameObject btnGo = new GameObject("SkipButton", typeof(RectTransform), typeof(Image), typeof(Button));
+                btnGo.transform.SetParent(videoPanel.transform, false);
+                RectTransform rt = btnGo.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(1, 1);
+                rt.anchorMax = new Vector2(1, 1);
+                rt.pivot = new Vector2(1, 1);
+                rt.anchoredPosition = new Vector2(-40, -40);
+                rt.sizeDelta = new Vector2(120, 44);
+
+                Image img = btnGo.GetComponent<Image>();
+                img.color = new Color(0, 0, 0, 0.75f);
+
+                btnSkipVideo = btnGo.GetComponent<Button>();
+
+                GameObject textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                textGo.transform.SetParent(btnGo.transform, false);
+                RectTransform textRt = textGo.GetComponent<RectTransform>();
+                textRt.anchorMin = Vector2.zero;
+                textRt.anchorMax = Vector2.one;
+                textRt.sizeDelta = Vector2.zero;
+
+                TextMeshProUGUI txt = textGo.GetComponent<TextMeshProUGUI>();
+                txt.text = "SKIP >>";
+                txt.alignment = TextAlignmentOptions.Center;
+                txt.fontSize = 18;
+                txt.fontStyle = FontStyles.Bold;
+                txt.color = Color.white;
+            }
+        }
+
+        if (btnSkipVideo != null)
+        {
+            btnSkipVideo.onClick.RemoveAllListeners();
+            btnSkipVideo.onClick.AddListener(SkipGachaVideo);
+            btnSkipVideo.transform.SetAsLastSibling();
+        }
     }
 
     // 👇 CÁC HÀM XỬ LÝ WARNING POPUP
@@ -789,6 +1093,8 @@ public class GachaUIManager : MonoBehaviour
 
                     string hexColor = GetRarityColorHex(item.PulledItemRarity);
 
+                    ui.ApplyRarityVisuals(item.PulledItemRarity, hexColor);
+
                     // Prefab hiện tại không còn TMP tên vật phẩm, để trống thì bỏ qua
                     if (ui.itemNameText != null)
                     {
@@ -832,14 +1138,16 @@ public class GachaUIManager : MonoBehaviour
 
     private string GetRarityColorHex(string rarity)
     {
-        if (string.IsNullOrEmpty(rarity)) return "#FFFFFF";
-        switch (rarity.ToLower())
+        if (string.IsNullOrEmpty(rarity)) return "#C0C7D1";
+        switch (rarity.Trim().ToLower())
         {
-            case "legendary": return "#FF4500";
-            case "mythic": return "#FFD700";
-            case "epic": return "#A020F0";
-            case "rare": return "#0000FF";
-            default: return "#FFFFFF";
+            case "mythic": return "#FF3340";    // Crimson Red
+            case "legendary": return "#FFC726"; // Gold
+            case "epic": return "#B847FF";      // Purple
+            case "rare": return "#26A6FF";      // Cyan Blue
+            case "uncommon": return "#40E066";  // Green
+            case "common":
+            default: return "#C0C7D1";          // Silver
         }
     }
 }

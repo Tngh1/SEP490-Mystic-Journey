@@ -133,7 +133,7 @@ public class UIItemDetailPopup : MonoBehaviour
         // Consume Buttons
         if (btnMinus) btnMinus.onClick.AddListener(() => ChangeConsumeQty(-1));
         if (btnPlus)  btnPlus.onClick.AddListener(() => ChangeConsumeQty(1));
-        if (btnMax)   btnMax.onClick.AddListener(() => ChangeConsumeQty(9999));
+        if (btnMax)   btnMax.onClick.AddListener(SetMaxSmartQuantity);
         if (confirmConsumeButton) confirmConsumeButton.onClick.AddListener(HandleConsumeConfirmed);
         if (cancelConsumeButton)  cancelConsumeButton.onClick.AddListener(Hide);
     }
@@ -158,10 +158,12 @@ public class UIItemDetailPopup : MonoBehaviour
         if (skinPanel) skinPanel.SetActive(activePanel == skinPanel);
     }
 
+    private int _currentSlotStackQuantity = 99;
+
     // =========================================================================
     // UC 20.2 - Show Detail
     // =========================================================================
-    public void Show(InventoryItemResponse item, Sprite icon = null)
+    public void Show(InventoryItemResponse item, Sprite icon = null, int slotStackQuantity = 99)
     {
         if (item == null)
         {
@@ -173,6 +175,7 @@ public class UIItemDetailPopup : MonoBehaviour
         _currentSkin = null;
         _currentItem = item;
         _currentIcon = icon;
+        _currentSlotStackQuantity = slotStackQuantity > 0 ? slotStackQuantity : 99;
         gameObject.SetActive(true);
 
         bool isConsumable = IsConsumable(item);
@@ -207,7 +210,7 @@ public class UIItemDetailPopup : MonoBehaviour
                 itemDescriptionText.text += $"\n<color=yellow>Giảm Hắc hóa: -{item.CorruptionReduction}</color>";
             }
         }
-        if (quantityText)        quantityText.text        = $"x{item.Quantity}";
+        if (quantityText)        quantityText.text        = $"x{_currentSlotStackQuantity}";
 
         if (iconRarity != null)
         {
@@ -412,7 +415,7 @@ public class UIItemDetailPopup : MonoBehaviour
             consumeName.color = rarityColor;
         }
         if (consumeDesc) consumeDesc.text = _currentItem.ItemDescription;
-        if (consumeOwnedText) consumeOwnedText.text = $"Quantity owned: {_currentItem.Quantity}";
+        if (consumeOwnedText) consumeOwnedText.text = $"Quantity owned: {_currentSlotStackQuantity}";
         if (consumeIcon) {
             if (_currentIcon != null) { consumeIcon.sprite = _currentIcon; consumeIcon.enabled = true; }
             else consumeIcon.enabled = false;
@@ -421,21 +424,132 @@ public class UIItemDetailPopup : MonoBehaviour
         UpdateConsumeQuantityText();
     }
 
+    private int GetMaxUsableInCurrentSlot()
+    {
+        int maxSlotCap = _currentSlotStackQuantity > 0 ? _currentSlotStackQuantity : 99;
+        return Mathf.Clamp(maxSlotCap, 1, 99);
+    }
+
     private void ChangeConsumeQty(int delta)
     {
         if (_currentItem == null) return;
-        
-        if (delta == 9999) {
-            _consumeQuantity = _currentItem.Quantity;
-        } else {
-            _consumeQuantity += delta;
+        int maxUsable = GetMaxUsableInCurrentSlot();
+        _consumeQuantity = Mathf.Clamp(_consumeQuantity + delta, 1, maxUsable);
+        UpdateConsumeQuantityText();
+    }
+
+    /// <summary>
+    /// Nút "Max" thông minh cho consumable hồi máu:
+    /// - Nếu item là heal potion (BaseHp/BonusHp > 0, hoặc tên chứa Potion/Health/Heal/HP):
+    ///     • HP đã đầy        → 1 (không lãng phí)
+    ///     • HP chưa đầy + biết heal amount → tính số bình vừa đủ fill HP nhưng KHÔNG vượt quá Max Stack 99 của ô này
+    ///     • HP chưa đầy + không biết heal amount → max hết stack ô này (tối đa 99)
+    /// - Nếu không phải heal potion (EXP book, material...) → max hết stack ô này (tối đa 99).
+    /// </summary>
+    private void SetMaxSmartQuantity()
+    {
+        if (_currentItem == null) return;
+
+        int maxUsable = GetMaxUsableInCurrentSlot();
+
+        // Lấy lượng hồi máu: từ BaseHp, BonusHp hoặc tự đọc số từ ItemDescription
+        int healPerItem = ParseHealAmount(_currentItem);
+
+        // Nhận diện heal potion: qua stat, qua số heal đọc được, hoặc qua tên item
+        bool isHealItem = healPerItem > 0 || IsHealConsumableByName(_currentItem.ItemName);
+
+        // Lấy HP hiện tại và HP tối đa của người chơi từ mọi nguồn
+        int currentHp = 0;
+        int maxHp = 0;
+
+        if (PlayerHUDController.Instance != null && PlayerHUDController.Instance.MaxHp > 0)
+        {
+            currentHp = PlayerHUDController.Instance.CurrentHp;
+            maxHp = PlayerHUDController.Instance.MaxHp;
         }
-        
-        if (_consumeQuantity < 1) _consumeQuantity = 1;
-        if (_consumeQuantity > _currentItem.Quantity) _consumeQuantity = _currentItem.Quantity;
+        else if (PlayerEntity.Instance != null && PlayerEntity.Instance.MaxHealth > 0)
+        {
+            currentHp = PlayerEntity.Instance.CurrentHealth;
+            maxHp = PlayerEntity.Instance.MaxHealth;
+        }
+        else if (NetworkPlayer.Local != null && NetworkPlayer.Local.MaxHp > 0)
+        {
+            currentHp = NetworkPlayer.Local.CurrentHp;
+            maxHp = NetworkPlayer.Local.MaxHp;
+        }
+
+        if (isHealItem && maxHp > 0)
+        {
+            int hpDeficit = maxHp - currentHp;
+
+            if (hpDeficit <= 0)
+            {
+                // HP đã đầy → đặt 1 và thông báo cho người chơi
+                _consumeQuantity = 1;
+                UIPopupBox.Notify(transform, "Notice", "Your HP is already full!\nNo need to use more health potions.");
+            }
+            else if (healPerItem > 0)
+            {
+                // Tính chính xác số bình vừa đủ để lấp đầy HP thiếu (không lãng phí và không vượt quá ô 99 này)
+                int needed = Mathf.CeilToInt((float)hpDeficit / (float)healPerItem);
+                _consumeQuantity = Mathf.Clamp(needed, 1, maxUsable);
+            }
+            else
+            {
+                // Không đọc được số heal → dùng tối đa ô này (tối đa 99)
+                _consumeQuantity = maxUsable;
+            }
+        }
+        else
+        {
+            // Vật phẩm khác (sách EXP, nguyên liệu...) → dùng tối đa ô này (tối đa 99)
+            _consumeQuantity = maxUsable;
+        }
 
         UpdateConsumeQuantityText();
     }
+
+    /// <summary>
+    /// Đọc lượng HP hồi từ BaseHp, BonusHp hoặc trích xuất số trong ItemDescription (ví dụ "Hồi 50 HP" -> 50).
+    /// </summary>
+    private static int ParseHealAmount(InventoryItemResponse item)
+    {
+        if (item == null) return 0;
+        if (item.BaseHp > 0) return item.BaseHp;
+        if (item.BonusHp > 0) return item.BonusHp;
+
+        if (string.IsNullOrEmpty(item.ItemDescription)) return 0;
+
+        try
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(
+                item.ItemDescription,
+                @"(?:heal|heals|hồi|restore|restores|\+)?\s*(\d+)\s*(?:hp|health|máu)?",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
+            if (match.Success && match.Groups.Count > 1 && int.TryParse(match.Groups[1].Value, out int amount) && amount > 0)
+            {
+                return amount;
+            }
+        }
+        catch { }
+
+        return 0;
+    }
+
+    /// <summary>Nhận diện heal potion qua tên item khi BaseHp và BonusHp đều = 0.</summary>
+    private static bool IsHealConsumableByName(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName)) return false;
+        return itemName.IndexOf("Potion",  StringComparison.OrdinalIgnoreCase) >= 0 ||
+               itemName.IndexOf("Health",  StringComparison.OrdinalIgnoreCase) >= 0 ||
+               itemName.IndexOf("Heal",    StringComparison.OrdinalIgnoreCase) >= 0 ||
+               itemName.IndexOf("HP",      StringComparison.OrdinalIgnoreCase) >= 0 ||
+               itemName.IndexOf("Bình",    StringComparison.OrdinalIgnoreCase) >= 0 ||
+               itemName.IndexOf("Máu",     StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
 
     private void UpdateConsumeQuantityText()
     {
