@@ -119,6 +119,20 @@ namespace MysticJourney.UI
                 current = current.parent;
             }
 
+            // Ép Canvas của UIPopupManager đè lên tầng cao nhất (SortingOrder = 9999)
+            Canvas managerCanvas = GetComponentInParent<Canvas>();
+            if (managerCanvas == null) managerCanvas = gameObject.AddComponent<Canvas>();
+            if (managerCanvas != null)
+            {
+                managerCanvas.overrideSorting = true;
+                managerCanvas.sortingOrder = 9999;
+            }
+
+            if (GetComponent<GraphicRaycaster>() == null)
+            {
+                gameObject.AddComponent<GraphicRaycaster>();
+            }
+
             if (btnBackgroundBlocker != null)
             {
                 btnBackgroundBlocker.gameObject.SetActive(true);

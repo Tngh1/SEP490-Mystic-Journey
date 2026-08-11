@@ -98,7 +98,30 @@ public class UIConfirmPurchase : MonoBehaviour
 
     private void SetMaxQuantity()
     {
-        currentQuantity = maxQuantity;
+        if (currentItem == null) return;
+
+        decimal price = currentItem.EffectiveUnitPrice;
+
+        // Tính max theo số tiền đang có trong túi
+        int affordableQty = maxQuantity; // fallback: không có balance cache → dùng max giới hạn cũ
+        if (price > 0)
+        {
+            string currency = (currentItem.currency ?? "Gold").Trim();
+            bool isGems = currency.Equals("Gem", StringComparison.OrdinalIgnoreCase) ||
+                          currency.Equals("Gems", StringComparison.OrdinalIgnoreCase) ||
+                          currency.Equals("Diamond", StringComparison.OrdinalIgnoreCase);
+
+            decimal balance = isGems ? PlayerHUDController.CachedGems : PlayerHUDController.CachedGold;
+
+            if (balance >= 0) // balance đã được cache (>= 0)
+            {
+                // Số lượng tối đa mua được với số tiền hiện có
+                affordableQty = (int)Math.Floor(balance / price);
+            }
+        }
+
+        // Clamp: không vượt stock / daily / weekly limit, tối thiểu 1
+        currentQuantity = Mathf.Clamp(Mathf.Min(affordableQty, maxQuantity), 1, maxQuantity);
         UpdateUI();
     }
 

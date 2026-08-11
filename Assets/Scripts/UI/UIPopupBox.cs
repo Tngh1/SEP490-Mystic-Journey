@@ -27,7 +27,6 @@ public static class UIPopupBox
     /// full", ...) used to go through <c>WorldRuntimeEvents.RaiseMessage</c>, which has no subscriber,
     /// so every one of those strings was silently dropped. PaperPopup remains a transient notification
     /// queue, while this component is the dedicated message/confirmation dialog.
-    /// </summary>
     public static bool Notify(Transform caller, string title, string message) => Show(caller, title, message, null);
 
     /// <summary>
@@ -112,11 +111,34 @@ public static class UIPopupBox
         // true but activeInHierarchy stays false, so nothing appears and no error is logged to trace
         // it back from. Re-enable inactive ancestors first (same as UIPopupManager and
         // MainMapPanelRuntime).
+        // Bật toàn bộ các cấp cha bị ẩn (bao gồm PopupLayer)
         for (var current = popup.parent; current != null; current = current.parent)
         {
             if (!current.gameObject.activeSelf) current.gameObject.SetActive(true);
-            if (current.GetComponent<Canvas>() != null) break;
         }
+
+        // Đưa PopupLayer lên tầng trên cùng của Canvas (SetAsLastSibling) và gán SortingOrder = 9999
+        if (popup.parent != null)
+        {
+            popup.parent.SetAsLastSibling();
+
+            var parentCanvas = popup.parent.GetComponent<Canvas>();
+            if (parentCanvas == null) parentCanvas = popup.parent.gameObject.AddComponent<Canvas>();
+            parentCanvas.overrideSorting = true;
+            parentCanvas.sortingOrder = 9999;
+
+            if (popup.parent.GetComponent<GraphicRaycaster>() == null)
+                popup.parent.gameObject.AddComponent<GraphicRaycaster>();
+        }
+
+        // Ép UIPopup override sorting order lên 9999 tuyệt đối
+        var popupCanvas = popup.GetComponent<Canvas>();
+        if (popupCanvas == null) popupCanvas = popup.gameObject.AddComponent<Canvas>();
+        popupCanvas.overrideSorting = true;
+        popupCanvas.sortingOrder = 9999;
+
+        if (popup.GetComponent<GraphicRaycaster>() == null)
+            popup.gameObject.AddComponent<GraphicRaycaster>();
 
         popup.gameObject.SetActive(true);
         popup.SetAsLastSibling();

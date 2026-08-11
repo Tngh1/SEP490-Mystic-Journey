@@ -15,10 +15,12 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
     public Action<UIBaseItemSlot> OnSlotClicked;
     public object RawData { get; protected set; }
+    public UIItemDisplayData DisplayData { get; protected set; }
 
     public virtual void SetupCore(UIItemDisplayData data)
     {
         BindCore();
+        DisplayData = data;
 
         if (data == null)
         {
@@ -51,6 +53,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         BindCore();
 
         RawData = null;
+        DisplayData = null;
         if (iconImage != null)
         {
             iconImage.sprite = null;

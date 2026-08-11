@@ -234,6 +234,9 @@ public class InventoryManager : MonoBehaviour
         {
             Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
 
+            // Lấy chính xác số lượng Stack của riêng ô (Slot) vừa bấm (tối đa 99 mỗi ô)
+            int slotQty = (slot.DisplayData != null && slot.DisplayData.quantity > 0) ? slot.DisplayData.quantity : 99;
+
             // Nếu món đồ chưa trang bị và slot của món đó ĐÃ CÓ trang bị sẵn: mở thẳng so sánh (EquipComparisonPanel)
             if (IsEquipment(item) && !item.IsEquipped)
             {
@@ -241,13 +244,13 @@ public class InventoryManager : MonoBehaviour
                 if (oldItem != null)
                 {
                     Sprite oldIcon = ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType);
-                    itemDetailPopup?.Show(item, icon);
+                    itemDetailPopup?.Show(item, icon, slotQty);
                     itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
                     return;
                 }
             }
 
-            itemDetailPopup?.Show(item, icon);
+            itemDetailPopup?.Show(item, icon, slotQty);
             return;
         }
 
