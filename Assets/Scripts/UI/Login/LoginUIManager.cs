@@ -172,7 +172,7 @@ namespace MysticJourney.Screen.Login
                     Debug.Log($"  AccountId       : {response.AccountId}");
                     Debug.Log("================================================");
 
-                    WorldState.HasCharacter = !string.IsNullOrEmpty(response.PlayerClass);
+                    WorldState.HasCharacter = response.HasCharacter;
                     WorldState.PlayerProfileId = response.PlayerProfileId ?? 0;
                     WorldState.PlayerName = response.PlayerDisplayName ?? response.UserName;
                     WorldState.PlayerClass = response.PlayerClass;
@@ -189,7 +189,7 @@ namespace MysticJourney.Screen.Login
                     // Save username if Remember Me is checked
                     SaveRememberMeData(response.UserName);
 
-                    if (string.IsNullOrEmpty(response.PlayerClass))
+                    if (!response.HasCharacter)
                     {
                         Debug.Log("[LoginUIManager] Loading Intro1Scene for new player...");
                         StartCoroutine(LoadSceneAfterDelay("Intro1Scene", delayBeforeSceneLoad));

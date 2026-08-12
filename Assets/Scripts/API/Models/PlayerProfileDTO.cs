@@ -7,12 +7,12 @@ namespace MysticJourney.API.Models.Request
         public string DisplayName { get; set; }
         public string AvatarUrl { get; set; }
         public string PlayerClass { get; set; }
-        public int Level { get; set; }
-        public int ExperiencePoints { get; set; }
-        public decimal Gold { get; set; }
-        public decimal Gems { get; set; }
-        public int Energy { get; set; }
-        public int MaxEnergy { get; set; }
+        public int? Level { get; set; }
+        public int? ExperiencePoints { get; set; }
+        public decimal? Gold { get; set; }
+        public decimal? Gems { get; set; }
+        public int? Energy { get; set; }
+        public int? MaxEnergy { get; set; }
         public float? CorruptionLevel { get; set; }
         public bool? IsBanned { get; set; }
     }

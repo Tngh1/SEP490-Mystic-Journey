@@ -73,8 +73,11 @@ public class UIPaperPopupView : MonoBehaviour
             else
             {
                 stampAnimator.gameObject.SetActive(true);
-                stampAnimator.Rebind();
-                stampAnimator.Update(0f);
+                if (stampAnimator.gameObject.activeInHierarchy)
+                {
+                    stampAnimator.Rebind();
+                    stampAnimator.Update(0f);
+                }
             }
         }
     }

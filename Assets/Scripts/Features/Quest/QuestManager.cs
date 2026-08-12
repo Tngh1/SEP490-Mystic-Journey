@@ -47,6 +47,7 @@ public class QuestManager : MonoBehaviour
         inFlight[questId] = Time.realtimeSinceStartup;
         return true;
     }
+    private int _questLoadGeneration;
     private int _batchVersion;
     private Coroutine _batchCoroutine;
 
@@ -109,15 +110,23 @@ public class QuestManager : MonoBehaviour
             return;
         }
 
+        int generation = ++_questLoadGeneration;
         PlayerQuestApi.Instance.GetMyQuests(
             onSuccess: responses =>
             {
+                if (generation != _questLoadGeneration)
+                {
+                    Debug.Log($"[QuestManager] Ignoring stale LoadMainQuests response generation={generation}, latest={_questLoadGeneration}.");
+                    return;
+                }
+
                 HandleLoadedQuestResponses(responses);
                 var mainQuests = GetMainQuests();
                 onSuccess?.Invoke(mainQuests, PickPreferredQuest(mainQuests));
             },
             onError: err =>
             {
+                if (generation != _questLoadGeneration) return;
                 Debug.LogError($"[QuestManager] LoadMainQuests FAIL: {err.Message}");
                 ApplyOfflineQueue();
                 onError?.Invoke(err.Message);
@@ -164,10 +173,21 @@ public class QuestManager : MonoBehaviour
             return;
         }
 
+        int generation = ++_questLoadGeneration;
         PlayerQuestApi.Instance.GetMyQuests(
-            onSuccess: HandleLoadedQuestResponses,
+            onSuccess: responses =>
+            {
+                if (generation != _questLoadGeneration)
+                {
+                    Debug.Log($"[QuestManager] Ignoring stale LoadMyQuests response generation={generation}, latest={_questLoadGeneration}.");
+                    return;
+                }
+
+                HandleLoadedQuestResponses(responses);
+            },
             onError: err =>
             {
+                if (generation != _questLoadGeneration) return;
                 Debug.LogError($"[QuestManager] LoadMyQuests FAIL: {err.Message}");
                 ApplyOfflineQueue();
                 if (_batchCoroutine != null) StopCoroutine(_batchCoroutine);
@@ -338,6 +358,12 @@ public class QuestManager : MonoBehaviour
 
                 _snapshot.Remove(questId);
                 _pendingBatch.Remove(questId);
+                // Unlocking the next main quest is server-driven by GetMyQuests. Start that
+                // refresh before inventory UI, popups, or event subscribers so a UI exception
+                // cannot prevent the next quest from being materialized.
+                if (!silent || _silentClaimRefetched.Add(questId))
+                    LoadMyQuests();
+
 
                 // Không tự động AcceptQuest tiếp theo: người chơi phải về gặp NPC QuestGiver
                 // để đọc dialogue rồi mới nhận nhiệm vụ kế.
@@ -353,18 +379,6 @@ public class QuestManager : MonoBehaviour
 
                 OnQuestClaimed?.Invoke(questId);
 
-                // silent (dọn lúc load): reload ĐÚNG 1 LẦN. BE chỉ mở quest kế tiếp khi quest
-                // trước đã "Claimed" và chỉ tạo bản ghi ở lần GetMyQuests kế — không reload thì
-                // quest vừa unlock (vd sang AutumnPumpkin sau khi claim quest 8) không bao giờ
-                // xuất hiện. Cờ _silentClaimRefetched chặn reload storm.
-                if (!silent)
-                {
-                    LoadMyQuests();
-                }
-                else if (_silentClaimRefetched.Add(questId))
-                {
-                    LoadMyQuests();
-                }
 
                 // Refresh all quest-driven world links so NPC visibility updates immediately.
                 WorldRuntimeEvents.RaiseQuestsChanged();

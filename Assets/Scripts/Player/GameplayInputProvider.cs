@@ -100,10 +100,10 @@ public class GameplayInputProvider : MonoBehaviour
             var sel = es != null ? es.currentSelectedGameObject : null;
             if (sel == null) return false;
 
-            var tmp = sel.GetComponent<TMPro.TMP_InputField>();
+            var tmp = sel.GetComponentInParent<TMPro.TMP_InputField>();
             if (tmp != null && tmp.isFocused) return true;
 
-            var legacy = sel.GetComponent<UnityEngine.UI.InputField>();
+            var legacy = sel.GetComponentInParent<UnityEngine.UI.InputField>();
             return legacy != null && legacy.isFocused;
         }
     }
@@ -150,10 +150,13 @@ public class GameplayInputProvider : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>Normalized 2D movement vector from the Move action (clamped to magnitude 1).</summary>
+
     public Vector2 Move
     {
         get
         {
+            if (UiIsCapturingInput) return Vector2.zero;
+
             EnsureResolved();
             if (_move != null)
             {

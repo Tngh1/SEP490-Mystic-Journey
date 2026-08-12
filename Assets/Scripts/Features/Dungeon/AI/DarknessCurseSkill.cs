@@ -94,9 +94,10 @@ public class DarknessCurseSkill : MonoBehaviour
             }
 
             // Tăng 1 chỉ số Hắc Hoá vào Profile toàn cục
-            if (GameStateService.Instance != null)
+            var playerCombat = targetEntity != null ? targetEntity.GetComponent<PlayerCombat>() : null;
+            if (playerCombat != null)
             {
-                GameStateService.Instance.CorruptionLevel += 1f;
+                playerCombat.ApplyCorruptionDelta(1f);
                 Debug.Log($"[DarknessCurse] Chỉ số Hắc Hoá bị tăng lên: {GameStateService.Instance.CorruptionLevel}");
             }
         }

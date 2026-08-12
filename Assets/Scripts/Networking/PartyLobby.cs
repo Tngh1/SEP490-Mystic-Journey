@@ -282,7 +282,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     /// và party đang ở trong sảnh chờ.
     /// </summary>
     public bool CanStartDungeon =>
-        MemberCount >= 2 && AllReady && PendingInviteCount <= 0 && State == PartyState.Lobby;
+        PartyLifecycleRules.CanStartDungeon(true, (int)State, MemberCount, ReadyCount, PendingInviteCount);
         
     // Kiểm tra xem mình có đang thuộc party này không
     public bool IsLocalMember =>
@@ -302,7 +302,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
         }
 
         int senderId = WorldState.PlayerProfileId > 0 ? WorldState.PlayerProfileId : message.SenderId;
-        if (senderId <= 0 || !HasMemberProfileId(senderId)) // Chỉ cho phép thành viên chat
+        if (!PartyLifecycleRules.CanUsePartyChat(IsLocalMember, HasMemberProfileId(senderId), senderId))
         {
             return false;
         }
@@ -334,7 +334,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     {
         RefreshLocalMembership();
 
-        if (Local != this || senderId <= 0 || !HasMemberProfileId(senderId)) // Nếu mình không trong party, hoặc người gửi sai thì bỏ qua
+        if (!PartyLifecycleRules.CanUsePartyChat(Local == this, HasMemberProfileId(senderId), senderId))
         {
             return;
         }
@@ -421,8 +421,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     public void RPC_Join(PlayerRef player, int profileId, NetworkString<_32> name, int playerClass, int level, int skinId)
     {
         if (!HasStateAuthority) return;
-        if (State != PartyState.Lobby) return; // Không thể gia nhập khi party đang chuyển vào hầm ngục
-        if (FindSlot(player) >= 0) return;     // Đã có chỗ sẵn rồi thì bỏ qua
+        if (!PartyLifecycleRules.CanJoin((int)State, MemberCount, FindSlot(player) >= 0)) return;
 
         int slot = FirstFreeSlot(); // Tìm ô trống
         if (slot < 0) return; // Party đã đầy
@@ -449,8 +448,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     {
         if (!HasStateAuthority) return;
         int slot = FindSlot(player);
-        if (slot < 0) return;
-        if (player == HostPlayer) return; // Chủ phòng thì bỏ qua, luôn là true
+        if (!PartyLifecycleRules.CanChangeReady(slot >= 0, player == HostPlayer)) return;
 
         var m = Members[slot];
         m.Ready = ready; // Đổi trạng thái
@@ -463,14 +461,9 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     public void RPC_Kick(PlayerRef requester, PlayerRef target)
     {
         if (!HasStateAuthority) return;
-        if (requester != HostPlayer) return;   // Chỉ host mới có quyền đuổi
-        if (target == HostPlayer) return;      // Host không thể tự đuổi chính mình
-
         int slot = FindSlot(target);
-        if (slot < 0) return;
-
-        var arr = Members;
-        arr.Set(slot, default); // Xóa thông tin thành viên đó thành rỗng
+        if (!PartyLifecycleRules.CanKick(requester == HostPlayer, slot >= 0, target == HostPlayer)) return;
+        RemoveMember(target);
     }
 
     /// <summary>
@@ -481,13 +474,29 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     public void RPC_Leave(PlayerRef player)
     {
         if (!HasStateAuthority) return;
-        if (player == HostPlayer) return; // Host thì dùng LeaveAsHost()
-
         int slot = FindSlot(player);
-        if (slot < 0) return;
+        if (!PartyLifecycleRules.CanLeave(slot >= 0, player == HostPlayer)) return;
+        RemoveMember(player);
+    }
 
+    /// <summary>Called by PhotonManager on every peer; only StateAuthority mutates the roster.</summary>
+    public void HandleNetworkPlayerLeft(PlayerRef player)
+    {
+        if (!HasStateAuthority) return;
+
+        // A host-owned PartyLobby is despawned by Fusion when the host leaves Shared Mode.
+        // Non-host disconnects need an explicit roster cleanup on StateAuthority.
+        if (player == HostPlayer) return;
+        RemoveMember(player);
+    }
+
+    private bool RemoveMember(PlayerRef player)
+    {
+        int slot = FindSlot(player);
+        if (slot < 0) return false;
         var arr = Members;
-        arr.Set(slot, default); // Xóa thành viên
+        arr.Set(slot, default);
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

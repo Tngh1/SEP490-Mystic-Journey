@@ -50,16 +50,16 @@ public class MapTeleportPortal : MonoBehaviour
 
         if (requiredQuestId > 0)
         {
-            var requiredQuest = QuestManager.Instance?.GetMainQuests()
-                ?.Find(q => q != null && q.QuestId == requiredQuestId);
+            // Portal gating belongs to gameplay state, not the normalized UI response list.
+            var requiredQuest = QuestManager.Instance?.GetQuestState(requiredQuestId);
             if (requiredQuest == null ||
-                (!QuestManager.IsStatus(requiredQuest, "Completed") &&
-                 !QuestManager.IsStatus(requiredQuest, "Claimed")))
+                !string.Equals(requiredQuest.status, "Claimed", System.StringComparison.OrdinalIgnoreCase))
             {
                 WorldRuntimeEvents.RaiseMessage("Speak with the Elf Guard and finish your business on the island first.");
                 return;
             }
         }
+
 
         isTeleporting = true;
         
@@ -70,12 +70,19 @@ public class MapTeleportPortal : MonoBehaviour
             return;
         }
 
+        // Additive scenes can start before the persistent controller is ready. Resolve again
+        // when the player enters the portal instead of relying only on Start().
+        if (mapSceneController == null)
+            mapSceneController = FindFirstObjectByType<MapSceneController>();
+
         if (mapSceneController == null)
         {
-            Debug.LogError("MapTeleportPortal: Không tìm thấy MapSceneController trong scene!");
+            Debug.LogError("MapTeleportPortal: MapSceneController is unavailable; teleport cancelled.");
+            WorldRuntimeEvents.RaiseMessage("The portal is not ready. Please try again.");
             isTeleporting = false;
             return;
         }
+
 
         bool justExplored = false;
         // Try to update any "Explore" objective related to portals before checking entry condition
