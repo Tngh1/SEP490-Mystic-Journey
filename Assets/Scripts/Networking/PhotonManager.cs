@@ -724,6 +724,7 @@ public class PhotonManager : MonoBehaviour, INetworkRunnerCallbacks
         // so Fusion despawns that NetworkObject automatically. We only clear local
         // bookkeeping here.
         _spawnedPlayers.Remove(player);
+        PartyLobby.Local?.HandleNetworkPlayerLeft(player);
         OnPlayerLeftNetwork?.Invoke(player);
     }
 

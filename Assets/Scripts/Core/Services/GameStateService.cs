@@ -30,7 +30,7 @@ namespace MysticJourney.Core.Services
             PlayerProfileId = 0;
             PlayerLevel = 1;
             PlayerName = null;
-            PlayerClass = "Knight";
+            PlayerClass = string.Empty;
             EquippedSkinId = 0;
             AvatarUrl = null;
             CurrentMapName = "ElfForest";
@@ -43,7 +43,7 @@ namespace MysticJourney.Core.Services
             PlayerProfileId = PlayerPrefs.GetInt("mj_player_profile_id", 0);
             PlayerLevel = PlayerPrefs.GetInt("mj_player_level", 1);
             PlayerName = PlayerPrefs.GetString("mj_user_name", string.Empty);
-            PlayerClass = PlayerPrefs.GetString("mj_player_class", "Knight");
+            PlayerClass = PlayerPrefs.GetString("mj_player_class", string.Empty);
             EquippedSkinId = PlayerPrefs.GetInt("mj_equipped_skin_id", 0);
             AvatarUrl = PlayerPrefs.GetString("mj_avatar_url", string.Empty);
             CurrentMapName = PlayerPrefs.GetString("mj_last_map", "ElfForest");
@@ -59,7 +59,7 @@ namespace MysticJourney.Core.Services
             PlayerPrefs.SetInt("mj_player_profile_id", PlayerProfileId);
             PlayerPrefs.SetInt("mj_player_level", PlayerLevel);
             PlayerPrefs.SetString("mj_user_name", PlayerName ?? string.Empty);
-            PlayerPrefs.SetString("mj_player_class", PlayerClass ?? "Knight");
+            PlayerPrefs.SetString("mj_player_class", PlayerClass ?? string.Empty);
             PlayerPrefs.SetInt("mj_equipped_skin_id", EquippedSkinId);
             PlayerPrefs.SetString("mj_avatar_url", AvatarUrl ?? string.Empty);
             PlayerPrefs.SetString("mj_last_map", CurrentMapName ?? "ElfForest");

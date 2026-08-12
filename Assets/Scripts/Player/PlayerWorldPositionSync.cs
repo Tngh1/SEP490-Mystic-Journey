@@ -10,6 +10,22 @@ public class PlayerWorldPositionSync : MonoBehaviour
     private Vector3 lastSavedPosition;
     private float nextSaveTime;
     private bool saving;
+    private bool mapTransitionInProgress;
+
+    public bool HasPendingSave => saving;
+
+    public void BeginMapTransition()
+    {
+        mapTransitionInProgress = true;
+    }
+
+    public void CompleteMapTransition(Vector3 authoritativePosition)
+    {
+        lastSavedPosition = authoritativePosition;
+        nextSaveTime = Time.time + saveInterval;
+        mapTransitionInProgress = false;
+        CacheLocalPosition(authoritativePosition, saveToPrefs: true);
+    }
 
     private void Start()
     {
@@ -23,6 +39,11 @@ public class PlayerWorldPositionSync : MonoBehaviour
     private void Update()
     {
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
+            return;
+
+        // MapSceneController owns the authoritative save while travelling. This prevents a
+        // delayed save from the previous map from overwriting LastMapName after arrival.
+        if (mapTransitionInProgress)
             return;
 
         var currentPosition = transform.position;

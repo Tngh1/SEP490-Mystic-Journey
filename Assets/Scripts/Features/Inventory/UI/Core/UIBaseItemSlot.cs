@@ -11,6 +11,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
     [SerializeField] protected TMP_Text itemNameText;
     [SerializeField] protected TMP_Text quantityText;
     [SerializeField] protected Image rarityBorder;
+    private UIRarityFrameEffect rarityEffect;
     [SerializeField] protected GameObject selectHighlight;
 
     public Action<UIBaseItemSlot> OnSlotClicked;
@@ -65,6 +66,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             quantityText.text = string.Empty;
         if (rarityBorder != null)
             rarityBorder.enabled = false;
+        rarityEffect?.SetVisible(false);
             
         SetHighlight(false);
     }
@@ -97,8 +99,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
         SetHighlight(false);
 
-        if (rarityBorder != null && rarityBorder.sprite == null)
-            rarityBorder.enabled = false;
+        rarityEffect?.SetVisible(false);
     }
 
     protected virtual void SetRarityColor(string rarity)
@@ -106,23 +107,24 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         if (rarityBorder == null)
             return;
 
-        // If the rarity border doesn't have a sprite, it will render as a solid block and hide the icon.
-        // Disable it unless a frame sprite is assigned.
-        if (rarityBorder.sprite == null)
+        // Keep a real sprite frame when the prefab provides one. The current inventory prefab
+        // has no frame sprite, so use a generated four-edge effect that never covers the icon.
+        if (rarityBorder.sprite != null)
         {
-            rarityBorder.enabled = false;
+            rarityEffect?.SetVisible(false);
+            rarityBorder.enabled = true;
+            rarityBorder.color = UIRarityFrameEffect.GetRarityColor(rarity);
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(rarity) || rarity.Trim().ToLowerInvariant() == "common")
-        {
-            rarityBorder.enabled = false;
-            return;
-        }
+        rarityBorder.enabled = false;
+        if (rarityEffect == null)
+            rarityEffect = rarityBorder.GetComponent<UIRarityFrameEffect>()
+                ?? rarityBorder.gameObject.AddComponent<UIRarityFrameEffect>();
 
-        rarityBorder.enabled = true;
-        rarityBorder.color = RarityToColor(rarity);
+        rarityEffect.Configure(rarity);
     }
+
 
     public virtual void OnPointerClick(PointerEventData eventData)
     {

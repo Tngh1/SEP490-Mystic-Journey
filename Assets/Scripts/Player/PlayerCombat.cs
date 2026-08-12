@@ -613,14 +613,7 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         if (corruptionCost > 0)
-        {
-            MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel += corruptionCost;
-            if (PlayerHUDController.Instance != null)
-            {
-                PlayerHUDController.Instance.ApplyCorruption(MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel);
-            }
-            SyncCorruptionLevelToServer();
-        }
+            ApplyCorruptionDelta(corruptionCost);
 
         if (slotIndex == 0) nextSkill1Time = Time.time + cooldown;
         else if (slotIndex == 1) nextSkill2Time = Time.time + cooldown;
@@ -870,6 +863,15 @@ public class PlayerCombat : NetworkBehaviour
                 CancelAimingMode();
             }
         }
+    }
+
+    public void ApplyCorruptionDelta(float delta)
+    {
+        var state = MysticJourney.Core.Services.GameStateService.Instance;
+        if (state == null || Mathf.Approximately(delta, 0f)) return;
+        state.CorruptionLevel = Mathf.Clamp(state.CorruptionLevel + delta, 0f, 100f);
+        PlayerHUDController.Instance?.ApplyCorruption(state.CorruptionLevel);
+        SyncCorruptionLevelToServer();
     }
 
     private void SyncCorruptionLevelToServer()

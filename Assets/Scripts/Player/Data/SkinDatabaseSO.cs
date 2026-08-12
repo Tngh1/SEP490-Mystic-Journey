@@ -80,6 +80,19 @@ public class SkinDatabaseSO : ScriptableObject
         return TryGetPreviewSprite(skinId, out var previewSprite) ? previewSprite : null;
     }
 
+    public Sprite GetDefaultPreviewSprite(CharacterClass characterClass)
+    {
+        if (skinPrefabs == null) return null;
+        for (var i = 0; i < skinPrefabs.Count; i++)
+        {
+            var skin = skinPrefabs[i];
+            if (skin.characterClass != characterClass) continue;
+            var preview = ResolvePreviewSprite(skin);
+            if (preview != null) return preview;
+        }
+        return null;
+    }
+
     private static Sprite ResolvePreviewSprite(SkinPrefabMap skinData)
     {
         if (skinData.previewSprite != null)

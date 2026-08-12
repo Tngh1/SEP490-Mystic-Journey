@@ -21,6 +21,11 @@ namespace MysticJourney.API.Endpoints
         // ── Lấy trạng thái world ──────────────────────
         public void GetState(Action<WorldStateResponse> onSuccess, Action<ApiException> onError)
         {
+            // Ghi nhận map tại lúc gửi request. GetState(map cũ) có thể trả về sau
+            // UpdatePosition(map mới) và không được phép ghi đè lần chuyển map mới hơn.
+            var stateAtRequest = GameStateService.Instance;
+            var mapAtRequest = stateAtRequest?.CurrentMapName;
+
             ApiClient.Instance.Get<WorldStateResponse>(
                 ApiConfig.WorldState,
                 response =>
@@ -29,7 +34,20 @@ namespace MysticJourney.API.Endpoints
                     if (state != null)
                     {
                         state.PlayerProfileId = response.PlayerProfileId;
-                        ApplyWorldPosition(response.Position);
+                        var currentMap = state.CurrentMapName;
+                        var responseMap = response?.Position?.MapName;
+                        var mapChangedWhileWaiting = !MapNamesEqual(currentMap, mapAtRequest);
+                        var responseMatchesCurrentMap = MapNamesEqual(responseMap, currentMap);
+
+                        if (!mapChangedWhileWaiting || responseMatchesCurrentMap)
+                        {
+                            ApplyWorldPosition(response.Position);
+                        }
+                        else
+                        {
+                            Debug.Log($"[WorldApi] Ignored stale GetState position for '{responseMap}' " +
+                                      $"because player moved from '{mapAtRequest}' to '{currentMap}'.");
+                        }
                     }
                     onSuccess?.Invoke(response);
                 },
@@ -112,7 +130,26 @@ namespace MysticJourney.API.Endpoints
             ApiClient.Instance.Post<InteractObjectRequest, InteractObjectResponse>(
                 ApiConfig.WorldInteract, body,
                 response => onSuccess?.Invoke(response),
+
                 onError, requiresAuth: true);
+        }
+
+        private static bool MapNamesEqual(string left, string right)
+        {
+            return string.Equals(NormalizeMapName(left), NormalizeMapName(right), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeMapName(string mapName)
+        {
+            if (string.IsNullOrWhiteSpace(mapName))
+                return string.Empty;
+
+            var value = mapName.Trim().Replace(" ", string.Empty).Replace("_", string.Empty).Replace("-", string.Empty);
+            return string.Equals(value, "ElfLand", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(value, "Map1", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(value, "Chapter1", StringComparison.OrdinalIgnoreCase)
+                ? "ElfForest"
+                : value;
         }
 
         // ── Private: Áp dụng vị trí world ────────────

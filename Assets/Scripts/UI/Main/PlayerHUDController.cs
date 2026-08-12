@@ -62,6 +62,8 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f); // Light Sky Blue
     [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
     [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);       // #FFEB3B
+
+    [SerializeField] private Color hpEmptyColor = new Color32(46, 31, 25, 255);
     [SerializeField] private Color lowHealthColor = new Color(0.956f, 0.263f, 0.212f);    // #F44336
 
 
@@ -665,6 +667,8 @@ public class PlayerHUDController : MonoBehaviour
 
     private void UpdateStatsUI(int currentHp, int maxHp)
     {
+
+        ConfigureHpBackground();
         if (maxHp <= 0) return;
 
         float targetRatio = Mathf.Clamp01((float)currentHp / (float)maxHp);
@@ -763,7 +767,9 @@ public class PlayerHUDController : MonoBehaviour
             hpDamageCatchupImage.fillMethod = hpBarImage.fillMethod;
             hpDamageCatchupImage.fillOrigin = hpBarImage.fillOrigin;
             hpDamageCatchupImage.raycastTarget = false;
-            hpDamageCatchupImage.color = new Color(1.00f, 1.00f, 1.00f, 0.95f); // Màu TRẮNG TINH 100% rực rỡ nổi bật cực kỳ dễ nhìn
+            hpDamageCatchupImage.color = new Color(0.55f, 0.08f, 0.06f, 0.85f);
+
+            hpDamageCatchupImage.gameObject.SetActive(false);
             MakeHorizontalFill(hpDamageCatchupImage);
         }
 
@@ -803,6 +809,19 @@ public class PlayerHUDController : MonoBehaviour
             }
         }
     }
+
+    private void ConfigureHpBackground()
+    {
+        if (hpBarImage == null || hpBarImage.transform.parent == null) return;
+
+        Image background = hpBarImage.transform.parent.GetComponent<Image>();
+        if (background != null)
+        {
+            background.color = hpEmptyColor;
+            background.raycastTarget = false;
+        }
+    }
+
 
     private Coroutine _hpScalePulseCoroutine;
 
@@ -872,35 +891,33 @@ public class PlayerHUDController : MonoBehaviour
         if (hpBarImage == null) yield break;
         SetupHpGlowImage();
 
-        // Nếu mới vào game / Login trong 2.5s đầu: Gán thẳng mốc HP chuẩn cho cả Máu Đỏ và Máu Trắng
         if (isGracePeriod || !_isHpInitialized)
         {
             hpBarImage.fillAmount = targetFill;
             if (hpDamageCatchupImage != null)
             {
                 hpDamageCatchupImage.fillAmount = targetFill;
+                hpDamageCatchupImage.gameObject.SetActive(false);
             }
             yield break;
         }
 
-        // Nếu bị đánh mất HP (Damage hit): Máu Đỏ tụt ngay lập tức, Máu Truy Đổi phản ứng tức thì không bị trễ
         if (isDamageHit || previousFill > targetFill + 0.005f)
         {
             if (hpDamageCatchupImage != null)
             {
-                hpDamageCatchupImage.fillAmount = previousFill; // Giữ mốc máu cũ 100% rõ ràng
+                hpDamageCatchupImage.fillAmount = previousFill;
                 hpDamageCatchupImage.gameObject.SetActive(true);
             }
 
-            hpBarImage.fillAmount = targetFill; // Máu chính tụt ngay lập tức
+            hpBarImage.fillAmount = targetFill;
 
             if (hpDamageCatchupImage != null)
             {
-                // Phản ứng tức thì (chỉ nghỉ 0.05s siêu mượt)
                 yield return new WaitForSeconds(0.05f);
 
                 float catchupStart = hpDamageCatchupImage.fillAmount;
-                float duration = 0.35f;
+                const float duration = 0.35f;
                 float elapsed = 0f;
 
                 while (elapsed < duration)
@@ -912,14 +929,15 @@ public class PlayerHUDController : MonoBehaviour
                 }
 
                 hpDamageCatchupImage.fillAmount = targetFill;
+                hpDamageCatchupImage.gameObject.SetActive(false);
             }
         }
         else
         {
-            // Nếu HP tăng (Hồi máu): Máu Truy Đổi mở rộng trước, Máu chính lướt mượt lên theo
             if (hpDamageCatchupImage != null)
             {
                 hpDamageCatchupImage.fillAmount = targetFill;
+                hpDamageCatchupImage.gameObject.SetActive(false);
             }
 
             float startFill = hpBarImage.fillAmount;
@@ -1823,12 +1841,8 @@ public class PlayerHUDController : MonoBehaviour
         // Hide death popup
         HideDeathPopup();
 
-        // Disconnect and return to world
-        var photon = PhotonManager.Instance;
-        if (photon != null && photon.IsConnected)
-        {
-            photon.Shutdown(notify: true);
-        }
+        // DungeonManager sở hữu teardown Photon + scene; shutdown trước làm mất trạng thái
+        // dungeon room và khiến pipeline ReturnToWorldMap bỏ qua bước migrate cần thiết.
 
         // Return to previous map via DungeonManager if in dungeon
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)

@@ -15,8 +15,7 @@ namespace MysticJourney.Core.Utilities
             {
                 if (q == null || string.IsNullOrWhiteSpace(currentMap) || string.IsNullOrWhiteSpace(q.MapName))
                     return false;
-                return q.MapName.IndexOf(currentMap, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                       currentMap.IndexOf(q.MapName, System.StringComparison.OrdinalIgnoreCase) >= 0;
+                return IsSameMap(q.MapName, currentMap);
             }
 
             return (source ?? Enumerable.Empty<PlayerQuestResponse>())
@@ -39,8 +38,7 @@ namespace MysticJourney.Core.Utilities
             {
                 if (q == null || string.IsNullOrWhiteSpace(currentMap) || string.IsNullOrWhiteSpace(q.MapName))
                     return true;
-                return q.MapName.IndexOf(currentMap, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                       currentMap.IndexOf(q.MapName, System.StringComparison.OrdinalIgnoreCase) >= 0;
+                return IsSameMap(q.MapName, currentMap);
             }
 
             // Ưu tiên theo thứ tự tiến trình nghiêm ngặt (ưu tiên QuestId nhỏ nhất của Main Quest):

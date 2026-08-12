@@ -1,5 +1,6 @@
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
+using MysticJourney.Networking;
 using MysticJourney.Core.Utilities;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -25,6 +26,26 @@ namespace MysticJourney.Core.Services
             PendingLogoutReason = null;
         }
 
+        /// <summary>
+        /// Chuẩn bị cho một lần đăng nhập bằng username/password mới. Khi game bị tắt cưỡng
+        /// bức, token và hub của phiên trước có thể được khôi phục ở MainMenuScene. Nếu giữ
+        /// chúng trong lúc login cùng tài khoản, socket cũ sẽ nhận SessionOverridden của phiên
+        /// mới rồi xóa nhầm token vừa cấp.
+        /// </summary>
+        public static void PrepareForCredentialLogin()
+        {
+            // Ngắt trước, rồi mới xóa token để callback đã xếp hàng của socket cũ bị guard
+            // trong SessionHubClient loại bỏ và Reconcile không thể kết nối lại giữa lúc login.
+            SessionHubClient.Instance?.DisconnectForLogout();
+            ApiClient.Instance?.ClearToken();
+
+            if (NetworkReconnectManager.Instance != null)
+                NetworkReconnectManager.Instance.ResetState();
+
+            PendingLogoutReason = null;
+            _loggingOut = false;
+        }
+
         public static void Logout(string reason = null)
         {
             // Bấm 2 lần liên tiếp: lần 2 phải bị bỏ qua, nếu không sẽ gọi LoadScene giữa lúc
@@ -36,6 +57,12 @@ namespace MysticJourney.Core.Services
                 PendingLogoutReason = reason;
 
             Debug.Log("[SessionService] Logging out...");
+
+            // Hub phải ngắt đồng bộ trước khi gọi API logout. Nếu chờ Reconcile (mỗi 5 giây),
+            // người dùng login lại nhanh bằng cùng tài khoản sẽ khiến socket cũ nhận thông báo
+            // SessionOverridden của phiên mới và xóa nhầm token vừa cấp.
+            SessionHubClient.Instance?.DisconnectForLogout();
+
 
             // Rời phòng Photon TRƯỚC khi mất token: presence/party của tài khoản cũ còn treo
             // trong lobby thì người khác vẫn thấy mình online sau khi đã đăng xuất.

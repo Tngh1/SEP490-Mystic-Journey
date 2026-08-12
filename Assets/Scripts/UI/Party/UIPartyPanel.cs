@@ -641,7 +641,7 @@ public class UIPartyPanel : MonoBehaviour
                     hostCls = CharacterClass.Knight;
                 hostSkin = WorldState.EquippedSkinId;
             }
-            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls), SkinPortraitFor(hostSkin));
+            slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls), SkinPortraitFor(hostSkin, hostCls));
         }
 
         // ── Slots 1..N: other members / invite buttons ───────────────────────
@@ -672,7 +672,7 @@ public class UIPartyPanel : MonoBehaviour
                 slot.RenderMember(memberName, m.Level, cls, FlagFor(cls), NameplateFor(cls), m.Ready,
                     canKick: localIsHost,
                     onKick: () => ConfirmKick(memberName, () => PartyService.KickMember(target)),
-                    skinPortrait: SkinPortraitFor(m.SkinId));
+                    skinPortrait: SkinPortraitFor(m.SkinId, cls));
             }
             else
             {
@@ -771,12 +771,12 @@ public class UIPartyPanel : MonoBehaviour
 
     /// <summary>Portrait for a member's equipped skin — the same preview sprite the
     /// inventory's skin tab renders, so a slot matches what that player is wearing.</summary>
-    private Sprite SkinPortraitFor(int skinId)
+    private Sprite SkinPortraitFor(int skinId, CharacterClass characterClass)
     {
-        if (skinId <= 0) return null;
         if (skinDatabase == null) skinDatabase = SkinDatabaseSO.LoadDefault();
         if (skinDatabase == null) return null;
-        return skinDatabase.GetPreviewSprite(skinId);
+        var equippedPreview = skinId > 0 ? skinDatabase.GetPreviewSprite(skinId) : null;
+        return equippedPreview != null ? equippedPreview : skinDatabase.GetDefaultPreviewSprite(characterClass);
     }
 
     private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)

@@ -67,6 +67,7 @@ public class DungeonManager : MonoBehaviour
     // WorldApi.GetState hydration that lands mid-load — so the event's name check can
     // reject the very scene we just loaded and no enemies ever spawn).
     private bool _spawnStarted = false;
+    private bool _isReturningToWorld = false;
     private bool _isRestarting = false;
 
     // ── Saved state for RestartDungeon ──
@@ -1311,6 +1312,8 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
 
     public void ReturnToWorldMap()
     {
+        if (_isReturningToWorld) return;
+        _isReturningToWorld = true;
         StartCoroutine(TransitionToWorld());
     }
 
@@ -1407,6 +1410,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         Debug.Log($"[DungeonManager] Returned to map: {PreviousMapSceneName} at {WorldState.LastPosition}");
 
         yield return LoadingScreen.Hide();
+        _isReturningToWorld = false;
     }
 
     /// <summary>

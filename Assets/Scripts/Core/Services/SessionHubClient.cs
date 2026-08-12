@@ -40,6 +40,8 @@ namespace MysticJourney.Core.Services
         // Nhịp đối chiếu "đang có token / đang nối" để tự nối lại sau khi rớt mạng.
         private const float ReconcileIntervalSeconds = 5f;
 
+        public static SessionHubClient Instance { get; private set; }
+
         // Trần của backoff: hub chết cả buổi thì vẫn thử lại mỗi phút — đủ để tự hồi khi server
         // bật lại, mà không biến console thành log rác.
         private const float MaxReconnectDelaySeconds = 60f;
@@ -70,6 +72,18 @@ namespace MysticJourney.Core.Services
         {
             InvokeRepeating(nameof(Reconcile), 1f, ReconcileIntervalSeconds);
         }
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+
 
         private void Update()
         {
@@ -77,8 +91,24 @@ namespace MysticJourney.Core.Services
                 action?.Invoke();
         }
 
-        private void OnDestroy() => Disconnect();
+        private void OnDestroy()
+        {
+            Disconnect();
+            if (Instance == this)
+                Instance = null;
+        }
         private void OnApplicationQuit() => Disconnect();
+
+        /// <summary>
+        /// Ngắt ngay kênh realtime của phiên hiện tại khi người chơi chủ động logout.
+        /// Không chờ nhịp Reconcile 5 giây, vì một lần login lại nhanh có thể khiến socket
+        /// cũ nhận SessionOverridden của chính phiên mới và xóa nhầm token mới.
+        /// </summary>
+        public void DisconnectForLogout()
+        {
+            Disconnect();
+            ResetBackoff();
+        }
 
         // Một vòng đối chiếu trạng thái thay vì bắt sự kiện login/logout ở từng chỗ: có token mà
         // chưa nối thì nối, mất token mà còn nối thì ngắt. Nhờ vậy đăng nhập, đăng xuất, và rớt
@@ -89,6 +119,7 @@ namespace MysticJourney.Core.Services
             bool isOpen = _socket != null && _socket.State == WebSocketState.Open;
 
             if (!hasToken)
+
             {
                 if (_socket != null) Disconnect();
                 // Đăng xuất rồi đăng nhập lại phải nối ngay, không bắt chờ hết backoff của
@@ -236,11 +267,11 @@ namespace MysticJourney.Core.Services
                 pending.Append(chunks[chunks.Length - 1]);
 
                 for (int i = 0; i < chunks.Length - 1; i++)
-                    HandleMessage(chunks[i]);
+                    HandleMessage(socket, chunks[i]);
             }
         }
 
-        private void HandleMessage(string json)
+        private void HandleMessage(ClientWebSocket sourceSocket, string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return;
 
@@ -301,6 +332,10 @@ namespace MysticJourney.Core.Services
 
             _mainThreadQueue.Enqueue(() =>
             {
+                // Callback có thể đã được xếp hàng trước lúc logout. Chỉ socket đang hoạt động
+                // mới được phép kết thúc session; socket cũ tuyệt đối không đụng token phiên mới.
+                if (sourceSocket != _socket) return;
+
                 // ClearToken trước để Reconcile thấy mất token và tự ngắt hub, đồng thời
                 // SessionService bỏ qua việc gọi API logout bằng token đã bị vô hiệu.
                 ApiClient.Instance?.ClearToken();

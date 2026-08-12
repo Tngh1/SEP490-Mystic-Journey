@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Fusion;
+using TMPro;
 using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -31,12 +32,19 @@ public class NetworkPlayer : NetworkBehaviour
              "If null, one named 'VisualRoot' is auto-created at runtime.")]
     [SerializeField] private Transform visualRoot;
 
+    [Header("Player Nameplate")]
+    [SerializeField] private Vector3 nameplateOffset = new Vector3(0f, 1.15f, 0f);
+    [SerializeField] private int nameplateSortingOrder = 60;
+
+    private Canvas _nameplateCanvas;
+    private TextMeshProUGUI _nameplateText;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Networked state
     // ─────────────────────────────────────────────────────────────────────────
 
     [Networked] public int PlayerProfileId { get; set; }
-    [Networked] public NetworkString<_32> PlayerName { get; set; }
+    [Networked, OnChangedRender(nameof(OnPlayerNameChanged))] public NetworkString<_32> PlayerName { get; set; }
     [Networked] public int Level { get; set; }
 
     /// <summary>
@@ -57,6 +65,12 @@ public class NetworkPlayer : NetworkBehaviour
     {
         OnPlayerClassChanged();
     }
+
+    private void OnPlayerNameChanged()
+    {
+        RefreshNameplate();
+    }
+
 
     public void OnPlayerClassChanged()
     {
@@ -378,6 +392,8 @@ public class NetworkPlayer : NetworkBehaviour
                 visualRoot = go.transform;
             }
         }
+
+        EnsureNameplate();
     }
 
     private void OnDestroy() => Unregister();
@@ -517,6 +533,7 @@ public class NetworkPlayer : NetworkBehaviour
 
         // Force an initial visual creation since OnChangedRender might not fire for default/initial values
         OnPlayerClassChanged();
+        RefreshNameplate();
 
         if (Object.HasInputAuthority)
         {
@@ -794,14 +811,71 @@ public class NetworkPlayer : NetworkBehaviour
     /// </summary>
     public override void Render()
     {
+        if (_nameplateCanvas != null)
+        {
+            _nameplateCanvas.transform.rotation = Quaternion.identity;
+            Vector3 scale = _nameplateCanvas.transform.localScale;
+            float expectedX = transform.lossyScale.x < 0f ? -Mathf.Abs(scale.x) : Mathf.Abs(scale.x);
+            _nameplateCanvas.transform.localScale = new Vector3(expectedX, scale.y, scale.z);
+        }
+
         if (_animation != null)
         {
-            // Drive animation from the REPLICATED move vector so every client
-            // (including those watching a remote avatar) animates walking. The
-            // local player also uses this — it's written every tick below.
             _animation.SetMovement(NetworkedMove, IsAlive);
         }
     }
+
+    private void EnsureNameplate()
+    {
+        if (_nameplateCanvas != null && _nameplateText != null) return;
+
+        Transform existing = transform.Find("PlayerNameplate");
+        GameObject canvasObject = existing != null
+            ? existing.gameObject
+            : new GameObject("PlayerNameplate", typeof(RectTransform));
+
+        canvasObject.transform.SetParent(transform, false);
+        canvasObject.transform.localPosition = nameplateOffset;
+
+        _nameplateCanvas = canvasObject.GetComponent<Canvas>();
+        if (_nameplateCanvas == null) _nameplateCanvas = canvasObject.AddComponent<Canvas>();
+        _nameplateCanvas.renderMode = RenderMode.WorldSpace;
+        _nameplateCanvas.overrideSorting = true;
+        _nameplateCanvas.sortingLayerName = "Default";
+        _nameplateCanvas.sortingOrder = nameplateSortingOrder;
+
+        Transform textTransform = canvasObject.transform.Find("Text");
+        GameObject textObject = textTransform != null
+            ? textTransform.gameObject
+            : new GameObject("Text", typeof(RectTransform));
+        textObject.transform.SetParent(canvasObject.transform, false);
+
+        _nameplateText = textObject.GetComponent<TextMeshProUGUI>();
+        if (_nameplateText == null) _nameplateText = textObject.AddComponent<TextMeshProUGUI>();
+        _nameplateText.alignment = TextAlignmentOptions.Center;
+        _nameplateText.textWrappingMode = TextWrappingModes.NoWrap;
+        _nameplateText.overflowMode = TextOverflowModes.Overflow;
+        _nameplateText.fontSize = 100f;
+        _nameplateText.color = Color.white;
+        _nameplateText.outlineWidth = 0.18f;
+        _nameplateText.outlineColor = Color.black;
+        _nameplateText.raycastTarget = false;
+
+        RectTransform textRect = textObject.GetComponent<RectTransform>();
+        textRect.sizeDelta = new Vector2(900f, 180f);
+        textRect.localScale = new Vector3(0.0025f, 0.0025f, 1f);
+    }
+
+    private void RefreshNameplate()
+    {
+        EnsureNameplate();
+        if (_nameplateText == null) return;
+
+        string displayName = PlayerName.ToString().Trim();
+        _nameplateText.text = displayName;
+        _nameplateCanvas.gameObject.SetActive(!string.IsNullOrWhiteSpace(displayName));
+    }
+
 
     public override void FixedUpdateNetwork()
     {

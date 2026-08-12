@@ -23,6 +23,11 @@ namespace MysticJourney.API.Endpoints
             Action<LoginGameResponse> onSuccess,
             Action<ApiException> onError)
         {
+            // Một lần tắt game cưỡng bức không chạy logout nên token/socket cũ vẫn có thể
+            // được phục hồi ở màn hình login. Dọn phiên local cũ trước khi BE tạo session mới
+            // để callback SessionOverridden của socket cũ không thể xóa token mới.
+            SessionService.PrepareForCredentialLogin();
+
             SafeDebugLog($"LoginGame -> emailOrUsername={emailOrUsername}");
 
             var body = new LoginGameRequest
@@ -136,10 +141,17 @@ namespace MysticJourney.API.Endpoints
             PlayerPrefs.SetInt(ApiConfig.PlayerLevelKey, safeLevel);
             state.PlayerLevel = safeLevel;
 
-            var defaultClass = "Knight";
-            var safeClass = string.IsNullOrWhiteSpace(playerClass) ? defaultClass : playerClass.Trim();
-            PlayerPrefs.SetString(ApiConfig.PlayerClassKey, safeClass);
-            state.PlayerClass = safeClass;
+            if (string.IsNullOrWhiteSpace(playerClass))
+            {
+                PlayerPrefs.DeleteKey(ApiConfig.PlayerClassKey);
+                state.PlayerClass = string.Empty;
+            }
+            else
+            {
+                var safeClass = playerClass.Trim();
+                PlayerPrefs.SetString(ApiConfig.PlayerClassKey, safeClass);
+                state.PlayerClass = safeClass;
+            }
         }
 
         // ── Private: Lưu session world ───────────

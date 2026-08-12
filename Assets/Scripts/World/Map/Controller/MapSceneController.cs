@@ -67,6 +67,9 @@ public class MapSceneController : MonoBehaviour
             yield break;
         }
 
+        var positionSync = FindPlayer()?.GetComponent<PlayerWorldPositionSync>();
+        positionSync?.BeginMapTransition();
+
         // Bật màn hình loading TRƯỚC khi unload: nếu bật sau, người chơi thấy một frame
         // scene trống + player rơi ở toạ độ cũ.
         yield return LoadingScreen.Show();
@@ -188,29 +191,59 @@ public class MapSceneController : MonoBehaviour
 
         if (ApiClient.Instance.HasToken())
         {
+            // Wait briefly for a periodic save from the previous map. A lost callback must
+            // never keep the loading screen open forever.
+            float pendingSaveDeadline = Time.realtimeSinceStartup + 8f;
+            while (positionSync != null
+                   && positionSync.HasPendingSave
+                   && Time.realtimeSinceStartup < pendingSaveDeadline)
+            {
+                yield return null;
+            }
+
+            if (positionSync != null && positionSync.HasPendingSave)
+                Debug.LogWarning("[MapSceneController] Previous position save timed out; committing the destination map.");
+
+
+            bool saveCompleted = false;
+            bool saveSucceeded = false;
             WorldApi.Instance.UpdatePosition(
                 targetScene,
                 spawnPosition,
                 _ =>
                 {
                     Debug.Log($"[MapSceneController] Saved: {targetScene} @ {spawnPosition}");
-                    WorldRuntimeEvents.RaiseMapChanged(targetScene);
-                    // LastMapName đã là map mới -> giờ GetMyQuests mới trả về quest của map này.
-                    // HandleLoadedQuestResponses tự bắn QuestsChanged để panel + waypoint render lại.
-                    QuestManager.Instance?.LoadMyQuests();
+                    saveSucceeded = true;
+                    saveCompleted = true;
                 },
                 error =>
                 {
                     Debug.LogWarning($"[MapSceneController] Save failed: {error.Message}");
-                    // Lưu vị trí thất bại vẫn phải thử nạp quest, nếu không HUD trắng hoàn toàn.
-                    QuestManager.Instance?.LoadMyQuests();
+                    saveCompleted = true;
                 }
             );
+
+            float destinationSaveDeadline = Time.realtimeSinceStartup + 12f;
+            while (!saveCompleted && Time.realtimeSinceStartup < destinationSaveDeadline)
+                yield return null;
+
+            if (!saveCompleted)
+                Debug.LogWarning($"[MapSceneController] Saving {targetScene} timed out; releasing loading screen.");
+
+
+            positionSync?.CompleteMapTransition(spawnPosition);
+            if (saveSucceeded)
+                WorldRuntimeEvents.RaiseMapChanged(targetScene);
+
+            // Server LastMapName is settled before quest data is requested.
+            QuestManager.Instance?.LoadMyQuests();
+        }
+        else
+        {
+            positionSync?.CompleteMapTransition(spawnPosition);
         }
 
-        // ponytail: KHÔNG chờ UpdatePosition/LoadMyQuests xong mới tắt loading — quest nạp
-        // xong sẽ tự render lại HUD. Nếu sau này muốn vào map là có ngay quest thì đổi callback
-        // ở trên thành cờ và chờ nó trước LoadingScreen.Hide().
+        // Keep loading visible until the authoritative map save completes or reaches its timeout.
         yield return LoadingScreen.Hide();
     }
 

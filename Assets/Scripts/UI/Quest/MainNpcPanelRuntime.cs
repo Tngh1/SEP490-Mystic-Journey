@@ -80,19 +80,25 @@ public class MainNpcPanelRuntime : MonoBehaviour
         if (npcPanel == null)
             return;
 
-        ShowPanel();
-        RenderLocal(interactable);
-
         if (!ApiClient.Instance.HasToken() || interactable.NpcId <= 0)
+        {
+            ShowPanel();
+            RenderLocal(interactable);
             return;
+        }
 
         var manager = GetQuestManager();
         if (manager == null)
         {
             Debug.LogWarning("[MainNpcPanelRuntime] QuestManager was not found in Main scene.");
+            ShowPanel();
+            RenderLocal(interactable);
             return;
         }
 
+        // Không render lại lời chào trong lúc chờ API. TalkToNpc vẫn phải được gọi vì NPC
+        // có thể chính là objective Interact/Talk và server cần cập nhật tiến độ trước.
+        WorldInteractionPromptRuntime.Hide();
         manager.TalkToNpc(
             interactable.NpcId,
             // interactable is captured across a network round-trip and used as the fallback
@@ -103,11 +109,16 @@ public class MainNpcPanelRuntime : MonoBehaviour
             response =>
             {
                 if (interactable == null) return;
+                if (TryOpenAcceptedQuest(response?.LinkedQuests)) return;
+
+                ShowPanel();
                 RenderApiResponse(response, interactable);
             },
             error =>
             {
                 if (interactable == null) return;
+                ShowPanel();
+                RenderLocal(interactable);
                 StartTypewriter(dialogueText, string.IsNullOrWhiteSpace(interactable.GreetingText) ? error : interactable.GreetingText);
                 Debug.LogWarning($"[MainNpcPanelRuntime] TalkToNpc failed: {error}");
             }
@@ -176,6 +187,45 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return clean;
     }
 
+    /// <summary>
+    /// Quest InProgress nhưng còn dang dở sẽ mở thẳng bảng quest thay vì phát lại thoại.
+    /// Quest đã đủ tiến độ, cùng Talk/Interact/Explore, phải đi qua NPC
+    /// panel để gọi đúng Complete/TurnIn/Claim flow; shortcut các trường hợp đó sẽ làm quest kẹt.
+    /// </summary>
+    private bool TryOpenAcceptedQuest(IEnumerable<PlayerQuestResponse> linkedQuests)
+    {
+        var acceptedQuest = linkedQuests?
+            .Where(q => q != null &&
+                        QuestManager.IsStatus(q, "InProgress") &&
+                        !HasEnoughQuestProgress(q) &&
+                        !RequiresNpcCompletionFlow(q))
+            .OrderBy(q => q.QuestId)
+            .FirstOrDefault();
+
+        if (acceptedQuest == null)
+            return false;
+
+        if (npcPanel != null && npcPanel.activeSelf)
+            ClosePanel();
+
+        var questPanelRuntime = MainQuestPanelRuntime.Instance ?? FindQuestPanelRuntime();
+        if (questPanelRuntime != null)
+            questPanelRuntime.OpenQuestPanelForQuest(acceptedQuest.QuestId);
+        else if (UIManager.Instance != null)
+            UIManager.Instance.OpenQuestPanel();
+        else
+            return false;
+
+        return true;
+    }
+
+    private static bool RequiresNpcCompletionFlow(PlayerQuestResponse quest)
+    {
+        return IsObjectiveType(quest, "Talk") ||
+               IsObjectiveType(quest, "Interact") ||
+               IsObjectiveType(quest, "Explore");
+    }
+
     private void RenderApiResponse(TalkToNpcResponse response, WorldInteractable fallback)
     {
         var npc = response?.Npc;
@@ -188,9 +238,11 @@ public class MainNpcPanelRuntime : MonoBehaviour
             .ThenBy(q => q.QuestId)
             .ToList() ?? new List<PlayerQuestResponse>();
 
+        currentNpcId = npc?.NPCId ?? fallback.NpcId;
         var dialogues = response?.Npc?.Dialogues?
-            .Where(d => d != null && d.IsActive)
+            .Where(d => d != null && d.IsActive && d.NPCId == currentNpcId)
             .OrderBy(d => d.DisplayOrder)
+            .ThenBy(d => d.NPCDialogueId)
             .ToList() ?? new List<NPCDialogueResponse>();
 
         currentDialogues.Clear();
@@ -200,7 +252,6 @@ public class MainNpcPanelRuntime : MonoBehaviour
         storyDialogueIndex = 0;
         currentStoryDialogue = PickQuestDialogue(dialogues, linkedQuests, storyDialogueIndex) ?? dialogues.FirstOrDefault();
         firstQuestId = currentStoryDialogue?.LinkedQuestId ?? linkedQuests.FirstOrDefault()?.QuestId ?? 0;
-        currentNpcId = npc?.NPCId ?? fallback.NpcId;
 
         SetText(nameText, CleanName(Safe(npc?.Name, fallback.DisplayName)));
         SetText(roleText, Safe(npc?.Description, fallback.Description));
@@ -295,7 +346,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var hasGiftOrHint = currentLinkedQuests.Count > 0 || HasDialogueType("Gift") || HasDialogueType("Hint");
 
         var activeQuestId = currentLinkedQuests.Count > 0 ? currentLinkedQuests[0].QuestId : (currentStoryDialogue?.LinkedQuestId ?? 0);
-        var questDialogues = currentDialogues.Where(d => d.LinkedQuestId == activeQuestId).ToList();
+        var questDialogues = NpcDialogueFlow.SelectSequence(currentDialogues, currentNpcId, activeQuestId > 0 ? activeQuestId : (int?)null);
         var isMultiLine = questDialogues.Count > 1 && storyDialogueIndex < questDialogues.Count - 1;
         var storyLabel = isMultiLine ? NextPhrases[storyDialogueIndex % NextPhrases.Length] : BuildStoryActionLabel(currentStoryDialogue, FindLinkedQuest(currentStoryDialogue?.LinkedQuestId));
 
@@ -384,12 +435,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
 
         var activeQuestId = currentLinkedQuests.Count > 0 ? currentLinkedQuests[0].QuestId : (currentStoryDialogue?.LinkedQuestId ?? 0);
-        var questDialogues = currentDialogues.Where(d => d.LinkedQuestId == activeQuestId).ToList();
+        var questDialogues = NpcDialogueFlow.SelectSequence(currentDialogues, currentNpcId, activeQuestId > 0 ? activeQuestId : (int?)null);
 
-        if (questDialogues.Count > 0 && storyDialogueIndex < questDialogues.Count - 1)
+        if (currentStoryDialogue != null &&
+            NpcDialogueFlow.TryAdvance(questDialogues, currentStoryDialogue.NPCDialogueId, out var nextDialogue))
         {
             storyDialogueIndex++;
-            currentStoryDialogue = questDialogues[storyDialogueIndex];
+            currentStoryDialogue = nextDialogue;
             StartTypewriter(dialogueText, Safe(currentStoryDialogue.Content, "Listen closely. Your path begins here."));
             ConfigureNpcActions();
             return;
@@ -801,13 +853,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
     }
     private void OnQuestionAction()
     {
-        var dialogue = FindDialogueByType("Question", "Help");
+        var dialogue = NpcDialogueFlow.FindChoice(currentDialogues, currentNpcId, "Question", "Help");
         SetText(dialogueText, Safe(dialogue?.Content, "Feel free to ask. Press E to talk to others, P to gather items, and always keep an eye on your Quest Tracker to know what to do next."));
     }
 
     private void OnGiftHintAction()
     {
-        var dialogue = FindDialogueByType("Gift", "Hint");
+        var dialogue = NpcDialogueFlow.FindChoice(currentDialogues, currentNpcId, "Gift", "Hint");
         var quest = QuestManager.PickPreferredQuest(currentLinkedQuests);
         if (quest == null)
         {

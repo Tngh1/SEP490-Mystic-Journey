@@ -23,7 +23,7 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
     public Sprite allClassBackground; // Dynamic/general background for all-class skills
 
     private SkillPopup popupManager;
-    private Transform originalParent;
+    private GameObject dragVisual;
     private CanvasGroup canvasGroup;
 
     void Start()
@@ -179,33 +179,46 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        // Chặn không cho kéo skill chưa mở khóa
         if (serverData == null) return;
 
-        originalParent = transform.parent;
-        transform.SetParent(transform.root);
+        var canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) return;
 
-        if (canvasGroup != null)
-        {
-            canvasGroup.blocksRaycasts = false;
-        }
+        // Drag a visual clone. The real card stays under its LayoutGroup/Mask, so a drop
+        // outside a slot can never leave it at an off-screen anchored position.
+        dragVisual = Instantiate(gameObject, canvas.rootCanvas.transform, true);
+        dragVisual.name = name + "_DragVisual";
+        var cloneItem = dragVisual.GetComponent<SkillItem>();
+        if (cloneItem != null) cloneItem.enabled = false;
+        var cloneGroup = dragVisual.GetComponent<CanvasGroup>() ?? dragVisual.AddComponent<CanvasGroup>();
+        cloneGroup.alpha = 0.85f;
+        cloneGroup.blocksRaycasts = false;
+        cloneGroup.interactable = false;
+        dragVisual.transform.SetAsLastSibling();
+        dragVisual.transform.position = eventData.position;
+
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
     }
 
     public void OnDrag(PointerEventData eventData)
     {
         if (serverData == null) return;
-        transform.position = Input.mousePosition;
+        if (dragVisual != null)
+            dragVisual.transform.position = eventData.position;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
         if (serverData == null) return;
 
-        transform.SetParent(originalParent);
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.blocksRaycasts = true;
-        }
+        if (dragVisual != null) Destroy(dragVisual);
+        dragVisual = null;
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+    }
+    private void OnDisable()
+    {
+        if (dragVisual != null) Destroy(dragVisual);
+        dragVisual = null;
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
     }
 }

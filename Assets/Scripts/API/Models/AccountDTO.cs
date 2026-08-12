@@ -23,6 +23,7 @@ namespace MysticJourney.API.Models.Response
         public string UserName { get; set; }
         public string EmailAddress { get; set; }
         public int RoleId { get; set; }
+        public bool HasCharacter { get; set; }
         public int? PlayerProfileId { get; set; }      // null nếu chưa tạo profile
         public string PlayerDisplayName { get; set; }
         public string PlayerClass { get; set; }

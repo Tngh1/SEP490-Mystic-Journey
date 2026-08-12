@@ -95,8 +95,10 @@ public class PlayerEntity : MonoBehaviour
     {
         if (_spriteOrders == null) return;
         
-        bool isBehindWall = _wallOverlapCount > 0;
-        int offset = isBehindWall ? -14 : 0; // If initially 15, goes down to 1 (behind wall which is 2)
+        // CharacterFactory dùng sorting layer "Characters" với baseline 0. Offset -14 cũ
+        // đẩy network avatar xuống dưới cả floor tilemap. Wall/roof đã tự fade bằng
+        // BuildingFader/TilemapAutoFader nên player phải giữ nguyên sorting order.
+        int offset = 0;
         
         for (int i = 0; i < _spriteOrders.Length; i++)
         {

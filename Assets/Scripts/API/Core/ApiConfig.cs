@@ -1,3 +1,5 @@
+using System;
+
 namespace MysticJourney.API.Core
 {
     // Lưu toàn bộ cấu hình kết nối backend.
@@ -7,7 +9,20 @@ namespace MysticJourney.API.Core
         // URL gốc của backend. Đổi thành domain thật khi deploy.
         // Local:      "http://localhost:5176" (HTTP profile)
         // Production: "https://api.mysticjourney.com"
-        public const string BaseUrl = "http://localhost:5176";
+        public const string DefaultBaseUrl = "http://localhost:5176";
+
+        /// <summary>
+        /// Runtime API address. CI/PlayMode integration fixtures can point Unity at an isolated
+        /// API host through MJ_API_BASE_URL without changing or rebuilding production scripts.
+        /// </summary>
+        public static string BaseUrl
+        {
+            get
+            {
+                var configured = Environment.GetEnvironmentVariable("MJ_API_BASE_URL");
+                return string.IsNullOrWhiteSpace(configured) ? DefaultBaseUrl : configured.TrimEnd('/');
+            }
+        }
 
         // Thời gian tối đa chờ response (giây)
         public const int Timeout = 30;
