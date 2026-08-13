@@ -10,27 +10,6 @@ namespace MysticJourney.API.Models.Request
 
 namespace MysticJourney.API.Models.Response
 {
-    // Admin/catalog response from /api/shopitems.
-    [System.Serializable]
-    public class ShopItemResponse
-    {
-        public int ShopItemId { get; set; }
-        public int ItemId { get; set; }
-        public string ItemName { get; set; }
-        public string ItemIconUrl { get; set; }
-        public string ItemType { get; set; }
-        public string ShopSection { get; set; }
-        public string Currency { get; set; }
-        public decimal? OriginalPrice { get; set; }
-        public decimal Price { get; set; }
-        public int Stock { get; set; }
-        public int DailyPurchaseLimit { get; set; }
-        public int WeeklyPurchaseLimit { get; set; }
-        public bool IsActive { get; set; }
-        public string AvailableFrom { get; set; }
-        public string AvailableTo { get; set; }
-    }
-
     // Player-facing shop response from /api/shop/items.
     [System.Serializable]
     public class ShopItemPublicResponse

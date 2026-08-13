@@ -87,41 +87,5 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
-
-        // ── Lấy danh sách bạn bè ────────────────────────────────────────
-        public void GetFriends(Action<PlayerProfileResponse[]> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog("GetFriends...");
-            ApiClient.Instance.Get<PlayerProfileResponse[]>(
-                ApiConfig.PlayerProfileMeFriends,
-                response =>
-                {
-                    SafeDebugLog($"GetFriends OK | Count={response?.Length ?? 0}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"GetFriends FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
-        // ── Gửi Heartbeat ───────────────────────────────────────────────
-        public void SendHeartbeat(Action<SimpleResponse> onSuccess = null, Action<ApiException> onError = null)
-        {
-            ApiClient.Instance.PostEmpty<SimpleResponse>(
-                ApiConfig.PlayerHeartbeat,
-                response =>
-                {
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"SendHeartbeat FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
     }
 }

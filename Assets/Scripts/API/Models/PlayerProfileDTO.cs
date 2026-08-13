@@ -57,12 +57,6 @@ namespace MysticJourney.API.Models.Response
 
     // Response mở rộng kèm Stats
     [System.Serializable]
-    public class PlayerProfileDetailResponse : PlayerProfileResponse
-    {
-        public PlayerStatsResponse Stats { get; set; }
-    }
-
-    [System.Serializable]
     public class PlayerStatsResponse
     {
         public int CurrentHp { get; set; }

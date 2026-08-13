@@ -17,6 +17,7 @@ public class AchievementPopupRuntime : MonoBehaviour
     [SerializeField, Min(5f)] private float pollIntervalSeconds = 15f;
 
     private readonly HashSet<int> completedAchievementIds = new HashSet<int>();
+    private readonly HashSet<int> unlockRequestsInFlight = new HashSet<int>();
     private bool baselineInitialized;
     private bool requestInFlight;
     private bool refreshQueued;
@@ -146,6 +147,7 @@ public class AchievementPopupRuntime : MonoBehaviour
             baselinePlayerProfileId != response.PlayerProfileId)
         {
             completedAchievementIds.Clear();
+            unlockRequestsInFlight.Clear();
             baselineInitialized = false;
         }
 
@@ -153,7 +155,8 @@ public class AchievementPopupRuntime : MonoBehaviour
             baselinePlayerProfileId = response.PlayerProfileId;
 
         var achievements = response.Achievements;
-        if (!baselineInitialized)
+        bool establishingBaseline = !baselineInitialized;
+        if (establishingBaseline)
         {
             if (achievements != null)
             {
@@ -165,7 +168,6 @@ public class AchievementPopupRuntime : MonoBehaviour
             }
 
             baselineInitialized = true;
-            return;
         }
 
         if (achievements == null)
@@ -173,18 +175,53 @@ public class AchievementPopupRuntime : MonoBehaviour
 
         foreach (var achievement in achievements)
         {
-            if (!IsCompleted(achievement) || !completedAchievementIds.Add(achievement.AchievementId))
+            if (IsCompleted(achievement))
+            {
+                if (!establishingBaseline && completedAchievementIds.Add(achievement.AchievementId))
+                    ShowAchievementPopup(achievement);
                 continue;
+            }
 
-            ShowAchievementPopup(achievement);
+            if (achievement.PlayerAchievementId > 0 &&
+                achievement.RequiredValue > 0 &&
+                achievement.Progress >= achievement.RequiredValue)
+            {
+                BeginUnlock(achievement.PlayerAchievementId);
+            }
         }
+    }
+
+    private void BeginUnlock(int playerAchievementId)
+    {
+        if (!unlockRequestsInFlight.Add(playerAchievementId))
+            return;
+
+        AchievementApi.Instance.UnlockAchievement(
+            playerAchievementId,
+            achievement =>
+            {
+                if (this == null)
+                    return;
+
+                unlockRequestsInFlight.Remove(playerAchievementId);
+                NotifyAchievementUnlocked(achievement);
+                WorldRuntimeEvents.RaiseCurrencyChanged();
+            },
+            error =>
+            {
+                if (this == null)
+                    return;
+
+                unlockRequestsInFlight.Remove(playerAchievementId);
+                Debug.LogWarning($"[AchievementPopupRuntime] Unlock failed for {playerAchievementId}: {error.Message}");
+            });
     }
 
     private static bool IsCompleted(PlayerAchievementResponse achievement)
     {
         return achievement != null &&
                achievement.AchievementId > 0 &&
-               (achievement.IsCompleted || achievement.IsRewardClaimed);
+               achievement.IsCompleted;
     }
 
     private static void ShowAchievementPopup(PlayerAchievementResponse achievement)

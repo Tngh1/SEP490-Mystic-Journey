@@ -48,26 +48,6 @@ namespace MysticJourney.API.Models.Response
         public string ClaimedAt { get; set; }
     }
 
-    [Serializable]
-    public class PlayerQuestListWrapper
-    {
-        public bool Success { get; set; }
-        public List<PlayerQuestResponse> Data { get; set; }
-    }
-
-    [Serializable]
-    public class PlayerQuestSingleWrapper
-    {
-        public bool Success { get; set; }
-        public PlayerQuestResponse Data { get; set; }
-    }
-
-    [Serializable]
-    public class BatchProgressWrapper
-    {
-        public bool Success { get; set; }
-        public List<PlayerQuestResponse> Data { get; set; }
-    }
 }
 
 namespace MysticJourney.API.Models.Request

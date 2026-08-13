@@ -19,6 +19,9 @@ public static class LoadingScreen
     private const float MinSeconds = 0.35f;
 
     private static float _shownAt;
+    private static AsyncOperation _loadOperation;
+    private static AsyncOperation _unloadOperation;
+
 
     public static IEnumerator Show(string status = "Loading map...")
     {
@@ -26,23 +29,70 @@ public static class LoadingScreen
         LoadingProgress.Report(0.05f, status);
         _shownAt = Time.unscaledTime;
 
+        // A new transition may start while the previous caller is still unloading the
+        // shared loading scene. Wait before trying to load it again.
+        if (_unloadOperation != null)
+        {
+            var pendingUnload = _unloadOperation;
+            yield return pendingUnload;
+            if (_unloadOperation == pendingUnload)
+                _unloadOperation = null;
+        }
+
         var scene = SceneManager.GetSceneByName(SceneName);
         if (scene.IsValid() && scene.isLoaded)
             yield break;
 
-        yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
+        // BoatVoyageSequence and MapSceneController can request the overlay in the
+        // same frame. Share one AsyncOperation instead of loading the additive scene twice.
+        if (_loadOperation == null)
+            _loadOperation = SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
+
+        var pendingLoad = _loadOperation;
+        if (pendingLoad != null)
+            yield return pendingLoad;
+
+        if (_loadOperation == pendingLoad)
+            _loadOperation = null;
     }
 
     public static IEnumerator Hide()
     {
         LoadingProgress.Report(1f, "Ready");
 
+        // Hide may be requested while a Show coroutine is still loading the scene.
+        if (_loadOperation != null)
+        {
+            var pendingLoad = _loadOperation;
+            yield return pendingLoad;
+            if (_loadOperation == pendingLoad)
+                _loadOperation = null;
+        }
+
         float elapsed = Time.unscaledTime - _shownAt;
         if (elapsed < MinSeconds)
             yield return new WaitForSecondsRealtime(MinSeconds - elapsed);
 
+        // Multiple callers must share one unload operation as well.
+        if (_unloadOperation != null)
+        {
+            var pendingUnload = _unloadOperation;
+            yield return pendingUnload;
+            if (_unloadOperation == pendingUnload)
+                _unloadOperation = null;
+            yield break;
+        }
+
         var scene = SceneManager.GetSceneByName(SceneName);
         if (scene.IsValid() && scene.isLoaded)
-            yield return SceneManager.UnloadSceneAsync(scene);
+        {
+            _unloadOperation = SceneManager.UnloadSceneAsync(scene);
+            var pendingUnload = _unloadOperation;
+            if (pendingUnload != null)
+                yield return pendingUnload;
+
+            if (_unloadOperation == pendingUnload)
+                _unloadOperation = null;
+        }
     }
 }
