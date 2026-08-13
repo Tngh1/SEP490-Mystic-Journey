@@ -43,8 +43,8 @@ public class UIShopSlot : UIBaseItemSlot
         if (nameLabel != null)
         {
             nameLabel.enableAutoSizing = true;
-            nameLabel.fontSizeMin = 8f;
-            nameLabel.fontSizeMax = 12.5f;
+            nameLabel.fontSizeMin = 20f;
+            nameLabel.fontSizeMax = 30f;
             nameLabel.alignment = TextAlignmentOptions.Center;
             nameLabel.margin = new Vector4(2, 2, 2, 2);
             nameLabel.text = data.itemName ?? string.Empty;
@@ -55,8 +55,8 @@ public class UIShopSlot : UIBaseItemSlot
         if (quantityText != null)
         {
             quantityText.enableAutoSizing = true;
-            quantityText.fontSizeMin = 7f;
-            quantityText.fontSizeMax = 12f;
+            quantityText.fontSizeMin = 15f;
+            quantityText.fontSizeMax = 26f;
 
             bool isDailyDeal = string.Equals(data.shopSection, "DailyDeals", StringComparison.OrdinalIgnoreCase) ||
                                string.Equals(data.shopSection, "DailyDeal", System.StringComparison.OrdinalIgnoreCase) ||
@@ -110,8 +110,8 @@ public class UIShopSlot : UIBaseItemSlot
             if (gemPriceText != null)
             {
                 gemPriceText.enableAutoSizing = true;
-                gemPriceText.fontSizeMin = 8.5f;
-                gemPriceText.fontSizeMax = 14f;
+                gemPriceText.fontSizeMin = 12f;
+                gemPriceText.fontSizeMax = 22f;
                 gemPriceText.richText = true;
                 gemPriceText.alignment = TextAlignmentOptions.Center;
                 gemPriceText.margin = new Vector4(2, 0, 2, 0);
@@ -126,8 +126,8 @@ public class UIShopSlot : UIBaseItemSlot
             if (priceText != null)
             {
                 priceText.enableAutoSizing = true;
-                priceText.fontSizeMin = 8.5f;
-                priceText.fontSizeMax = 14f;
+                priceText.fontSizeMin = 12f;
+                priceText.fontSizeMax = 22f;
                 priceText.richText = true;
                 priceText.alignment = TextAlignmentOptions.Center;
                 priceText.margin = new Vector4(2, 0, 2, 0);
