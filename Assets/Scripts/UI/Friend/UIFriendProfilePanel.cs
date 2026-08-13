@@ -610,7 +610,7 @@ namespace UI.Friend
             // --- Buff: Icon + Number (InventorySlot_Prefab) ---
             PopulateBuffSlots(achievement);
 
-            bool isUnlocked = ownedAchievement != null && (ownedAchievement.IsCompleted || ownedAchievement.IsRewardClaimed || ownedAchievement.Progress >= achievement.RequiredValue);
+            bool isUnlocked = ownedAchievement != null && (ownedAchievement.IsCompleted || ownedAchievement.Progress >= achievement.RequiredValue);
 
             var detailSprite = string.IsNullOrEmpty(achievement.IconUrl)
                 ? null

@@ -16,7 +16,6 @@ namespace MysticJourney.API.Models.Response
         public int Progress { get; set; }
         public int RequiredValue { get; set; }
         public bool IsCompleted { get; set; }
-        public bool IsRewardClaimed { get; set; }
         public string CompletedAt { get; set; } = string.Empty;
         public string UnlockedAt { get; set; } = string.Empty;
         public int? RewardItemId { get; set; }

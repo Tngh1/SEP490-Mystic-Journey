@@ -1034,8 +1034,8 @@ public class UIPartyPanel : MonoBehaviour
         ctRt.anchorMax = Vector2.one;
         ctRt.sizeDelta = Vector2.zero;
 
-        // FriendApi (/api/friend), NOT PlayerApi.GetFriends: the latter returns
-        // PlayerProfileResponse, which carries no online flag at all — so every friend
+        // FriendApi (/api/friend) returns FriendDto with the online flag; the legacy
+        // player-profile friends endpoint did not, so every friend
         // was listed and an offline one only failed later, at PartyService.InviteByProfileId
         // (FriendOffline). FriendDto has IsOnline, and an invite can only reach a friend
         // who is present in the social lobby, so offline rows are filtered out here.

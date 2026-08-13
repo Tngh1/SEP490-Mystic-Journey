@@ -122,7 +122,6 @@ namespace MysticJourney.API.Core
         // Dùng cho cả GET (lấy profile) và PUT (cập nhật profile)
         public const string PlayerProfileById = "/api/playerprofiles/{0}";
         public const string PlayerProfileChangeName = "/api/playerprofiles/change-name";
-        public const string PlayerProfileMeFriends = "/api/playerprofiles/me/friends";
 
         // Friend API
         public static string GetFriendListEndpoint => "/api/friend";
@@ -143,7 +142,6 @@ namespace MysticJourney.API.Core
         public const string PlayerSkillsMe = "/api/player-skills/me";
         public const string PlayerSkillsUpgrade = "/api/player-skills/upgrade";
         public const string PlayerSkillsEquip = "/api/player-skills/equip";
-        public const string PlayerSkillsDismantle = "/api/player-skills/dismantle";
         public const string PlayerSkillsRecordCast = "/api/player-skills/record-cast/{0}";
 
         // ═══════════════════════════════════════════════════════════════════════

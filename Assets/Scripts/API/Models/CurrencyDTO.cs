@@ -10,19 +10,6 @@ namespace MysticJourney.API.Models.Response
     }
 
     [System.Serializable]
-    public class CurrencySpendResponse
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-        public string Currency { get; set; }
-        public decimal AmountSpent { get; set; }
-        public decimal BalanceBefore { get; set; }
-        public decimal BalanceAfter { get; set; }
-        public CurrencyBalanceResponse Balance { get; set; }
-        public PlayerCurrencyLogResponse Transaction { get; set; }
-    }
-
-    [System.Serializable]
     public class PlayerCurrencyLogResponse
     {
         public int PlayerCurrencyLogId { get; set; }

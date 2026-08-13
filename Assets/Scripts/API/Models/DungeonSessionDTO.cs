@@ -120,18 +120,6 @@ namespace MysticJourney.API.Models.Response
     }
 
     // ── Response: GET /api/dungeons/history ──────────────────────────────────
-    [System.Serializable]
-    public class DungeonHistoryResponse
-    {
-        public int DungeonSessionId { get; set; }
-        public string DungeonName { get; set; }
-        public int Difficulty { get; set; }
-        public string Status { get; set; }
-        public int ElapsedTime { get; set; }
-        public int CompletionPercentage { get; set; }
-        public string EnterTime { get; set; }
-        public string CompletedTime { get; set; }
-    }
 }
 
 namespace MysticJourney.API.Models.Request

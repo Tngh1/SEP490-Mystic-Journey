@@ -82,12 +82,6 @@ namespace MysticJourney.API.Models
     }
 
     [Serializable]
-    public class PromoteMemberRequest
-    {
-        public int targetPlayerProfileId;
-    }
-
-    [Serializable]
     public class TransferLeaderRequest
     {
         public int newLeaderProfileId;

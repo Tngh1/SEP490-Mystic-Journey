@@ -18,35 +18,10 @@ namespace MysticJourney.API.Models.Request
         public int? SlotIndex { get; set; }
     }
 
-    [Serializable]
-    public class DismantlePlayerSkillRequest
-    {
-        public int PlayerSkillId { get; set; }
-        public int? TargetPlayerSkillId { get; set; }
-    }
 }
 
 namespace MysticJourney.API.Models.Response
 {
-    [Serializable]
-    public class SkillResponse
-    {
-        public int SkillId { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string Type { get; set; }
-        public string DamageType { get; set; }
-        public string TargetType { get; set; }
-        public string ClassRequirement { get; set; }
-        public int CooldownSeconds { get; set; }
-        public double BaseDamage { get; set; }
-        public double DamagePerLevel { get; set; }
-        public double DamageGrowthPercent { get; set; }
-        public int UnlockLevel { get; set; }
-        public float CorruptionCost { get; set; }
-        public bool IsActive { get; set; }
-    }
-
     [Serializable]
     public class PlayerSkillResponse
     {

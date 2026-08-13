@@ -75,27 +75,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Phế hủy skill ──────────────────────────────
-        public void DismantlePlayerSkill(int playerSkillId, int? targetPlayerSkillId, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
-        {
-            SafeDebugLog($"DismantlePlayerSkill → playerSkillId={playerSkillId}, targetPlayerSkillId={targetPlayerSkillId}");
-            var body = new DismantlePlayerSkillRequest { PlayerSkillId = playerSkillId, TargetPlayerSkillId = targetPlayerSkillId };
-            ApiClient.Instance.Post<DismantlePlayerSkillRequest, PlayerSkillResponse>(
-                ApiConfig.PlayerSkillsDismantle,
-                body,
-                response =>
-                {
-                    SafeDebugLog($"DismantlePlayerSkill OK | playerSkillId={playerSkillId}");
-                    onSuccess?.Invoke(response);
-                },
-                error =>
-                {
-                    SafeDebugError($"DismantlePlayerSkill FAIL | {error.StatusCode}: {error.Message}");
-                    onError?.Invoke(error);
-                },
-                requiresAuth: true);
-        }
-
+        // ── Ghi nhận lượt dùng skill ──────────────────────────────
         public void RecordSkillCast(int playerSkillId, Action<PlayerSkillResponse> onSuccess = null, Action<ApiException> onError = null)
         {
             ApiClient.Instance.Post<object, PlayerSkillResponse>(
