@@ -1127,7 +1127,7 @@ public class GachaUIManager : MonoBehaviour
         // Càng gần số 0 thì màu càng đỏ rực lên
         string colorTag = pullsLeft <= 10 ? "<color=red>" : "<color=yellow>";
 
-        pityText.text = $"Guaranteed rare item in: {colorTag}{pullsLeft}</color> pulls";
+        pityText.text = $"Guaranteed great item in: {colorTag}{pullsLeft}</color> pulls";
     }
 
     private void SetButtonsInteractable(bool state)
