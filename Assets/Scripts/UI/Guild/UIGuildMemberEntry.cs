@@ -58,7 +58,7 @@ namespace MysticJourney.UI.Guild
                 btnKick.onClick.AddListener(() =>
                 {
                     // Confirmation popup before kicking
-                    MysticJourney.UI.UIPopupManager.Instance.ShowConfirm(
+                    MysticJourney.UI.UIPopup.Instance.ShowConfirm(
                         "Kick Member",
                         $"Are you sure you want to kick {member.playerDisplayName}?",
                         () => onKick?.Invoke(member.playerProfileId),

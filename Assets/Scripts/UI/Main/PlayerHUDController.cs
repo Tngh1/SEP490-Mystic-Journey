@@ -57,6 +57,15 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private GameObject deathPopupPanel;
     [SerializeField] private Button btnAgain;
     [SerializeField] private Button btnQuit;
+    [SerializeField] private Button btnRespawn;
+    [SerializeField] private TMP_Text deathTitleText;
+    [SerializeField] private TMP_Text deathSubtitleText;
+    [SerializeField, HideInInspector] private TMP_FontAsset deathTitleFont;
+    [SerializeField, HideInInspector] private TMP_FontAsset deathBodyFont;
+    [SerializeField, HideInInspector] private Sprite deathPanelSprite;
+    [SerializeField, HideInInspector] private Sprite deathSkullSprite;
+    [SerializeField, HideInInspector] private Sprite deathPrimaryButtonSprite;
+    [SerializeField, HideInInspector] private Sprite deathSecondaryButtonSprite;
 
     [Header("Colors")]
     [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f); // Light Sky Blue
@@ -115,6 +124,7 @@ public class PlayerHUDController : MonoBehaviour
         }
 
         FindHUDReferences();
+        FindDeathPanelReferences();
     }
 
     private float _hudEnableTime = 0f;
@@ -1516,94 +1526,55 @@ public class PlayerHUDController : MonoBehaviour
 
     private GameObject _deathRedOverlay;
     private GameObject _worldDeathContent;
+    private TextMeshProUGUI _deathTitleText;
+    private TextMeshProUGUI _deathSubtitleText;
+    private Button _deathPrimaryButton;
+    private Button _deathSecondaryButton;
+    private Button _deathRespawnButton;
+
+    private void FindDeathPanelReferences()
+    {
+        if (deathPopupPanel == null)
+            deathPopupPanel = transform.root.Find("DeathPanel")?.gameObject;
+
+        if (deathPopupPanel == null) return;
+
+        if (deathTitleText == null)
+            deathTitleText = FindChildRecursive(deathPopupPanel.transform, "Title")?.GetComponent<TMP_Text>();
+        if (deathSubtitleText == null)
+            deathSubtitleText = FindChildRecursive(deathPopupPanel.transform, "Subtitle")?.GetComponent<TMP_Text>();
+        if (btnAgain == null)
+            btnAgain = FindChildRecursive(deathPopupPanel.transform, "AgainButton")?.GetComponent<Button>();
+        if (btnQuit == null)
+            btnQuit = FindChildRecursive(deathPopupPanel.transform, "QuitButton")?.GetComponent<Button>();
+        if (btnRespawn == null)
+            btnRespawn = FindChildRecursive(deathPopupPanel.transform, "RespawnButton")?.GetComponent<Button>();
+
+        _deathRedOverlay = deathPopupPanel;
+        _worldDeathContent = deathPopupPanel;
+        _deathTitleText = deathTitleText as TextMeshProUGUI;
+        _deathSubtitleText = deathSubtitleText as TextMeshProUGUI;
+        _deathPrimaryButton = btnAgain;
+        _deathSecondaryButton = btnQuit;
+        _deathRespawnButton = btnRespawn;
+        deathPopupPanel.SetActive(false);
+    }
 
     private IEnumerator ShowDeathPopupCoroutine()
     {
         Debug.Log("[PlayerHUDController] Player died. Waiting for animation and fading red overlay...");
 
-        // Create red overlay
+        if (_deathRedOverlay == null) FindDeathPanelReferences();
         if (_deathRedOverlay == null)
         {
-            _deathRedOverlay = new GameObject("DeathRedOverlay");
-            _deathRedOverlay.transform.SetParent(transform, false);
-            var img = _deathRedOverlay.AddComponent<Image>();
-            img.color = new Color(1f, 0f, 0f, 0f);
-            
-            var rect = _deathRedOverlay.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            // --- World Death Content (Text & Button) ---
-            _worldDeathContent = new GameObject("WorldDeathContent");
-            _worldDeathContent.transform.SetParent(_deathRedOverlay.transform, false);
-            var contentRect = _worldDeathContent.AddComponent<RectTransform>();
-            contentRect.anchorMin = Vector2.zero;
-            contentRect.anchorMax = Vector2.one;
-            contentRect.offsetMin = Vector2.zero;
-            contentRect.offsetMax = Vector2.zero;
-
-            // Title
-            var titleObj = new GameObject("Title");
-            titleObj.transform.SetParent(_worldDeathContent.transform, false);
-            var titleText = titleObj.AddComponent<TextMeshProUGUI>();
-            titleText.text = "THE LIGHT FADES...";
-            titleText.color = new Color(1f, 0.2f, 0.2f, 1f);
-            titleText.fontSize = 72;
-            titleText.alignment = TextAlignmentOptions.Center;
-            titleText.fontStyle = FontStyles.Bold;
-            if (playerNameText != null) titleText.font = playerNameText.font;
-            var titleRect = titleObj.GetComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0, 0.5f);
-            titleRect.anchorMax = new Vector2(1, 0.5f);
-            titleRect.anchoredPosition = new Vector2(0, 100);
-            titleRect.sizeDelta = new Vector2(0, 100);
-
-            // Subtitle
-            var subObj = new GameObject("Subtitle");
-            subObj.transform.SetParent(_worldDeathContent.transform, false);
-            var subText = subObj.AddComponent<TextMeshProUGUI>();
-            subText.text = "Your journey is not over yet.";
-            subText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
-            subText.fontSize = 36;
-            subText.alignment = TextAlignmentOptions.Center;
-            if (playerNameText != null) subText.font = playerNameText.font;
-            var subRect = subObj.GetComponent<RectTransform>();
-            subRect.anchorMin = new Vector2(0, 0.5f);
-            subRect.anchorMax = new Vector2(1, 0.5f);
-            subRect.anchoredPosition = new Vector2(0, 30);
-            subRect.sizeDelta = new Vector2(0, 50);
-
-            // Respawn Button
-            var btnObj = new GameObject("RespawnButton");
-            btnObj.transform.SetParent(_worldDeathContent.transform, false);
-            var btnImage = btnObj.AddComponent<Image>();
-            btnImage.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
-            var btn = btnObj.AddComponent<Button>();
-            btn.onClick.AddListener(OnWorldRespawnClicked);
-            var btnRect = btnObj.GetComponent<RectTransform>();
-            btnRect.anchorMin = new Vector2(0.5f, 0.5f);
-            btnRect.anchorMax = new Vector2(0.5f, 0.5f);
-            btnRect.anchoredPosition = new Vector2(0, -60);
-            btnRect.sizeDelta = new Vector2(250, 70);
-
-            var btnTextObj = new GameObject("Text");
-            btnTextObj.transform.SetParent(btnObj.transform, false);
-            var btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
-            btnText.text = "Respawn";
-            btnText.color = Color.white;
-            btnText.fontSize = 32;
-            btnText.alignment = TextAlignmentOptions.Center;
-            if (playerNameText != null) btnText.font = playerNameText.font;
-            var btnTextRect = btnTextObj.GetComponent<RectTransform>();
-            btnTextRect.anchorMin = Vector2.zero;
-            btnTextRect.anchorMax = Vector2.one;
-            btnTextRect.offsetMin = Vector2.zero;
-            btnTextRect.offsetMax = Vector2.zero;
+            Debug.LogError("[PlayerHUDController] DeathPanel is not assigned in Main scene.");
+            _isDeathPopupShowing = false;
+            yield break;
         }
-        
-        if (_worldDeathContent != null) _worldDeathContent.SetActive(false);
+
+        bool inDungeon = DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon;
+        PrepareDeathPanelForFade(inDungeon);
+
         _deathRedOverlay.SetActive(true);
         _deathRedOverlay.transform.SetAsLastSibling();
 
@@ -1620,8 +1591,6 @@ public class PlayerHUDController : MonoBehaviour
         // Wait 1 more second before showing the popup
         yield return new WaitForSeconds(1f);
 
-        bool inDungeon = DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon;
-
         if (inDungeon)
         {
             ShowDungeonDeathPopup();
@@ -1632,13 +1601,186 @@ public class PlayerHUDController : MonoBehaviour
         }
     }
 
+    private void PrepareDeathPanelForFade(bool inDungeon)
+    {
+        // DeathPanel is also the red overlay. Activating it before the fade previously
+        // exposed the scene's default RespawnButton for three seconds, then swapped to
+        // Again/Quit after the dungeon check, which looked like two death popups.
+        if (_deathTitleText != null)
+            _deathTitleText.text = inDungeon ? "DEFEATED" : "YOU HAVE FALLEN";
+        if (_deathSubtitleText != null)
+            _deathSubtitleText.text = inDungeon
+                ? "Stand with your party, or retreat from the darkness."
+                : "The old gods have not claimed you yet.";
+
+        if (_deathPrimaryButton != null)
+            _deathPrimaryButton.gameObject.SetActive(false);
+        if (_deathSecondaryButton != null)
+            _deathSecondaryButton.gameObject.SetActive(false);
+        if (_deathRespawnButton != null)
+            _deathRespawnButton.gameObject.SetActive(false);
+    }
+
     private void ShowWorldDeathPopup()
     {
         Debug.Log("[PlayerHUDController] Showing WORLD death popup...");
+        ShowStyledDeathContent(false);
+    }
 
-        if (_worldDeathContent != null)
+    private void BuildDeathContent()
+    {
+        _worldDeathContent = new GameObject("StyledDeathContent", typeof(RectTransform));
+        _worldDeathContent.transform.SetParent(_deathRedOverlay.transform, false);
+        var contentRect = _worldDeathContent.GetComponent<RectTransform>();
+        contentRect.anchorMin = Vector2.zero;
+        contentRect.anchorMax = Vector2.one;
+        contentRect.offsetMin = Vector2.zero;
+        contentRect.offsetMax = Vector2.zero;
+
+        var card = new GameObject("DeathCard", typeof(RectTransform), typeof(Image), typeof(Outline));
+        card.transform.SetParent(_worldDeathContent.transform, false);
+        var cardRect = card.GetComponent<RectTransform>();
+        cardRect.anchorMin = cardRect.anchorMax = new Vector2(0.5f, 0.5f);
+        cardRect.sizeDelta = new Vector2(680f, 470f);
+        var cardImage = card.GetComponent<Image>();
+        cardImage.sprite = deathPanelSprite;
+        cardImage.type = Image.Type.Simple;
+        cardImage.color = deathPanelSprite != null ? Color.white : new Color(0.08f, 0.045f, 0.04f, 0.98f);
+        var cardOutline = card.GetComponent<Outline>();
+        cardOutline.effectColor = new Color(0.12f, 0.015f, 0.01f, 1f);
+        cardOutline.effectDistance = new Vector2(6f, -6f);
+
+        if (deathSkullSprite != null)
         {
-            _worldDeathContent.SetActive(true);
+            var skull = new GameObject("Skull", typeof(RectTransform), typeof(Image));
+            skull.transform.SetParent(card.transform, false);
+            var skullRect = skull.GetComponent<RectTransform>();
+            skullRect.anchorMin = skullRect.anchorMax = new Vector2(0.5f, 0.5f);
+            skullRect.anchoredPosition = new Vector2(0f, 168f);
+            skullRect.sizeDelta = new Vector2(112f, 112f);
+            var skullImage = skull.GetComponent<Image>();
+            skullImage.sprite = deathSkullSprite;
+            skullImage.preserveAspect = true;
+            skullImage.raycastTarget = false;
+        }
+
+        _deathTitleText = CreateDeathText("Title", card.transform, deathTitleFont,
+            "YOU HAVE FALLEN", 66f, new Color(0.84f, 0.18f, 0.14f), new Vector2(0f, 92f), new Vector2(580f, 82f));
+        _deathTitleText.fontStyle = FontStyles.Bold;
+        _deathTitleText.outlineWidth = 0.2f;
+        _deathTitleText.outlineColor = new Color32(34, 8, 7, 255);
+
+        _deathSubtitleText = CreateDeathText("Subtitle", card.transform, deathBodyFont,
+            "The old gods have not claimed you yet.", 31f, new Color(0.88f, 0.82f, 0.68f),
+            new Vector2(0f, 25f), new Vector2(560f, 62f));
+
+        var divider = new GameObject("Divider", typeof(RectTransform), typeof(Image));
+        divider.transform.SetParent(card.transform, false);
+        var dividerRect = divider.GetComponent<RectTransform>();
+        dividerRect.anchorMin = dividerRect.anchorMax = new Vector2(0.5f, 0.5f);
+        dividerRect.anchoredPosition = new Vector2(0f, -24f);
+        dividerRect.sizeDelta = new Vector2(430f, 3f);
+        divider.GetComponent<Image>().color = new Color(0.58f, 0.42f, 0.19f, 0.9f);
+
+        _deathPrimaryButton = CreateDeathButton("RiseAgainButton", card.transform,
+            deathPrimaryButtonSprite, "RISE AGAIN", new Vector2(0f, -116f));
+        _deathSecondaryButton = CreateDeathButton("LeaveDungeonButton", card.transform,
+            deathSecondaryButtonSprite, "LEAVE", new Vector2(125f, -116f));
+    }
+
+    private TextMeshProUGUI CreateDeathText(string objectName, Transform parent, TMP_FontAsset font,
+        string value, float fontSize, Color color, Vector2 position, Vector2 size)
+    {
+        var textObject = new GameObject(objectName, typeof(RectTransform), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(parent, false);
+        var rect = textObject.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+
+        var text = textObject.GetComponent<TextMeshProUGUI>();
+        text.text = value;
+        text.font = font != null ? font : playerNameText?.font;
+        text.fontSize = fontSize;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = color;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = Mathf.Max(18f, fontSize * 0.65f);
+        text.fontSizeMax = fontSize;
+        text.raycastTarget = false;
+        return text;
+    }
+
+    private Button CreateDeathButton(string objectName, Transform parent, Sprite sprite, string label, Vector2 position)
+    {
+        var buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(parent, false);
+        var rect = buttonObject.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(230f, 82f);
+
+        var image = buttonObject.GetComponent<Image>();
+        image.sprite = sprite;
+        image.color = sprite != null ? Color.white : new Color(0.45f, 0.12f, 0.09f, 1f);
+
+        var button = buttonObject.GetComponent<Button>();
+        var colors = button.colors;
+        colors.highlightedColor = new Color(1f, 0.88f, 0.65f, 1f);
+        colors.pressedColor = new Color(0.72f, 0.72f, 0.72f, 1f);
+        button.colors = colors;
+
+        var labelText = CreateDeathText("Label", buttonObject.transform, deathBodyFont, label, 29f,
+            Color.white, Vector2.zero, Vector2.zero);
+        var labelRect = labelText.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(12f, 8f);
+        labelRect.offsetMax = new Vector2(-12f, -8f);
+        labelText.outlineWidth = 0.12f;
+        labelText.outlineColor = new Color32(30, 12, 8, 255);
+
+        if (buttonObject.GetComponent<UIHoverScaleEffect>() == null)
+            buttonObject.AddComponent<UIHoverScaleEffect>();
+        return button;
+    }
+
+    private void ShowStyledDeathContent(bool inDungeon)
+    {
+        if (_worldDeathContent == null) return;
+
+        _worldDeathContent.SetActive(true);
+        _deathTitleText.text = inDungeon ? "DEFEATED" : "YOU HAVE FALLEN";
+        _deathSubtitleText.text = inDungeon
+            ? "Stand with your party, or retreat from the darkness."
+            : "The old gods have not claimed you yet.";
+
+        _deathPrimaryButton.onClick.RemoveAllListeners();
+        _deathSecondaryButton.onClick.RemoveAllListeners();
+        if (_deathRespawnButton != null)
+            _deathRespawnButton.onClick.RemoveAllListeners();
+
+        _deathPrimaryButton.gameObject.SetActive(inDungeon);
+        _deathSecondaryButton.gameObject.SetActive(inDungeon);
+        if (_deathRespawnButton != null)
+            _deathRespawnButton.gameObject.SetActive(!inDungeon);
+
+        if (inDungeon)
+        {
+            deathPopupPanel = _worldDeathContent;
+            btnAgain = _deathPrimaryButton;
+            btnQuit = _deathSecondaryButton;
+            btnAgain.onClick.AddListener(OnAgainClicked);
+            btnQuit.onClick.AddListener(OnQuitClicked);
+            UpdateDeathPopupState();
+        }
+        else
+        {
+            if (_deathRespawnButton != null)
+                _deathRespawnButton.onClick.AddListener(OnWorldRespawnClicked);
+            else
+                Debug.LogError("[PlayerHUDController] RespawnButton is not assigned in DeathPanel.");
         }
     }
 
@@ -1693,9 +1835,9 @@ public class PlayerHUDController : MonoBehaviour
         _isDeathPopupShowing = false;
         if (deathPopupPanel != null)
         {
-            if (MysticJourney.UI.UIPopupManager.Instance != null && deathPopupPanel == MysticJourney.UI.UIPopupManager.Instance.PopupContainer)
+            if (MysticJourney.UI.UIPopup.Instance != null && deathPopupPanel == MysticJourney.UI.UIPopup.Instance.PopupContainer)
             {
-                MysticJourney.UI.UIPopupManager.Instance.HidePopup();
+                MysticJourney.UI.UIPopup.Instance.HidePopup();
             }
             else
             {
@@ -1711,6 +1853,12 @@ public class PlayerHUDController : MonoBehaviour
     private void ShowDungeonDeathPopup()
     {
         Debug.Log("[PlayerHUDController] Showing DUNGEON death popup...");
+
+        if (deathPopupPanel == null || deathPopupPanel == _worldDeathContent)
+        {
+            ShowStyledDeathContent(true);
+            return;
+        }
 
         // Try to auto-find the death popup panel if not assigned
         if (deathPopupPanel == null)
@@ -1758,9 +1906,9 @@ public class PlayerHUDController : MonoBehaviour
         }
         else
         {
-            // Fallback to UIPopupManager if no custom death panel exists
-            Debug.Log("[PlayerHUDController] No DeathPopup found, using UIPopupManager fallback.");
-            MysticJourney.UI.UIPopupManager.Instance.ShowConfirm(
+            // Fallback to the shared designer-authored UIPopup if no custom death panel exists.
+            Debug.Log("[PlayerHUDController] No DeathPopup found, using UIPopup fallback.");
+            MysticJourney.UI.UIPopup.Instance.ShowConfirm(
                 "YOU DIED",
                 "You have been defeated in battle.",
                 onConfirm: OnAgainClicked,
@@ -1770,8 +1918,8 @@ public class PlayerHUDController : MonoBehaviour
                 autoClose: false
             );
             
-            deathPopupPanel = MysticJourney.UI.UIPopupManager.Instance.PopupContainer;
-            btnAgain = MysticJourney.UI.UIPopupManager.Instance.BtnConfirm;
+            deathPopupPanel = MysticJourney.UI.UIPopup.Instance.PopupContainer;
+            btnAgain = MysticJourney.UI.UIPopup.Instance.BtnConfirm;
         }
     }
 

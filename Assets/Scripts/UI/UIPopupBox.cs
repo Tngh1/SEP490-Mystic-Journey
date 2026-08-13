@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Confirmation / message box backed by the Main Scene's <c>Canvas/PopupLayer/UIPopup</c> — the popup
-/// the designers made, as opposed to <see cref="MysticJourney.UI.UIPopupManager"/> (the generic dialog).
+/// the designers made. <see cref="MysticJourney.UI.UIPopup"/> exposes the same shared popup to
+/// systems that do not have a convenient caller transform.
 ///
 /// UIPopup carries no MonoBehaviour in the scene and all four buttons have empty onClick lists, so the
 /// labels and every click have to be bound from code. Centralised here because several callers now need
@@ -27,7 +28,9 @@ public static class UIPopupBox
     /// full", ...) used to go through <c>WorldRuntimeEvents.RaiseMessage</c>, which has no subscriber,
     /// so every one of those strings was silently dropped. PaperPopup remains a transient notification
     /// queue, while this component is the dedicated message/confirmation dialog.
-    public static bool Notify(Transform caller, string title, string message) => Show(caller, title, message, null);
+    public static bool Notify(Transform caller, string title, string message, Action onOk = null,
+        string okText = "OK", bool autoClose = true) =>
+        ShowInternal(caller, title, message, onOk, null, okText, null, false, autoClose);
 
     /// <summary>
     /// Opens the popup and runs <paramref name="onConfirm"/> if the player accepts. Passing null makes
@@ -35,14 +38,21 @@ public static class UIPopupBox
     /// losing the confirmation step beats leaving the caller's button dead. Returns true if successfully shown.
     /// </summary>
     /// <param name="caller">Any UI node living under the same Canvas as PopupLayer.</param>
-    public static bool Show(Transform caller, string titleText, string message, Action onConfirm, Action onCancel = null, string confirmText = null, string cancelText = null)
+    public static bool Show(Transform caller, string titleText, string message, Action onConfirm,
+        Action onCancel = null, string confirmText = null, string cancelText = null,
+        bool autoClose = true) =>
+        ShowInternal(caller, titleText, message, onConfirm, onCancel, confirmText, cancelText,
+            true, autoClose);
+
+    private static bool ShowInternal(Transform caller, string titleText, string message,
+        Action onConfirm, Action onCancel, string confirmText, string cancelText,
+        bool isDecision, bool autoClose)
     {
         // UIPopup is a child of PopupLayer — a different branch from the calling panel
         // (Canvas/PartyPanel, Canvas/PlayerProfilePanel, ...), so we walk up to the Canvas and back
         // down. Anchoring on the Canvas rather than transform.parent keeps this working if a panel
         // ever gains an extra wrapper.
-        var canvas = caller != null ? caller.GetComponentInParent<Canvas>() : null;
-        var popup = canvas != null ? canvas.transform.Find("PopupLayer/UIPopup") : null;
+        var popup = FindPopup(caller);
 
         // Không có caller (vd. NetworkReconnectManager gọi Show(caller: null, ...)), hoặc caller
         // không nằm dưới Canvas gốc: FindObjectOfType<Canvas>() cũ trả về Canvas ĐẦU TIÊN Unity
@@ -53,21 +63,10 @@ public static class UIPopupBox
         // và chọn đúng cái sở hữu PopupLayer/UIPopup.
         if (popup == null)
         {
-            foreach (var c in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
-            {
-                popup = c.transform.Find("PopupLayer/UIPopup");
-                if (popup != null) break;
-            }
-        }
-
-        if (popup == null)
-        {
             Debug.LogWarning("[UIPopupBox] Canvas/PopupLayer/UIPopup missing; continuing without confirmation.");
             onConfirm?.Invoke();
             return false;
         }
-
-        bool isDecision = onConfirm != null || onCancel != null;
 
         var okButton = popup.Find("OkButton")?.GetComponent<Button>();
         var confirmButton = popup.Find("ConfirmButton")?.GetComponent<Button>();
@@ -82,6 +81,7 @@ public static class UIPopupBox
         SetActive(okButton, okButton == acceptButton);
         SetActive(confirmButton, confirmButton == acceptButton);
         SetActive(cancelButton, isDecision);
+        SetActive(closeButton, !isDecision);
 
         if (acceptButton != null)
         {
@@ -94,23 +94,25 @@ public static class UIPopupBox
             if (txt != null) txt.text = cancelText ?? "Cancel";
         }
 
-        var title = popup.Find("Title")?.GetComponent<TMP_Text>();
+        // In the designed hierarchy the title is nested under BGTitle. Recursive lookup
+        // prevents the serialized placeholder "New Text" from leaking into Logout and
+        // other confirmations.
+        var title = FindChildRecursive(popup, "Title")?.GetComponent<TMP_Text>();
         if (title != null) title.text = titleText;
 
-        var text = popup.Find("Text")?.GetComponent<TMP_Text>();
+        var text = FindChildRecursive(popup, "Text")?.GetComponent<TMP_Text>();
         if (text != null) text.text = message;
 
         // RemoveAllListeners is mandatory: one UIPopup instance is reused by every caller, so
         // without it the previous listener survives — open the kick popup for A, close it, then
         // open the logout popup, and a single accept press kicks A as well.
-        Bind(acceptButton, popup, onConfirm);
-        Bind(cancelButton, popup, onCancel);
-        Bind(closeButton, popup, onCancel);
+        Bind(acceptButton, popup, onConfirm, autoClose);
+        Bind(cancelButton, popup, onCancel, autoClose);
+        Bind(closeButton, popup, onCancel, autoClose);
 
         // SetActive(true) on the popup alone is not enough while PopupLayer is off: activeSelf turns
         // true but activeInHierarchy stays false, so nothing appears and no error is logged to trace
-        // it back from. Re-enable inactive ancestors first (same as UIPopupManager and
-        // MainMapPanelRuntime).
+        // it back from. Re-enable inactive ancestors first (same as MainMapPanelRuntime).
         // Bật toàn bộ các cấp cha bị ẩn (bao gồm PopupLayer)
         for (var current = popup.parent; current != null; current = current.parent)
         {
@@ -151,21 +153,93 @@ public static class UIPopupBox
         return true;
     }
 
+    public static Transform FindPopup(Transform caller = null)
+    {
+        var canvas = caller != null ? caller.GetComponentInParent<Canvas>() : null;
+        var popup = canvas != null ? canvas.transform.Find("PopupLayer/UIPopup") : null;
+
+        if (popup != null) return popup;
+
+        foreach (var candidate in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+        {
+            popup = candidate.transform.Find("PopupLayer/UIPopup");
+            if (popup != null) return popup;
+        }
+
+        return null;
+    }
+
+    public static void Hide(Transform caller = null)
+    {
+        var popup = FindPopup(caller);
+        if (popup != null) popup.gameObject.SetActive(false);
+    }
+
+    private static Transform FindChildRecursive(Transform parent, string childName)
+    {
+        if (parent == null) return null;
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            var child = parent.GetChild(i);
+            if (child.name == childName) return child;
+
+            var nested = FindChildRecursive(child, childName);
+            if (nested != null) return nested;
+        }
+
+        return null;
+    }
+
     private static void SetActive(Button button, bool visible)
     {
         if (button != null) button.gameObject.SetActive(visible);
     }
 
     /// <summary>Closes the popup, then runs <paramref name="onClick"/> if one was given.</summary>
-    private static void Bind(Button button, Transform popup, Action onClick)
+    private static void Bind(Button button, Transform popup, Action onClick, bool autoClose)
     {
         if (button == null) return;
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() =>
         {
-            popup.gameObject.SetActive(false);
+            if (autoClose) popup.gameObject.SetActive(false);
             onClick?.Invoke();
         });
+    }
+}
+
+namespace MysticJourney.UI
+{
+    /// <summary>
+    /// Canonical controller for the designer-authored Canvas/PopupLayer/UIPopup.
+    /// It intentionally requires no manager GameObject in the scene.
+    /// </summary>
+    public sealed class UIPopup
+    {
+        private static readonly UIPopup _instance = new UIPopup();
+        public static UIPopup Instance => _instance;
+
+        public GameObject PopupContainer => global::UIPopupBox.FindPopup()?.gameObject;
+        public Button BtnConfirm => global::UIPopupBox.FindPopup()?.Find("ConfirmButton")?.GetComponent<Button>();
+
+        private UIPopup() { }
+
+        public void ShowAlert(string title, string message, Action onOk = null,
+            string okText = "OK", bool autoClose = true)
+        {
+            global::UIPopupBox.Notify(null, title, message, onOk, okText, autoClose);
+        }
+
+        public void ShowConfirm(string title, string message, Action onConfirm,
+            Action onCancel = null, string confirmText = "Yes", string cancelText = "No",
+            bool autoClose = true)
+        {
+            global::UIPopupBox.Show(null, title, message, onConfirm, onCancel,
+                confirmText, cancelText, autoClose);
+        }
+
+        public void HidePopup() => global::UIPopupBox.Hide();
     }
 }

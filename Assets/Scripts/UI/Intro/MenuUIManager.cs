@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MenuUIManager : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class MenuUIManager : MonoBehaviour
     [SerializeField] private GameObject registerButton;
     [SerializeField] private GameObject websiteButton;
     [SerializeField] private GameObject exitButton;
+    [SerializeField] private Button exitGameButton;
 
     [Header("Website")]
     public string websiteUrl = "http://localhost:3000/";
@@ -19,10 +21,30 @@ public class MenuUIManager : MonoBehaviour
 
     private void Awake()
     {
+        if (exitGameButton == null)
+        {
+            Transform exitTransform = transform.Find("ExitGameButton") ?? transform.Find("ExitGame");
+            if (exitTransform != null)
+                exitGameButton = exitTransform.GetComponent<Button>();
+        }
+
         AddHoverEffect(loginButton);
         AddHoverEffect(registerButton);
         AddHoverEffect(websiteButton);
         AddHoverEffect(exitButton);
+        AddHoverEffect(exitGameButton != null ? exitGameButton.gameObject : null);
+
+        if (exitGameButton != null)
+        {
+            exitGameButton.onClick.RemoveListener(ExitGame);
+            exitGameButton.onClick.AddListener(ExitGame);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (exitGameButton != null)
+            exitGameButton.onClick.RemoveListener(ExitGame);
     }
 
     private static void AddHoverEffect(GameObject go)
@@ -69,6 +91,17 @@ public class MenuUIManager : MonoBehaviour
     {
         if (!string.IsNullOrEmpty(websiteUrl))
             Application.OpenURL(websiteUrl);
+    }
+
+    public void ExitGame()
+    {
+        Debug.Log("[MenuUIManager] Exiting game...");
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 
     // Back từ LoginPanel

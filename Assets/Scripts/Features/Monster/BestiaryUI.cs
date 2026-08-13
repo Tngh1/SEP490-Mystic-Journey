@@ -10,6 +10,7 @@ public class BestiaryUI : MonoBehaviour
     [SerializeField] private Transform contentContainer;
     [SerializeField] private GameObject monsterSlotPrefab;
     [SerializeField] private MonsterDatabaseSO monsterVisualDatabase;
+    [SerializeField] private TextMeshProUGUI discoveredCountText;
 
     [Header("Right Panel - Details")]
     [SerializeField] private Image detailIcon;
@@ -33,7 +34,17 @@ public class BestiaryUI : MonoBehaviour
 
     private void Awake()
     {
+        EnsureDiscoveredCountText();
         SetupHoverEffects();
+    }
+
+    private void EnsureDiscoveredCountText()
+    {
+        if (discoveredCountText != null) return;
+
+        Transform discoveredNumber = transform.Find("Deco/Deco2/DiscoveredNumber");
+        if (discoveredNumber != null)
+            discoveredCountText = discoveredNumber.GetComponent<TextMeshProUGUI>();
     }
 
     /// <summary>
@@ -57,6 +68,7 @@ public class BestiaryUI : MonoBehaviour
 
         ClearList();
         ClearDetail();
+        if (discoveredCountText != null) discoveredCountText.text = "--";
         LoadCatalogData();
     }
 
@@ -96,10 +108,16 @@ public class BestiaryUI : MonoBehaviour
     private void LoadCatalogData()
     {
         // Gọi thẳng API, bỏ qua MonsterManager để tránh lỗi Null
-        MonsterApi.Instance.GetCatalogForPlayer(1, 50, response =>
+        MonsterApi.Instance.GetCatalogForPlayer(1, 1000, response =>
         {
             if (response != null && response.Items != null)
             {
+                int discoveredCount = 0;
+                foreach (var item in response.Items)
+                {
+                    if (item.IsDiscovered) discoveredCount++;
+                }
+                if (discoveredCountText != null) discoveredCountText.text = discoveredCount.ToString();
                 PopulateList(response.Items);
             }
         }, error => Debug.LogError("Failed to load Bestiary: " + error.Message));

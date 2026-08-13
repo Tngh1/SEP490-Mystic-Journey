@@ -74,7 +74,7 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) => {
                     if (loadingText != null) loadingText.SetActive(false);
-                    UIPopupManager.Instance.ShowAlert("Error", "Could not load friend list: " + err.Message);
+                    UIPopup.Instance.ShowAlert("Error", "Could not load friend list: " + err.Message);
                 }
             );
         }
@@ -101,7 +101,7 @@ namespace MysticJourney.UI.Guild
             
             if (GuildUIManager.Instance == null || GuildUIManager.Instance.currentGuild == null) 
             {
-                UIPopupManager.Instance.ShowAlert("Error", "You are not in a guild!");
+                UIPopup.Instance.ShowAlert("Error", "You are not in a guild!");
                 return;
             }
             
@@ -135,16 +135,16 @@ namespace MysticJourney.UI.Guild
             {
                 if (successCount == total)
                 {
-                    UIPopupManager.Instance.ShowAlert("Done", $"Sent {successCount}/{total} invitations successfully!");
+                    UIPopup.Instance.ShowAlert("Done", $"Sent {successCount}/{total} invitations successfully!");
                 }
                 else if (successCount > 0)
                 {
-                    UIPopupManager.Instance.ShowAlert("Done", $"Sent {successCount}/{total} invitations successfully!\nFailed: {errors.Count}");
+                    UIPopup.Instance.ShowAlert("Done", $"Sent {successCount}/{total} invitations successfully!\nFailed: {errors.Count}");
                 }
                 else
                 {
                     string errorMsg = errors.Count > 0 ? errors[0] : "Failed to send invitations.";
-                    UIPopupManager.Instance.ShowAlert("Failed", $"Could not invite:\n{errorMsg}");
+                    UIPopup.Instance.ShowAlert("Failed", $"Could not invite:\n{errorMsg}");
                 }
                 ClosePanel();
             }

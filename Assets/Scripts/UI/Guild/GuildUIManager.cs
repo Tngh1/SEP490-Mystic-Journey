@@ -5,7 +5,7 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
 using System.Collections.Generic;
 using System.Linq;
-using MysticJourney.UI; // For UIPopupManager
+using MysticJourney.UI;
 
 namespace MysticJourney.UI.Guild
 {
@@ -234,13 +234,13 @@ namespace MysticJourney.UI.Guild
 
             GuildApi.UpdateSettings(currentGuild.guildId, requiredLevel, joinPolicy, 
                 response => {
-                    UIPopupManager.Instance.ShowAlert("Notice", "Guild settings saved!");
+                    UIPopup.Instance.ShowAlert("Notice", "Guild settings saved!");
                     // Update local copy
                     currentGuild.joinPolicy = joinPolicy;
                     currentGuild.requiredLevel = requiredLevel;
                 },
                 error => {
-                    UIPopupManager.Instance.ShowAlert("Error", "Error saving settings: " + error.Message);
+                    UIPopup.Instance.ShowAlert("Error", "Error saving settings: " + error.Message);
                 });
         }
 
@@ -342,9 +342,9 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (guildResp) =>
                 {
                     // Tắt loading hoặc hiện thông báo
-                    if (UIPopupManager.Instance != null)
+                    if (UIPopup.Instance != null)
                     {
-                        UIPopupManager.Instance.ShowAlert("Success", $"Created guild '{guildResp.name}' successfully!");
+                        UIPopup.Instance.ShowAlert("Success", $"Created guild '{guildResp.name}' successfully!");
                     }
                     else
                     {
@@ -360,9 +360,9 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) =>
                 {
-                    if (UIPopupManager.Instance != null)
+                    if (UIPopup.Instance != null)
                     {
-                        UIPopupManager.Instance.ShowAlert("Failed", "Error creating guild:\n" + err.Message);
+                        UIPopup.Instance.ShowAlert("Failed", "Error creating guild:\n" + err.Message);
                     }
                     else
                     {
@@ -394,9 +394,9 @@ namespace MysticJourney.UI.Guild
 
                     if (nextLeader != null)
                     {
-                        if (UIPopupManager.Instance != null)
+                        if (UIPopup.Instance != null)
                         {
-                            UIPopupManager.Instance.ShowConfirm(
+                            UIPopup.Instance.ShowConfirm(
                                 "Transfer & Leave",
                                 $"Do you want to transfer leadership to {nextLeader.playerDisplayName} and leave the guild?",
                                 onConfirm: () =>
@@ -408,7 +408,7 @@ namespace MysticJourney.UI.Guild
                                         },
                                         onError: (err) =>
                                         {
-                                            UIPopupManager.Instance.ShowAlert("Error", "Failed to transfer leadership: " + err.Message);
+                                            UIPopup.Instance.ShowAlert("Error", "Failed to transfer leadership: " + err.Message);
                                         });
                                 }
                             );
@@ -422,9 +422,9 @@ namespace MysticJourney.UI.Guild
                 else
                 {
                     // Chỉ có 1 mình -> Giải tán bang
-                    if (UIPopupManager.Instance != null)
+                    if (UIPopup.Instance != null)
                     {
-                        UIPopupManager.Instance.ShowConfirm(
+                        UIPopup.Instance.ShowConfirm(
                             "Dissolve Guild", 
                             $"You are the only member of '{currentGuild.name}'. Leaving will permanently dissolve the guild. Are you sure you want to dissolve it?", 
                             onConfirm: ExecuteDissolveGuild
@@ -440,9 +440,9 @@ namespace MysticJourney.UI.Guild
             {
                 Debug.Log("[GuildUIManager] User is NOT leader. Showing leave confirm popup.");
                 // Thành viên bình thường -> Rời bang
-                if (UIPopupManager.Instance != null)
+                if (UIPopup.Instance != null)
                 {
-                    UIPopupManager.Instance.ShowConfirm(
+                    UIPopup.Instance.ShowConfirm(
                         "Leave Guild", 
                         $"Are you sure you want to leave the guild '{currentGuild.name}'?", 
                         onConfirm: ExecuteLeaveGuild
@@ -893,8 +893,8 @@ namespace MysticJourney.UI.Guild
                 onError: (err) =>
                 {
                     Debug.LogError("Error approving application: " + err.Message);
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Error", "Failed to approve: " + err.Message);
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Error", "Failed to approve: " + err.Message);
                 });
         }
 
@@ -994,7 +994,7 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (result) => {
                     if (result.success)
                     {
-                        UIPopupManager.Instance.ShowAlert("Notice", result.message);
+                        UIPopup.Instance.ShowAlert("Notice", result.message);
                         OpenGuildSystem(); // Refresh toàn bộ hệ thống
                     }
                     else if (!result.canJoin && result.cooldownRemainingSeconds > 0)
@@ -1002,15 +1002,15 @@ namespace MysticJourney.UI.Guild
                         // Hiện Popup thông báo cooldown 24h
                         int hours = result.cooldownRemainingSeconds / 3600;
                         int minutes = (result.cooldownRemainingSeconds % 3600) / 60;
-                        UIPopupManager.Instance.ShowAlert("Cannot join Guild", $"You must wait {hours}h {minutes}m.");
+                        UIPopup.Instance.ShowAlert("Cannot join Guild", $"You must wait {hours}h {minutes}m.");
                     }
                     else
                     {
-                        UIPopupManager.Instance.ShowAlert("Failed", result.message);
+                        UIPopup.Instance.ShowAlert("Failed", result.message);
                     }
                 },
                 onError: (err) => {
-                    UIPopupManager.Instance.ShowAlert("API Error", err.Message);
+                    UIPopup.Instance.ShowAlert("API Error", err.Message);
                 });
         }
 
@@ -1039,8 +1039,8 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (result) => {
                     if (result.success)
                     {
-                        if (UIPopupManager.Instance != null)
-                            UIPopupManager.Instance.ShowAlert("Success", "Left guild successfully.");
+                        if (UIPopup.Instance != null)
+                            UIPopup.Instance.ShowAlert("Success", "Left guild successfully.");
                         else
                             Debug.Log("Left guild successfully.");
                             
@@ -1049,15 +1049,15 @@ namespace MysticJourney.UI.Guild
                     }
                     else
                     {
-                        if (UIPopupManager.Instance != null)
-                            UIPopupManager.Instance.ShowAlert("Warning", "Cannot leave: " + result.message);
+                        if (UIPopup.Instance != null)
+                            UIPopup.Instance.ShowAlert("Warning", "Cannot leave: " + result.message);
                         else
                             Debug.LogWarning("Cannot leave: " + result.message);
                     }
                 },
                 onError: (err) => {
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Failed", err.Message);
                     else
                         Debug.LogError("Leave Guild failed: " + err.Message);
                 });
@@ -1069,8 +1069,8 @@ namespace MysticJourney.UI.Guild
 
             GuildApi.DissolveGuild(currentGuild.guildId,
                 onSuccess: (result) => {
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Success", "Guild dissolved successfully.");
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Success", "Guild dissolved successfully.");
                     else
                         Debug.Log("Guild dissolved successfully.");
                         
@@ -1078,8 +1078,8 @@ namespace MysticJourney.UI.Guild
                     OpenGuildList(); // Quay về màn hình tìm guild
                 },
                 onError: (err) => {
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Failed", err.Message);
                     else
                         Debug.LogError("Dissolve Guild failed: " + err.Message);
                 });
@@ -1126,7 +1126,7 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) =>
                 {
-                    UIPopupManager.Instance.ShowAlert("Error", err.Message);
+                    UIPopup.Instance.ShowAlert("Error", err.Message);
                 });
         }
     }
