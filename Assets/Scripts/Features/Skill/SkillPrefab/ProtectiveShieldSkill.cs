@@ -17,6 +17,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
         PlayerCombat casterCombat = null;
+        Transform replicaOwner = PlayerSkillVisualReplica.GetOwner(this);
         
         // Find the caster (the local player where this was spawned)
         Collider2D[] casterHits = Physics2D.OverlapCircleAll(transform.position, 0.5f);
@@ -30,7 +31,11 @@ public class ProtectiveShieldSkill : MonoBehaviour
             }
         }
 
-        if (casterCombat == null && PlayerEntity.Instance != null)
+        if (replicaOwner != null)
+        {
+            casterCombat = replicaOwner.GetComponent<PlayerCombat>();
+        }
+        else if (casterCombat == null && PlayerEntity.Instance != null)
         {
             casterCombat = PlayerEntity.Instance.GetComponent<PlayerCombat>();
         }
@@ -43,6 +48,12 @@ public class ProtectiveShieldSkill : MonoBehaviour
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null) _targetToFollow = playerObj.transform;
+        }
+
+        if (PlayerSkillVisualReplica.IsReplica(this))
+        {
+            Destroy(gameObject, duration);
+            return;
         }
 
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;

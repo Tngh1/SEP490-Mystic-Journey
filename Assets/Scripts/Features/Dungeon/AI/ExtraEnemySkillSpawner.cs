@@ -106,6 +106,8 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
 
     private void CastExtraSkill(ExtraSkillData skill, Transform targetPlayer)
     {
+        GetComponent<NetworkEnemy>()?.NotifySkillAnimation();
+
         // Kích hoạt animation dùng skill nếu có
         if (_animator != null)
         {

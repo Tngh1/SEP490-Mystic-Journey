@@ -20,12 +20,17 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private TMP_Text expText;
     [SerializeField] private Image hpBarImage;
     [SerializeField] private TMP_Text hpText;
-    [SerializeField] private Image hpGlowImage;
-    [SerializeField] private Color healGlowColor = new Color(0.96f, 0.42f, 0.52f, 0.40f); // Soft Rose-Ruby Glow - Gentle & Soothing Aura Tint
     [SerializeField] private float hpFillAnimDuration = 0.4f;
     [SerializeField] private TMP_Text energyText;
     [SerializeField] private TMP_Text goldText;
     [SerializeField] private TMP_Text gemText;
+
+    [Header("Resource Change Animation")]
+    [SerializeField] private TMP_FontAsset resourceChangeFont;
+    [SerializeField, Min(0.2f)] private float resourceChangeDuration = 1.15f;
+    [SerializeField, Min(20f)] private float resourceChangeRiseDistance = 68f;
+    [SerializeField, Min(18f)] private float resourceChangeFontSize = 34f;
+
     [SerializeField] private TMP_Text corruptionText;
     [SerializeField] private Image corruptionBarImage;
     [SerializeField] private Image avatarImage;
@@ -79,14 +84,16 @@ public class PlayerHUDController : MonoBehaviour
     private Coroutine _updateLoopCoroutine;
     private bool _isRefreshing;
     private bool _isCurrencyRefreshing;
+    private bool _profileRefreshQueued;
+    private bool _currencyRefreshQueued;
 
     private int _lastHp = -1;
     private int _lastMaxHp = -1;
     private bool _isHpInitialized = false;
     private Coroutine _hpFillCoroutine;
-    private Coroutine _hpGlowCoroutine;
     private Vector3 _hpBarOriginalScale = Vector3.one;
     private Transform _hpBarContainer;
+    private readonly List<GameObject> _resourceDeltaPopups = new List<GameObject>();
 
     /// <summary>
     /// Cached currency balance — updated every time the HUD receives a fresh balance
@@ -133,6 +140,7 @@ public class PlayerHUDController : MonoBehaviour
     {
         _hudEnableTime = Time.unscaledTime;
         _isHpInitialized = false;
+        ResetHpTransientEffects();
         StartHUDLoop();
         if (levelUpButton != null)
         {
@@ -156,6 +164,8 @@ public class PlayerHUDController : MonoBehaviour
     private void OnDisable()
     {
         StopHUDLoop();
+        ResetHpTransientEffects();
+        ClearResourceDeltaPopups();
         if (levelUpButton != null)
         {
             levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
@@ -241,7 +251,7 @@ public class PlayerHUDController : MonoBehaviour
         // sprite in the scene doesn't silently render the bar permanently full.
         MakeHorizontalFill(expBarImage);
         MakeHorizontalFill(hpBarImage);
-        SetupHpGlowImage();
+        SetupHpEffects();
         if (hpText == null) hpText = transform.Find("TopBar/Button/HPBar/HPNumber")?.GetComponent<TMP_Text>();
         if (energyText == null)
         {
@@ -451,17 +461,25 @@ public class PlayerHUDController : MonoBehaviour
 
     public void ForceRefreshHUD()
     {
-        _isRefreshing = false;
-        _isCurrencyRefreshing = false;
         RefreshHUD();
     }
 
     public void RefreshHUD()
     {
-        if (_isRefreshing) return;
+        RefreshProfile();
+        RefreshCurrencyBalance();
+    }
+
+    private void RefreshProfile()
+    {
+        if (_isRefreshing)
+        {
+            _profileRefreshQueued = true;
+            return;
+        }
+
         _isRefreshing = true;
 
-        // Step 1: Refresh Profile (Level, Exp)
         PlayerApi.Instance.GetMyProfile(
             profile =>
             {
@@ -471,16 +489,23 @@ public class PlayerHUDController : MonoBehaviour
                 GameStateService.Instance.CorruptionLevel = profile.CorruptionLevel;
 
                 UpdateProfileUI(profile);
-                _isRefreshing = false;
+                CompleteProfileRefresh();
             },
             error =>
             {
                 Debug.LogWarning($"[PlayerHUDController] Failed to refresh profile: {error.Message}");
-                _isRefreshing = false;
+                CompleteProfileRefresh();
             }
         );
+    }
 
-        RefreshCurrencyBalance();
+    private void CompleteProfileRefresh()
+    {
+        _isRefreshing = false;
+        if (!_profileRefreshQueued) return;
+
+        _profileRefreshQueued = false;
+        RefreshProfile();
     }
 
     private void EnsureFilledImageMode(Image img)
@@ -517,15 +542,7 @@ public class PlayerHUDController : MonoBehaviour
     public void ApplyEnergy(int currentEnergy, int maxEnergy)
     {
         FindHUDReferences();
-        if (energyText == null) return;
-
-        if (_lastEnergy >= 0 && currentEnergy > _lastEnergy)
-        {
-            TriggerResourceGlowEffect(energyText, new Color(0.08f, 0.98f, 0.44f, 1.0f), "EnergyGlowAura");
-        }
-
-        _lastEnergy = currentEnergy;
-        energyText.text = currentEnergy + "/" + maxEnergy;
+        UpdateEnergyUI(currentEnergy, maxEnergy);
     }
 
     public void ApplyStats(PlayerStatsResponse stats)
@@ -539,21 +556,35 @@ public class PlayerHUDController : MonoBehaviour
 
     public void RefreshCurrencyBalance()
     {
-        if (_isCurrencyRefreshing) return;
+        if (_isCurrencyRefreshing)
+        {
+            _currencyRefreshQueued = true;
+            return;
+        }
+
         _isCurrencyRefreshing = true;
 
         CurrencyApi.Instance.GetMyBalance(
             balance =>
             {
                 ApplyCurrencyBalance(balance);
-                _isCurrencyRefreshing = false;
+                CompleteCurrencyRefresh();
             },
             error =>
             {
                 Debug.LogWarning($"[PlayerHUDController] Failed to refresh currency balance: {error.Message}");
-                _isCurrencyRefreshing = false;
+                CompleteCurrencyRefresh();
             }
         );
+    }
+
+    private void CompleteCurrencyRefresh()
+    {
+        _isCurrencyRefreshing = false;
+        if (!_currencyRefreshQueued) return;
+
+        _currencyRefreshQueued = false;
+        RefreshCurrencyBalance();
     }
 
     public void ApplyCurrencyBalance(CurrencyBalanceResponse balance)
@@ -618,16 +649,7 @@ public class PlayerHUDController : MonoBehaviour
             }
         }
 
-        if (energyText != null)
-        {
-            if (_lastEnergy >= 0 && profile.Energy > _lastEnergy)
-            {
-                // Energy tăng -> Tỏa Hào Quang Xanh Lục Bảo (#14FA70) + Phóng to 10% êm mắt
-                TriggerResourceGlowEffect(energyText, new Color(0.08f, 0.98f, 0.44f, 1.0f), "EnergyGlowAura");
-            }
-            _lastEnergy = profile.Energy;
-            energyText.text = profile.Energy + "/" + profile.MaxEnergy;
-        }
+        UpdateEnergyUI(profile.Energy, profile.MaxEnergy);
 
         if (corruptionText != null)
         {
@@ -707,15 +729,10 @@ public class PlayerHUDController : MonoBehaviour
         // Guard: 2.5s đầu tiên sau khi Login/bật HUD là thời gian đồng bộ dữ liệu ban đầu từ Server.
         bool isGracePeriod = (Time.unscaledTime - _hudEnableTime) < 2.5f;
         bool isDamageHit = _isHpInitialized && !isGracePeriod && (currentHp < _lastHp);
-        bool isHeal = _isHpInitialized && !isGracePeriod && (currentHp > _lastHp);
 
         if (_isHpInitialized && !isGracePeriod)
         {
-            if (isHeal)
-            {
-                TriggerHealGlowEffect();
-            }
-            else if (isDamageHit)
+            if (isDamageHit)
             {
                 TriggerDamagePulseEffect(); // Chỉ co nảy ngọn thanh HP ở bên phải, không dùng bất kỳ Hào quang viền đỏ nào
             }
@@ -742,7 +759,7 @@ public class PlayerHUDController : MonoBehaviour
 
     [SerializeField] private Image hpDamageCatchupImage;
 
-    private void SetupHpGlowImage()
+    private void SetupHpEffects()
     {
         if (hpBarImage == null) return;
 
@@ -802,40 +819,26 @@ public class PlayerHUDController : MonoBehaviour
             MakeHorizontalFill(hpDamageCatchupImage);
         }
 
-        // Tạo Hào Quang Tỏa Ra Từ Viền Khung UI (Soft Gacha-style Frame Aura Radiating Outward)
-        if (hpGlowImage == null && _hpBarContainer != null)
+    }
+
+    private void ResetHpTransientEffects()
+    {
+        if (_hpScalePulseCoroutine != null)
         {
-            var glowTr = _hpBarContainer.Find("HPFrameAura") ?? _hpBarContainer.Find("HPGlow");
-            if (glowTr != null)
-            {
-                hpGlowImage = glowTr.GetComponent<Image>();
-            }
-            else
-            {
-                GameObject glowObj = new GameObject("HPFrameAura", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                glowObj.transform.SetParent(_hpBarContainer, false);
-                glowObj.transform.SetAsFirstSibling();
-
-                RectTransform rect = glowObj.GetComponent<RectTransform>();
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = new Vector2(-16, -16);
-                rect.offsetMax = new Vector2(16, 16);
-
-                hpGlowImage = glowObj.GetComponent<Image>();
-            }
+            StopCoroutine(_hpScalePulseCoroutine);
+            _hpScalePulseCoroutine = null;
         }
 
-        if (hpGlowImage != null)
+        SetupHpEffects();
+
+        if (hpDamageCatchupImage != null)
         {
-            // Luôn dùng Sprite Hào Quang Loang Nhẹ Kiểu Gacha (GetSoftAuraSprite) để viền mượt mà, không bị thô
-            hpGlowImage.sprite = GetSoftAuraSprite();
-            hpGlowImage.type = Image.Type.Sliced;
-            hpGlowImage.raycastTarget = false;
-            if (hpGlowImage.color.a <= 0.01f)
-            {
-                hpGlowImage.color = new Color(healGlowColor.r, healGlowColor.g, healGlowColor.b, 0f);
-            }
+            hpDamageCatchupImage.gameObject.SetActive(false);
+        }
+
+        if (_hpBarContainer != null)
+        {
+            _hpBarContainer.localScale = _hpBarOriginalScale;
         }
     }
 
@@ -854,19 +857,10 @@ public class PlayerHUDController : MonoBehaviour
 
     private Coroutine _hpScalePulseCoroutine;
 
-    public void TriggerHealGlowEffect()
-    {
-        if (hpBarImage == null) return;
-        SetupHpGlowImage();
-
-        if (_hpGlowCoroutine != null) StopCoroutine(_hpGlowCoroutine);
-        _hpGlowCoroutine = StartCoroutine(HealGlowRoutine());
-    }
-
     public void TriggerDamagePulseEffect()
     {
         if (hpBarImage == null) return;
-        SetupHpGlowImage();
+        SetupHpEffects();
 
         if (_hpScalePulseCoroutine != null) StopCoroutine(_hpScalePulseCoroutine);
         _hpScalePulseCoroutine = StartCoroutine(DamagePulseRoutine());
@@ -918,7 +912,7 @@ public class PlayerHUDController : MonoBehaviour
     private IEnumerator AnimateHpFill(float targetFill, float previousFill, bool isDamageHit, bool isGracePeriod)
     {
         if (hpBarImage == null) yield break;
-        SetupHpGlowImage();
+        SetupHpEffects();
 
         if (isGracePeriod || !_isHpInitialized)
         {
@@ -985,78 +979,58 @@ public class PlayerHUDController : MonoBehaviour
         }
     }
 
-    private IEnumerator HealGlowRoutine()
-    {
-        if (hpBarImage == null) yield break;
-
-        float duration = 0.75f;
-        float elapsed = 0f;
-
-        RectTransform glowRt = hpGlowImage != null ? hpGlowImage.GetComponent<RectTransform>() : null;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float normalizedTime = elapsed / duration;
-            float sinPulse = Mathf.Sin(normalizedTime * Mathf.PI);
-
-            // Sóng Hào Quang Tỏa Rộng Mềm Mại Loang Nhẹ Kiểu Gacha (Soft Gacha Bloom Expansion)
-            float glowAlpha = sinPulse * healGlowColor.a;
-            float expandOffset = 16f + (sinPulse * 16f); // Tỏa mượt từ 16px ra ngoài 32px loang nhẹ mềm mại
-
-            if (hpGlowImage != null)
-            {
-                hpGlowImage.color = new Color(healGlowColor.r, healGlowColor.g, healGlowColor.b, glowAlpha);
-            }
-
-            if (glowRt != null)
-            {
-                glowRt.offsetMin = new Vector2(-expandOffset, -expandOffset);
-                glowRt.offsetMax = new Vector2(expandOffset, expandOffset);
-            }
-
-            yield return null;
-        }
-
-        if (hpGlowImage != null)
-        {
-            hpGlowImage.color = new Color(healGlowColor.r, healGlowColor.g, healGlowColor.b, 0f);
-        }
-
-        if (glowRt != null)
-        {
-            glowRt.offsetMin = new Vector2(-16f, -16f);
-            glowRt.offsetMax = new Vector2(16f, 16f);
-        }
-    }
-
     private decimal _lastGold = -1m;
     private decimal _lastGems = -1m;
     private int _lastEnergy = -1;
 
-    private void UpdateCurrencyUI(decimal gold, decimal gems)
+    private void UpdateEnergyUI(int currentEnergy, int maxEnergy)
     {
-        if (_lastGold >= 0m && gold > _lastGold && goldText != null)
+        if (energyText == null)
+            return;
+
+        if (_lastEnergy >= 0 && currentEnergy != _lastEnergy)
         {
-            // Vàng tăng -> Tỏa Hào Quang Vàng Thần Thánh (#FFD700) + Phóng to 10% êm mắt
-            TriggerResourceGlowEffect(goldText, new Color(1.00f, 0.84f, 0.15f, 1.0f), "GoldGlowAura");
+            int delta = currentEnergy - _lastEnergy;
+            Color energyColor = new Color(0.08f, 0.98f, 0.44f, 1.0f);
+            ShowResourceDelta(energyText, delta, energyColor);
+
+            if (delta > 0)
+                TriggerResourceGlowEffect(energyText, energyColor, "EnergyGlowAura");
         }
 
-        if (_lastGems >= 0m && gems > _lastGems && gemText != null)
+        _lastEnergy = currentEnergy;
+        energyText.text = currentEnergy + "/" + maxEnergy;
+    }
+
+    private void UpdateCurrencyUI(decimal gold, decimal gems)
+    {
+        if (goldText == null || gemText == null)
+            FindHUDReferences();
+
+        if (_lastGold >= 0m && gold != _lastGold && goldText != null)
         {
-            // Gem tăng -> Tỏa Hào Quang Kim Cương Cyan (#00E5FF) + Phóng to 10% êm mắt
-            TriggerResourceGlowEffect(gemText, new Color(0.00f, 0.90f, 1.00f, 1.0f), "GemGlowAura");
+            decimal delta = gold - _lastGold;
+            Color goldColor = new Color(1.00f, 0.84f, 0.15f, 1.0f);
+            ShowResourceDelta(goldText, delta, goldColor);
+
+            if (delta > 0m)
+                TriggerResourceGlowEffect(goldText, goldColor, "GoldGlowAura");
+        }
+
+        if (_lastGems >= 0m && gems != _lastGems && gemText != null)
+        {
+            decimal delta = gems - _lastGems;
+            Color gemColor = new Color(0.00f, 0.90f, 1.00f, 1.0f);
+            ShowResourceDelta(gemText, delta, gemColor);
+
+            if (delta > 0m)
+                TriggerResourceGlowEffect(gemText, gemColor, "GemGlowAura");
         }
 
         _lastGold = gold;
         _lastGems = gems;
         CachedGold = gold;
         CachedGems = gems;
-
-        if (goldText == null || gemText == null)
-        {
-            FindHUDReferences();
-        }
 
         if (goldText != null)
         {
@@ -1067,6 +1041,96 @@ public class PlayerHUDController : MonoBehaviour
         {
             gemText.text = FormatCurrencyAmount(gems);
         }
+    }
+
+    private void ShowResourceDelta(TMP_Text targetText, decimal delta, Color gainColor)
+    {
+        if (targetText == null || delta == 0m || !isActiveAndEnabled)
+            return;
+
+        Transform container = targetText.transform.parent != null
+            ? targetText.transform.parent
+            : targetText.transform;
+
+        GameObject popupObject = new GameObject(
+            targetText.name + "Delta",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(TextMeshProUGUI));
+        popupObject.layer = targetText.gameObject.layer;
+        popupObject.transform.SetParent(container, false);
+        popupObject.transform.SetAsLastSibling();
+
+        RectTransform popupRect = popupObject.GetComponent<RectTransform>();
+        popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 0.5f);
+        popupRect.pivot = new Vector2(0.5f, 0.5f);
+        popupRect.sizeDelta = new Vector2(180f, 52f);
+
+        float targetX = targetText.rectTransform != null
+            ? targetText.rectTransform.anchoredPosition.x
+            : 0f;
+        Vector2 startPosition = new Vector2(targetX, 34f);
+        popupRect.anchoredPosition = startPosition;
+
+        TextMeshProUGUI popupText = popupObject.GetComponent<TextMeshProUGUI>();
+        popupText.font = resourceChangeFont != null ? resourceChangeFont : targetText.font;
+        popupText.fontSize = resourceChangeFontSize;
+        popupText.fontStyle = FontStyles.Bold;
+        popupText.alignment = TextAlignmentOptions.Center;
+        popupText.textWrappingMode = TextWrappingModes.NoWrap;
+        popupText.overflowMode = TextOverflowModes.Overflow;
+        popupText.raycastTarget = false;
+        popupText.outlineWidth = 0.16f;
+        popupText.outlineColor = new Color32(30, 20, 14, 230);
+        popupText.text = (delta > 0m ? "+" : "-") + FormatCurrencyAmount(System.Math.Abs(delta));
+        popupText.color = delta > 0m ? gainColor : new Color(1f, 0.28f, 0.24f, 1f);
+
+        _resourceDeltaPopups.Add(popupObject);
+        StartCoroutine(ResourceDeltaRoutine(popupObject, popupRect, popupText, startPosition));
+    }
+
+    private IEnumerator ResourceDeltaRoutine(
+        GameObject popupObject,
+        RectTransform popupRect,
+        TMP_Text popupText,
+        Vector2 startPosition)
+    {
+        Color baseColor = popupText.color;
+        float duration = Mathf.Max(0.2f, resourceChangeDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration && popupObject != null)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float enter = Mathf.Clamp01(t / 0.22f);
+            float rise = Mathf.SmoothStep(0f, 1f, t);
+            float fade = 1f - Mathf.SmoothStep(0.58f, 1f, t);
+
+            popupRect.anchoredPosition = startPosition + Vector2.up * (resourceChangeRiseDistance * rise);
+            float bounce = Mathf.Sin(enter * Mathf.PI) * 0.22f;
+            popupRect.localScale = Vector3.one * Mathf.Lerp(0.72f, 1f, enter) * (1f + bounce);
+            popupText.color = new Color(baseColor.r, baseColor.g, baseColor.b, fade);
+
+            yield return null;
+        }
+
+        if (popupObject != null)
+        {
+            _resourceDeltaPopups.Remove(popupObject);
+            Destroy(popupObject);
+        }
+    }
+
+    private void ClearResourceDeltaPopups()
+    {
+        for (int i = _resourceDeltaPopups.Count - 1; i >= 0; i--)
+        {
+            if (_resourceDeltaPopups[i] != null)
+                Destroy(_resourceDeltaPopups[i]);
+        }
+
+        _resourceDeltaPopups.Clear();
     }
 
     private static Sprite _solidWhiteSprite;

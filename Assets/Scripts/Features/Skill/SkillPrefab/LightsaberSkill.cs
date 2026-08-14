@@ -18,6 +18,8 @@ public class LightsaberSkill : MonoBehaviour
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
+
+        if (PlayerSkillVisualReplica.IsReplica(this)) return;
         
         // Deal damage immediately at spawn position to targets in small radius
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, damageRadius);

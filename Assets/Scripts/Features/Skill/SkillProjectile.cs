@@ -36,7 +36,7 @@ public class SkillProjectile : MonoBehaviour
 
         if (enemy != null || collision.CompareTag("Monster"))
         {
-            if (enemy != null)
+            if (enemy != null && !PlayerSkillVisualReplica.IsReplica(this))
             {
                 // 👇 Thêm logic Chí mạng cho Kỹ năng (Tạm để 20% crit, x1.5 sát thương)
                 bool isCrit = Random.Range(0f, 100f) <= 20f;

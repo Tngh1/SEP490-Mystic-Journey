@@ -369,6 +369,7 @@ public class QuestManager : MonoBehaviour
                 // để đọc dialogue rồi mới nhận nhiệm vụ kế.
                 Debug.Log($"[QuestManager] Claimed questId={questId}");
                 InventoryManager.RefreshAny(refreshStats: false);
+                WorldRuntimeEvents.RaiseCurrencyChanged();
 
                 if (!silent)
                 {

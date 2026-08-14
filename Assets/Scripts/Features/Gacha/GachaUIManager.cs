@@ -705,6 +705,7 @@ public class GachaUIManager : MonoBehaviour
         GachaApi.Instance.Pull(currentBannerId, amount, isFreePull,
             onSuccess: (result) =>
             {
+                WorldRuntimeEvents.RaiseCurrencyChanged();
                 VideoClip clipToPlay = ResolveVideoClip(amount);
                 PlayGachaVideo(clipToPlay, () =>
                 {

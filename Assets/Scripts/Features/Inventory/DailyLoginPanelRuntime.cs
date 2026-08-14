@@ -250,6 +250,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
         // The backend has already delivered item rewards. Force the cached inventory and
         // player stats to reload so item stacks, currency, and energy update immediately.
         InventoryManager.RefreshAny(refreshStats: true);
+        WorldRuntimeEvents.RaiseCurrencyChanged();
     }
 
     private void BindEvents()

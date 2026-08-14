@@ -82,6 +82,8 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
 
     private void DealDamage(GameObject playerObj)
     {
+        if (EnemySkillVisualReplica.IsReplica(this)) return;
+
         var networkPlayer = playerObj.GetComponent<NetworkPlayer>();
         if (networkPlayer != null)
         {

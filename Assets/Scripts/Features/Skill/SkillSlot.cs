@@ -360,7 +360,11 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         // Cho phép click vào HUD để tung chiêu
         if (equippedIcon != null && equippedIcon.sprite != null)
         {
-            var combat = PlayerEntity.Instance?.GetComponent<PlayerCombat>();
+            // In multiplayer PlayerEntity.Instance can briefly point at a proxy when
+            // another avatar spawns. HUD input must always target this client's avatar.
+            var combat = NetworkPlayer.Local != null
+                ? NetworkPlayer.Local.GetComponent<PlayerCombat>()
+                : PlayerEntity.Instance?.GetComponent<PlayerCombat>();
             if (combat != null)
             {
                 combat.RequestCastSkillBySlot(slotIndex);

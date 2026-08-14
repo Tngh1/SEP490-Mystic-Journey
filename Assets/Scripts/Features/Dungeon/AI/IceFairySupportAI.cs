@@ -326,6 +326,7 @@ public class IceFairySupportAI : MonoBehaviour
         _isCastingSkill = true;
         SetRunningAnim(false);
 
+        GetComponent<NetworkEnemy>()?.NotifyAttackAnimation();
         PlayAttackAnimation();
 
         yield return new WaitForSeconds(0.25f);
@@ -375,6 +376,7 @@ public class IceFairySupportAI : MonoBehaviour
         _isCastingSkill = true;
         SetRunningAnim(false);
 
+        GetComponent<NetworkEnemy>()?.NotifyAttackAnimation();
         PlayAttackAnimation();
 
         yield return new WaitForSeconds(0.25f);

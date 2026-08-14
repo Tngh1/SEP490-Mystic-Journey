@@ -23,11 +23,13 @@ public class PumpkinSlashSkill : SkillProjectile
         // Nhát chém tự hủy sau thời gian duration
         Destroy(gameObject, duration);
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        Transform replicaOwner = PlayerSkillVisualReplica.GetOwner(this);
+        GameObject player = replicaOwner == null ? GameObject.FindGameObjectWithTag("Player") : null;
+        Transform playerTransform = replicaOwner != null ? replicaOwner : player?.transform;
+        if (playerTransform != null)
         {
-            Transform fp = player.transform.Find("FirePoint");
-            _casterTransform = fp != null ? fp : player.transform;
+            Transform fp = playerTransform.Find("FirePoint");
+            _casterTransform = fp != null ? fp : playerTransform;
             _offsetFromCaster = transform.position - _casterTransform.position;
         }
     }
@@ -43,6 +45,8 @@ public class PumpkinSlashSkill : SkillProjectile
 
     protected override void OnTriggerEnter2D(Collider2D collision)
     {
+        if (PlayerSkillVisualReplica.IsReplica(this)) return;
+
         EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
         if (enemy != null || collision.CompareTag("Monster"))
         {

@@ -160,6 +160,7 @@ public class EnemyBehaviour : MonoBehaviour
         var networkEnemy = GetComponent<NetworkEnemy>();
         networkEnemy?.RegisterSkillPrefab(skillPrefab);
         networkEnemy?.RegisterSkillPrefab(skill2Prefab);
+        networkEnemy?.RegisterSkillPrefab(attackProjectilePrefab);
 
         if (navMeshAgent == null)
         {
@@ -511,6 +512,7 @@ public class EnemyBehaviour : MonoBehaviour
         {
             // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
+            GetComponent<NetworkEnemy>()?.NotifyAttackAnimation();
 
             bool isCrit = critRate > 0 && UnityEngine.Random.Range(0f, 100f) <= critRate;
 
@@ -544,6 +546,20 @@ public class EnemyBehaviour : MonoBehaviour
 
         Vector3 spawnPos = projectileSpawnPoint != null ? projectileSpawnPoint.position : (transform.position + new Vector3(0f, 0.5f, 0f));
         Vector3 dir = (target.position - spawnPos).normalized;
+
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        if (networkEnemy != null && networkEnemy.IsNetworkActive)
+        {
+            networkEnemy.SpawnEnemyProjectile(
+                attackProjectilePrefab,
+                spawnPos,
+                dir,
+                projectileSpeed,
+                attackDamage,
+                isCrit,
+                critDamageMultiplier);
+            yield break;
+        }
 
         GameObject projObj;
         if (attackProjectilePrefab != null)
@@ -649,6 +665,7 @@ public class EnemyBehaviour : MonoBehaviour
     private void CastSkill(Transform target, GameObject prefabToCast, float delay)
     {
         OnEnemyCastSkill?.Invoke(this, EventArgs.Empty);
+        GetComponent<NetworkEnemy>()?.NotifySkillAnimation();
 
         StartCoroutine(SpawnSkillWithDelay(target, prefabToCast, delay));
     }

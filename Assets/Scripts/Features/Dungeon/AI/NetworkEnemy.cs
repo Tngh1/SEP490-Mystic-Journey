@@ -35,6 +35,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
 
     private EnemyEntity _entity;
     private EnemyBehaviour _behaviour;
+    private EnemyAnimations _animations;
     private NavMeshAgent _agent;
     private readonly Dictionary<string, GameObject> _skillPrefabs = new(System.StringComparer.Ordinal);
 
@@ -55,6 +56,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     {
         _entity = GetComponent<EnemyEntity>();
         _behaviour = GetComponent<EnemyBehaviour>();
+        _animations = GetComponent<EnemyAnimations>() ?? GetComponentInChildren<EnemyAnimations>();
         _agent = GetComponent<NavMeshAgent>();
     }
 
@@ -143,6 +145,87 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         return instance;
     }
 
+    public GameObject SpawnEnemyProjectile(GameObject prefab, Vector3 position, Vector3 direction,
+        float speed, int damage, bool isCrit, float critMultiplier)
+    {
+        if (prefab != null) RegisterSkillPrefab(prefab);
+
+        GameObject instance = CreateEnemyProjectile(prefab, position, direction, speed, damage,
+            isCrit, critMultiplier, false);
+
+        if (IsNetworkActive && HasStateAuthority)
+        {
+            RPC_SpawnEnemyProjectile(
+                prefab != null ? prefab.name : string.Empty,
+                position,
+                direction,
+                speed,
+                isCrit,
+                critMultiplier);
+        }
+
+        return instance;
+    }
+
+    private GameObject CreateEnemyProjectile(GameObject prefab, Vector3 position, Vector3 direction,
+        float speed, int damage, bool isCrit, float critMultiplier, bool visualOnly)
+    {
+        GameObject instance;
+        if (prefab != null)
+        {
+            instance = Instantiate(prefab, position, Quaternion.identity);
+        }
+        else
+        {
+            instance = new GameObject($"{gameObject.name}_Projectile");
+            instance.transform.position = position;
+            var renderer = instance.AddComponent<SpriteRenderer>();
+            renderer.color = new Color(1f, 0.6f, 0.1f);
+            var collider = instance.AddComponent<CircleCollider2D>();
+            collider.isTrigger = true;
+            collider.radius = 0.25f;
+        }
+
+        if (visualOnly) instance.AddComponent<EnemySkillVisualReplica>();
+
+        var projectile = instance.GetComponent<EnemyNormalAttackProjectile>();
+        if (projectile == null) projectile = instance.AddComponent<EnemyNormalAttackProjectile>();
+        projectile.Setup(direction, speed, visualOnly ? 0 : damage, isCrit, critMultiplier);
+        return instance;
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnEnemyProjectile(string prefabName, Vector3 position, Vector3 direction,
+        float speed, NetworkBool isCrit, float critMultiplier)
+    {
+        if (HasStateAuthority) return;
+
+        _skillPrefabs.TryGetValue(prefabName, out var prefab);
+        CreateEnemyProjectile(prefab, position, direction, speed, 0, isCrit, critMultiplier, true);
+    }
+
+    public void NotifyAttackAnimation()
+    {
+        if (IsNetworkActive && HasStateAuthority) RPC_PlayAttackAnimation();
+    }
+
+    public void NotifySkillAnimation()
+    {
+        if (IsNetworkActive && HasStateAuthority) RPC_PlaySkillAnimation();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayAttackAnimation()
+    {
+        if (!HasStateAuthority) _animations?.PlayAttackAnimation();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlaySkillAnimation()
+    {
+        if (!HasStateAuthority) _animations?.PlaySkillAnimation();
+    }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_SpawnEnemySkill(string prefabName, Vector3 position, NetworkBool parentToEnemy)
     {
@@ -185,7 +268,8 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
 
         // Proxy mirror: push replicated HP into EnemyEntity so the health bar and
         // hit flash match the authority.
-        if (CurrentHp != _lastMirroredHp || MaxHp != _lastMirroredMaxHp)
+        if (CurrentHp != _lastMirroredHp || MaxHp != _lastMirroredMaxHp ||
+            _entity.CurrentHealth != CurrentHp || _entity.MaxHealth != MaxHp)
         {
             _entity.SyncNetworkedHealth(CurrentHp, MaxHp);
             _lastMirroredHp = CurrentHp;
