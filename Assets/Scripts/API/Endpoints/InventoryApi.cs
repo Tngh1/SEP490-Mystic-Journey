@@ -74,15 +74,15 @@ namespace MysticJourney.API.Endpoints
         }
 
         // ── Tiêu thụ item ──────────────────────
-        public void ConsumeItem(int inventoryItemId, int quantity, Action<SimpleResponse> onSuccess, Action<ApiException> onError)
+        public void ConsumeItem(int inventoryItemId, int quantity, Action<ConsumeItemResultResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new ConsumeItemRequest { InventoryItemId = inventoryItemId, Quantity = quantity };
             SafeDebugLog($"ConsumeItem → POST /api/inventory/consume-item | inventoryItemId={inventoryItemId} | qty={quantity}");
-            ApiClient.Instance.Post<ConsumeItemRequest, SimpleResponse>(
+            ApiClient.Instance.Post<ConsumeItemRequest, ConsumeItemResultResponse>(
                 ApiConfig.InventoryConsume, body,
                 response =>
                 {
-                    SafeDebugLog($"ConsumeItem OK | message={response.message}");
+                    SafeDebugLog($"ConsumeItem OK | effect={response.EffectType} | value={response.EffectValue}");
                     onSuccess?.Invoke(response);
                 },
                 error =>

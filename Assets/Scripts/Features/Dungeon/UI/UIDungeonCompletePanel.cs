@@ -53,6 +53,10 @@ namespace MysticJourney.Features.Dungeon.UI
             currentSessionId = sessionId;
             gameObject.SetActive(true);
 
+            // The button is disabled after a click to prevent duplicate migrations. This
+            // panel is reused for later runs, so it must be restored every time it opens.
+            if (exitButton != null) exitButton.interactable = true;
+
             // Reset Again button
             if (againButton != null)
             {
@@ -194,17 +198,19 @@ namespace MysticJourney.Features.Dungeon.UI
         {
             if (exitButton != null) exitButton.interactable = false;
 
-            // Leaving cancels our restart vote. Without this, the flag stayed true on our
-            // replicated avatar for the moment before it despawns and the host could count a
-            // departing player as ready.
-            if (NetworkPlayer.Local != null) NetworkPlayer.Local.RPC_ClearReadyToRestart();
-
             gameObject.SetActive(false);
 
             if (DungeonManager.Instance != null)
             {
+                // Exiting is a local action for every party member. Start it before any
+                // optional network cleanup so an RPC rejection can never strand a client.
                 DungeonManager.Instance.ReturnToWorldMap();
             }
+
+            // Leaving cancels our restart vote while the avatar is still replicated. This
+            // is deliberately best-effort; despawning during room migration also removes the
+            // player from the vote list.
+            NetworkPlayer.Local?.CancelRestartVoteForExit();
         }
 
         private void OnAgainClicked()

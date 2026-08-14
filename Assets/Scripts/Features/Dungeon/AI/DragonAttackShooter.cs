@@ -29,6 +29,7 @@ public class DragonAttackShooter : MonoBehaviour
             Transform foundPoint = transform.Find("SkillSpawn") ?? transform.Find("FirePoint");
             spawnPoint = foundPoint != null ? foundPoint : transform;
         }
+        GetComponent<NetworkEnemy>()?.RegisterSkillPrefab(fireballPrefab);
     }
 
     private void OnEnable()
@@ -72,7 +73,10 @@ public class DragonAttackShooter : MonoBehaviour
         }
 
         Vector3 spawnPos = spawnPoint != null ? spawnPoint.position : transform.position;
-        GameObject fireballObj = Instantiate(fireballPrefab, spawnPos, Quaternion.identity);
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        GameObject fireballObj = networkEnemy != null
+            ? networkEnemy.SpawnEnemySkill(fireballPrefab, spawnPos)
+            : Instantiate(fireballPrefab, spawnPos, Quaternion.identity);
 
         // Đảm bảo quả cầu lửa biết được mục tiêu Player
         DragonHomingFireball homingScript = fireballObj.GetComponent<DragonHomingFireball>();

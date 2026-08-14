@@ -157,6 +157,9 @@ public class EnemyBehaviour : MonoBehaviour
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
         _enemyEntity = GetComponent<EnemyEntity>();
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        networkEnemy?.RegisterSkillPrefab(skillPrefab);
+        networkEnemy?.RegisterSkillPrefab(skill2Prefab);
 
         if (navMeshAgent == null)
         {
@@ -666,7 +669,11 @@ public class EnemyBehaviour : MonoBehaviour
             spawnPosition = skillSpawnPoint.position;
         }
 
-        Instantiate(prefabToCast, spawnPosition, Quaternion.identity);
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        if (networkEnemy != null)
+            networkEnemy.SpawnEnemySkill(prefabToCast, spawnPosition);
+        else
+            Instantiate(prefabToCast, spawnPosition, Quaternion.identity);
     }
 
     private void Roaming()

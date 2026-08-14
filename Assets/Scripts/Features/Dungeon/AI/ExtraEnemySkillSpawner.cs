@@ -52,6 +52,9 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
         _enemyBehaviour = GetComponent<EnemyBehaviour>();
         _enemyEntity = GetComponent<EnemyEntity>();
         _animator = GetComponent<Animator>();
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        foreach (var skill in extraSkills)
+            networkEnemy?.RegisterSkillPrefab(skill?.skillPrefab);
     }
 
     private void Start()
@@ -138,10 +141,13 @@ public class ExtraEnemySkillSpawner : MonoBehaviour
             spawnPos = targetPlayer != null ? targetPlayer.position : transform.position;
         }
 
-        GameObject spawnedSkill = Instantiate(skill.skillPrefab, spawnPos, Quaternion.identity);
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        GameObject spawnedSkill = networkEnemy != null
+            ? networkEnemy.SpawnEnemySkill(skill.skillPrefab, spawnPos, skill.spawnOnSelf)
+            : Instantiate(skill.skillPrefab, spawnPos, Quaternion.identity);
 
         // Nếu là skill dạng kén bao bọc trên Boss thì tự gắn làm con của Boss (giữ nguyên vị trí spawnPos)
-        if (skill.spawnOnSelf)
+        if (skill.spawnOnSelf && networkEnemy == null)
         {
             spawnedSkill.transform.SetParent(transform, true);
         }

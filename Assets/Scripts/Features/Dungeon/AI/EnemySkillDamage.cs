@@ -67,6 +67,7 @@ public class EnemySkillDamage : MonoBehaviour
 
     private void DealDamage(GameObject target)
     {
+        if (EnemySkillVisualReplica.IsReplica(this)) return;
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);

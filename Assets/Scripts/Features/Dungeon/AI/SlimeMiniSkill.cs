@@ -48,6 +48,7 @@ public class SlimeMiniSkill : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D col)
     {
+        if (EnemySkillVisualReplica.IsReplica(this)) return;
         if (_isTriggered) return;
 
         if (col.CompareTag("Player"))

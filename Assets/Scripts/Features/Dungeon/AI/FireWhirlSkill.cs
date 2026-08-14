@@ -66,6 +66,7 @@ public class FireWhirlSkill : MonoBehaviour
 
     private void DealDamageAndApplyBurn(GameObject target)
     {
+        if (EnemySkillVisualReplica.IsReplica(this)) return;
         // 1. Phát âm thanh khi trúng
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {

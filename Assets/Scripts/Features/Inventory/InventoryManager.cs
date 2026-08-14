@@ -243,8 +243,7 @@ public class InventoryManager : MonoBehaviour
                 if (oldItem != null)
                 {
                     Sprite oldIcon = ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType);
-                    itemDetailPopup?.Show(item, icon, slotQty);
-                    itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
+                    itemDetailPopup?.ShowEquipComparison(item, icon, slotQty, oldItem, oldIcon);
                     return;
                 }
             }
@@ -425,10 +424,10 @@ public class InventoryManager : MonoBehaviour
         InventoryApi.Instance.ConsumeItem(
             inventoryItemId: item.InventoryItemId,
             quantity: quantity,
-            onSuccess: _ =>
+            onSuccess: response =>
             {
-                Debug.Log($"[InventoryManager] ✅ ConsumeItem OK");
-                LoadPlayerStats(); // Refresh HP immediately after using a potion
+                Debug.Log($"[InventoryManager] ✅ ConsumeItem OK | effect={response?.EffectType} | value={response?.EffectValue}");
+                ApplyConsumedItemEffect(response);
                 LoadInventory(force: true, refreshStats: false);
             },
             onError: error =>
@@ -437,6 +436,39 @@ public class InventoryManager : MonoBehaviour
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Item use failed.");
             }
         );
+    }
+
+    private void ApplyConsumedItemEffect(ConsumeItemResultResponse response)
+    {
+        if (response == null)
+        {
+            LoadPlayerStats();
+            return;
+        }
+
+        if (response.CurrentHp.HasValue && response.MaxHp.HasValue)
+        {
+            if (PlayerEntity.Instance != null)
+            {
+                PlayerEntity.Instance.ApplyHealth(response.CurrentHp.Value, response.MaxHp.Value);
+            }
+            else
+            {
+                // The HUD can exist before the local avatar has spawned.
+                PlayerHUDController.Instance?.ApplyHealth(response.CurrentHp.Value, response.MaxHp.Value);
+            }
+        }
+
+        if (response.CurrentEnergy.HasValue && response.MaxEnergy.HasValue)
+        {
+            PlayerHUDController.Instance?.ApplyEnergy(response.CurrentEnergy.Value, response.MaxEnergy.Value);
+        }
+
+        if (response.CorruptionLevel.HasValue)
+        {
+            MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel = response.CorruptionLevel.Value;
+            PlayerHUDController.Instance?.ApplyCorruption(response.CorruptionLevel.Value);
+        }
     }
 
     // =========================================================================

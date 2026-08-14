@@ -152,10 +152,12 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private void SwitchPanel(GameObject activePanel)
     {
-        if (detailPanel) detailPanel.SetActive(activePanel == detailPanel);
-        if (equipComparisonPanel) equipComparisonPanel.SetActive(activePanel == equipComparisonPanel);
-        if (consumePanel) consumePanel.SetActive(activePanel == consumePanel);
-        if (skinPanel) skinPanel.SetActive(activePanel == skinPanel);
+        if (detailPanel) detailPanel.SetActive(false);
+        if (equipComparisonPanel) equipComparisonPanel.SetActive(false);
+        if (consumePanel) consumePanel.SetActive(false);
+        if (skinPanel) skinPanel.SetActive(false);
+
+        if (activePanel) activePanel.SetActive(true);
     }
 
     private int _currentSlotStackQuantity = 99;
@@ -176,7 +178,6 @@ public class UIItemDetailPopup : MonoBehaviour
         _currentItem = item;
         _currentIcon = icon;
         _currentSlotStackQuantity = slotStackQuantity > 0 ? slotStackQuantity : 99;
-        gameObject.SetActive(true);
 
         bool isConsumable = IsConsumable(item);
 
@@ -188,6 +189,8 @@ public class UIItemDetailPopup : MonoBehaviour
         {
             SwitchPanel(detailPanel);
         }
+
+        gameObject.SetActive(true);
 
         Color rarityColor = GetRarityColor(item.ItemRarity);
 
@@ -246,6 +249,7 @@ public class UIItemDetailPopup : MonoBehaviour
 
     public void Hide()
     {
+        SwitchPanel(null);
         gameObject.SetActive(false);
         _currentItem = null;
     }
@@ -305,6 +309,36 @@ public class UIItemDetailPopup : MonoBehaviour
     public void ShowEquipComparison(InventoryItemResponse equippedItem, Sprite oldIcon = null)
     {
         SwitchPanel(equipComparisonPanel);
+        PopulateEquipComparison(equippedItem, oldIcon);
+    }
+
+    public void ShowEquipComparison(
+        InventoryItemResponse newItem,
+        Sprite newIcon,
+        int slotStackQuantity,
+        InventoryItemResponse equippedItem,
+        Sprite oldIcon = null)
+    {
+        if (newItem == null)
+        {
+            Hide();
+            return;
+        }
+
+        _isSkinMode = false;
+        _currentSkin = null;
+        _currentItem = newItem;
+        _currentIcon = newIcon;
+        _currentSlotStackQuantity = slotStackQuantity > 0 ? slotStackQuantity : 99;
+
+        // Chọn panel trước khi bật root để panel của item trước không xuất hiện lại.
+        SwitchPanel(equipComparisonPanel);
+        gameObject.SetActive(true);
+        PopulateEquipComparison(equippedItem, oldIcon);
+    }
+
+    private void PopulateEquipComparison(InventoryItemResponse equippedItem, Sprite oldIcon)
+    {
         EnsureStatIconsAsset();
 
         // Fill old item (Equipped)
@@ -317,7 +351,7 @@ public class UIItemDetailPopup : MonoBehaviour
             }
             if (oldItemType) oldItemType.text = !string.IsNullOrEmpty(equippedItem.ItemSlot) ? equippedItem.ItemSlot : (equippedItem.ItemType ?? "");
             if (oldItemStats) oldItemStats.text = BuildStatsString(equippedItem);
-            if (oldItemEffect) oldItemEffect.text = "None"; // Or fetch from item if applicable
+            if (oldItemEffect) oldItemEffect.text = "None";
             if (oldItemIcon) {
                 if (oldIcon != null) { oldItemIcon.sprite = oldIcon; oldItemIcon.enabled = true; }
                 else oldItemIcon.enabled = false;

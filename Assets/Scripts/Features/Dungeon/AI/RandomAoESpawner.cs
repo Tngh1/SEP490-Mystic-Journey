@@ -66,7 +66,9 @@ public class RandomAoESpawner : MonoBehaviour
             
             if (aoePrefab != null)
             {
-                Instantiate(aoePrefab, spawnPos, Quaternion.identity);
+                var spawned = Instantiate(aoePrefab, spawnPos, Quaternion.identity);
+                if (EnemySkillVisualReplica.IsReplica(this))
+                    spawned.AddComponent<EnemySkillVisualReplica>();
             }
 
             if (spawnDelay > 0)

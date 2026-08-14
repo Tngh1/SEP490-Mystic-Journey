@@ -1,4 +1,5 @@
 using Fusion;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -35,6 +36,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     private EnemyEntity _entity;
     private EnemyBehaviour _behaviour;
     private NavMeshAgent _agent;
+    private readonly Dictionary<string, GameObject> _skillPrefabs = new(System.StringComparer.Ordinal);
 
     // Proxy-side mirror bookkeeping so we only push changes into EnemyEntity.
     private int _lastMirroredHp = int.MinValue;
@@ -110,6 +112,50 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         bool authority = HasStateAuthority;
         if (_behaviour != null) _behaviour.enabled = authority;
         if (_agent != null) _agent.enabled = authority;
+        SetAuthorityOnlyComponent<ExtraEnemySkillSpawner>(authority);
+        SetAuthorityOnlyComponent<DragonAttackShooter>(authority);
+        SetAuthorityOnlyComponent<IceFairySupportAI>(authority);
+        SetAuthorityOnlyComponent<SwampDemonSlimeSpawner>(authority);
+    }
+
+    private void SetAuthorityOnlyComponent<T>(bool enabled) where T : UnityEngine.Behaviour
+    {
+        var component = GetComponent<T>();
+        if (component != null) component.enabled = enabled;
+    }
+
+    public void RegisterSkillPrefab(GameObject prefab)
+    {
+        if (prefab != null) _skillPrefabs[prefab.name] = prefab;
+    }
+
+    public GameObject SpawnEnemySkill(GameObject prefab, Vector3 position, bool parentToEnemy = false)
+    {
+        if (prefab == null) return null;
+        RegisterSkillPrefab(prefab);
+
+        var instance = Instantiate(prefab, position, Quaternion.identity);
+        if (parentToEnemy) instance.transform.SetParent(transform, true);
+
+        if (IsNetworkActive && HasStateAuthority)
+            RPC_SpawnEnemySkill(prefab.name, position, parentToEnemy);
+
+        return instance;
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnEnemySkill(string prefabName, Vector3 position, NetworkBool parentToEnemy)
+    {
+        if (HasStateAuthority) return;
+        if (!_skillPrefabs.TryGetValue(prefabName, out var prefab) || prefab == null)
+        {
+            Debug.LogWarning($"[NetworkEnemy] Replica prefab '{prefabName}' is not registered on {name}.");
+            return;
+        }
+
+        var instance = Instantiate(prefab, position, Quaternion.identity);
+        instance.AddComponent<EnemySkillVisualReplica>();
+        if (parentToEnemy) instance.transform.SetParent(transform, true);
     }
 
     public override void FixedUpdateNetwork()
@@ -190,4 +236,10 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         if (DamagePopupManager.Instance != null)
             DamagePopupManager.Instance.Create(worldPos, amount, isCrit, false);
     }
+}
+
+public sealed class EnemySkillVisualReplica : MonoBehaviour
+{
+    public static bool IsReplica(Component component) =>
+        component != null && component.GetComponentInParent<EnemySkillVisualReplica>() != null;
 }

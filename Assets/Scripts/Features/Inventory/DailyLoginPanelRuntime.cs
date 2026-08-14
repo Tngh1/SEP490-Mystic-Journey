@@ -190,6 +190,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
                 if (status.ClaimedDays == null) status.ClaimedDays = new List<int>();
                 status.ClaimedDays.Add(DateTime.UtcNow.Day);
                 status.TotalDaysClaimed = response?.TotalDaysClaimed ?? status.TotalDaysClaimed + 1;
+                RefreshClaimedReward();
                 Render();
             },
             error =>
@@ -232,6 +233,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
                 status.ClaimedDays.Add(dayNumber);
                 status.TotalDaysClaimed = response?.TotalDaysClaimed ?? status.TotalDaysClaimed + 1;
                 status.RetroClaimCount += 1; // Tăng số lần bù trên UI
+                RefreshClaimedReward();
                 Render();
             },
             error =>
@@ -241,6 +243,13 @@ public class DailyLoginPanelRuntime : MonoBehaviour
                 Debug.LogWarning($"[DailyLogin] Retro claim failed. Not enough gems? API Error: {error.Message}");
                 SetError($"Retro claim failed (Not enough Gems?): {error.Message}");
             });
+    }
+
+    private static void RefreshClaimedReward()
+    {
+        // The backend has already delivered item rewards. Force the cached inventory and
+        // player stats to reload so item stacks, currency, and energy update immediately.
+        InventoryManager.RefreshAny(refreshStats: true);
     }
 
     private void BindEvents()
