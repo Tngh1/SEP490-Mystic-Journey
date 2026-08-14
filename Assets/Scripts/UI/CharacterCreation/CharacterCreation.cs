@@ -170,7 +170,7 @@ public class CharacterCreation : MonoBehaviour
                 WorldState.PlayerClass = response.PlayerClass;
                 
                 // Set starting map name and coordinate
-                WorldState.CurrentMapName = GameConstants.Scenes.AbandonedCastle;
+                WorldState.CurrentMapName = GameConstants.Scenes.ElfForest;
                 WorldState.LastPosition = GameConstants.WorldDefaults.DefaultSpawnPosition;
 
                 // Persist locally

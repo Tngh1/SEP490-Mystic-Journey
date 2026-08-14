@@ -14,14 +14,15 @@ public class SettingsService
     // Graphics
     public int DisplayModeIndex { get; private set; }
     public int ResolutionIndex { get; private set; }
+    public bool HasSessionGraphicsSettings { get; private set; }
     public bool ShowDamageNumbers { get; private set; } = true;
 
     private const string KeyMasterVolume = "mj_setting_master_vol";
     private const string KeyMusicVolume = "mj_setting_music_vol";
     private const string KeySfxVolume = "mj_setting_sfx_vol";
     private const string KeyMuted = "mj_setting_muted";
-    private const string KeyDisplayMode = "mj_setting_display_mode";
-    private const string KeyResolution = "mj_setting_resolution";
+    private const string LegacyKeyDisplayMode = "mj_setting_display_mode";
+    private const string LegacyKeyResolution = "mj_setting_resolution";
     private const string KeyDamageNumbers = "mj_setting_damage_numbers";
 
     private SettingsService() { }
@@ -32,9 +33,9 @@ public class SettingsService
         MusicVolume = PlayerPrefs.GetFloat(KeyMusicVolume, 1f);
         SfxVolume = PlayerPrefs.GetFloat(KeySfxVolume, 1f);
         IsMuted = PlayerPrefs.GetInt(KeyMuted, 0) == 1;
-        DisplayModeIndex = PlayerPrefs.GetInt(KeyDisplayMode, 0);
-        ResolutionIndex = PlayerPrefs.GetInt(KeyResolution, 0);
         ShowDamageNumbers = PlayerPrefs.GetInt(KeyDamageNumbers, 1) == 1;
+
+        RemoveLegacyGraphicsPreferences();
     }
 
     public void Save()
@@ -43,11 +44,10 @@ public class SettingsService
         PlayerPrefs.SetFloat(KeyMusicVolume, MusicVolume);
         PlayerPrefs.SetFloat(KeySfxVolume, SfxVolume);
         PlayerPrefs.SetInt(KeyMuted, IsMuted ? 1 : 0);
-        PlayerPrefs.SetInt(KeyDisplayMode, DisplayModeIndex);
-        PlayerPrefs.SetInt(KeyResolution, ResolutionIndex);
         PlayerPrefs.SetInt(KeyDamageNumbers, ShowDamageNumbers ? 1 : 0);
+        RemoveLegacyGraphicsPreferences();
         PlayerPrefs.Save();
-        Debug.Log("[SettingsService] Settings saved to PlayerPrefs.");
+        Debug.Log("[SettingsService] Persistent settings saved. Graphics remain session-only.");
     }
 
     public void SetMasterVolume(float value)
@@ -76,12 +76,24 @@ public class SettingsService
 
     public void SetDisplayMode(int index)
     {
-        DisplayModeIndex = index;
+        DisplayModeIndex = Mathf.Max(0, index);
+        HasSessionGraphicsSettings = true;
     }
 
     public void SetResolution(int index)
     {
-        ResolutionIndex = index;
+        ResolutionIndex = Mathf.Max(0, index);
+        HasSessionGraphicsSettings = true;
+    }
+
+    public void InitializeSessionGraphics(int displayModeIndex, int resolutionIndex)
+    {
+        if (HasSessionGraphicsSettings)
+            return;
+
+        DisplayModeIndex = Mathf.Max(0, displayModeIndex);
+        ResolutionIndex = Mathf.Max(0, resolutionIndex);
+        HasSessionGraphicsSettings = true;
     }
 
     public void SetShowDamageNumbers(bool show)
@@ -98,4 +110,10 @@ public class SettingsService
     }
 
     public float GetEffectiveMasterVolume() => IsMuted ? 0f : MasterVolume;
+
+    private static void RemoveLegacyGraphicsPreferences()
+    {
+        PlayerPrefs.DeleteKey(LegacyKeyDisplayMode);
+        PlayerPrefs.DeleteKey(LegacyKeyResolution);
+    }
 }
