@@ -16,8 +16,7 @@ public class MenuUIManager : MonoBehaviour
     [SerializeField] private Button exitGameButton;
 
     [Header("Website")]
-    public string websiteUrl = "http://localhost:3000/";
-    //public string websiteUrl = "http://localhost:3000/";
+    public string websiteUrl = "https://mystic-journey.io.vn";
 
     private void Awake()
     {
