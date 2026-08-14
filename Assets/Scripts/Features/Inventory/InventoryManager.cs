@@ -41,6 +41,7 @@ public class InventoryManager : MonoBehaviour
     [Header("Filter Bars")]
     [SerializeField] private GameObject itemFilterBar;
     [SerializeField] private GameObject skinFilterBar;
+    [SerializeField] private Toggle btnSkinFilterUnowned;
 
     [Header("Tab Buttons (tuỳ chọn)")]
     [SerializeField] private Button tabItemsButton;
@@ -83,8 +84,6 @@ public class InventoryManager : MonoBehaviour
     private InventorySummaryResponse _summary;
     private string _currentFilter = "All"; // All, Weapon, Armor, Consumable, Material, QuestItem, Other
     private string _currentSkinFilter = "All"; // All, Owned, Unowned
-    private int _currentSortIndex = 0; // 0=Latest, 1=Rarity High, 2=Rarity Low
-    private TMP_Text _sortButtonText;
     private bool _showingSkins = false;
     private bool _requestInFlight;
     private bool _eventsBound;
@@ -582,7 +581,12 @@ public class InventoryManager : MonoBehaviour
 
     public void SetFilter(string filterType)
     {
-        if (_showingSkins)
+        SetFilter(filterType, _showingSkins);
+    }
+
+    private void SetFilter(string filterType, bool isSkinFilter)
+    {
+        if (isSkinFilter)
         {
             _currentSkinFilter = filterType;
         }
@@ -593,69 +597,6 @@ public class InventoryManager : MonoBehaviour
         UpdateFilterHighlights();
         RefreshCurrentTab();
     }
-
-    public void CycleSort()
-    {
-        _currentSortIndex = (_currentSortIndex + 1) % 3;
-        UpdateSortButtonText();
-        
-        string sortModeName = _currentSortIndex switch
-        {
-            0 => "Latest",
-            1 => "Rarity: High -> Low",
-            2 => "Rarity: Low -> High",
-            _ => "Default"
-        };
-        
-        Debug.Log($"[InventoryManager] Switched Sort Mode to: {sortModeName}");
-        SetError($"Sorted by: {sortModeName}");
-        
-        RefreshCurrentTab();
-    }
-
-    private TMP_Dropdown _sortDropdown;
-
-    public void SetSortIndex(int index)
-    {
-        _currentSortIndex = index;
-        RefreshCurrentTab();
-    }
-
-    private void UpdateSortButtonText()
-    {
-        if (_sortDropdown != null) return; // Dropdown automatically handles its text
-
-        if (_sortButtonText == null)
-        {
-            var btnSort = FindButton("BtnSort", "SortButton", "OptionA");
-            if (btnSort != null) _sortButtonText = btnSort.GetComponentInChildren<TMP_Text>();
-        }
-        
-        if (_sortButtonText == null) return;
-        
-        switch (_currentSortIndex)
-        {
-            case 0: _sortButtonText.text = "Latest"; break;
-            case 1: _sortButtonText.text = "Rarity: High"; break;
-            case 2: _sortButtonText.text = "Rarity: Low"; break;
-        }
-    }
-
-    private int GetRarityValue(string rarity)
-    {
-        if (string.IsNullOrEmpty(rarity)) return 0;
-        switch (rarity.ToLower())
-        {
-            case "common": return 1;
-            case "uncommon": return 2;
-            case "rare": return 3;
-            case "epic": return 4;
-            case "legendary": return 5;
-            case "mythic": return 6;
-            default: return 0;
-        }
-    }
-
 
     private void RefreshCurrentTab()
     {
@@ -677,7 +618,7 @@ public class InventoryManager : MonoBehaviour
             var filteredSkins = new List<PlayerSkinSummaryResponse>();
             foreach (var skin in skins)
             {
-                bool isOwned = skin.PlayerSkinId > 0;
+                bool isOwned = skin.PlayerSkinId > 0 || IsDefaultSkin(skin.SkinId, skin.SkinName);
                 
                 if (_currentSkinFilter == "Owned" && !isOwned) continue;
                 if (_currentSkinFilter == "Unowned" && isOwned) continue;
@@ -686,24 +627,6 @@ public class InventoryManager : MonoBehaviour
 
                 filteredSkins.Add(skin);
             }
-
-            // Sort skins according to _currentSortIndex
-            filteredSkins.Sort((a, b) => {
-                if (_currentSortIndex == 0) // Default / ID
-                {
-                    return b.PlayerSkinId.CompareTo(a.PlayerSkinId);
-                }
-                else // Rarity
-                {
-                    int rA = GetRarityValue(a.SkinRarity);
-                    int rB = GetRarityValue(b.SkinRarity);
-                    if (rA != rB)
-                    {
-                        return _currentSortIndex == 1 ? rB.CompareTo(rA) : rA.CompareTo(rB);
-                    }
-                    return b.PlayerSkinId.CompareTo(a.PlayerSkinId);
-                }
-            });
 
             // ponytail: backend không seed PlayerSkins row cho skin mặc định khi tạo
             // account mới, nên nó về PlayerSkinId=0/IsEquipped=false và bị khoá. Skin
@@ -769,24 +692,6 @@ public class InventoryManager : MonoBehaviour
                 });
             }
 
-            // --- SORT ---
-            allItems.Sort((a, b) => {
-                if (_currentSortIndex == 0) // Latest
-                {
-                    return b.InventoryItemId.CompareTo(a.InventoryItemId);
-                }
-                else // Rarity
-                {
-                    int rA = GetRarityValue(a.ItemRarity);
-                    int rB = GetRarityValue(b.ItemRarity);
-                    if (rA != rB)
-                    {
-                        return _currentSortIndex == 1 ? rB.CompareTo(rA) : rA.CompareTo(rB);
-                    }
-                    return b.InventoryItemId.CompareTo(a.InventoryItemId);
-                }
-            });
-
             const int MaxStackSize = 99;
             foreach (var item in allItems)
             {
@@ -850,6 +755,7 @@ public class InventoryManager : MonoBehaviour
         
         if (tabItemsToggle == null) tabItemsToggle = FindToggle("EquipmentTab", "TabItemsToggle", "ItemTabToggle");
         if (tabSkinsToggle == null) tabSkinsToggle = FindToggle("AppearanceTab", "TabSkinsToggle", "SkinTabToggle");
+        if (btnSkinFilterUnowned == null) btnSkinFilterUnowned = FindToggle("BtnSkinFilterUnowned");
         tabItemsHighlight = tabItemsHighlight != null ? tabItemsHighlight : FindObject("TabItemsHighlight", "ItemsHighlight", "ItemTabHighlight");
         tabSkinsHighlight = tabSkinsHighlight != null ? tabSkinsHighlight : FindObject("TabSkinsHighlight", "SkinsHighlight", "SkinTabHighlight");
 
@@ -864,19 +770,6 @@ public class InventoryManager : MonoBehaviour
         if (battlePowerText == null)
             battlePowerText = FindText("BattlePowerText ", "BattlePowerText", "BattlePower", "PowerText");
 
-        // FIX: Remove broken TMP_Dropdown components that cause "template not assigned" errors when clicked
-        // (This happens if a Button like SkinTab or SortBtn accidentally has a TMP_Dropdown component added to it)
-        var allDropdowns = GetComponentsInChildren<TMP_Dropdown>(true);
-        foreach (var dropdown in allDropdowns)
-        {
-            if (dropdown != null && dropdown.template == null)
-            {
-                Debug.LogWarning($"[InventoryManager] Destroying broken TMP_Dropdown on '{dropdown.gameObject.name}' to prevent UI click errors.");
-                Destroy(dropdown);
-            }
-        }
-
-        UpdateSortButtonText();
     }
 
     private void BindEvents()
@@ -909,16 +802,6 @@ public class InventoryManager : MonoBehaviour
         if (tabItemsToggle) tabItemsToggle.onValueChanged.AddListener(isOn => { if (isOn) ShowTab(false); });
         if (tabSkinsToggle) tabSkinsToggle.onValueChanged.AddListener(isOn => { if (isOn) ShowTab(true); });
 
-        // Cleanup any broken TMP_Dropdown (template == null) that blocks button click events
-        var allDropdowns = GetComponentsInChildren<TMP_Dropdown>(true);
-        foreach (var dd in allDropdowns)
-        {
-            if (dd != null && dd.template == null)
-            {
-                DestroyImmediate(dd);
-            }
-        }
-
         BindFilterAction("All", false, "BtnFilterAll", "AllButton");
         BindFilterAction("Weapon", false, "BtnFilterWeapon", "WeaponButton");
         BindFilterAction("Armor", false, "BtnFilterArmor", "ArmorButton");
@@ -926,7 +809,7 @@ public class InventoryManager : MonoBehaviour
         BindFilterAction("Material", false, "BtnFilterMaterial", "MaterialButton");
         BindFilterAction("QuestItem", false, "BtnFilterQuest", "QuestButton");
         // Không bind "Other": FilterBar trong Main.unity chỉ có 6 nút filter (All/Weapon/Armor/
-        // Consumable/Material/Quest) + BtnSort, không có BtnFilterOther. Bind vào object không
+        // Consumable/Material/Quest), không có BtnFilterOther. Bind vào object không
         // tồn tại chỉ tạo warning mỗi lần mở Inventory. Logic filter "Other" ở dòng ~757 vẫn giữ,
         // nên chỉ cần thêm nút tên "BtnFilterOther" (hoặc "OtherButton") vào FilterBar rồi bỏ
         // comment dòng dưới là chạy được, không phải sửa gì thêm.
@@ -934,17 +817,7 @@ public class InventoryManager : MonoBehaviour
 
         BindFilterAction("All", true, "BtnSkinFilterAll");
         BindFilterAction("Owned", true, "BtnSkinFilterOwned");
-        BindFilterAction("Unowned", true, "BtnSkinFilterUnowned");
-
-        BindAction(CycleSort, "BtnSort", "SortButton", "OptionA", "BtnSkinSort");
-        _sortDropdown = FindDropdown("BtnSort", "SortButton", "OptionA", "BtnSkinSort");
-        if (_sortDropdown != null && _sortDropdown.template == null)
-        {
-            DestroyImmediate(_sortDropdown);
-            _sortDropdown = null;
-        }
-
-        if (_sortDropdown) _sortDropdown.onValueChanged.AddListener(SetSortIndex);
+        BindFilterAction("Unowned", true, btnSkinFilterUnowned, "BtnSkinFilterUnowned");
 
         _eventsBound = uiInventory != null || itemDetailPopup != null || skinDetailPopup != null || tabItemsButton != null || tabSkinsButton != null;
     }
@@ -998,7 +871,12 @@ public class InventoryManager : MonoBehaviour
 
     private void BindFilterAction(string filterValue, bool isSkinFilter, params string[] names)
     {
-        var obj = FindObject(names);
+        BindFilterAction(filterValue, isSkinFilter, null, names);
+    }
+
+    private void BindFilterAction(string filterValue, bool isSkinFilter, Selectable preferredSelectable, params string[] names)
+    {
+        var obj = preferredSelectable != null ? preferredSelectable.gameObject : FindObject(names);
         if (obj == null)
         {
             Debug.LogWarning("[InventoryManager] BindFilterAction: Could not find object for " + filterValue);
@@ -1011,7 +889,7 @@ public class InventoryManager : MonoBehaviour
             RegisterFilterVisual(FilterKey(isSkinFilter, filterValue), btn);
             btn.onClick.AddListener(() => {
                 Debug.Log("[InventoryManager] Button clicked: " + filterValue);
-                SetFilter(filterValue);
+                SetFilter(filterValue, isSkinFilter);
             });
             return;
         }
@@ -1024,7 +902,7 @@ public class InventoryManager : MonoBehaviour
                 if (isOn)
                 {
                     Debug.Log("[InventoryManager] Toggle selected: " + filterValue);
-                    SetFilter(filterValue);
+                    SetFilter(filterValue, isSkinFilter);
                 }
                 else
                 {
@@ -1075,25 +953,6 @@ public class InventoryManager : MonoBehaviour
             _filterNormalSprites.TryGetValue(pair.Key, out Sprite normal);
             ApplySprite(graphic, active ? filterActiveSprite : normal);
             SyncToggle(graphic, active);
-        }
-    }
-
-    private void BindAction(System.Action action, params string[] names)
-    {
-        var obj = FindObject(names);
-        if (obj == null) return;
-        
-        var btn = obj.GetComponent<Button>();
-        if (btn != null)
-        {
-            btn.onClick.AddListener(new UnityEngine.Events.UnityAction(action));
-            return;
-        }
-
-        var toggle = obj.GetComponent<Toggle>();
-        if (toggle != null)
-        {
-            toggle.onValueChanged.AddListener((isOn) => { if (isOn) action(); });
         }
     }
 
@@ -1169,12 +1028,6 @@ public class InventoryManager : MonoBehaviour
         }
 
         return null;
-    }
-
-    private TMP_Dropdown FindDropdown(params string[] names)
-    {
-        var obj = FindObject(names);
-        return obj == null ? null : obj.GetComponent<TMP_Dropdown>();
     }
 
     // Gốc "InventoryPanel" trong scene. Leo lên từ uiInventory (nằm trong panel) để không phụ
