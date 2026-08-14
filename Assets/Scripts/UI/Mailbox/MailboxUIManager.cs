@@ -45,15 +45,6 @@ namespace MysticJourney.Screen.Mail
         [SerializeField] private Button deleteButton;
         [SerializeField] private GameObject claimedStamp;
 
-        [Header("Delete Confirm Popup")]
-        [SerializeField] private GameObject confirmPanel;
-        [SerializeField] private TextMeshProUGUI popupMainText;
-        [SerializeField] private Button popupOkButton;
-        [SerializeField] private Button popupCancelButton;
-
-        // Popup đang ở chế độ xác nhận xóa (true) hay chỉ thông báo (false).
-        private bool _popupAllowsDelete = true;
-
         [Header("Main Setup")]
         [SerializeField] private Button closeButton;
 
@@ -77,10 +68,6 @@ namespace MysticJourney.Screen.Mail
             }
             if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
             if (deleteButton != null) deleteButton.onClick.AddListener(OnDeleteClicked);
-            if (confirmPanel != null) confirmPanel.SetActive(false);
-            if (popupOkButton != null) popupOkButton.onClick.AddListener(OnPopupOkClicked);
-            if (popupCancelButton != null) popupCancelButton.onClick.AddListener(OnPopupCancelClicked);
-
             if (previousButton != null) previousButton.onClick.AddListener(() => GoToPage(_currentPage - 1));
             if (nextButton != null) nextButton.onClick.AddListener(() => GoToPage(_currentPage + 1));
         }
@@ -514,33 +501,21 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
-        // --- POPUP ---
-        // allowDelete = false: popup chỉ để thông báo, bấm OK là đóng chứ không xóa.
         private void ShowConfirmPopup(string message, bool allowDelete = true)
         {
-            if (confirmPanel == null)
+            if (allowDelete)
             {
-                Debug.LogWarning($"[MailboxUI] Không tìm thấy Confirm Panel để hiển thị: {message}");
+                UIPopupBox.Show(
+                    transform,
+                    "Delete Mail",
+                    message,
+                    PerformDeleteMailbox,
+                    confirmText: "Delete",
+                    cancelText: "Cancel");
                 return;
             }
 
-            _popupAllowsDelete = allowDelete;
-            if (popupMainText != null) popupMainText.text = message;
-            // Popup thông báo thì không cần nút Cancel.
-            if (popupCancelButton != null) popupCancelButton.gameObject.SetActive(allowDelete);
-            confirmPanel.SetActive(true);
-        }
-
-        private void OnPopupOkClicked()
-        {
-            if (confirmPanel != null) confirmPanel.SetActive(false);
-            if (!_popupAllowsDelete) return;
-            PerformDeleteMailbox();
-        }
-
-        private void OnPopupCancelClicked()
-        {
-            if (confirmPanel != null) confirmPanel.SetActive(false);
+            UIPopupBox.Notify(transform, "Mailbox", message);
         }
 
         private void PerformDeleteMailbox()

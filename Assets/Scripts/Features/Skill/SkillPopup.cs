@@ -50,7 +50,7 @@ public class SkillPopup : MonoBehaviour
     public void AutoBindComponents()
     {
         if (popupIcon == null) popupIcon = transform.Find("Popup_Icon")?.GetComponent<Image>();
-        if (popupName == null) popupName = transform.Find("Title")?.GetComponent<TextMeshProUGUI>() ?? transform.Find("Background1/SkillName")?.GetComponent<TextMeshProUGUI>();
+        if (popupName == null) popupName = transform.Find("Background1/SkillName")?.GetComponent<TextMeshProUGUI>();
         if (popupDesc == null) popupDesc = transform.Find("Desc")?.GetComponent<TextMeshProUGUI>() ?? transform.Find("Background1/Desc")?.GetComponent<TextMeshProUGUI>();
         if (popupStats == null)
         {
