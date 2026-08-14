@@ -834,10 +834,9 @@ public class UIPartyPanel : MonoBehaviour
                 // Năng lượng KHÔNG chặn ở đây nữa — chỉ kiểm tra khi mở rương trong dungeon
                 // (backend trừ energy ở claim-reward, BR-10). Nhãn EnergyCost vẫn tô đỏ để
                 // báo trước là sẽ không nhận được thưởng nếu không kịp hồi năng lượng.
-                if (inParty)
-                    startButton.interactable = party.CanStartDungeon;
-                else
-                    startButton.interactable = true;
+                // Keep the host button clickable so OnStartClick can explain which
+                // roster condition is missing instead of failing as a silent disabled button.
+                startButton.interactable = true;
 
                 startButton.onClick.AddListener(OnStartClick);
             }
@@ -883,9 +882,23 @@ public class UIPartyPanel : MonoBehaviour
         if (party != null && party.IsLocalHost)
         {
             // Party path — flip networked state; PartyManager (Step 5) drives the load.
+            Debug.Log($"[UIPartyPanel] Start clicked: config={selectedConfigId}, scene='{selectedSceneName}', " +
+                      $"state={party.State}, members={party.MemberCount}, ready={party.ReadyCount}, " +
+                      $"pendingInvites={party.PendingInviteCount}.");
+
             if (!party.CanStartDungeon)
             {
-                UIPopupBox.Notify(transform, "Notice", "All members must be ready (need at least 2 players).");
+                string message;
+                if (party.State != PartyLobby.PartyState.Lobby)
+                    message = "The dungeon is already starting.";
+                else if (party.MemberCount < 2)
+                    message = "At least 2 players are required to start the dungeon.";
+                else if (party.ReadyCount < party.MemberCount)
+                    message = "All party members must be ready before starting.";
+                else
+                    message = "The party cannot start this dungeon right now.";
+
+                UIPopupBox.Notify(transform, "Notice", message);
                 return;
             }
             PartyService.StartDungeon(selectedConfigId, selectedSceneName);
@@ -1049,11 +1062,8 @@ public class UIPartyPanel : MonoBehaviour
         ctRt.anchorMax = Vector2.one;
         ctRt.sizeDelta = Vector2.zero;
 
-        // FriendApi (/api/friend) returns FriendDto with the online flag; the legacy
-        // player-profile friends endpoint did not, so every friend
-        // was listed and an offline one only failed later, at PartyService.InviteByProfileId
-        // (FriendOffline). FriendDto has IsOnline, and an invite can only reach a friend
-        // who is present in the social lobby, so offline rows are filtered out here.
+        // Backend presence has a grace period after the last heartbeat. A dungeon invite
+        // additionally requires a live PlayerPresence in this Photon social lobby.
         FriendApi.GetFriendList(
             response =>
             {
@@ -1062,7 +1072,10 @@ public class UIPartyPanel : MonoBehaviour
                 {
                     foreach (var friend in response)
                     {
-                        if (friend == null || !friend.IsOnline) continue;
+                        if (friend == null ||
+                            !friend.IsOnline ||
+                            PlayerPresence.Find(friend.FriendProfileId) == null)
+                            continue;
                         AddFriendRow(scrollAreaObj.transform, friend);
                         shown++;
                     }

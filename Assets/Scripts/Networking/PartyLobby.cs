@@ -72,10 +72,10 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     [Networked] public PartyState State { get; set; } // Trạng thái hiện tại của party
 
     /// <summary>
-    /// Số lượng lời mời đã được gửi đi nhưng chưa được chấp nhận hay từ chối. 
+    /// Số lượng lời mời đã được gửi đi nhưng chưa được chấp nhận hay từ chối.
     /// Chỉ do máy chủ phòng (host) quản lý.
-    /// Dùng để làm điều kiện chặn không cho "Bắt đầu Hầm ngục" nếu vẫn còn "lời mời đang chờ". 
-    /// Nó chỉ là một biến đếm đơn giản — khi có một lượt chấp nhận (<see cref="RPC_Join"/>) 
+    /// Chỉ dùng để theo dõi lời mời; lời mời đang chờ không phải thành viên nên không chặn bắt đầu dungeon.
+    /// Nó chỉ là một biến đếm đơn giản — khi có một lượt chấp nhận (<see cref="RPC_Join"/>)
     /// hoặc từ chối (<see cref="RPC_InviteResolved"/>) thì sẽ trừ bớt biến này đi.
     /// </summary>
     [Networked] public int PendingInviteCount { get; set; }
@@ -278,7 +278,7 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
 
     /// <summary>
     /// Điều kiện để Chủ phòng có thể bấm Bắt đầu hầm ngục: 
-    /// ít nhất 2 thành viên, tất cả đều sẵn sàng, không còn lời mời nào đang chờ phản hồi, 
+    /// ít nhất 2 thành viên, tất cả đều sẵn sàng,
     /// và party đang ở trong sảnh chờ.
     /// </summary>
     public bool CanStartDungeon =>
@@ -582,11 +582,22 @@ public class PartyLobby : NetworkBehaviour, IStateAuthorityChanged
     /// </summary>
     public void HostStartDungeon(int configId, string sceneName)
     {
-        if (!HasStateAuthority) return;
-        if (!CanStartDungeon) return; // Nếu chưa đủ điều kiện thì chặn luôn
+        if (!HasStateAuthority)
+        {
+            Debug.LogWarning("[PartyLobby] Start rejected: local peer has no state authority.");
+            return;
+        }
+        if (!CanStartDungeon)
+        {
+            Debug.LogWarning($"[PartyLobby] Start rejected: state={State}, members={MemberCount}, " +
+                             $"ready={ReadyCount}, pendingInvites={PendingInviteCount}.");
+            return;
+        }
 
         DungeonConfigId = configId;
         DungeonSceneName = sceneName ?? string.Empty;
+        // Any outstanding invite becomes invalid once the party leaves the lobby.
+        PendingInviteCount = 0;
         State = PartyState.Loading; // Chuyển state sang Loading
 
         OnDungeonStartRequested?.Invoke(configId, sceneName); // Gọi event kích hoạt tải map

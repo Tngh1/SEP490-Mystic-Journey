@@ -23,13 +23,17 @@ public static class PartyLifecycleRules
         int state,
         int memberCount,
         int readyCount,
-        int pendingInviteCount) =>
-        requesterIsHost &&
-        state == 0 &&
-        memberCount >= 2 &&
-        memberCount <= MaximumMembers &&
-        readyCount == memberCount &&
-        pendingInviteCount <= 0;
+        int pendingInviteCount)
+    {
+        // Pending invitations are not party members and must not lock a ready roster.
+        // Keep the parameter for compatibility with the existing rule call sites/tests.
+        _ = pendingInviteCount;
+        return requesterIsHost &&
+               state == 0 &&
+               memberCount >= 2 &&
+               memberCount <= MaximumMembers &&
+               readyCount == memberCount;
+    }
 
     public static bool CanUsePartyChat(bool localIsMember, bool senderIsMember, int senderProfileId) =>
         localIsMember && senderIsMember && senderProfileId > 0;
