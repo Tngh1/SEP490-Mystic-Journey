@@ -131,12 +131,27 @@ public class EnemyAnimations : MonoBehaviour
 
     private void enemyBehaviour_OnEnemyAttack(object sender, System.EventArgs e)
     {
-        if (anim != null) anim.SetTrigger(ATTACK);
+        PlayAttackAnimation();
     }
 
     private void enemyBehaviour_OnEnemyCastSkill(object sender, System.EventArgs e)
     {
-        if (anim != null) anim.SetTrigger(CAST_SKILL);
+        PlaySkillAnimation();
+    }
+
+    public void PlayAttackAnimation()
+    {
+        if (anim == null) return;
+        if (anim.HasParameter(ATTACK)) anim.SetTrigger(ATTACK);
+        else if (anim.HasParameter("Attack")) anim.SetTrigger("Attack");
+    }
+
+    public void PlaySkillAnimation()
+    {
+        if (anim == null) return;
+        if (anim.HasParameter(CAST_SKILL)) anim.SetTrigger(CAST_SKILL);
+        else if (anim.HasParameter(ATTACK)) anim.SetTrigger(ATTACK);
+        else if (anim.HasParameter("Attack")) anim.SetTrigger("Attack");
     }
 
     private void enemyEntity_OnTakeHit(object sender, EventArgs e)

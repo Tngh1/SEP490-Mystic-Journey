@@ -112,6 +112,8 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private void Awake()
     {
+        BindConsumeQuantityText();
+
         if (iconRarity == null && detailPanel != null)
         {
             Transform t = detailPanel.transform.Find("IconRarity");
@@ -136,6 +138,19 @@ public class UIItemDetailPopup : MonoBehaviour
         if (btnMax)   btnMax.onClick.AddListener(SetMaxSmartQuantity);
         if (confirmConsumeButton) confirmConsumeButton.onClick.AddListener(HandleConsumeConfirmed);
         if (cancelConsumeButton)  cancelConsumeButton.onClick.AddListener(Hide);
+    }
+
+    private void BindConsumeQuantityText()
+    {
+        if (consumeQuantityText != null || consumePanel == null)
+            return;
+
+        Transform quantityTransform = consumePanel.transform.Find("QuantityText");
+        if (quantityTransform != null)
+            consumeQuantityText = quantityTransform.GetComponent<TMP_Text>();
+
+        if (consumeQuantityText == null)
+            Debug.LogWarning("[UIItemDetailPopup] Consume quantity text is not assigned.", this);
     }
 
     private void SetupHoverEffects()

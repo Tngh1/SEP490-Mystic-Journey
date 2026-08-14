@@ -17,11 +17,13 @@ public class BloodySlashSkill : SkillProjectile
         // Thay vì 2s như đạn bay, nhát chém sẽ tự huỷ rất nhanh (tùy theo animation duration)
         Destroy(gameObject, duration);
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        Transform replicaOwner = PlayerSkillVisualReplica.GetOwner(this);
+        GameObject player = replicaOwner == null ? GameObject.FindGameObjectWithTag("Player") : null;
+        Transform playerTransform = replicaOwner != null ? replicaOwner : player?.transform;
+        if (playerTransform != null)
         {
-            Transform fp = player.transform.Find("FirePoint");
-            _casterTransform = fp != null ? fp : player.transform;
+            Transform fp = playerTransform.Find("FirePoint");
+            _casterTransform = fp != null ? fp : playerTransform;
             _offsetFromCaster = transform.position - _casterTransform.position;
         }
     }
@@ -37,6 +39,8 @@ public class BloodySlashSkill : SkillProjectile
 
     protected override void OnTriggerEnter2D(Collider2D collision)
     {
+        if (PlayerSkillVisualReplica.IsReplica(this)) return;
+
         EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
         if (enemy != null || collision.CompareTag("Monster"))
         {

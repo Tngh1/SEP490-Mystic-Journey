@@ -82,6 +82,8 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
             return;
         }
 
+        GetComponent<NetworkEnemy>()?.NotifySkillAnimation();
+
         if (summonSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(summonSound, soundVolume);

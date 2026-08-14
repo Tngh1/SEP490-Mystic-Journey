@@ -101,6 +101,8 @@ public class PumpkinMagicSkill : MonoBehaviour
 
     private void DealAoEDamage()
     {
+        if (PlayerSkillVisualReplica.IsReplica(this)) return;
+
         LayerMask targetMask = (monsterLayer != 0) ? monsterLayer : LayerMask.GetMask("Monster");
         if (targetMask == 0) targetMask = ~0; // Fallback nếu chưa setup layer
 

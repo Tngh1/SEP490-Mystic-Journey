@@ -182,6 +182,8 @@ public class PlayerCombat : NetworkBehaviour
     public void CopyCombatSettingsFrom(PlayerCombat source)
     {
         if (source == null) return;
+        maxCastRange = source.maxCastRange;
+        if (source.aoeIndicatorPrefab != null) aoeIndicatorPrefab = source.aoeIndicatorPrefab;
         baseAttackCooldown = source.baseAttackCooldown;
         basicAttackDelay = source.basicAttackDelay;
         basicAttackDamage = source.basicAttackDamage;
@@ -369,6 +371,38 @@ public class PlayerCombat : NetworkBehaviour
             string trigger = slotIndex == 0 ? "Skill1" : slotIndex == 1 ? "Skill2" : "Skill3";
             if (animator != null) animator.SetTrigger(trigger);
         }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SpawnLegacySkillVisual(string prefabName, Vector3 position, Quaternion rotation,
+        Vector3 targetPosition, NetworkBool hasTargetPosition)
+    {
+        if (HasStateAuthority) return;
+
+        GameObject prefab = FindLoadedSkillPrefab(prefabName);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[PlayerCombat] Cannot resolve visual prefab '{prefabName}' on proxy.");
+            return;
+        }
+
+        GameObject skillObj = Instantiate(prefab, position, rotation);
+        PlayerSkillVisualReplica.Mark(skillObj, transform);
+        ConfigureLegacySkill(skillObj, 0f, hasTargetPosition ? targetPosition : (Vector3?)null);
+        ScheduleLegacySkillFallbackDestruction(skillObj);
+    }
+
+    private static GameObject FindLoadedSkillPrefab(string prefabName)
+    {
+        if (string.IsNullOrEmpty(prefabName)) return null;
+
+        foreach (var skill in Resources.FindObjectsOfTypeAll<SkillData>())
+        {
+            if (skill != null && skill.skillPrefab != null && skill.skillPrefab.name == prefabName)
+                return skill.skillPrefab;
+        }
+
+        return null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1010,68 +1044,65 @@ public class PlayerCombat : NetworkBehaviour
             return;
         }
 
+        if (IsNetworked)
+        {
+            RPC_SpawnLegacySkillVisual(
+                skillPrefab.name,
+                spawnPosition,
+                spawnRotation,
+                targetPosition ?? spawnPosition,
+                targetPosition.HasValue);
+        }
+
         GameObject skillObj = Instantiate(skillPrefab, spawnPosition, spawnRotation);
 
         if (_skillDamages.ContainsKey(slotIndex))
         {
             float damage = GetClassScaledDamage(_skillDamages[slotIndex]);
-            
-            var pumpkinThrow = skillObj.GetComponent<PumpkinThrowSkill>();
-            if (pumpkinThrow != null)
-            {
-                pumpkinThrow.Setup(damage, spawnPosition);
-            }
-            else
-            {
-                var pumpkin = skillObj.GetComponent<PumpkinMagicSkill>();
-                if (pumpkin != null)
-                {
-                    pumpkin.Setup(damage);
-                }
-                else
-                {
-                    var aoe = skillObj.GetComponent<SkillAoE>();
-                    if (aoe != null) 
-                    {
-                        aoe.Setup(damage);
-                    }
-                    else 
-                    {
-                        var frozenSash = skillObj.GetComponent<FrozenSashSkill>();
-                        if (frozenSash != null)
-                        {
-                            frozenSash.Setup(damage);
-                        }
-                        else
-                        {
-                            var lightsaber = skillObj.GetComponent<LightsaberSkill>();
-                            if (lightsaber != null)
-                            {
-                                lightsaber.Setup(damage);
-                            }
-                            else
-                            {
-                                var projectile = skillObj.GetComponent<SkillProjectile>();
-                                if (projectile != null)
-                                {
-                                    projectile.Setup(damage);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            ConfigureLegacySkill(skillObj, damage, targetPosition);
         }
         
         // Fallback destruction for skills that don't destroy themselves (like Holymagic offline)
-        if (skillObj.GetComponent<LightsaberSkill>() == null && 
-            skillObj.GetComponent<SkillAoE>() == null && 
+        ScheduleLegacySkillFallbackDestruction(skillObj);
+    }
+
+    private static void ScheduleLegacySkillFallbackDestruction(GameObject skillObj)
+    {
+        if (skillObj.GetComponent<LightsaberSkill>() == null &&
+            skillObj.GetComponent<SkillAoE>() == null &&
             skillObj.GetComponent<SkillProjectile>() == null &&
             skillObj.GetComponent<PumpkinMagicSkill>() == null &&
-            skillObj.GetComponent<PumpkinThrowSkill>() == null)
+            skillObj.GetComponent<PumpkinThrowSkill>() == null &&
+            skillObj.GetComponent<ProtectiveShieldSkill>() == null)
         {
             Destroy(skillObj, 2f);
         }
+    }
+
+    private static void ConfigureLegacySkill(GameObject skillObj, float damage, Vector3? targetPosition)
+    {
+        var pumpkinThrow = skillObj.GetComponent<PumpkinThrowSkill>();
+        if (pumpkinThrow != null)
+        {
+            if (targetPosition.HasValue) pumpkinThrow.Setup(damage, targetPosition.Value);
+            else pumpkinThrow.Setup(damage);
+            return;
+        }
+
+        var pumpkin = skillObj.GetComponent<PumpkinMagicSkill>();
+        if (pumpkin != null) { pumpkin.Setup(damage); return; }
+
+        var aoe = skillObj.GetComponent<SkillAoE>();
+        if (aoe != null) { aoe.Setup(damage); return; }
+
+        var frozenSash = skillObj.GetComponent<FrozenSashSkill>();
+        if (frozenSash != null) { frozenSash.Setup(damage); return; }
+
+        var lightsaber = skillObj.GetComponent<LightsaberSkill>();
+        if (lightsaber != null) { lightsaber.Setup(damage); return; }
+
+        var projectile = skillObj.GetComponent<SkillProjectile>();
+        if (projectile != null) projectile.Setup(damage);
     }
 
     private bool IsBusy()

@@ -23,6 +23,8 @@ public class SkillAoE : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (PlayerSkillVisualReplica.IsReplica(this)) return;
+
         EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
         if (enemy != null || collision.CompareTag("Monster"))
         {

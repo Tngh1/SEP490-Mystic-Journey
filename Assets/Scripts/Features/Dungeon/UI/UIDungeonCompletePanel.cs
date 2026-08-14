@@ -136,6 +136,26 @@ namespace MysticJourney.Features.Dungeon.UI
         {
             Debug.Log("Claim Reward Success!");
 
+            if (response.Wallet != null)
+            {
+                PlayerHUDController.Instance?.ApplyCurrencyBalance(new CurrencyBalanceResponse
+                {
+                    Gold = response.Wallet.Gold,
+                    Gems = response.Wallet.Gems
+                });
+            }
+
+            if (response.Character != null)
+            {
+                PlayerHUDController.Instance?.ApplyEnergy(
+                    response.Character.Energy,
+                    response.Character.MaxEnergy);
+            }
+
+            // Keep profile/EXP and any fallback resource fields synchronized even when an
+            // older backend response does not include Wallet or Character.
+            WorldRuntimeEvents.RaiseCurrencyChanged();
+
             if (goldText != null)
                 goldText.text = "+" + response.GoldEarned.ToString();
             

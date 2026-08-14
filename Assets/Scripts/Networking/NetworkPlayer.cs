@@ -36,6 +36,7 @@ public class NetworkPlayer : NetworkBehaviour
     [SerializeField] private Vector3 nameplateOffset = new Vector3(0f, 0.72f, 0f);
     [SerializeField] private int nameplateSortingOrder = 60;
     [SerializeField] private TMP_FontAsset nameplateFont;
+    [SerializeField, Min(1f)] private float nameplateFontSize = 80f;
     [SerializeField] private Color localNameplateColor = new Color(1f, 0.82f, 0.18f, 1f);
     [SerializeField] private Color remoteNameplateColor = Color.white;
 
@@ -871,7 +872,7 @@ public class NetworkPlayer : NetworkBehaviour
         _nameplateText.alignment = TextAlignmentOptions.Center;
         _nameplateText.textWrappingMode = TextWrappingModes.NoWrap;
         _nameplateText.overflowMode = TextOverflowModes.Overflow;
-        _nameplateText.fontSize = 72f;
+        _nameplateText.fontSize = nameplateFontSize;
         _nameplateText.outlineWidth = 0.18f;
         _nameplateText.outlineColor = Color.black;
         _nameplateText.raycastTarget = false;
