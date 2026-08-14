@@ -1,8 +1,6 @@
-using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
-using UnityEngine.Video;
 
 [RequireComponent(typeof(WorldInteractable))]
 public class IvyTreeInteractable : MonoBehaviour
@@ -21,17 +19,9 @@ public class IvyTreeInteractable : MonoBehaviour
     [Tooltip("Tên hiển thị khi player đứng gần.")]
     [SerializeField] private string displayName = "Ivy Tree";
 
-    [Header("Video")]
-    [Tooltip("Video to play when interacting with Ivy Tree (Letter & Burial).")]
-    [SerializeField] private VideoPlayer videoPlayer;
-
-    [Tooltip("Maximum time to wait for the video.")]
-    [SerializeField] private float maxVideoWait = 15f;
-
     private WorldInteractable _interactable;
     private bool _isInteracting;
     private bool _interacted;
-    private bool _videoFinished;
 
     private void Awake()
     {
@@ -53,19 +43,12 @@ public class IvyTreeInteractable : MonoBehaviour
         RefreshVisibility();
         WorldRuntimeEvents.QuestsChanged += RefreshVisibility;
 
-        if (videoPlayer != null)
-        {
-            videoPlayer.playOnAwake = false;
-            videoPlayer.loopPointReached += OnVideoFinished;
-        }
     }
 
 
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshVisibility;
-        if (videoPlayer != null)
-            videoPlayer.loopPointReached -= OnVideoFinished;
     }
 
     public void StartInteraction()
@@ -89,56 +72,8 @@ public class IvyTreeInteractable : MonoBehaviour
 
         _isInteracting = true;
         WorldInteractionPromptRuntime.Hide();
-        BeginInteractionSequence();
-    }
-
-    private void BeginInteractionSequence()
-    {
-        if (_interacted) return;
-        _isInteracting = true;
-        StartCoroutine(InteractionSequence());
-    }
-
-    private IEnumerator InteractionSequence()
-    {
-        var player = GameObject.FindGameObjectWithTag("Player");
-        SpriteRenderer[] playerSprites = null;
-        if (player != null)
-        {
-            playerSprites = player.GetComponentsInChildren<SpriteRenderer>();
-            foreach (var sp in playerSprites) sp.enabled = false;
-        }
-
-        if (videoPlayer != null && videoPlayer.clip != null)
-        {
-            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
-            videoPlayer.gameObject.SetActive(true);
-            videoPlayer.Play();
-
-            float elapsed = 0f;
-            while (!_videoFinished && elapsed < maxVideoWait)
-            {
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            _videoFinished = false;
-
-            videoPlayer.Stop();
-            videoPlayer.gameObject.SetActive(false);
-            MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoEnded(videoPlayer);
-        }
-        else
-        {
-            yield return new WaitForSeconds(2f);
-        }
-
-        if (playerSprites != null)
-            foreach (var sp in playerSprites) sp.enabled = true;
-
         SendInteractApi();
     }
-
-    private void OnVideoFinished(VideoPlayer vp) => _videoFinished = true;
 
     private void SendInteractApi()
     {
