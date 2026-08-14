@@ -8,8 +8,8 @@ namespace MysticJourney.API.Core
     {
         // URL gốc của backend. Đổi thành domain thật khi deploy.
         // Local:      "http://localhost:5176" (HTTP profile)
-        // Production: "https://api.mysticjourney.com"
-        public const string DefaultBaseUrl = "http://localhost:5176";
+        // Production: "https://api.mystic-journey.io.vn"
+        public const string DefaultBaseUrl = "https://api.mystic-journey.io.vn";
 
         /// <summary>
         /// Runtime API address. CI/PlayMode integration fixtures can point Unity at an isolated
