@@ -576,7 +576,7 @@ namespace UI.Friend
             bubbleElement.flexibleWidth = 0f;
             bubbleElement.minHeight = 30f;
 
-            var messageText = CreateText("Message", bubble, message, 14, FontStyles.Normal, TextAlignmentOptions.Left);
+            var messageText = CreateText("Message", bubble, message, 25, FontStyles.Normal, TextAlignmentOptions.Left);
             messageText.color = isMine ? Color.white : new Color(0.16f, 0.08f, 0.02f, 1f);
             messageText.textWrappingMode = TextWrappingModes.Normal;
             messageText.overflowMode = TextOverflowModes.Overflow;
