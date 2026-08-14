@@ -28,6 +28,17 @@ namespace MysticJourney.UI.Guild
             if (levelText != null) levelText.text = $"Lv. {friend.FriendLevel}";
             if (selectedOverlay != null) selectedOverlay.SetActive(false);
             
+            if (avatarImage != null)
+            {
+                avatarImage.enabled = true;
+                string avatarUrl = string.IsNullOrWhiteSpace(friend.FriendAvatarUrl) ? "avatar_1" : friend.FriendAvatarUrl;
+                Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
+                if (avatarSprite != null)
+                {
+                    avatarImage.sprite = avatarSprite;
+                }
+            }
+            
             if (cardButton != null)
             {
                 cardButton.interactable = true;
