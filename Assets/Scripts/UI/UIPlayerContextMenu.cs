@@ -21,6 +21,7 @@ public class UIPlayerContextMenu : MonoBehaviour
     public Button reportButton;
 
     private readonly List<RaycastResult> raycastResults = new List<RaycastResult>();
+    private static readonly HashSet<long> PendingOutgoingRequests = new HashSet<long>();
     private string currentPlayerName;
     private int currentPlayerProfileId;
     private float menuOpenTime = -1f;
@@ -132,7 +133,14 @@ public class UIPlayerContextMenu : MonoBehaviour
         BindButtons();
         EnsureButtonRaycasts();
         EnsureHoverEffects();
-        ResetAddFriendButton();
+        if (HasCachedPendingRequest(currentPlayerProfileId))
+        {
+            SetAddFriendSent();
+        }
+        else
+        {
+            SetAddFriendChecking();
+        }
         RefreshAddFriendVisibility();
 
         Debug.Log($"[ContextMenu] ShowMenu -> name={playerName} profileId={playerProfileId} addButton={DescribeButton(addFriendButton)}");
@@ -160,29 +168,46 @@ public class UIPlayerContextMenu : MonoBehaviour
             return;
         }
 
-        if (addFriendButton != null && !addFriendButton.gameObject.activeSelf)
+        if (addFriendButton == null || !addFriendButton.gameObject.activeSelf || !addFriendButton.interactable)
         {
-            CloseMenu();
             return;
         }
 
+        int targetProfileId = currentPlayerProfileId;
+        string targetPlayerName = currentPlayerName;
+        friendStatusRequestVersion++;
         SetAddFriendLoading(true);
 
         FriendApi.SendFriendRequest(
-            currentPlayerProfileId,
+            targetProfileId,
             _ =>
             {
-                Debug.Log($"[ContextMenu] Friend request sent -> {currentPlayerName} (id={currentPlayerProfileId})");
-                SetAddFriendSent();
+                CachePendingRequest(targetProfileId);
+                Debug.Log($"[ContextMenu] Friend request sent -> {targetPlayerName} (id={targetProfileId})");
+                if (currentPlayerProfileId == targetProfileId)
+                {
+                    SetAddFriendSent();
+                }
             },
             err =>
             {
                 Debug.LogWarning($"[ContextMenu] SendFriendRequest failed: {err?.Message}");
-                if (IsAlreadyFriendError(err))
+                if (IsPendingFriendRequestError(err))
                 {
-                    HideAddFriendButton();
+                    CachePendingRequest(targetProfileId);
+                    if (currentPlayerProfileId == targetProfileId)
+                    {
+                        SetAddFriendSent();
+                    }
                 }
-                else
+                else if (IsAlreadyFriendError(err))
+                {
+                    if (currentPlayerProfileId == targetProfileId)
+                    {
+                        HideAddFriendButton();
+                    }
+                }
+                else if (currentPlayerProfileId == targetProfileId)
                 {
                     ResetAddFriendButton();
                 }
@@ -291,15 +316,16 @@ public class UIPlayerContextMenu : MonoBehaviour
         }
 
         int requestVersion = ++friendStatusRequestVersion;
-        FriendApi.GetFriendList(
-            friends =>
+        FriendApi.SearchPlayers(
+            currentPlayerName,
+            players =>
             {
                 if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy)
                 {
                     return;
                 }
 
-                ApplyFriendRelationshipState(friends);
+                ApplyFriendRelationshipState(players);
             },
             error =>
             {
@@ -309,66 +335,81 @@ public class UIPlayerContextMenu : MonoBehaviour
                 }
 
                 Debug.LogWarning($"[ContextMenu] Cannot check friend status: {error?.Message}");
-                ResetAddFriendButton();
+                if (HasCachedPendingRequest(currentPlayerProfileId))
+                {
+                    SetAddFriendSent();
+                }
+                else
+                {
+                    SetAddFriendUnavailable();
+                }
             });
     }
 
-    private void ApplyFriendRelationshipState(List<FriendDto> friends)
+    private void ApplyFriendRelationshipState(List<FriendSearchDto> players)
     {
-        if (friends == null)
+        FriendSearchDto target = null;
+        if (players != null)
         {
-            ResetAddFriendButton();
+            target = players.Find(player =>
+                player != null && player.ProfileId == currentPlayerProfileId);
+        }
+
+        if (target == null)
+        {
+            if (HasCachedPendingRequest(currentPlayerProfileId))
+            {
+                SetAddFriendSent();
+            }
+            else
+            {
+                SetAddFriendUnavailable();
+            }
             return;
         }
 
-        foreach (var friend in friends)
+        switch (target.RelationshipStatus)
         {
-            if (friend == null || friend.FriendProfileId != currentPlayerProfileId)
-            {
-                continue;
-            }
-
-            if (IsAcceptedStatus(friend.Status))
-            {
-                HideAddFriendButton();
-                Debug.Log($"[ContextMenu] Hide AddFriend because target is already friend. profileId={currentPlayerProfileId}");
-                return;
-            }
-
-            if (IsPendingStatus(friend.Status))
-            {
+            case FriendRelationshipStatus.RequestSent:
+                CachePendingRequest(currentPlayerProfileId);
                 SetAddFriendSent();
-                return;
-            }
+                break;
+            case FriendRelationshipStatus.RequestReceived:
+                RemoveCachedPendingRequest(currentPlayerProfileId);
+                SetAddFriendUnavailable("Request Received");
+                break;
+            case FriendRelationshipStatus.Friend:
+            case FriendRelationshipStatus.Blocked:
+            case FriendRelationshipStatus.Self:
+                RemoveCachedPendingRequest(currentPlayerProfileId);
+                HideAddFriendButton();
+                break;
+            default:
+                RemoveCachedPendingRequest(currentPlayerProfileId);
+                ResetAddFriendButton();
+                break;
         }
-
-        ResetAddFriendButton();
-    }
-
-    private static bool IsAcceptedStatus(string status)
-    {
-        return string.Equals(status, "Accepted", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "Friend", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsPendingStatus(string status)
-    {
-        return string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "RequestSent", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "Request Sent", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsAlreadyFriendError(ApiException error)
     {
         string message = error?.Message ?? string.Empty;
-        string code = error?.ErrorCode ?? string.Empty;
-        return code.IndexOf("FRIEND", StringComparison.OrdinalIgnoreCase) >= 0
-            && code.IndexOf("EXIST", StringComparison.OrdinalIgnoreCase) >= 0
-            || message.IndexOf("already", StringComparison.OrdinalIgnoreCase) >= 0
-            && message.IndexOf("friend", StringComparison.OrdinalIgnoreCase) >= 0;
+        return message.IndexOf("already friends", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool IsPendingFriendRequestError(ApiException error)
+    {
+        string message = error?.Message ?? string.Empty;
+        return message.IndexOf("request already sent", StringComparison.OrdinalIgnoreCase) >= 0
+            || message.IndexOf("pending friend request", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static bool IsCurrentPlayer(int profileId)
+    {
+        return GetCurrentPlayerId() > 0 && profileId == GetCurrentPlayerId();
+    }
+
+    private static int GetCurrentPlayerId()
     {
         int currentPlayerId = GameStateService.Instance != null
             ? GameStateService.Instance.PlayerProfileId
@@ -379,7 +420,27 @@ public class UIPlayerContextMenu : MonoBehaviour
             currentPlayerId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
         }
 
-        return currentPlayerId > 0 && profileId == currentPlayerId;
+        return currentPlayerId;
+    }
+
+    private static long GetRequestKey(int targetProfileId)
+    {
+        return ((long)GetCurrentPlayerId() << 32) | (uint)targetProfileId;
+    }
+
+    private static bool HasCachedPendingRequest(int targetProfileId)
+    {
+        return PendingOutgoingRequests.Contains(GetRequestKey(targetProfileId));
+    }
+
+    private static void CachePendingRequest(int targetProfileId)
+    {
+        PendingOutgoingRequests.Add(GetRequestKey(targetProfileId));
+    }
+
+    private static void RemoveCachedPendingRequest(int targetProfileId)
+    {
+        PendingOutgoingRequests.Remove(GetRequestKey(targetProfileId));
     }
 
     private void HideAddFriendButton()
@@ -397,6 +458,19 @@ public class UIPlayerContextMenu : MonoBehaviour
         addFriendButton.gameObject.SetActive(true);
         addFriendButton.interactable = !loading;
         SetLabel(addFriendButton, loading ? "Sending..." : "Add Friend");
+    }
+
+    private void SetAddFriendChecking()
+    {
+        SetAddFriendUnavailable("Checking...");
+    }
+
+    private void SetAddFriendUnavailable(string label = "Unavailable")
+    {
+        if (addFriendButton == null) return;
+        addFriendButton.gameObject.SetActive(true);
+        addFriendButton.interactable = false;
+        SetLabel(addFriendButton, label);
     }
 
     private void SetAddFriendSent()

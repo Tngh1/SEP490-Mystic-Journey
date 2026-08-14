@@ -25,6 +25,7 @@ public class UIQuestPanelView : MonoBehaviour
     [SerializeField] private GameObject rewardsContainer;
     [SerializeField] private Transform rewardItemsContainer;
     [SerializeField] private GameObject rewardSlotPrefab;
+    [SerializeField] private GameObject skillRewardSlotPrefab;
 
     [Header("Track Button")]
     [SerializeField] private Button trackQuestButton;
@@ -52,6 +53,7 @@ public class UIQuestPanelView : MonoBehaviour
     public GameObject RewardsContainer => rewardsContainer;
     public Transform RewardItemsContainer => rewardItemsContainer;
     public GameObject RewardSlotPrefab => rewardSlotPrefab;
+    public GameObject SkillRewardSlotPrefab => skillRewardSlotPrefab;
 
     public Button TrackQuestButton => trackQuestButton;
     public Button CloseButton => closeButton;
@@ -79,5 +81,7 @@ public class UIQuestPanelView : MonoBehaviour
             Debug.LogError("[UIQuestPanelView] rewardItemsContainer missing.", this);
         if (rewardSlotPrefab == null)
             Debug.LogError("[UIQuestPanelView] rewardSlotPrefab missing.", this);
+        if (skillRewardSlotPrefab == null)
+            Debug.LogError("[UIQuestPanelView] skillRewardSlotPrefab missing.", this);
     }
 }
