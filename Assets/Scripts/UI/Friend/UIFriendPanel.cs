@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
 using System.Linq;
-using MysticJourney.UI; // For UIPopupManager
+using MysticJourney.UI;
 
 namespace UI.Friend
 {
@@ -325,9 +325,9 @@ namespace UI.Friend
                 ClearSelectedFriendState(true);
                 return;
             }
-            if (UIPopupManager.Instance != null)
+            if (UIPopup.Instance != null)
             {
-                UIPopupManager.Instance.ShowConfirm(
+                UIPopup.Instance.ShowConfirm(
                     "Unfriend", 
                     $"Are you sure you want to remove '{selectedFriendName}' from your friend list?", 
                     onConfirm: ExecuteUnfriend
@@ -344,8 +344,8 @@ namespace UI.Friend
             FriendApi.RemoveFriend(selectedProfileId, 
                 onSuccess: (res) => 
                 {
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Success", "Friend removed successfully!");
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Success", "Friend removed successfully!");
                     else
                         Debug.Log("Unfriended successfully.");
                         
@@ -353,8 +353,8 @@ namespace UI.Friend
                 },
                 onError: (err) => 
                 {
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Failed", err.Message);
                     else
                         Debug.LogError("Unfriend failed: " + err.Message);
                 }
@@ -369,9 +369,9 @@ namespace UI.Friend
                 return;
             }
 
-            if (UIPopupManager.Instance != null)
+            if (UIPopup.Instance != null)
             {
-                UIPopupManager.Instance.ShowConfirm(
+                UIPopup.Instance.ShowConfirm(
                     "Block Player", 
                     $"Are you sure you want to block '{selectedFriendName}'? They won't be able to send you messages or friend requests.", 
                     onConfirm: ExecuteBlock
@@ -392,8 +392,8 @@ namespace UI.Friend
                     ResetButtonText(detailBlockButton, "");
                     ClearSelectedFriendState(true);
                     
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Success", "Player blocked successfully.");
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Success", "Player blocked successfully.");
                     else
                         Debug.Log("Blocked successfully.");
                         
@@ -402,8 +402,8 @@ namespace UI.Friend
                 onError: (err) => 
                 {
                     ResetButtonText(detailBlockButton, "");
-                    if (UIPopupManager.Instance != null)
-                        UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    if (UIPopup.Instance != null)
+                        UIPopup.Instance.ShowAlert("Failed", err.Message);
                     else
                         Debug.LogError("Block failed: " + err.Message);
                 }

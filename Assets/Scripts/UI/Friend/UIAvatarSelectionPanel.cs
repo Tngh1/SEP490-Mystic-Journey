@@ -33,10 +33,16 @@ namespace UI.Friend
                 closeButton = transform.Find("CloseButton")?.GetComponent<Button>();
 
             if (closeButton != null)
+            {
+                closeButton.onClick.RemoveListener(ClosePanel);
                 closeButton.onClick.AddListener(ClosePanel);
+            }
 
             if (saveButton != null)
+            {
+                saveButton.onClick.RemoveListener(SaveAvatar);
                 saveButton.onClick.AddListener(SaveAvatar);
+            }
 
             foreach (var btn in GetComponentsInChildren<Button>(true))
             {
@@ -52,6 +58,7 @@ namespace UI.Friend
             _profilePanel = profilePanel;
 
             gameObject.SetActive(true);
+            transform.SetAsLastSibling();
             PopulateAvatarList();
         }
 
@@ -62,6 +69,12 @@ namespace UI.Friend
 
         private void PopulateAvatarList()
         {
+            if (avatarListContainer == null || avatarButtonPrefab == null)
+            {
+                Debug.LogError("[UIAvatarSelection] Avatar list container or button prefab is not assigned.");
+                return;
+            }
+
             // Xoá các item cũ
             foreach (Transform child in avatarListContainer)
             {

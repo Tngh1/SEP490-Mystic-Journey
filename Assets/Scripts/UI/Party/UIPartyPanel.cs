@@ -31,6 +31,7 @@ public class UIPartyPanel : MonoBehaviour
     [SerializeField] private TMP_Text energyCostText;
     [SerializeField] private Button startButton;
     [SerializeField] private Button readyButton;   // BottomSection/ReadyButton (member only)
+    [SerializeField] private Sprite readyActiveSprite;
     [SerializeField] private Button inviteButton;  // BottomSection/InviteButton (global → friend list)
     [SerializeField] private Button closeButton;
 
@@ -72,6 +73,7 @@ public class UIPartyPanel : MonoBehaviour
 
     // Currently hooked party (for instance-event subscription lifecycle).
     private PartyLobby _hookedParty;
+    private Sprite _readyDefaultSprite;
 
     private void Awake()
     {
@@ -89,6 +91,9 @@ public class UIPartyPanel : MonoBehaviour
         // đóng, và OnDisable sẽ hủy đăng ký — thành viên nào đã đóng panel sẽ không bao
         // giờ biết nhóm đã tan. Awake/OnDestroy phủ toàn bộ thời gian sống của panel.
         PlayerPresence.OnPartyDisbanded += HandlePartyDisbanded;
+
+        if (readyButton != null && readyButton.image != null)
+            _readyDefaultSprite = readyButton.image.sprite;
 
         gameObject.SetActive(false);
     }
@@ -538,6 +543,8 @@ public class UIPartyPanel : MonoBehaviour
             if (readyBtnTrans != null)
             {
                 readyButton = readyBtnTrans.GetComponent<Button>();
+                if (_readyDefaultSprite == null && readyButton != null && readyButton.image != null)
+                    _readyDefaultSprite = readyButton.image.sprite;
                 AddHoverEffect(readyButton != null ? readyButton.gameObject : readyBtnTrans.gameObject);
             }
 
@@ -683,7 +690,7 @@ public class UIPartyPanel : MonoBehaviour
 
     /// <summary>
     /// Confirms a kick through <c>Canvas/PopupLayer/UIPopup</c> in the Main Scene.
-    /// This used to call <c>UIPopupManager</c>, which was the wrong popup: that is the shared
+    /// This used to call the legacy popup manager, which was the wrong popup: that is the shared
     /// generic dialog, not the party-specific one the designers built.
     /// </summary>
     private void ConfirmKick(string memberName, Action onConfirm)
@@ -844,6 +851,10 @@ public class UIPartyPanel : MonoBehaviour
                 bool ready = IsLocalMemberReady(party);
                 var label = readyButton.GetComponentInChildren<TMP_Text>(true);
                 if (label != null) label.text = ready ? "UNREADY" : "READY";
+                if (readyButton.image != null)
+                    readyButton.image.sprite = ready && readyActiveSprite != null
+                        ? readyActiveSprite
+                        : _readyDefaultSprite;
                 readyButton.interactable = true;
                 bool next = !ready;
                 readyButton.onClick.AddListener(() => PartyService.SetReady(next));
@@ -1002,6 +1013,7 @@ public class UIPartyPanel : MonoBehaviour
         saLayout.childAlignment = TextAnchor.UpperCenter;
         saLayout.childControlHeight = false;
         saLayout.childControlWidth = true;
+        saLayout.childForceExpandHeight = false;
 
         GameObject closeBtnObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         closeBtnObj.transform.SetParent(frameObj.transform, false);

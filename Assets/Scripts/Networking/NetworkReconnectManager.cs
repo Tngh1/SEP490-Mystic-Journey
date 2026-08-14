@@ -86,9 +86,9 @@ namespace MysticJourney.Networking
             }
 
             // Dismiss the "Reconnecting..." popup
-            if (UIPopupManager.Instance != null)
+            if (UIPopup.Instance != null)
             {
-                UIPopupManager.Instance.HidePopup();
+                UIPopup.Instance.HidePopup();
             }
 
             // If disconnected while inside a dungeon, prompt the player to Resume Dungeon or Return to Menu
@@ -156,7 +156,7 @@ namespace MysticJourney.Networking
                         if (err != null && (err.StatusCode == 401 || err.ErrorCode == "SESSION_EXPIRED" || err.ErrorCode == "SESSION_OVERRIDDEN"))
                         {
                             IsReconnecting = false;
-                            if (UIPopupManager.Instance != null) UIPopupManager.Instance.HidePopup();
+                            if (UIPopup.Instance != null) UIPopup.Instance.HidePopup();
 
                             // ApiClient đã tự logout với message CỦA SERVER trước khi gọi onError
                             // này (401/SESSION_OVERRIDDEN), và nó chạy xong đồng bộ nên cờ chống
@@ -181,9 +181,9 @@ namespace MysticJourney.Networking
             Debug.Log("[NetworkReconnectManager] Player chose to Resume Dungeon.");
             _wasInDungeon = false;
             _userClickedReturnToMenu = false;
-            if (UIPopupManager.Instance != null)
+            if (UIPopup.Instance != null)
             {
-                UIPopupManager.Instance.HidePopup();
+                UIPopup.Instance.HidePopup();
             }
         }
 
@@ -200,9 +200,9 @@ namespace MysticJourney.Networking
                 _reconnectCoroutine = null;
             }
 
-            if (UIPopupManager.Instance != null)
+            if (UIPopup.Instance != null)
             {
-                UIPopupManager.Instance.HidePopup();
+                UIPopup.Instance.HidePopup();
             }
 
             SessionService.Logout();

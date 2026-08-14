@@ -11,6 +11,19 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
     private static readonly object _lock = new();
     private static bool _applicationIsQuitting;
 
+#if UNITY_EDITOR
+    static BaseApiService()
+    {
+        UnityEditor.EditorApplication.playModeStateChanged += state =>
+        {
+            if (state == UnityEditor.PlayModeStateChange.EnteredPlayMode)
+            {
+                _applicationIsQuitting = false;
+            }
+        };
+    }
+#endif
+
     public static T Instance
     {
         get

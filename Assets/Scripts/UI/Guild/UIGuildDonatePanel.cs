@@ -115,9 +115,9 @@ namespace MysticJourney.UI.Guild
 
         private void OnDonateClicked()
         {
-            if (MysticJourney.UI.UIPopupManager.Instance != null)
+            if (MysticJourney.UI.UIPopup.Instance != null)
             {
-                MysticJourney.UI.UIPopupManager.Instance.ShowConfirm(
+                MysticJourney.UI.UIPopup.Instance.ShowConfirm(
                     "Confirm Donation",
                     $"Are you sure you want to donate {_selectedAmount} {_selectedCurrency}?",
                     ExecuteDonation,
@@ -142,8 +142,8 @@ namespace MysticJourney.UI.Guild
                 err =>
                 {
                     Debug.LogError("[Donate] Failed: " + err.Message);
-                    if (MysticJourney.UI.UIPopupManager.Instance != null)
-                        MysticJourney.UI.UIPopupManager.Instance.ShowAlert("Failed", err.Message);
+                    if (MysticJourney.UI.UIPopup.Instance != null)
+                        MysticJourney.UI.UIPopup.Instance.ShowAlert("Failed", err.Message);
                 });
         }
     }

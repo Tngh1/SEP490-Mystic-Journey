@@ -33,8 +33,11 @@ public class NetworkPlayer : NetworkBehaviour
     [SerializeField] private Transform visualRoot;
 
     [Header("Player Nameplate")]
-    [SerializeField] private Vector3 nameplateOffset = new Vector3(0f, 1.15f, 0f);
+    [SerializeField] private Vector3 nameplateOffset = new Vector3(0f, 0.72f, 0f);
     [SerializeField] private int nameplateSortingOrder = 60;
+    [SerializeField] private TMP_FontAsset nameplateFont;
+    [SerializeField] private Color localNameplateColor = new Color(1f, 0.82f, 0.18f, 1f);
+    [SerializeField] private Color remoteNameplateColor = Color.white;
 
     private Canvas _nameplateCanvas;
     private TextMeshProUGUI _nameplateText;
@@ -855,15 +858,16 @@ public class NetworkPlayer : NetworkBehaviour
         _nameplateText.alignment = TextAlignmentOptions.Center;
         _nameplateText.textWrappingMode = TextWrappingModes.NoWrap;
         _nameplateText.overflowMode = TextOverflowModes.Overflow;
-        _nameplateText.fontSize = 100f;
-        _nameplateText.color = Color.white;
+        _nameplateText.fontSize = 72f;
         _nameplateText.outlineWidth = 0.18f;
         _nameplateText.outlineColor = Color.black;
         _nameplateText.raycastTarget = false;
 
+        ApplyNameplateStyle();
+
         RectTransform textRect = textObject.GetComponent<RectTransform>();
         textRect.sizeDelta = new Vector2(900f, 180f);
-        textRect.localScale = new Vector3(0.0025f, 0.0025f, 1f);
+        textRect.localScale = new Vector3(0.002f, 0.002f, 1f);
     }
 
     private void RefreshNameplate()
@@ -871,9 +875,23 @@ public class NetworkPlayer : NetworkBehaviour
         EnsureNameplate();
         if (_nameplateText == null) return;
 
+        ApplyNameplateStyle();
         string displayName = PlayerName.ToString().Trim();
         _nameplateText.text = displayName;
         _nameplateCanvas.gameObject.SetActive(!string.IsNullOrWhiteSpace(displayName));
+    }
+
+    private void ApplyNameplateStyle()
+    {
+        if (_nameplateText == null) return;
+
+        if (nameplateFont != null)
+        {
+            _nameplateText.font = nameplateFont;
+        }
+
+        bool isLocalPlayer = Object != null && Object.HasInputAuthority;
+        _nameplateText.color = isLocalPlayer ? localNameplateColor : remoteNameplateColor;
     }
 
 
