@@ -98,10 +98,20 @@ public static class UIPopupBox
         // prevents the serialized placeholder "New Text" from leaking into Logout and
         // other confirmations.
         var title = FindChildRecursive(popup, "Title")?.GetComponent<TMP_Text>();
-        if (title != null) title.text = titleText;
+        if (title != null)
+        {
+            title.gameObject.SetActive(true);
+            title.enabled = true;
+            title.text = titleText;
+        }
 
         var text = FindChildRecursive(popup, "Text")?.GetComponent<TMP_Text>();
-        if (text != null) text.text = message;
+        if (text != null)
+        {
+            text.gameObject.SetActive(true);
+            text.enabled = true;
+            text.text = message;
+        }
 
         // RemoveAllListeners is mandatory: one UIPopup instance is reused by every caller, so
         // without it the previous listener survives — open the kick popup for A, close it, then

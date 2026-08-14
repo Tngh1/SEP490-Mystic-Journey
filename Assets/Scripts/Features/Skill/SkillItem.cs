@@ -132,6 +132,46 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         }
     }
 
+    public void SetupRewardPreview(SkillData vData, Sprite fallbackIcon = null)
+    {
+        visualData = vData;
+        serverData = null;
+
+        if (backgroundImage != null)
+        {
+            var background = GetBackgroundForSkill(vData);
+            if (background != null)
+                backgroundImage.sprite = background;
+            backgroundImage.enabled = backgroundImage.sprite != null;
+            backgroundImage.color = Color.white;
+        }
+
+        if (myIcon != null)
+        {
+            myIcon.sprite = vData != null && vData.skillIcon != null ? vData.skillIcon : fallbackIcon;
+            myIcon.enabled = myIcon.sprite != null;
+            myIcon.preserveAspect = true;
+            myIcon.color = Color.white;
+        }
+
+        if (levelText != null)
+            levelText.text = "Skill";
+
+        if (lockOverlay != null)
+            lockOverlay.SetActive(false);
+
+        SetPreviewOverlayActive("block/DimBg", false);
+        SetPreviewOverlayActive("block/Clock", false);
+        SetPreviewOverlayActive("DimBg", false);
+    }
+
+    private void SetPreviewOverlayActive(string path, bool active)
+    {
+        var target = transform.Find(path);
+        if (target != null)
+            target.gameObject.SetActive(active);
+    }
+
     private Sprite GetBackgroundForSkill(SkillData skill)
     {
         if (skill == null) return allClassBackground;
