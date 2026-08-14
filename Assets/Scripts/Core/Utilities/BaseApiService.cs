@@ -1,4 +1,5 @@
 using System;
+using MysticJourney.API.Core;
 using UnityEngine;
 
 /// <summary>
@@ -28,6 +29,9 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
     {
         get
         {
+            if (!Application.isPlaying)
+                return null;
+
             if (_applicationIsQuitting)
             {
                 Debug.LogWarning($"[BaseApiService<{typeof(T).Name}>] Instance requested after application quit. Returning null.");
@@ -46,9 +50,7 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
                     return _instance;
                 }
 
-                var go = new GameObject($"[{typeof(T).Name}]");
-                PreserveAcrossScenes(go);
-                _instance = go.AddComponent<T>();
+                _instance = ApiRuntimeHost.GetOrAdd<T>();
                 return _instance;
             }
         }
@@ -58,7 +60,7 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
     {
         if (_instance != null && _instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
         _instance = (T)(MonoBehaviour)this;

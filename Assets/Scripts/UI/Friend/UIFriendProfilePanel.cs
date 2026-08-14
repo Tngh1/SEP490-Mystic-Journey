@@ -107,6 +107,7 @@ namespace UI.Friend
         
         private void Awake()
         {
+            DisableBlockingBackgroundRaycast();
             BindCloseButtons();
             BindProfileActions();
             AddHoverEffects();
@@ -114,10 +115,20 @@ namespace UI.Friend
 
         private void OnEnable()
         {
+            DisableBlockingBackgroundRaycast();
             // UIManager toggles this panel instead of recreating it. Rebind on
             // every enable so scene/prefab variants with missing Inspector
             // references still get working edit controls.
             BindProfileActions();
+        }
+
+        private void DisableBlockingBackgroundRaycast()
+        {
+            // This full-panel decoration is rendered above the avatar/name edit
+            // buttons in Main.unity. It must not consume their pointer events.
+            var background = transform.Find("Background")?.GetComponent<Graphic>();
+            if (background != null)
+                background.raycastTarget = false;
         }
 
         private void Start()

@@ -21,11 +21,12 @@ namespace MysticJourney.API.Core
         {
             get
             {
+                if (!Application.isPlaying)
+                    return null;
+
                 if (_instance == null)
                 {
-                    var go = new GameObject("[ApiClient]");
-                    PreserveAcrossScenes(go);
-                    _instance = go.AddComponent<ApiClient>();
+                    _instance = ApiRuntimeHost.GetOrAdd<ApiClient>();
                 }
                 return _instance;
             }
@@ -36,7 +37,7 @@ namespace MysticJourney.API.Core
             // Đảm bảo chỉ tồn tại đúng 1 instance khi load scene mới
             if (_instance != null && _instance != this)
             {
-                Destroy(gameObject);
+                Destroy(this);
                 return;
             }
             _instance = this;
