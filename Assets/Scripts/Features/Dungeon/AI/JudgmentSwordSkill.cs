@@ -42,7 +42,9 @@ public class JudgmentSwordSkill : MonoBehaviour
         yield return new WaitForSeconds(impactDelay);
 
         // 2. Chém xuống, quét xem người chơi có còn đứng trong vùng ảnh hưởng không
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, hitRadius, playerLayer);
+        Collider2D[] hits = EnemySkillVisualReplica.IsReplica(this)
+            ? System.Array.Empty<Collider2D>()
+            : Physics2D.OverlapCircleAll(transform.position, hitRadius, playerLayer);
         
         foreach (var hit in hits)
         {

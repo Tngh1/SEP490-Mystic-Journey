@@ -50,7 +50,9 @@ public class LineSkillSpawner : MonoBehaviour
             // Spawn khối băng
             if (blockPrefab != null)
             {
-                Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+                var spawned = Instantiate(blockPrefab, spawnPos, Quaternion.identity);
+                if (EnemySkillVisualReplica.IsReplica(this))
+                    spawned.AddComponent<EnemySkillVisualReplica>();
             }
             
             // Nếu có delay thì chờ một chút để khối băng mọc lên dần dần

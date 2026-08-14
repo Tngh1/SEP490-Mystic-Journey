@@ -133,6 +133,7 @@ public class UIChatPanel : MonoBehaviour
 
     private void OnDisable()
     {
+        CancelSendCooldown();
         StopHistoryFallback();
         StopGuildRefresh();
         UnsubscribePhotonRelay();
@@ -164,6 +165,8 @@ public class UIChatPanel : MonoBehaviour
 
         if (currentChannel == ChatChannel.World && isOnCooldown)
         {
+            AddSystemMessage("Please wait before sending another world message.");
+            FocusInput();
             return;
         }
 
@@ -1207,6 +1210,19 @@ public class UIChatPanel : MonoBehaviour
         sendCooldownCoroutine = StartCoroutine(SendCooldownRoutine());
     }
 
+    private void CancelSendCooldown()
+    {
+        if (sendCooldownCoroutine != null)
+        {
+            StopCoroutine(sendCooldownCoroutine);
+            sendCooldownCoroutine = null;
+        }
+
+        isOnCooldown = false;
+        RestoreSendButtonLabel();
+        RefreshSendButtonState();
+    }
+
     private IEnumerator SendCooldownRoutine()
     {
         isOnCooldown = true;
@@ -1240,7 +1256,7 @@ public class UIChatPanel : MonoBehaviour
                 }
             }
 
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSecondsRealtime(1f);
             remaining -= 1f;
         }
 

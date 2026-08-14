@@ -201,6 +201,36 @@ public class NetworkPlayer : NetworkBehaviour
         IsReadyToRestart = false;
     }
 
+    /// <summary>
+    /// Best-effort vote cleanup used while this client is already leaving the dungeon.
+    /// In Shared Mode the local player normally owns StateAuthority, so write directly
+    /// instead of routing the Exit button through an RPC that Fusion may reject while the
+    /// runner is migrating rooms.
+    /// </summary>
+    public void CancelRestartVoteForExit()
+    {
+        if (Object == null) return;
+
+        try
+        {
+            if (Object.HasStateAuthority)
+            {
+                IsReadyToRestart = false;
+                EvaluateRestartReadiness();
+            }
+            else
+            {
+                RPC_ClearReadyToRestart();
+            }
+        }
+        catch (Exception exception)
+        {
+            // Room migration/despawn can race this cleanup. Exit has already started, and
+            // Unregister() will remove this avatar from the vote list.
+            Debug.LogWarning($"[NetworkPlayer] Could not clear restart vote while exiting: {exception.Message}");
+        }
+    }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_TriggerRestartDungeon()
     {
@@ -497,26 +527,9 @@ public class NetworkPlayer : NetworkBehaviour
             Level = Mathf.Max(1, WorldState.PlayerLevel);
             AvatarUrl = TrimForFusion(WorldState.AvatarUrl, 30);
 
-            if (MysticJourney.API.Core.ApiClient.Instance.HasToken())
-            {
-                MysticJourney.API.Endpoints.InventoryApi.Instance.GetInventory(
-                    response =>
-                    {
-                        if (response != null && response.PlayerSkins != null)
-                        {
-                            foreach (var skin in response.PlayerSkins)
-                            {
-                                if (skin.IsEquipped)
-                                {
-                                    EquippedSkinId = skin.SkinId;
-                                    break;
-                                }
-                            }
-                        }
-                    },
-                    error => Debug.LogWarning($"[NetworkPlayer] GetInventory failed: {error.Message}")
-                );
-            }
+            // PlayerSpawner đã hydrate skin trước khi spawn. Dùng state đã có để tránh
+            // tải lại toàn bộ inventory ngay sau request bootstrap vừa hoàn tất.
+            EquippedSkinId = Mathf.Max(0, WorldState.EquippedSkinId);
 
             // Anchor spawns at the current world position (e.g. ElfForest ~(11.9,17.8))
             // rather than world origin, then fan out so players don't stack.

@@ -85,6 +85,9 @@ public class IceFairySupportAI : MonoBehaviour
         _myEntity = GetComponent<EnemyEntity>();
         _animator = GetComponent<Animator>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        var networkEnemy = GetComponent<NetworkEnemy>();
+        networkEnemy?.RegisterSkillPrefab(fairyDustPrefab);
+        networkEnemy?.RegisterSkillPrefab(healBossPrefab);
 
         // Tắt NavMeshAgent và EnemyBehaviour nếu có trên IceFairy để tránh xung đột di chuyển 2D trên không
         var navAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
@@ -335,7 +338,10 @@ public class IceFairySupportAI : MonoBehaviour
             }
 
             Vector3 spawnPos = new Vector3(playerTransform.position.x, playerTransform.position.y, 0f);
-            GameObject dustObj = Instantiate(fairyDustPrefab, spawnPos, Quaternion.identity);
+            var networkEnemy = GetComponent<NetworkEnemy>();
+            GameObject dustObj = networkEnemy != null
+                ? networkEnemy.SpawnEnemySkill(fairyDustPrefab, spawnPos)
+                : Instantiate(fairyDustPrefab, spawnPos, Quaternion.identity);
             if (dustObj != null)
             {
                 var dustSkill = dustObj.GetComponent<FairyDustSkill>();
@@ -382,7 +388,11 @@ public class IceFairySupportAI : MonoBehaviour
 
             if (healBossPrefab != null)
             {
-                Instantiate(healBossPrefab, GetGolemCenterPos(), Quaternion.identity);
+                var networkEnemy = GetComponent<NetworkEnemy>();
+                if (networkEnemy != null)
+                    networkEnemy.SpawnEnemySkill(healBossPrefab, GetGolemCenterPos());
+                else
+                    Instantiate(healBossPrefab, GetGolemCenterPos(), Quaternion.identity);
             }
         }
 

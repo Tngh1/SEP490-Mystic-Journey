@@ -31,6 +31,12 @@ public class FairyDustSkill : MonoBehaviour
 
     private void Start()
     {
+        if (EnemySkillVisualReplica.IsReplica(this))
+        {
+            Destroy(gameObject, lifeTime);
+            return;
+        }
+
         if (_targetPlayer == null)
         {
             FindPlayerTarget();
@@ -108,6 +114,7 @@ public class FairyDustSkill : MonoBehaviour
 
     private void DealDamage(GameObject target)
     {
+        if (EnemySkillVisualReplica.IsReplica(this)) return;
         _hasDealtDamage = true;
 
         var networkPlayer = target.GetComponent<NetworkPlayer>();

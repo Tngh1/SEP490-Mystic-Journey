@@ -92,4 +92,19 @@ namespace MysticJourney.API.Models.Response
         public InventoryItemResponse Item { get; set; }        // Item sau khi equip/unequip
         public PlayerStatsResponse PlayerStats { get; set; }   // Stats mới của player
     }
+
+    // Response: POST /api/inventory/consume-item
+    [System.Serializable]
+    public class ConsumeItemResultResponse
+    {
+        public string ItemName { get; set; }
+        public string EffectType { get; set; }
+        public int EffectValue { get; set; }
+        public int? CurrentHp { get; set; }
+        public int? MaxHp { get; set; }
+        public int? CurrentEnergy { get; set; }
+        public int? MaxEnergy { get; set; }
+        public float? CorruptionLevel { get; set; }
+        public int RemainingQuantity { get; set; }
+    }
 }

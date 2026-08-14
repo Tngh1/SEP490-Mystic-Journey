@@ -23,6 +23,12 @@ public class DarknessCurseSkill : MonoBehaviour
 
     private void Start()
     {
+        if (EnemySkillVisualReplica.IsReplica(this))
+        {
+            Destroy(gameObject, duration);
+            return;
+        }
+
         if (castSound != null && AudioManager.Instance != null)
         {
             AudioManager.Instance.PlaySfx(castSound, soundVolume);

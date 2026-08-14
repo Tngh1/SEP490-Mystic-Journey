@@ -64,9 +64,21 @@ public class PlayerSpawner : MonoBehaviour
         if (!ApiClient.Instance.HasToken())
             yield break;
 
-        yield return HydrateCharacterProfileBeforeSpawn();
-        yield return HydrateWorldPositionBeforeSpawn();
-        yield return HydrateEquippedSkinBeforeSpawn();
+        var profileDone = false;
+        var positionDone = false;
+        var skinDone = false;
+
+        StartCoroutine(RunAndSignal(HydrateCharacterProfileBeforeSpawn(), () => profileDone = true));
+        StartCoroutine(RunAndSignal(HydrateWorldPositionBeforeSpawn(), () => positionDone = true));
+        StartCoroutine(RunAndSignal(HydrateEquippedSkinBeforeSpawn(), () => skinDone = true));
+
+        yield return new WaitUntil(() => profileDone && positionDone && skinDone);
+    }
+
+    private static IEnumerator RunAndSignal(IEnumerator routine, Action onComplete)
+    {
+        yield return routine;
+        onComplete?.Invoke();
     }
 
     private IEnumerator HydrateCharacterProfileBeforeSpawn()
@@ -94,32 +106,28 @@ public class PlayerSpawner : MonoBehaviour
     private IEnumerator HydrateWorldPositionBeforeSpawn()
     {
         var done = false;
-        WorldApi.Instance.GetState(
-            state =>
+        WorldApi.Instance.GetPosition(
+            position =>
             {
-                if (state != null)
+                if (position != null)
                 {
-                    WorldState.PlayerProfileId = state.PlayerProfileId;
-                    if (state.Position != null)
+                    if (!string.IsNullOrWhiteSpace(position.MapName))
                     {
-                        if (!string.IsNullOrWhiteSpace(state.Position.MapName))
-                        {
-                            WorldState.CurrentMapName = state.Position.MapName;
-                        }
+                        WorldState.CurrentMapName = position.MapName;
+                    }
 
-                        Vector3 dbPos = new Vector3((float)state.Position.PositionX, (float)state.Position.PositionY, 0f);
-                        if (ShouldUseSavedPosition(dbPos))
-                        {
-                            WorldState.LastPosition = dbPos;
-                            MapPositionCache.Save(WorldState.CurrentMapName, dbPos);
-                        }
+                    Vector3 dbPos = new Vector3((float)position.PositionX, (float)position.PositionY, 0f);
+                    if (ShouldUseSavedPosition(dbPos))
+                    {
+                        WorldState.LastPosition = dbPos;
+                        MapPositionCache.Save(WorldState.CurrentMapName, dbPos);
                     }
                 }
                 done = true;
             },
             error =>
             {
-                Debug.LogWarning($"[PlayerSpawner] GetState before spawn failed, using fallback spawn. {error.Message}");
+                Debug.LogWarning($"[PlayerSpawner] GetPosition before spawn failed, using fallback spawn. {error.Message}");
                 done = true;
             }
         );

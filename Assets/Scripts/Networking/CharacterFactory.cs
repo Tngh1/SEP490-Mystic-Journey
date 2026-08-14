@@ -47,7 +47,6 @@ public class CharacterFactory : MonoBehaviour
         instance.name = skinId > 0 ? $"Visual_{characterClass}_Skin_{skinId}" : $"Visual_{characterClass}";
         instance.transform.localPosition = Vector3.zero;
         instance.transform.localRotation = Quaternion.identity;
-        instance.transform.localScale = Vector3.one;
 
         StripGameplayComponents(instance);
         ConfigureSorting(instance);

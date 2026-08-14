@@ -56,6 +56,21 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
+        // ── Lấy riêng vị trí khi bootstrap ───────────
+        public void GetPosition(Action<PlayerWorldPositionResponse> onSuccess, Action<ApiException> onError)
+        {
+            ApiClient.Instance.Get<PlayerWorldPositionResponse>(
+                ApiConfig.WorldPosition,
+                response =>
+                {
+                    ApplyWorldPosition(response);
+                    onSuccess?.Invoke(response);
+                },
+                onError,
+                requiresAuth: true
+            );
+        }
+
         // ── Cập nhật vị trí world ────────────────────
         public void UpdatePosition(
             string mapName,

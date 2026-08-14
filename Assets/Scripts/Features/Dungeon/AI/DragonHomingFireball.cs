@@ -126,6 +126,11 @@ public class DragonHomingFireball : MonoBehaviour
 
     private void DealDamage(GameObject playerObj)
     {
+        if (EnemySkillVisualReplica.IsReplica(this))
+        {
+            TriggerExplosion();
+            return;
+        }
         var networkPlayer = playerObj.GetComponent<NetworkPlayer>();
         if (networkPlayer != null && networkPlayer.Object != null && networkPlayer.Object.IsValid)
         {

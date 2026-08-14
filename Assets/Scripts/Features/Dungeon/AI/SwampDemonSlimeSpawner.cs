@@ -37,6 +37,7 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
     private void Awake()
     {
         _enemyEntity = GetComponent<EnemyEntity>();
+        GetComponent<NetworkEnemy>()?.RegisterSkillPrefab(slimeMiniPrefab);
     }
 
     private void Update()
@@ -93,7 +94,11 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
             float randomDist = Random.Range(minRadius, maxRadius);
             Vector3 spawnPos = transform.position + (Vector3)(randomDir * randomDist);
 
-            Instantiate(slimeMiniPrefab, spawnPos, Quaternion.identity);
+            var networkEnemy = GetComponent<NetworkEnemy>();
+            if (networkEnemy != null)
+                networkEnemy.SpawnEnemySkill(slimeMiniPrefab, spawnPos);
+            else
+                Instantiate(slimeMiniPrefab, spawnPos, Quaternion.identity);
         }
     }
 }

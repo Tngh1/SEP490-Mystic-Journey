@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using MysticJourney.API.Models.Response;
 using Newtonsoft.Json;
@@ -60,6 +61,17 @@ namespace MysticJourney.API.Core
         private string _cachedToken = null;
         private string _cachedRefreshToken = null;
         private bool _isRefreshing = false; // Tránh nhiều request refresh cùng lúc
+
+        private sealed class PendingGetRequest
+        {
+            public Type ResponseType;
+            public readonly List<Action<object>> SuccessCallbacks = new();
+            public readonly List<Action<ApiException>> ErrorCallbacks = new();
+        }
+
+        // Nhiều controller được bật cùng frame lúc vào Main scene. Gộp GET cùng endpoint
+        // đang chạy để không gửi profile/inventory/currency trùng qua mạng production.
+        private readonly Dictionary<string, PendingGetRequest> _pendingGets = new();
 
         // Lưu JWT access token vào PlayerPrefs sau khi login thành công
         public void SaveToken(string token)
@@ -130,7 +142,55 @@ namespace MysticJourney.API.Core
         // Gửi GET request và parse response thành kiểu T
         public void Get<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
-            StartCoroutine(SendCoroutine("GET", endpoint, null, onSuccess, onError, requiresAuth));
+            string key = (requiresAuth ? "auth:" : "anonymous:") + endpoint;
+            if (_pendingGets.TryGetValue(key, out var existing))
+            {
+                if (existing.ResponseType == typeof(T))
+                {
+                    existing.SuccessCallbacks.Add(value => onSuccess?.Invoke(value is T typed ? typed : default));
+                    existing.ErrorCallbacks.Add(error => onError?.Invoke(error));
+                    return;
+                }
+
+                // Cùng URL nhưng contract khác nhau: giữ semantics cũ thay vì cast sai DTO.
+                StartCoroutine(SendCoroutine("GET", endpoint, null, onSuccess, onError, requiresAuth));
+                return;
+            }
+
+            var pending = new PendingGetRequest { ResponseType = typeof(T) };
+            pending.SuccessCallbacks.Add(value => onSuccess?.Invoke(value is T typed ? typed : default));
+            pending.ErrorCallbacks.Add(error => onError?.Invoke(error));
+            _pendingGets[key] = pending;
+
+            StartCoroutine(SendCoroutine<T>(
+                "GET",
+                endpoint,
+                null,
+                response => CompletePendingGet(key, response),
+                error => FailPendingGet(key, error),
+                requiresAuth));
+        }
+
+        private void CompletePendingGet<T>(string key, T response)
+        {
+            if (!_pendingGets.Remove(key, out var pending)) return;
+
+            foreach (var callback in pending.SuccessCallbacks)
+            {
+                try { callback(response); }
+                catch (Exception ex) { Debug.LogException(ex); }
+            }
+        }
+
+        private void FailPendingGet(string key, ApiException error)
+        {
+            if (!_pendingGets.Remove(key, out var pending)) return;
+
+            foreach (var callback in pending.ErrorCallbacks)
+            {
+                try { callback(error); }
+                catch (Exception ex) { Debug.LogException(ex); }
+            }
         }
 
         // Gửi POST request với JSON body và parse response thành kiểu T

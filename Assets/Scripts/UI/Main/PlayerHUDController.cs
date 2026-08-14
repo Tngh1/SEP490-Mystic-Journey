@@ -177,7 +177,6 @@ public class PlayerHUDController : MonoBehaviour
     {
         UpdateQuestPointers();
         RefreshHUD();
-        RefreshCurrencyBalance();
     }
 
     private void OnLevelUpButtonClicked()
@@ -507,6 +506,26 @@ public class PlayerHUDController : MonoBehaviour
             EnsureFilledImageMode(corruptionBarImage);
             corruptionBarImage.fillAmount = Mathf.Clamp01(corruptionLevel / 100f);
         }
+    }
+
+    public void ApplyHealth(int currentHp, int maxHp)
+    {
+        FindHUDReferences();
+        UpdateStatsUI(currentHp, maxHp);
+    }
+
+    public void ApplyEnergy(int currentEnergy, int maxEnergy)
+    {
+        FindHUDReferences();
+        if (energyText == null) return;
+
+        if (_lastEnergy >= 0 && currentEnergy > _lastEnergy)
+        {
+            TriggerResourceGlowEffect(energyText, new Color(0.08f, 0.98f, 0.44f, 1.0f), "EnergyGlowAura");
+        }
+
+        _lastEnergy = currentEnergy;
+        energyText.text = currentEnergy + "/" + maxEnergy;
     }
 
     public void ApplyStats(PlayerStatsResponse stats)
