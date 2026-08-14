@@ -5,6 +5,7 @@ using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 
 /// <summary>
 /// The pre-dungeon party panel (VIEW). It renders the live party roster from
@@ -51,6 +52,7 @@ public class UIPartyPanel : MonoBehaviour
 
     [Header("Runtime Info")]
     private int selectedConfigId = 1;
+    private int selectedMapId = MapProgressionRules.FirstMapId;
     private string selectedSceneName = "AbandonedMines";
     // Không có tên mặc định: một cái tên cứng ở đây sẽ hiện ĐÚNG như thật cho dungeon sai
     // (mọi cửa từng mặc định "Abandoned Mines", kể cả configId 2 = Dragon's Lair).
@@ -191,6 +193,7 @@ public class UIPartyPanel : MonoBehaviour
     public void OpenForDungeon(int configId, string sceneName, int cost, string displayName)
     {
         selectedConfigId = configId;
+        selectedMapId = MapProgressionRules.GetMapId(WorldState.CurrentMapName);
         selectedSceneName = sceneName;
         energyCost = cost;
         selectedDungeonName = displayName;
@@ -1139,7 +1142,7 @@ public class UIPartyPanel : MonoBehaviour
             string friendName = friend.FriendName;
             btn.onClick.AddListener(() =>
             {
-                var result = PartyService.InviteByProfileId(profileId);
+                var result = PartyService.InviteByProfileId(profileId, selectedMapId);
                 if (result == PartyService.InviteResult.Sent)
                 {
                     UIPopupBox.Notify(transform, "Notice", $"Invited {friendName}.");
@@ -1157,6 +1160,8 @@ public class UIPartyPanel : MonoBehaviour
                         PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
                         PartyService.InviteResult.PartyFull => "Your party is already full.",
                         PartyService.InviteResult.PartyUnavailable => "Could not create the party. Try again.",
+                        PartyService.InviteResult.MapLocked =>
+                            $"Cannot invite {friendName}. They have not unlocked {MapProgressionRules.GetDisplayName(selectedMapId)} yet.",
                         _ => "You are not connected to the party service.",
                     });
                 }

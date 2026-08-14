@@ -1,5 +1,6 @@
 using Fusion; // Sử dụng thư viện mạng Photon Fusion
 using UnityEngine; // Sử dụng thư viện lõi của Unity
+using MysticJourney.Core.Utilities;
 
 /// <summary>
 /// Stateless facade cho mọi hoạt động của Party (tổ đội). Đây là điểm duy nhất để UI giao tiếp
@@ -54,6 +55,7 @@ public static class PartyService
         FriendOffline,    // Người bạn kia không có mặt trong sảnh này
         PartyUnavailable, // Không thể tạo được party, hoặc mình không phải là chủ phòng
         PartyFull,        // Party đã đầy người
+        MapLocked,        // Người được mời chưa mở map chứa dungeon này
     }
 
     /// <summary>
@@ -61,7 +63,9 @@ public static class PartyService
     /// trong sảnh xã hội (tức là có <see cref="PlayerPresence"/> đang hoạt động). Tự động tạo
     /// party nếu người mời chưa có party.
     /// </summary>
-    public static InviteResult InviteByProfileId(int friendProfileId)
+    public static InviteResult InviteByProfileId(
+        int friendProfileId,
+        int requiredMapId = MapProgressionRules.FirstMapId)
     {
         if (!IsOnline) return InviteResult.NotConnected; // Nếu mình chưa online thì báo lỗi NotConnected
 
@@ -76,6 +80,13 @@ public static class PartyService
 
         var me = PlayerPresence.Local; // Lấy thông tin bản thân mình
         if (me == null) return InviteResult.NotConnected; // Nếu chưa có thông tin bản thân -> lỗi chưa kết nối
+
+        if (!MapProgressionRules.CanInviteToMap(requiredMapId, target.HighestUnlockedMapId))
+        {
+            Debug.Log($"[PartyService] Invite failed: friend {friendProfileId} has unlocked map " +
+                      $"{target.HighestUnlockedMapId}, but map {requiredMapId} is required.");
+            return InviteResult.MapLocked;
+        }
 
         var party = CurrentParty ?? CreateParty(); // Lấy party hiện tại, nếu chưa có thì tạo mới
         if (party == null || !party.IsLocalHost) return InviteResult.PartyUnavailable; // Nếu party null hoặc mình không làm chủ -> báo lỗi

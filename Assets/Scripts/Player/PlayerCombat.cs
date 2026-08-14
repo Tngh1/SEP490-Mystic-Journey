@@ -108,6 +108,8 @@ public class PlayerCombat : NetworkBehaviour
     private Dictionary<int, float> _skillCorruptionCosts = new Dictionary<int, float>();
     private Dictionary<int, int> _skillIds = new Dictionary<int, int>();
     private Dictionary<int, float> _skillCooldowns = new Dictionary<int, float>();
+    private SkillData[] _skillMasterData;
+    private bool _isLoadingEquippedSkills;
 
     public static event System.Action<int, float> OnSkillCast;
 
@@ -234,8 +236,14 @@ public class PlayerCombat : NetworkBehaviour
                 error => Debug.LogWarning($"[PlayerCombat] GetMyStats failed: {error.Message}")
             );
 
-            var skillPanelMgr = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
-            if (skillPanelMgr != null) skillPanelMgr.RefreshSkillList();
+            // A network avatar is initialized from NetworkPlayer.Spawned(), after it
+            // has input authority. The offline avatar has no NetworkPlayer, so it can
+            // load immediately here. Skill configuration must not depend on opening
+            // SkillPanelManager: that panel builds its HUD slot list only in OnEnable.
+            if (GetComponent<NetworkPlayer>() == null)
+            {
+                LoadEquippedSkills();
+            }
         }
     }
 
@@ -244,6 +252,10 @@ public class PlayerCombat : NetworkBehaviour
 
     private void HandleSkillEquipped(int slotIndex, SkillData vData, PlayerSkillResponse sData)
     {
+        // OnSkillEquipped is static, therefore every network avatar on this client
+        // receives it. Only the local input-authority avatar may consume the local
+        // account's equipped-skill payload; proxies get their casts over Fusion.
+        if (Object != null && !Object.HasInputAuthority) return;
         if (vData == null || sData == null) return;
 
         if (slotIndex == 0) { skill1Prefab = vData.skillPrefab; skill1Cooldown = sData.CooldownSeconds; }
@@ -1077,6 +1089,86 @@ public class PlayerCombat : NetworkBehaviour
         {
             Destroy(skillObj, 2f);
         }
+    }
+
+    /// <summary>
+    /// Loads the local player's equipped skills without relying on SkillPanel being
+    /// opened. The resulting broadcast configures this combat component and the HUD
+    /// slots through their existing OnSkillEquipped subscriptions.
+    /// </summary>
+    public void LoadEquippedSkills()
+    {
+        if (_isLoadingEquippedSkills) return;
+
+        var skillApi = MysticJourney.API.Endpoints.SkillApi.Instance;
+        if (skillApi == null)
+        {
+            Debug.LogWarning("[PlayerCombat] Skill API is unavailable; equipped skills were not loaded.");
+            return;
+        }
+
+        SkillData[] masterData = ResolveSkillMasterData();
+        if (masterData == null || masterData.Length == 0)
+        {
+            Debug.LogError("[PlayerCombat] No SkillData assets were found; equipped skills cannot be configured.");
+            return;
+        }
+
+        _isLoadingEquippedSkills = true;
+        skillApi.GetMySkills(
+            onSuccess: response =>
+            {
+                _isLoadingEquippedSkills = false;
+                if (this == null || response?.Skills == null) return;
+
+                foreach (var playerSkill in response.Skills)
+                {
+                    if (!playerSkill.EquippedSlot.HasValue) continue;
+
+                    int slotIndex = playerSkill.EquippedSlot.Value;
+                    if (slotIndex < 0 || slotIndex > 2) continue;
+
+                    SkillData visual = System.Array.Find(
+                        masterData,
+                        data => data != null && data.skillId == playerSkill.SkillId);
+
+                    if (visual != null)
+                    {
+                        SkillSlot.BroadcastSkillEquipped(slotIndex, visual, playerSkill);
+                    }
+                }
+            },
+            onError: error =>
+            {
+                _isLoadingEquippedSkills = false;
+                if (this != null)
+                {
+                    Debug.LogError($"[PlayerCombat] Failed to load equipped skills: {error.Message}");
+                }
+            });
+    }
+
+    private SkillData[] ResolveSkillMasterData()
+    {
+        if (_skillMasterData != null && _skillMasterData.Length > 0)
+            return _skillMasterData;
+
+        var hudManager = FindFirstObjectByType<HUDSkillManager>(FindObjectsInactive.Include);
+        if (hudManager != null && hudManager.allSkillsInGame != null && hudManager.allSkillsInGame.Length > 0)
+        {
+            _skillMasterData = hudManager.allSkillsInGame;
+            return _skillMasterData;
+        }
+
+        var panelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+        if (panelManager != null && panelManager.allSkillsInGame != null && panelManager.allSkillsInGame.Length > 0)
+        {
+            _skillMasterData = panelManager.allSkillsInGame;
+            return _skillMasterData;
+        }
+
+        _skillMasterData = Resources.LoadAll<SkillData>(string.Empty);
+        return _skillMasterData;
     }
 
     private static void ConfigureLegacySkill(GameObject skillObj, float damage, Vector3? targetPosition)

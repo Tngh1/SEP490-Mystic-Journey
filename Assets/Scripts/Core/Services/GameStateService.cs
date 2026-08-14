@@ -1,4 +1,5 @@
 using UnityEngine;
+using MysticJourney.Core.Utilities;
 
 namespace MysticJourney.Core.Services
 {
@@ -21,6 +22,7 @@ namespace MysticJourney.Core.Services
         public string AvatarUrl { get; set; }
 
         public string CurrentMapName { get; set; }
+        public int HighestUnlockedMapId { get; set; } = MapProgressionRules.FirstMapId;
         public Vector3 LastPosition { get; set; }
         public float CorruptionLevel { get; set; }
 
@@ -34,6 +36,7 @@ namespace MysticJourney.Core.Services
             EquippedSkinId = 0;
             AvatarUrl = null;
             CurrentMapName = "ElfForest";
+            HighestUnlockedMapId = MapProgressionRules.FirstMapId;
             LastPosition = new Vector3(11.9f, 17.8f, 0f);
             CorruptionLevel = 0f;
         }
@@ -47,6 +50,9 @@ namespace MysticJourney.Core.Services
             EquippedSkinId = PlayerPrefs.GetInt("mj_equipped_skin_id", 0);
             AvatarUrl = PlayerPrefs.GetString("mj_avatar_url", string.Empty);
             CurrentMapName = PlayerPrefs.GetString("mj_last_map", "ElfForest");
+            HighestUnlockedMapId = Mathf.Max(
+                MapProgressionRules.FirstMapId,
+                MapProgressionRules.GetMapId(CurrentMapName));
             LastPosition = new Vector3(
                 PlayerPrefs.GetFloat("mj_pos_x", 11.9f),
                 PlayerPrefs.GetFloat("mj_pos_y", 17.8f),

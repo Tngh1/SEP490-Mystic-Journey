@@ -3,6 +3,7 @@ using MysticJourney.API.Core;
 using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Services;
+using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
@@ -34,6 +35,7 @@ namespace MysticJourney.API.Endpoints
                     if (state != null)
                     {
                         state.PlayerProfileId = response.PlayerProfileId;
+                        ApplyMapProgression(state, response);
                         var currentMap = state.CurrentMapName;
                         var responseMap = response?.Position?.MapName;
                         var mapChangedWhileWaiting = !MapNamesEqual(currentMap, mapAtRequest);
@@ -147,6 +149,24 @@ namespace MysticJourney.API.Endpoints
                 response => onSuccess?.Invoke(response),
 
                 onError, requiresAuth: true);
+        }
+
+        private static void ApplyMapProgression(GameStateService state, WorldStateResponse response)
+        {
+            int highestUnlocked = Mathf.Max(
+                MapProgressionRules.FirstMapId,
+                state.HighestUnlockedMapId);
+            if (response?.Maps != null)
+            {
+                foreach (var map in response.Maps)
+                {
+                    if (map == null || !map.IsUnlocked) continue;
+                    highestUnlocked = Mathf.Max(highestUnlocked, MapProgressionRules.GetMapId(map.MapName));
+                }
+            }
+
+            state.HighestUnlockedMapId = highestUnlocked;
+            PlayerPresence.RefreshLocal();
         }
 
         private static bool MapNamesEqual(string left, string right)

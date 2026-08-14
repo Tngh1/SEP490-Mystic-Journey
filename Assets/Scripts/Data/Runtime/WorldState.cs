@@ -58,6 +58,12 @@ public static class WorldState
         set => _service.CurrentMapName = value;
     }
 
+    public static int HighestUnlockedMapId
+    {
+        get => _service.HighestUnlockedMapId;
+        set => _service.HighestUnlockedMapId = value;
+    }
+
     public static Vector3 LastPosition
     {
         get => _service.LastPosition;

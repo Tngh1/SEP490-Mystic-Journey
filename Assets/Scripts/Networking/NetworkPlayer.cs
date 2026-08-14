@@ -36,7 +36,9 @@ public class NetworkPlayer : NetworkBehaviour
     [SerializeField] private Vector3 nameplateOffset = new Vector3(0f, 0.72f, 0f);
     [SerializeField] private int nameplateSortingOrder = 60;
     [SerializeField] private TMP_FontAsset nameplateFont;
-    [SerializeField, Min(1f)] private float nameplateFontSize = 80f;
+    [SerializeField, Min(1f)] private float nameplateFontSize = 120f;
+    [SerializeField, Min(0.0001f)] private float nameplateWorldScale = 0.003f;
+    [SerializeField, Range(0f, 1f)] private float nameplateOutlineWidth = 0.06f;
     [SerializeField] private Color localNameplateColor = new Color(1f, 0.82f, 0.18f, 1f);
     [SerializeField] private Color remoteNameplateColor = Color.white;
 
@@ -557,6 +559,12 @@ public class NetworkPlayer : NetworkBehaviour
             Local = this;
             name = "NetworkPlayer_Local";
 
+            // Configure skills only after this dungeon avatar owns local input. This
+            // keeps combat independent from SkillPanel.OnEnable, so the player can cast
+            // immediately without opening the panel once.
+            var localCombat = GetComponent<PlayerCombat>();
+            if (localCombat != null) localCombat.LoadEquippedSkills();
+
             var hud = FindFirstObjectByType<PlayerHUDController>(FindObjectsInactive.Include);
             if (hud != null)
             {
@@ -872,16 +880,17 @@ public class NetworkPlayer : NetworkBehaviour
         _nameplateText.alignment = TextAlignmentOptions.Center;
         _nameplateText.textWrappingMode = TextWrappingModes.NoWrap;
         _nameplateText.overflowMode = TextOverflowModes.Overflow;
+        _nameplateText.richText = false;
+        _nameplateText.enableAutoSizing = false;
+        _nameplateText.extraPadding = true;
         _nameplateText.fontSize = nameplateFontSize;
-        _nameplateText.outlineWidth = 0.18f;
-        _nameplateText.outlineColor = Color.black;
         _nameplateText.raycastTarget = false;
 
         ApplyNameplateStyle();
 
         RectTransform textRect = textObject.GetComponent<RectTransform>();
         textRect.sizeDelta = new Vector2(900f, 180f);
-        textRect.localScale = new Vector3(0.002f, 0.002f, 1f);
+        textRect.localScale = new Vector3(nameplateWorldScale, nameplateWorldScale, 1f);
     }
 
     private void RefreshNameplate()
@@ -902,7 +911,13 @@ public class NetworkPlayer : NetworkBehaviour
         if (nameplateFont != null)
         {
             _nameplateText.font = nameplateFont;
+            _nameplateText.fontSharedMaterial = nameplateFont.material;
         }
+
+        // Assign outline after the font material because changing the material can
+        // restore its default face/outline values.
+        _nameplateText.outlineWidth = nameplateOutlineWidth;
+        _nameplateText.outlineColor = Color.black;
 
         bool isLocalPlayer = Object != null && Object.HasInputAuthority;
         _nameplateText.color = isLocalPlayer ? localNameplateColor : remoteNameplateColor;

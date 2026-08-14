@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Fusion;
 using MysticJourney.API.Models.Response;
+using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 /// <summary>
@@ -66,12 +67,14 @@ public class PlayerPresence : NetworkBehaviour
     [Networked] public NetworkString<_32> DisplayName { get; set; }
     [Networked] public int PlayerClass { get; set; }
     [Networked] public int Level { get; set; }
+    [Networked] public int HighestUnlockedMapId { get; set; }
 
     public override void Spawned()
     {
         if (HasStateAuthority)
         {
             Local = this;
+            WorldRuntimeEvents.MapCompleted += HandleMapCompleted;
         }
 
         // Data is set by the spawning client via the Spawn() initializer (so it is
@@ -82,6 +85,8 @@ public class PlayerPresence : NetworkBehaviour
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        if (Local == this)
+            WorldRuntimeEvents.MapCompleted -= HandleMapCompleted;
         Unregister();
         if (Local == this) Local = null;
     }
@@ -114,6 +119,9 @@ public class PlayerPresence : NetworkBehaviour
         DisplayName = WorldState.PlayerName ?? "Player";
         PlayerClass = (int)parsed;
         Level = Mathf.Max(1, WorldState.PlayerLevel);
+        HighestUnlockedMapId = Mathf.Max(
+            MapProgressionRules.FirstMapId,
+            WorldState.HighestUnlockedMapId);
 
         // Register explicitly rather than relying on OnProfileIdChanged: a presence that
         // spawned before the profile id was known must land in the registry the moment it
@@ -123,6 +131,15 @@ public class PlayerPresence : NetworkBehaviour
 
     /// <summary>Re-publish the local presence's identity. Safe no-op when offline.</summary>
     public static void RefreshLocal() => Local?.ApplyWorldState();
+
+    private void HandleMapCompleted(int claimedQuestId)
+    {
+        int unlockedMapId = MapProgressionRules.GetMapUnlockedByQuest(claimedQuestId);
+        if (unlockedMapId <= WorldState.HighestUnlockedMapId) return;
+
+        WorldState.HighestUnlockedMapId = unlockedMapId;
+        HighestUnlockedMapId = unlockedMapId;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Registry

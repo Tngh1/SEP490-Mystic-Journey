@@ -96,6 +96,19 @@ namespace MysticJourney.Tests.PlayMode
             Assert.That(PartyRule("CanJoin", 0, 4, false), Is.False);
         }
 
+        [Test]
+        public void PartyInviteRequiresInviteeToHaveUnlockedDungeonMap()
+        {
+            const string rules = "MysticJourney.Core.Utilities.MapProgressionRules";
+
+            Assert.That((int)InvokeStatic(rules, "GetMapId", "AutumnPumpkin"), Is.EqualTo(2));
+            Assert.That((int)InvokeStatic(rules, "GetMapId", "Frozen Mountain"), Is.EqualTo(3));
+            Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 2, 1), Is.False);
+            Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 2, 2), Is.True);
+            Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 1, 1), Is.True);
+            Assert.That((int)InvokeStatic(rules, "GetMapUnlockedByQuest", 20), Is.EqualTo(3));
+        }
+
         [UnityTest]
         public IEnumerator BR078_SceneDialogueFixtureAdvancesOnlyByConfiguredChoice()
         {
