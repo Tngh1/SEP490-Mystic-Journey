@@ -81,12 +81,6 @@ public class GachaUIManager : MonoBehaviour
     private int _detailPage = 1;
     private int _detailTotalPages = 1;
 
-    // 👇 KHU VỰC MỚI BỔ SUNG: WARNING POPUP
-    [Header("--- Warning Popup ---")]
-    public GameObject warningPopupPanel;
-    public TextMeshProUGUI warningMessageText;
-    public Button btnCloseWarning;
-
     [Header("--- Gacha Video Animation ---")]
     public VideoPlayer videoPlayer;
     public RawImage videoRawImage;
@@ -109,8 +103,21 @@ public class GachaUIManager : MonoBehaviour
 
     private void Awake()
     {
+        DisableDecorativeRaycasts();
         SetupHoverEffects();
     }
+
+    private void DisableDecorativeRaycasts()
+    {
+        Transform decorationRoot = transform.Find("Deco");
+        if (decorationRoot == null) return;
+
+        foreach (Graphic graphic in decorationRoot.GetComponentsInChildren<Graphic>(true))
+        {
+            graphic.raycastTarget = false;
+        }
+    }
+
 
     /// <summary>
     /// Gắn hiệu ứng phóng to khi rê chuột cho toàn bộ nút của GachaPanel,
@@ -132,8 +139,6 @@ public class GachaUIManager : MonoBehaviour
         AddHoverEffect(btnCloseHistory);
         AddHoverEffect(btnPrevPage);
         AddHoverEffect(btnNextPage);
-
-        AddHoverEffect(btnCloseWarning);
     }
 
     private static void AddHoverEffect(Button btn)
@@ -232,19 +237,10 @@ public class GachaUIManager : MonoBehaviour
             btnDetailNextPage.onClick.AddListener(() => ChangeDetailPage(1));
         }
 
-        // Bật lắng nghe nút đóng cảnh báo
-        if (btnCloseWarning != null) 
-        {
-            btnCloseWarning.onClick.RemoveAllListeners();
-            btnCloseWarning.onClick.AddListener(CloseWarningPopup);
-            btnCloseWarning.transform.SetAsLastSibling();
-        }
-
         // Ẩn tất cả các bảng phụ
         if (resultPopupPanel != null) resultPopupPanel.SetActive(false);
         if (detailPanel != null) detailPanel.SetActive(false);
         if (historyPanel != null) historyPanel.SetActive(false);
-        if (warningPopupPanel != null) warningPopupPanel.SetActive(false); // Ẩn cảnh báo
 
         LoadBannerData(currentBannerId);
         LoadUserTicketCount();
@@ -254,7 +250,7 @@ public class GachaUIManager : MonoBehaviour
     {
         if (btnCloseMain != null) btnCloseMain.onClick.RemoveAllListeners();
         if (btnPull1 != null) btnPull1.onClick.RemoveAllListeners();
-        btnPull10.onClick.RemoveAllListeners();
+        if (btnPull10 != null) btnPull10.onClick.RemoveAllListeners();
         if (btnCloseResult != null) btnCloseResult.onClick.RemoveAllListeners();
         if (btnOpenDetail != null) btnOpenDetail.onClick.RemoveAllListeners();
         if (btnCloseDetail != null) btnCloseDetail.onClick.RemoveAllListeners();
@@ -264,7 +260,6 @@ public class GachaUIManager : MonoBehaviour
         if (btnNextPage != null) btnNextPage.onClick.RemoveAllListeners();
         if (btnDetailPrevPage != null) btnDetailPrevPage.onClick.RemoveAllListeners();
         if (btnDetailNextPage != null) btnDetailNextPage.onClick.RemoveAllListeners();
-        if (btnCloseWarning != null) btnCloseWarning.onClick.RemoveAllListeners();
         if (btnSkipVideo != null) btnSkipVideo.onClick.RemoveAllListeners();
     }
 
@@ -1012,19 +1007,12 @@ public class GachaUIManager : MonoBehaviour
             btnSkipVideo.transform.SetAsLastSibling();
         }
     }
-
-    // 👇 CÁC HÀM XỬ LÝ WARNING POPUP
     private void ShowWarningPopup(string message)
     {
-        if (warningPopupPanel == null) return;
-        if (warningMessageText != null) warningMessageText.text = message;
-        warningPopupPanel.SetActive(true);
+        UIPopupBox.Notify(transform, "Gacha", message);
     }
 
-    private void CloseWarningPopup()
-    {
-        if (warningPopupPanel != null) warningPopupPanel.SetActive(false);
-    }
+
 
     private void ShowResultPopup(MultiPullResultResponse result)
     {

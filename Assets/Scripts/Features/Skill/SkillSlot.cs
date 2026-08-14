@@ -270,9 +270,25 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
             return;
         }
 
-        if (eventData == null || eventData.pointerDrag == null) return;
+        SkillItem droppedSkill = null;
+        if (eventData != null && eventData.pointerDrag != null)
+        {
+            droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>() ??
+                           eventData.pointerDrag.GetComponentInParent<SkillItem>();
+        }
 
-        SkillItem droppedSkill = eventData.pointerDrag.GetComponent<SkillItem>();
+        // A ScrollRect can retain a child/scroll object as pointerDrag after the
+        // gesture changes into a skill drag. Use the explicit payload as fallback.
+        if (droppedSkill == null)
+        {
+            droppedSkill = SkillItem.CurrentDraggedItem;
+        }
+
+        if (droppedSkill == null)
+        {
+            Debug.LogWarning($"[SkillSlot] Drop on slot {slotIndex} did not contain a SkillItem payload.");
+            return;
+        }
         if (droppedSkill != null && droppedSkill.serverData != null)
         {
             // --- FIX: CHỐNG TRANG BỊ TRÙNG LẶP KỸ NĂNG ---
@@ -292,7 +308,8 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
             var requiredClass = droppedSkill.visualData != null ? droppedSkill.visualData.classRequirement : "";
 
             bool isAllClass = string.IsNullOrWhiteSpace(requiredClass) || requiredClass.Equals("All", System.StringComparison.OrdinalIgnoreCase);
-            bool isMyClass = !string.IsNullOrWhiteSpace(playerClass) && requiredClass.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
+            bool isMyClass = string.IsNullOrWhiteSpace(playerClass) ||
+                             requiredClass.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
             if (!isAllClass && !isMyClass)
             {
                 Debug.LogWarning($"Cannot equip: skill requires class {requiredClass}.");

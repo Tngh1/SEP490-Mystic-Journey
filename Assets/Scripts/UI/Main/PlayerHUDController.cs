@@ -584,7 +584,7 @@ public class PlayerHUDController : MonoBehaviour
 
         if (levelText != null)
         {
-            levelText.text = "Lv " + profile.Level;
+            levelText.text = profile.Level.ToString();
         }
 
         // Apply level-gating for buttons

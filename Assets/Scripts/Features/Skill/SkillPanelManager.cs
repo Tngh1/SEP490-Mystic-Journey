@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using MysticJourney.Core.Services;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
@@ -11,9 +12,77 @@ using UnityEditor;
 
 public class SkillPanelManager : MonoBehaviour
 {
+    private void Awake()
+    {
+        ConfigureSkillListLayout();
+    }
+
+    private void ConfigureSkillListLayout()
+    {
+        if (contentArea == null)
+        {
+            contentArea = transform.Find("Background/bg/SkillList/Viewport/Content");
+        }
+
+        if (skillScrollRect == null && contentArea != null)
+        {
+            skillScrollRect = contentArea.GetComponentInParent<ScrollRect>(true);
+        }
+
+        if (skillScrollRect != null)
+        {
+            skillScrollRect.content = contentArea as RectTransform;
+            skillScrollRect.horizontal = false;
+            skillScrollRect.vertical = true;
+            skillScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+        }
+
+        var contentRect = contentArea as RectTransform;
+        if (contentRect == null) return;
+
+        contentRect.anchorMin = new Vector2(0f, 1f);
+        contentRect.anchorMax = new Vector2(1f, 1f);
+        contentRect.pivot = new Vector2(0.5f, 1f);
+        contentRect.anchoredPosition = Vector2.zero;
+
+        var grid = contentArea.GetComponent<GridLayoutGroup>();
+        if (grid != null)
+        {
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 3;
+        }
+
+        var fitter = contentArea.GetComponent<ContentSizeFitter>();
+        if (fitter == null) fitter = contentArea.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+    }
+
+private void FinalizeSkillListLayout()
+    {
+        var contentRect = contentArea as RectTransform;
+        if (contentRect != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+        }
+
+        Canvas.ForceUpdateCanvases();
+        if (skillScrollRect != null)
+        {
+            skillScrollRect.StopMovement();
+            skillScrollRect.verticalNormalizedPosition = 1f;
+
+            if (contentRect != null)
+            {
+                contentRect.anchoredPosition = new Vector2(contentRect.anchoredPosition.x, 0f);
+            }
+        }
+    }
+
     [Header("UI References")]
     public GameObject skillItemPrefab;
     public Transform contentArea;
+    [SerializeField] private ScrollRect skillScrollRect;
 
     [Header("Master Data")]
     // Kéo toàn bộ file SkillData từ thư mục ScriptableObjects vào mảng này
@@ -56,6 +125,7 @@ public class SkillPanelManager : MonoBehaviour
 
     private void OnEnable()
     {
+        ConfigureSkillListLayout();
         // --- BỎ CÁC Ô TRANG BỊ TRONG LIST VÀ CHỈ DÙNG HUD ---
         var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         var hudSlots = new List<SkillSlot>();
@@ -92,13 +162,19 @@ public class SkillPanelManager : MonoBehaviour
         
         // Tự động gọi API mỗi khi Panel này được SetActive(true)
         RefreshSkillList();
-        RefreshStoneCount();
     }
 
     public void RefreshStoneCount()
     {
         EnsureStoneCountUI();
-        InventoryApi.Instance.GetInventory(
+        var inventoryApi = InventoryApi.Instance;
+        if (inventoryApi == null)
+        {
+            Debug.LogWarning("[SkillPanelManager] Inventory API is unavailable while the application is closing.");
+            return;
+        }
+
+        inventoryApi.GetInventory(
             onSuccess: (summary) =>
             {
                 int stones = 0;
@@ -135,12 +211,20 @@ public class SkillPanelManager : MonoBehaviour
 
     public void RefreshSkillList()
     {
+        ConfigureSkillListLayout();
         RefreshStoneCount();
-        // Dọn dẹp UI cũ được dời vào trong PopulateUI để tránh lỗi bất đồng bộ
-        SkillApi.Instance.GetMySkills(
+
+        var skillApi = SkillApi.Instance;
+        if (skillApi == null)
+        {
+            Debug.LogWarning("[SkillPanelManager] Skill API is unavailable while the application is closing.");
+            return;
+        }
+
+        skillApi.GetMySkills(
             onSuccess: (response) =>
             {
-                PopulateUI(response.Skills);
+                PopulateUI(response != null ? response.Skills : null);
             },
             onError: (error) =>
             {
@@ -177,7 +261,8 @@ public class SkillPanelManager : MonoBehaviour
 
             // 3. TÍNH NĂNG LỌC: Bỏ qua các kỹ năng không thuộc Class của mình (hoặc không phải All)
             bool isAllClass = string.IsNullOrWhiteSpace(data.classRequirement) || data.classRequirement.Equals("All", System.StringComparison.OrdinalIgnoreCase);
-            bool isMyClass = !string.IsNullOrWhiteSpace(playerClass) && data.classRequirement.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
+            bool isMyClass = string.IsNullOrWhiteSpace(playerClass) ||
+                             data.classRequirement.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
 
             if (!isAllClass && !isMyClass)
                 continue; // ⬅️ Nếu không hợp hệ, lập tức bỏ qua, không hiển thị lên UI
@@ -206,8 +291,11 @@ public class SkillPanelManager : MonoBehaviour
         {
             GameObject newSkillObj = Instantiate(skillItemPrefab, contentArea);
             SkillItem itemScript = newSkillObj.GetComponent<SkillItem>();
-            itemScript.Setup(item.visual, item.server);
+            if (itemScript != null) itemScript.Setup(item.visual, item.server);
         }
+
+        FinalizeSkillListLayout();
+
 
         // =========================================================
         // (Phần code xử lý skillSlots của bạn ở bên dưới GIỮ NGUYÊN)

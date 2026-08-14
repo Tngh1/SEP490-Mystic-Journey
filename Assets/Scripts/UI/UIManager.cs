@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class UIManager : MonoBehaviour
 {
@@ -61,6 +62,27 @@ public class UIManager : MonoBehaviour
 
         // Không cần tải skill ở đây nữa vì đã chuyển sang PlayerCombat.Start()
     }
+
+    private void Update()
+    {
+        var keyboard = Keyboard.current;
+        if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+            return;
+
+        OpenSettingsFromEscape();
+    }
+
+    private void OpenSettingsFromEscape()
+    {
+        if (settingPanel == null)
+            settingPanel = BindPanel(null, "GameSettingPanel");
+
+        if (settingPanel == null || settingPanel.activeInHierarchy)
+            return;
+
+        ShowPanel(settingPanel);
+    }
+
 
     /// <summary>
     /// True while any tracked panel is on screen. Read by <see cref="GameplayInputProvider"/>
@@ -384,6 +406,7 @@ public class UIManager : MonoBehaviour
         dailyPanel = BindPanel(dailyPanel, "DailyPanel") ?? BindPanel(dailyPanel, "Login30daysGiftPanel");
         gachaPanel = BindPanel(gachaPanel, "GachaPanel");
         mapPanel = BindPanel(mapPanel, "MapPanel");
+        PlayerProfilePanel = BindPanel(PlayerProfilePanel, "PlayerProfilePanel");
         questPanel = BindPanel(questPanel, "QuestPanel");
         chatPanel = BindPanel(chatPanel, "ChatPanel");
         dungeonPanel = BindPanel(dungeonPanel, "TeamPanel");

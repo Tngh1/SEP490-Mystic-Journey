@@ -108,6 +108,7 @@ namespace UI.Friend
         private void Awake()
         {
             BindCloseButtons();
+            BindProfileActions();
             AddHoverEffects();
         }
 
@@ -139,12 +140,6 @@ namespace UI.Friend
             if (achievementListPanel != null)
                 achievementListPanel.SetActive(false);
 
-            if (editAvatarButton != null)
-                editAvatarButton.onClick.AddListener(OpenAvatarSelection);
-
-            if (editNameButton != null)
-                editNameButton.onClick.AddListener(OpenNameChangePanel);
-
             if (nameChangeSaveButton != null)
                 nameChangeSaveButton.onClick.AddListener(OnNameChangeSaveClicked);
 
@@ -153,6 +148,31 @@ namespace UI.Friend
 
             if (nameChangePanel != null)
                 nameChangePanel.SetActive(false);
+        }
+
+        private void BindProfileActions()
+        {
+            // Bind in Awake so the first click works immediately after this initially
+            // inactive panel is enabled. RemoveListener keeps the binding idempotent.
+            if (editAvatarButton == null)
+                editAvatarButton = transform.Find("LeftPanel/EditAvatarButton")?.GetComponent<Button>();
+            if (avatarSelectionPanel == null)
+                avatarSelectionPanel = GetComponentInChildren<UIAvatarSelectionPanel>(true);
+            if (editNameButton == null)
+                editNameButton = GetComponentsInChildren<Button>(true)
+                    .FirstOrDefault(button => button.name == "ChangeNameButton");
+
+            if (editAvatarButton != null)
+            {
+                editAvatarButton.onClick.RemoveListener(OpenAvatarSelection);
+                editAvatarButton.onClick.AddListener(OpenAvatarSelection);
+            }
+
+            if (editNameButton != null)
+            {
+                editNameButton.onClick.RemoveListener(OpenNameChangePanel);
+                editNameButton.onClick.AddListener(OpenNameChangePanel);
+            }
         }
 
         public void ShowMyProfile()
@@ -193,7 +213,7 @@ namespace UI.Friend
                 }
                 else
                 {
-                    if (friendsCountText != null) friendsCountText.text = "Friends: N/A";
+                    if (friendsCountText != null) friendsCountText.text = "N/A";
                     if (achievementSummaryText != null) achievementSummaryText.text = "Achievements: private";
                     ClearAchievementDetail();
                 }
@@ -226,8 +246,10 @@ namespace UI.Friend
             string className = string.IsNullOrEmpty(profile.Class) ? "Knight" : profile.Class;
             if (classText != null) classText.text = className;
             ApplyClassArt(className);
-            if (guildText != null) guildText.text = $"Guild: {profile.Guild}";
-            if (titleText != null) titleText.text = $"Title: {profile.Title}";
+            if (guildText != null)
+                guildText.text = string.IsNullOrWhiteSpace(profile.Guild) ? "No Guild" : profile.Guild;
+            if (titleText != null)
+                titleText.text = string.IsNullOrWhiteSpace(profile.Title) ? "No Title" : profile.Title;
 
             ApplyProfileAvatar(profile.AvatarUrl);
 
@@ -336,10 +358,20 @@ namespace UI.Friend
 
         private void OpenAvatarSelection()
         {
-            if (_isCurrentPlayerProfile && avatarSelectionPanel != null && _currentProfile != null)
+            if (!_isCurrentPlayerProfile)
+                return;
+
+            if (avatarSelectionPanel == null)
+                avatarSelectionPanel = GetComponentInChildren<UIAvatarSelectionPanel>(true);
+
+            if (avatarSelectionPanel != null && _currentProfile != null)
             {
                 int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
                 avatarSelectionPanel.OpenPanel(myProfileId, _currentProfile.AvatarUrl, this);
+            }
+            else
+            {
+                Debug.LogWarning("[UIFriendProfilePanel] AvatarSelectionPanel or current profile is missing.");
             }
         }
 
@@ -359,17 +391,17 @@ namespace UI.Friend
         private void LoadFriendsCount()
         {
             if (friendsCountText != null)
-                friendsCountText.text = "Friends: ...";
+                friendsCountText.text = "...";
 
             FriendApi.GetFriendList(friends =>
             {
                 if (friendsCountText != null)
-                    friendsCountText.text = $"Friends: {friends?.Count ?? 0}";
+                    friendsCountText.text = (friends?.Count ?? 0).ToString();
             }, err =>
             {
                 Debug.LogWarning($"Failed to load friends count: {err.Message}");
                 if (friendsCountText != null)
-                    friendsCountText.text = "Friends: N/A";
+                    friendsCountText.text = "N/A";
             });
         }
 

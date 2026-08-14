@@ -3,9 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-
 public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public static SkillItem CurrentDraggedItem { get; private set; }
     [Header("Data")]
     public SkillData visualData; // Hình ảnh (từ ScriptableObject)
     public PlayerSkillResponse serverData; // Dữ liệu thật (từ API)
@@ -25,12 +25,15 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
     private SkillPopup popupManager;
     private GameObject dragVisual;
     private CanvasGroup canvasGroup;
+    private ScrollRect parentScrollRect;
+    private bool isScrollingList;
 
-    void Start()
+    private void Awake()
     {
         popupManager = FindFirstObjectByType<SkillPopup>(FindObjectsInactive.Include);
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        parentScrollRect = GetComponentInParent<ScrollRect>();
     }
 
     // Hàm này sẽ được gọi bởi SkillPanelManager khi nhận dữ liệu từ API
@@ -177,48 +180,108 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         }
     }
 
-    public void OnBeginDrag(PointerEventData eventData)
+public void OnBeginDrag(PointerEventData eventData)
     {
+        // A vertical gesture starts by scrolling. If the pointer later leaves the
+        // viewport, OnDrag switches to skill dragging so HUD slots remain reachable.
+        if (ShouldScrollList(eventData))
+        {
+            isScrollingList = true;
+            parentScrollRect.OnBeginDrag(eventData);
+            return;
+        }
+
+        BeginSkillDrag(eventData);
+    }
+
+public void OnDrag(PointerEventData eventData)
+    {
+        if (isScrollingList)
+        {
+            bool leftViewport = serverData != null &&
+                !RectTransformUtility.RectangleContainsScreenPoint(
+                    parentScrollRect.viewport,
+                    eventData.position,
+                    eventData.pressEventCamera);
+
+            if (!leftViewport)
+            {
+                parentScrollRect.OnDrag(eventData);
+                return;
+            }
+
+            parentScrollRect.OnEndDrag(eventData);
+            parentScrollRect.StopMovement();
+            isScrollingList = false;
+            BeginSkillDrag(eventData);
+        }
+
+        if (dragVisual != null)
+        {
+            dragVisual.transform.position = eventData.position;
+        }
+    }
+
+public void OnEndDrag(PointerEventData eventData)
+    {
+        if (isScrollingList)
+        {
+            parentScrollRect.OnEndDrag(eventData);
+            isScrollingList = false;
+            return;
+        }
+
         if (serverData == null) return;
+
+        if (dragVisual != null) Destroy(dragVisual);
+        dragVisual = null;
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+        if (CurrentDraggedItem == this) CurrentDraggedItem = null;
+    }
+
+    private bool ShouldScrollList(PointerEventData eventData)
+    {
+        if (parentScrollRect == null || !parentScrollRect.vertical) return false;
+        if (parentScrollRect.content == null || parentScrollRect.viewport == null) return false;
+        if (parentScrollRect.content.rect.height <= parentScrollRect.viewport.rect.height) return false;
+
+        return Mathf.Abs(eventData.delta.y) >= Mathf.Abs(eventData.delta.x);
+    }
+
+private void OnDisable()
+    {
+        if (dragVisual != null) Destroy(dragVisual);
+        dragVisual = null;
+        isScrollingList = false;
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+        if (CurrentDraggedItem == this) CurrentDraggedItem = null;
+    }
+
+
+private void BeginSkillDrag(PointerEventData eventData)
+    {
+        if (serverData == null || dragVisual != null) return;
 
         var canvas = GetComponentInParent<Canvas>();
         if (canvas == null) return;
 
-        // Drag a visual clone. The real card stays under its LayoutGroup/Mask, so a drop
-        // outside a slot can never leave it at an off-screen anchored position.
+        // Keep the real card inside the GridLayoutGroup. Only a visual clone follows
+        // the pointer, so cancelling a drop cannot break the skill list.
         dragVisual = Instantiate(gameObject, canvas.rootCanvas.transform, true);
         dragVisual.name = name + "_DragVisual";
+
         var cloneItem = dragVisual.GetComponent<SkillItem>();
         if (cloneItem != null) cloneItem.enabled = false;
+
         var cloneGroup = dragVisual.GetComponent<CanvasGroup>() ?? dragVisual.AddComponent<CanvasGroup>();
         cloneGroup.alpha = 0.85f;
         cloneGroup.blocksRaycasts = false;
         cloneGroup.interactable = false;
+
         dragVisual.transform.SetAsLastSibling();
         dragVisual.transform.position = eventData.position;
 
         if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
-    }
-
-    public void OnDrag(PointerEventData eventData)
-    {
-        if (serverData == null) return;
-        if (dragVisual != null)
-            dragVisual.transform.position = eventData.position;
-    }
-
-    public void OnEndDrag(PointerEventData eventData)
-    {
-        if (serverData == null) return;
-
-        if (dragVisual != null) Destroy(dragVisual);
-        dragVisual = null;
-        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
-    }
-    private void OnDisable()
-    {
-        if (dragVisual != null) Destroy(dragVisual);
-        dragVisual = null;
-        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+        CurrentDraggedItem = this;
     }
 }
