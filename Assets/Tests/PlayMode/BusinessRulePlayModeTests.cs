@@ -83,6 +83,9 @@ namespace MysticJourney.Tests.PlayMode
             Assert.That(PartyRule("CanKick", true, true, false), Is.True);
             Assert.That(PartyRule("CanKick", false, true, false), Is.False);
             Assert.That(PartyRule("CanStartDungeon", true, 0, 2, 2, 0), Is.True);
+            Assert.That(PartyRule("CanStartDungeon", true, 0, 2, 2, 3), Is.True,
+                "Unanswered invites are not members and must not lock a ready party.");
+            Assert.That(PartyRule("CanStartDungeon", true, 0, 2, 1, 0), Is.False);
             Assert.That(PartyRule("CanStartDungeon", false, 0, 2, 2, 0), Is.False);
         }
 

@@ -195,7 +195,7 @@ public static class PartyService
 
     /// <summary>
     /// Chỉ dành cho Host: Yêu cầu bắt đầu vào hầm ngục. PartyLobby sẽ kiểm tra điều kiện (≥2 người,
-    /// tất cả đã sẵn sàng, không còn lời mời chờ) và chuyển trạng thái State→Loading. Bước 5 gắn việc
+    /// tất cả thành viên hiện tại đã sẵn sàng) và chuyển trạng thái State→Loading. Bước 5 gắn việc
     /// load scene + gọi API Enter vào <see cref="PartyLobby.OnDungeonStartRequested"/>.
     /// </summary>
     public static void StartDungeon(int configId, string sceneName)
