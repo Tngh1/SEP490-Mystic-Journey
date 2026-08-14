@@ -23,6 +23,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private GameObject questSlotPrefab;
     private Transform rewardItemsContainer;
     private GameObject rewardSlotPrefab;
+    private GameObject skillRewardSlotPrefab;
+    private GameObject skillRewardSlotInstance;
+    private SkillPanelManager skillPanelManager;
     private GameObject rewardsContainer;
 
     private readonly List<PlayerQuestResponse> quests = new List<PlayerQuestResponse>();
@@ -310,6 +313,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             questSlotPrefab = questSlotPrefab != null ? questSlotPrefab : questPanelView.QuestSlotPrefab;
             rewardItemsContainer = rewardItemsContainer != null ? rewardItemsContainer : questPanelView.RewardItemsContainer;
             rewardSlotPrefab = rewardSlotPrefab != null ? rewardSlotPrefab : questPanelView.RewardSlotPrefab;
+            skillRewardSlotPrefab = skillRewardSlotPrefab != null ? skillRewardSlotPrefab : questPanelView.SkillRewardSlotPrefab;
             rewardsContainer = rewardsContainer != null ? rewardsContainer : questPanelView.RewardsContainer;
 
             detailTitle = detailTitle.IsValid ? detailTitle : new TextSlot(questPanelView.QuestTitleTMP, null);
@@ -349,6 +353,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
 
         EnsureRewardContentLayout();
+        BindSkillRewardAssets();
         EnsureQuestListContentLayout();
 
         if (paperPopup != null)
@@ -663,22 +668,32 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             for (var i = 0; i < rewardSlots.Count; i++)
                 rewardSlots[i].gameObject.SetActive(false);
-            return;
         }
 
+        var itemRewardIndex = 0;
+        RewardViewData? skillReward = null;
         for (var i = 0; i < rewards.Count; i++)
         {
-            var slot = GetOrCreateRewardSlot(i);
+            if (rewards[i].IsSkill)
+            {
+                skillReward = rewards[i];
+                continue;
+            }
+
+            var slot = GetOrCreateRewardSlot(itemRewardIndex);
             if (slot == null)
                 continue;
 
             slot.gameObject.SetActive(true);
-            slot.transform.SetSiblingIndex(i);
+            slot.transform.SetSiblingIndex(itemRewardIndex);
             slot.SetupCustom(rewards[i].Name, rewards[i].Amount, rewards[i].Sprite);
+            itemRewardIndex++;
         }
 
-        for (var i = rewards.Count; i < rewardSlots.Count; i++)
+        for (var i = itemRewardIndex; i < rewardSlots.Count; i++)
             rewardSlots[i].gameObject.SetActive(false);
+
+        RenderSkillReward(skillReward, itemRewardIndex);
     }
 
     private List<RewardViewData> BuildRewards(PlayerQuestResponse quest)
@@ -737,7 +752,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(quest.RewardSkillName) || quest.RewardSkillId.HasValue)
         {
             var skillName = RewardSkillLabel(quest);
-            rewards.Add(new RewardViewData(skillName, "Skill", GetRewardSkillSprite(quest, skillName)));
+            rewards.Add(new RewardViewData(
+                skillName,
+                "Skill",
+                GetRewardSkillSprite(quest, skillName),
+                isSkill: true,
+                skillId: quest.RewardSkillId));
         }
 
         return rewards;
@@ -958,6 +978,87 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         rewardSlots.Add(slot);
         return slot;
+    }
+
+    private void BindSkillRewardAssets()
+    {
+        if (skillPanelManager == null)
+            skillPanelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+
+        if (skillRewardSlotPrefab == null && skillPanelManager != null)
+            skillRewardSlotPrefab = skillPanelManager.skillItemPrefab;
+    }
+
+    private void RenderSkillReward(RewardViewData? reward, int siblingIndex)
+    {
+        if (!reward.HasValue)
+        {
+            if (skillRewardSlotInstance != null)
+                skillRewardSlotInstance.SetActive(false);
+            return;
+        }
+
+        BindSkillRewardAssets();
+        if (skillRewardSlotPrefab == null || rewardItemsContainer == null)
+        {
+            Debug.LogError("[MainQuestPanelRuntime] SkillItemPrefab is missing; cannot render quest skill reward.");
+            return;
+        }
+
+        if (skillRewardSlotInstance == null)
+        {
+            skillRewardSlotInstance = Instantiate(skillRewardSlotPrefab, rewardItemsContainer);
+            skillRewardSlotInstance.name = "RewardSkill";
+
+            var rect = skillRewardSlotInstance.GetComponent<RectTransform>();
+            if (rect != null)
+                rect.sizeDelta = new Vector2(80f, 80f);
+
+            var layout = skillRewardSlotInstance.GetComponent<LayoutElement>()
+                ?? skillRewardSlotInstance.AddComponent<LayoutElement>();
+            layout.minWidth = 80f;
+            layout.minHeight = 80f;
+            layout.preferredWidth = 80f;
+            layout.preferredHeight = 80f;
+        }
+
+        var data = reward.Value;
+        var skillData = FindRewardSkillData(data.SkillId, data.Name);
+        var skillItem = skillRewardSlotInstance.GetComponent<SkillItem>();
+        if (skillItem == null)
+        {
+            Debug.LogError("[MainQuestPanelRuntime] SkillItemPrefab is missing its SkillItem component.", skillRewardSlotInstance);
+            skillRewardSlotInstance.SetActive(false);
+            return;
+        }
+
+        skillRewardSlotInstance.SetActive(true);
+        skillRewardSlotInstance.transform.SetSiblingIndex(siblingIndex);
+        skillItem.enabled = true;
+        skillItem.SetupRewardPreview(skillData, data.Sprite);
+        skillItem.enabled = false;
+
+        var button = skillRewardSlotInstance.GetComponent<Button>();
+        if (button != null)
+            button.interactable = false;
+    }
+
+    private SkillData FindRewardSkillData(int? skillId, string skillName)
+    {
+        BindSkillRewardAssets();
+        var skills = skillPanelManager != null ? skillPanelManager.allSkillsInGame : null;
+        if (skills == null)
+            return null;
+
+        if (skillId.HasValue)
+        {
+            var byId = Array.Find(skills, skill => skill != null && skill.skillId == skillId.Value);
+            if (byId != null)
+                return byId;
+        }
+
+        return Array.Find(skills, skill =>
+            skill != null && string.Equals(skill.name, skillName, StringComparison.OrdinalIgnoreCase));
     }
 
     private void EnsureRewardContentLayout()
@@ -1348,16 +1449,20 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
     private readonly struct RewardViewData
     {
-        public RewardViewData(string name, string amount, Sprite sprite)
+        public RewardViewData(string name, string amount, Sprite sprite, bool isSkill = false, int? skillId = null)
         {
             Name = name;
             Amount = amount;
             Sprite = sprite;
+            IsSkill = isSkill;
+            SkillId = skillId;
         }
 
         public string Name { get; }
         public string Amount { get; }
         public Sprite Sprite { get; }
+        public bool IsSkill { get; }
+        public int? SkillId { get; }
     }
 
     private readonly struct TextSlot : IEquatable<TextSlot>
