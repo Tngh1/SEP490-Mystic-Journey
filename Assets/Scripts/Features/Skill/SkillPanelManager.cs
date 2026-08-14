@@ -214,6 +214,10 @@ private void FinalizeSkillListLayout()
         ConfigureSkillListLayout();
         RefreshStoneCount();
 
+        // The catalog is local game data. Render it first so an empty owned-skill
+        // response (or a temporary API failure) never leaves the panel blank.
+        PopulateUI(null);
+
         var skillApi = SkillApi.Instance;
         if (skillApi == null)
         {
@@ -228,7 +232,7 @@ private void FinalizeSkillListLayout()
             },
             onError: (error) =>
             {
-                Debug.LogError($"[UI] Lỗi tải kỹ năng: {error.Message}");
+                Debug.LogError($"[UI] Lỗi tải kỹ năng sở hữu: {error.Message}");
             }
         );
     }

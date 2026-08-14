@@ -17,7 +17,7 @@ namespace MysticJourney.Core.Utilities
             public const string ElfForest = "ElfForest";
             public const string FrozenMountain = "FrozenMountain";
             public const string Castle = "Castle";
-            public const string AbandonedCastle = "Abandoned  Castle";
+            public const string AbandonedCastle = "AbandonedCastle";
         }
 
         public static class UIElements

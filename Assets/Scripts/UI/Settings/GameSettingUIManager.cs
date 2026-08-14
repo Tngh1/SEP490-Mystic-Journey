@@ -55,7 +55,13 @@ namespace MysticJourney.Screen.GameSetting
         private SettingState savedState;
 
         // --- GRAPHICS DATA ---
-        private Resolution[] availableResolutions;
+        private static readonly Vector2Int[] SupportedResolutions =
+        {
+            new(1280, 720),
+            new(1600, 900),
+            new(1920, 1080)
+        };
+
         private List<Resolution> filteredResolutions;
 
         private void Start()
@@ -167,24 +173,66 @@ namespace MysticJourney.Screen.GameSetting
             // 2. Setup Resolutions
             if (resolutionDropdown != null)
             {
-                availableResolutions = UnityEngine.Screen.resolutions;
                 filteredResolutions = new List<Resolution>();
                 resolutionDropdown.ClearOptions();
 
-                List<string> options = new List<string>();
-
-                for (int i = 0; i < availableResolutions.Length; i++)
+                Resolution[] availableResolutions = UnityEngine.Screen.resolutions;
+                foreach (Vector2Int target in SupportedResolutions)
                 {
-                    Resolution res = availableResolutions[i];
-                    filteredResolutions.Add(res);
-
-                    int refreshRate = Mathf.RoundToInt((float)res.refreshRateRatio.value);
-                    options.Add($"{res.width} x {res.height} ({refreshRate}Hz)");
+                    if (TryGetBestSupportedResolution(availableResolutions, target, out Resolution resolution))
+                        filteredResolutions.Add(resolution);
                 }
+
+                // Some platforms do not expose Screen.resolutions. Unity can still apply
+                // these standard 16:9 window sizes, so keep the settings usable there.
+                if (filteredResolutions.Count == 0)
+                {
+                    foreach (Vector2Int target in SupportedResolutions)
+                    {
+                        filteredResolutions.Add(new Resolution
+                        {
+                            width = target.x,
+                            height = target.y
+                        });
+                    }
+                }
+
+                var options = new List<string>(filteredResolutions.Count);
+                foreach (Resolution resolution in filteredResolutions)
+                    options.Add($"{resolution.width} x {resolution.height}");
 
                 resolutionDropdown.AddOptions(options);
                 resolutionDropdown.RefreshShownValue();
             }
+        }
+
+        private static bool TryGetBestSupportedResolution(
+            Resolution[] availableResolutions,
+            Vector2Int target,
+            out Resolution bestMatch)
+        {
+            bestMatch = default;
+            bool found = false;
+            double bestRefreshRate = double.MinValue;
+
+            foreach (Resolution resolution in availableResolutions)
+            {
+                if (resolution.width != target.x || resolution.height != target.y)
+                    continue;
+
+                double refreshRate = resolution.refreshRateRatio.value;
+                if (double.IsNaN(refreshRate))
+                    refreshRate = 0d;
+
+                if (!found || refreshRate > bestRefreshRate)
+                {
+                    bestMatch = resolution;
+                    bestRefreshRate = refreshRate;
+                    found = true;
+                }
+            }
+
+            return found;
         }
 
         private void ApplyGraphicsSettings(int resolutionIndex, int displayModeIndex)
@@ -228,11 +276,24 @@ namespace MysticJourney.Screen.GameSetting
             if (sfxVolumeSlider != null) sfxVolumeSlider.value = settings.SfxVolume;
             if (muteAllToggle != null) muteAllToggle.SetState(settings.IsMuted);
 
-            if (displayModeDropdown != null) displayModeDropdown.value = settings.DisplayModeIndex;
-
-            if (resolutionDropdown != null)
+            if (!settings.HasSessionGraphicsSettings)
             {
-                // Kiểm tra index an toàn khi load
+                settings.InitializeSessionGraphics(
+                    GetCurrentDisplayModeIndex(),
+                    FindInitialResolutionIndex());
+            }
+
+            if (displayModeDropdown != null)
+            {
+                displayModeDropdown.value = Mathf.Clamp(
+                    settings.DisplayModeIndex,
+                    0,
+                    displayModeDropdown.options.Count - 1);
+                displayModeDropdown.RefreshShownValue();
+            }
+
+            if (resolutionDropdown != null && filteredResolutions != null && filteredResolutions.Count > 0)
+            {
                 int safeIndex = Mathf.Clamp(settings.ResolutionIndex, 0, filteredResolutions.Count - 1);
                 resolutionDropdown.value = safeIndex;
                 resolutionDropdown.RefreshShownValue();
@@ -244,6 +305,32 @@ namespace MysticJourney.Screen.GameSetting
 
             if (controlRebindManager != null)
                 controlRebindManager.LoadBindings();
+        }
+
+        private int FindInitialResolutionIndex()
+        {
+            if (filteredResolutions == null || filteredResolutions.Count == 0)
+                return 0;
+
+            int exactIndex = filteredResolutions.FindIndex(
+                resolution => resolution.width == UnityEngine.Screen.width &&
+                              resolution.height == UnityEngine.Screen.height);
+            if (exactIndex >= 0)
+                return exactIndex;
+
+            int fullHdIndex = filteredResolutions.FindIndex(
+                resolution => resolution.width == 1920 && resolution.height == 1080);
+            return fullHdIndex >= 0 ? fullHdIndex : filteredResolutions.Count - 1;
+        }
+
+        private static int GetCurrentDisplayModeIndex()
+        {
+            return UnityEngine.Screen.fullScreenMode switch
+            {
+                FullScreenMode.ExclusiveFullScreen => 0,
+                FullScreenMode.FullScreenWindow => 1,
+                _ => 2
+            };
         }
 
         // --- SỰ KIỆN MAIN PANEL ---
