@@ -112,6 +112,14 @@ namespace UI.Friend
             AddHoverEffects();
         }
 
+        private void OnEnable()
+        {
+            // UIManager toggles this panel instead of recreating it. Rebind on
+            // every enable so scene/prefab variants with missing Inspector
+            // references still get working edit controls.
+            BindProfileActions();
+        }
+
         private void Start()
         {
             if (viewAchievementListButton != null)
@@ -161,6 +169,17 @@ namespace UI.Friend
             if (editNameButton == null)
                 editNameButton = GetComponentsInChildren<Button>(true)
                     .FirstOrDefault(button => button.name == "ChangeNameButton");
+            if (nameChangePanel == null)
+                nameChangePanel = GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(t => t.name == "NameChangePanel" || t.name == "NameChangePopup")?.gameObject;
+            if (nameChangeInput == null)
+                nameChangeInput = GetComponentInChildren<TMP_InputField>(true);
+            if (nameChangeSaveButton == null)
+                nameChangeSaveButton = GetComponentsInChildren<Button>(true)
+                    .FirstOrDefault(button => button.name.IndexOf("Save", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (nameChangeCancelButton == null)
+                nameChangeCancelButton = GetComponentsInChildren<Button>(true)
+                    .FirstOrDefault(button => button.name.IndexOf("Cancel", StringComparison.OrdinalIgnoreCase) >= 0);
 
             if (editAvatarButton != null)
             {
@@ -281,10 +300,11 @@ namespace UI.Friend
             if (classIconImage != null && icon != null) classIconImage.sprite = icon;
         }
 
-        private void OpenNameChangePanel()
+        public void OpenNameChangePanel()
         {
             if (nameChangePanel != null)
             {
+                nameChangePanel.transform.SetAsLastSibling();
                 if (nameChangeInput != null) nameChangeInput.text = "";
                 if (nameChangeMessageText != null) nameChangeMessageText.text = "";
                 
@@ -356,22 +376,25 @@ namespace UI.Friend
             }
         }
 
-        private void OpenAvatarSelection()
+        public void OpenAvatarSelection()
         {
-            if (!_isCurrentPlayerProfile)
-                return;
-
             if (avatarSelectionPanel == null)
                 avatarSelectionPanel = GetComponentInChildren<UIAvatarSelectionPanel>(true);
 
-            if (avatarSelectionPanel != null && _currentProfile != null)
+            if (avatarSelectionPanel != null)
             {
                 int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
-                avatarSelectionPanel.OpenPanel(myProfileId, _currentProfile.AvatarUrl, this);
+                if (myProfileId <= 0)
+                    Debug.LogWarning("[UIFriendProfilePanel] Cannot edit avatar: local profile ID is not ready.");
+
+                string currentAvatar = _currentProfile != null && !string.IsNullOrEmpty(_currentProfile.AvatarUrl)
+                    ? _currentProfile.AvatarUrl
+                    : "avatar_1";
+                avatarSelectionPanel.OpenPanel(myProfileId, currentAvatar, this);
             }
             else
             {
-                Debug.LogWarning("[UIFriendProfilePanel] AvatarSelectionPanel or current profile is missing.");
+                Debug.LogWarning("[UIFriendProfilePanel] Cannot open avatar editor: AvatarSelectionPanel is missing.");
             }
         }
 
@@ -501,11 +524,12 @@ namespace UI.Friend
                     var capturedAchievement = achievement;
                     var capturedOwnedAchievement = owned;
                     button.onClick.RemoveAllListeners();
-                    button.interactable = isOwned;
-                    if (isOwned)
-                    {
-                        button.onClick.AddListener(() => SelectAchievement(capturedAchievement, capturedOwnedAchievement));
-                    }
+                    // Achievement rewards are useful before unlock as well as
+                    // after unlock, so every catalog row must open its detail.
+                    // The owned record is still passed through to render the
+                    // locked/unlocked state.
+                    button.interactable = true;
+                    button.onClick.AddListener(() => SelectAchievement(capturedAchievement, capturedOwnedAchievement));
                 }
             }
 

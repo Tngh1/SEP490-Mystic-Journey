@@ -51,6 +51,30 @@ namespace UI.Friend
             }
         }
 
+        private void OnEnable()
+        {
+            // This panel is toggled repeatedly by the profile panel. Keep the
+            // close/save actions valid even when a scene variant omitted a
+            // serialized reference.
+            if (closeButton == null)
+                closeButton = GetComponentsInChildren<Button>(true)
+                    [System.Array.FindIndex(GetComponentsInChildren<Button>(true), b => b.name.IndexOf("Close", System.StringComparison.OrdinalIgnoreCase) >= 0)];
+            if (saveButton == null)
+                saveButton = GetComponentsInChildren<Button>(true)
+                    [System.Array.FindIndex(GetComponentsInChildren<Button>(true), b => b.name.IndexOf("Save", System.StringComparison.OrdinalIgnoreCase) >= 0)];
+
+            if (closeButton != null)
+            {
+                closeButton.onClick.RemoveListener(ClosePanel);
+                closeButton.onClick.AddListener(ClosePanel);
+            }
+            if (saveButton != null)
+            {
+                saveButton.onClick.RemoveListener(SaveAvatar);
+                saveButton.onClick.AddListener(SaveAvatar);
+            }
+        }
+
         public void OpenPanel(int myProfileId, string currentAvatarId, UIFriendProfilePanel profilePanel)
         {
             _myProfileId = myProfileId;
