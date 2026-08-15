@@ -6,6 +6,12 @@ namespace MysticJourney.API.Models.Request
         public int ShopItemId { get; set; }
         public int Quantity { get; set; } = 1;
     }
+
+    [System.Serializable]
+    public class PurchaseShopSkinRequest
+    {
+        public int SkinId { get; set; }
+    }
 }
 
 namespace MysticJourney.API.Models.Response
@@ -77,6 +83,39 @@ namespace MysticJourney.API.Models.Response
         public decimal BalanceBefore { get; set; }
         public decimal BalanceAfter { get; set; }
         public int InventoryQuantity { get; set; }
+        public CurrencyBalanceResponse Balance { get; set; }
+        public PlayerCurrencyLogResponse Transaction { get; set; }
+    }
+
+    [System.Serializable]
+    public class SkinShopItemResponse
+    {
+        public int SkinId { get; set; }
+        public string SkinName { get; set; }
+        public string Description { get; set; }
+        public string SkinType { get; set; }
+        public string Rarity { get; set; }
+        public string IconUrl { get; set; }
+        public string PreviewUrl { get; set; }
+        public string Currency { get; set; }
+        public decimal Price { get; set; }
+        public bool IsOwned { get; set; }
+        public bool CanPurchase { get; set; }
+        public string UnavailableReason { get; set; }
+    }
+
+    [System.Serializable]
+    public class PurchaseShopSkinResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public int PlayerSkinId { get; set; }
+        public int SkinId { get; set; }
+        public string SkinName { get; set; }
+        public string Currency { get; set; }
+        public decimal Price { get; set; }
+        public decimal BalanceBefore { get; set; }
+        public decimal BalanceAfter { get; set; }
         public CurrencyBalanceResponse Balance { get; set; }
         public PlayerCurrencyLogResponse Transaction { get; set; }
     }

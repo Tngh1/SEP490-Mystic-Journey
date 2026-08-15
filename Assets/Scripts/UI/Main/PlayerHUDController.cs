@@ -115,6 +115,7 @@ public class PlayerHUDController : MonoBehaviour
     private bool _menuOpen;
     private bool _menuWired;
     private CanvasGroup _leftGroup;
+    private HUDNotificationController _notificationController;
     private GameObject _menuOpenIcon;  // Icon (menu) — hiện khi menu ĐANG đóng
     private GameObject _menuCloseIcon; // CloseIcon (X) — hiện khi menu ĐANG mở
 
@@ -368,6 +369,16 @@ public class PlayerHUDController : MonoBehaviour
                    ?? transform.Find("Skills");
             if (btn != null) skillsButtonObj = btn.gameObject;
         }
+
+        if (_notificationController == null)
+        {
+            _notificationController = GetComponent<HUDNotificationController>();
+            if (_notificationController == null)
+            {
+                _notificationController = gameObject.AddComponent<HUDNotificationController>();
+            }
+        }
+        _notificationController.Configure(mailButtonObj, chatButtonObj);
 
         // Same hover-scale transition the party panel uses on its Start/Ready buttons.
         AddHoverEffect(FindLeft("DailyButton"));

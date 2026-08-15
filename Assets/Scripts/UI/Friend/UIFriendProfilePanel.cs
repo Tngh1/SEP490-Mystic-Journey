@@ -666,10 +666,17 @@ namespace UI.Friend
             if (achievementDetailNameText != null) achievementDetailNameText.text = achievement.Name;
 
             // --- Reward: Icon Gold + Icon Gem ---
+            decimal rewardGold = achievement.RewardGold > 0
+                ? achievement.RewardGold
+                : ownedAchievement?.RewardGold ?? 0;
+            int rewardGem = achievement.RewardGem > 0
+                ? achievement.RewardGem
+                : ownedAchievement?.RewardGem ?? 0;
+
             if (goldAmountText != null)
-                goldAmountText.text = achievement.RewardGold.ToString("0");
+                goldAmountText.text = rewardGold.ToString("0");
             if (gemAmountText != null)
-                gemAmountText.text = achievement.RewardGem.ToString();
+                gemAmountText.text = rewardGem.ToString();
 
             // --- Reward Item: InventorySlot_Prefab ---
             PopulateItemSlots(achievement);

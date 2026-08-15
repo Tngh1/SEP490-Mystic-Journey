@@ -212,6 +212,8 @@ namespace MysticJourney.API.Core
         public const string PlayerShopRefreshStatus = "/api/shop/daily-deals/refresh-status";
         public const string PlayerShopRefresh = "/api/shop/daily-deals/refresh";
         public const string PlayerShopPurchase = "/api/shop/purchase";
+        public const string PlayerShopSkins = "/api/shop/skins";
+        public const string PlayerShopSkinPurchase = "/api/shop/skins/purchase";
 
         // ═══════════════════════════════════════════════════════════════════════
         // GACHA BANNERS CONTROLLER - Banner gacha/quay thưởng
