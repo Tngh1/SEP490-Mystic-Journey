@@ -2,8 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
+using MysticJourney.Core.Services;
 using System.Linq;
 using MysticJourney.UI;
 
@@ -460,6 +462,13 @@ namespace UI.Friend
                 currentFriends = friends.Where(f => f.Status == "Accepted" || f.Status == "accepted").ToList();
                 Debug.Log($"[LoadFriends] After filter: {currentFriends.Count} accepted friends. Instantiating list...");
                 UpdateFriendUI();
+
+                // Search and friend-list requests can complete in either order. Re-apply
+                // the Add-tab filter once the authoritative friend IDs are available.
+                if (addPanel != null && addPanel.activeSelf)
+                {
+                    UpdateSearchUI();
+                }
             }, err => Debug.LogError($"Failed to load friends: {err.Message}"));
         }
 
@@ -563,12 +572,47 @@ namespace UI.Friend
 
             if (searchResults != null)
             {
-                foreach (var result in searchResults)
+                foreach (var result in GetAddableSearchResults())
                 {
                     var entry = Instantiate(searchEntryPrefab, searchListContainer);
                     entry.SetupAsSearch(result, this);
                 }
             }
+        }
+
+        private IEnumerable<FriendSearchDto> GetAddableSearchResults()
+        {
+            int currentPlayerId = GetCurrentPlayerProfileId();
+            var friendProfileIds = new HashSet<int>(currentFriends.Select(friend => friend.FriendProfileId));
+
+            return searchResults
+                .Where(result => result != null)
+                .Where(result => result.ProfileId > 0)
+                .Where(result => result.ProfileId != currentPlayerId)
+                .Where(result => !friendProfileIds.Contains(result.ProfileId))
+                .Where(result => result.RelationshipStatus != FriendRelationshipStatus.Self)
+                .Where(result => result.RelationshipStatus != FriendRelationshipStatus.Friend)
+                .GroupBy(result => result.ProfileId)
+                .Select(group => group.First());
+        }
+
+        private static int GetCurrentPlayerProfileId()
+        {
+            int profileId = GameStateService.Instance != null
+                ? GameStateService.Instance.PlayerProfileId
+                : 0;
+
+            if (profileId <= 0)
+            {
+                profileId = WorldState.PlayerProfileId;
+            }
+
+            if (profileId <= 0)
+            {
+                profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
+            }
+
+            return profileId;
         }
 
         public string GetToken() => ""; // Kept for legacy signature

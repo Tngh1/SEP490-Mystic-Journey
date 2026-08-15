@@ -1,24 +1,50 @@
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using TMPro;
 
 /// <summary>
 /// Displays dungeon progress including elapsed time and monster kill count.
 /// Automatically updates its UI by polling DungeonManager.
 /// </summary>
-public class UIDungeonProgressPanel : MonoBehaviour
+public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] private TMP_Text timeText;
     [SerializeField] private TMP_Text progressText;
-    
     [SerializeField] private RectTransform backgroundRect;
+
+    [Header("Hover Slide")]
+    [SerializeField, Min(0f)] private float collapsedVisibleWidth = 10f;
+    [SerializeField, Min(0.01f)] private float slideDuration = 0.25f;
     
     private float _elapsedTime;
     private bool _isRunning;
+    private RectTransform _panelRect;
+    private Vector2 _expandedPosition;
+    private float _targetX;
+    private float _slideVelocity;
+
+    private void Awake()
+    {
+        _panelRect = transform as RectTransform;
+        if (_panelRect == null) return;
+
+        _expandedPosition = _panelRect.anchoredPosition;
+        _targetX = GetCollapsedX();
+    }
 
     private void OnEnable()
     {
         ResetProgress();
+
+        if (_panelRect != null)
+        {
+            Vector2 position = _expandedPosition;
+            position.x = GetCollapsedX();
+            _panelRect.anchoredPosition = position;
+            _targetX = position.x;
+            _slideVelocity = 0f;
+        }
     }
 
     /// <summary>
@@ -35,10 +61,13 @@ public class UIDungeonProgressPanel : MonoBehaviour
     private void OnDisable()
     {
         _isRunning = false;
+        _slideVelocity = 0f;
     }
 
     private void Update()
     {
+        UpdateSlidePosition();
+
         if (!_isRunning || DungeonManager.Instance == null) return;
 
         // Update Time
@@ -110,5 +139,45 @@ public class UIDungeonProgressPanel : MonoBehaviour
             // 3. Apply height using SetSizeWithCurrentAnchors to avoid anchor conflicts
             backgroundRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, totalHeight);
         }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        _targetX = _expandedPosition.x;
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        _targetX = GetCollapsedX();
+    }
+
+    private float GetCollapsedX()
+    {
+        if (_panelRect == null) return _expandedPosition.x;
+
+        float hiddenWidth = Mathf.Max(0f, _panelRect.rect.width - collapsedVisibleWidth);
+        return _expandedPosition.x + hiddenWidth;
+    }
+
+    private void UpdateSlidePosition()
+    {
+        if (_panelRect == null) return;
+
+        Vector2 position = _panelRect.anchoredPosition;
+        position.x = Mathf.SmoothDamp(
+            position.x,
+            _targetX,
+            ref _slideVelocity,
+            slideDuration,
+            Mathf.Infinity,
+            Time.unscaledDeltaTime);
+
+        if (Mathf.Abs(position.x - _targetX) < 0.01f)
+        {
+            position.x = _targetX;
+            _slideVelocity = 0f;
+        }
+
+        _panelRect.anchoredPosition = position;
     }
 }

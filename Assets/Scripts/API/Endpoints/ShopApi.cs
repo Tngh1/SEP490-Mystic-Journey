@@ -136,6 +136,41 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        public void GetSkins(
+            Action<SkinShopItemResponse[]> onSuccess,
+            Action<ApiException> onError)
+        {
+            SafeDebugLog("GetSkins");
+            ApiClient.Instance.Get<SkinShopItemResponse[]>(
+                ApiConfig.PlayerShopSkins,
+                response => onSuccess?.Invoke(response ?? Array.Empty<SkinShopItemResponse>()),
+                error =>
+                {
+                    SafeDebugError($"GetSkins FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
+
+        public void PurchaseSkin(
+            int skinId,
+            Action<PurchaseShopSkinResponse> onSuccess,
+            Action<ApiException> onError)
+        {
+            var body = new PurchaseShopSkinRequest { SkinId = skinId };
+            SafeDebugLog($"PurchaseSkin -> skinId={skinId}");
+            ApiClient.Instance.Post<PurchaseShopSkinRequest, PurchaseShopSkinResponse>(
+                ApiConfig.PlayerShopSkinPurchase,
+                body,
+                onSuccess,
+                error =>
+                {
+                    SafeDebugError($"PurchaseSkin FAIL | skinId={skinId} | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
+
         private static string BuildPlayerShopQuery(
             string baseEndpoint,
             int page,

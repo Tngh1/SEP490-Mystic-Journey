@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Models;
+using System;
 
 namespace MysticJourney.UI.Guild
 {
@@ -15,15 +16,41 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private Image avatarImage;
         [SerializeField] private Image onlineIndicator;
         [SerializeField] private Button btnKick;
+        [SerializeField] private Sprite leaderIconSprite;
 
         private bool canKick;
+        private Image rowBackground;
+        private Color defaultBackgroundColor;
+        private Color defaultNameColor;
+        private FontStyles defaultNameStyle;
+        private bool visualDefaultsCached;
 
-        public void Setup(GuildMemberResponseDto member, bool canKick = false, System.Action<int> onKick = null, bool isKickMode = false)
+        public void Setup(
+            GuildMemberResponseDto member,
+            bool canKick = false,
+            Action<int> onKick = null,
+            bool isKickMode = false,
+            bool isCurrentPlayer = false)
         {
             this.canKick = canKick;
+            EnsureVisualReferences();
 
-            if (txtMemberName != null) txtMemberName.text = member.playerDisplayName;
+            if (txtMemberName != null)
+            {
+                txtMemberName.text = member.playerDisplayName;
+                txtMemberName.color = isCurrentPlayer ? new Color32(91, 48, 8, 255) : defaultNameColor;
+                txtMemberName.fontStyle = isCurrentPlayer ? defaultNameStyle | FontStyles.Bold : defaultNameStyle;
+            }
             if (txtLevel != null) txtLevel.text = $"Lv. {member.playerLevel}";
+
+            if (rowBackground != null)
+            {
+                rowBackground.color = isCurrentPlayer
+                    ? new Color32(255, 229, 145, 255)
+                    : defaultBackgroundColor;
+            }
+
+            SetLeaderCrown(string.Equals(member.role, "Leader", StringComparison.OrdinalIgnoreCase));
 
             if (txtMedals != null) txtMedals.text = member.medals.ToString();
             if (txtFeats != null) txtFeats.text = member.feats.ToString();
@@ -73,6 +100,66 @@ namespace MysticJourney.UI.Guild
             if (btnKick != null)
             {
                 btnKick.gameObject.SetActive(this.canKick && isKickMode);
+            }
+        }
+
+        private void EnsureVisualReferences()
+        {
+            if (rowBackground == null)
+            {
+                rowBackground = transform.Find("Background")?.GetComponent<Image>();
+            }
+
+            if (visualDefaultsCached)
+            {
+                return;
+            }
+
+            if (rowBackground != null)
+            {
+                defaultBackgroundColor = rowBackground.color;
+            }
+
+            if (txtMemberName != null)
+            {
+                defaultNameColor = txtMemberName.color;
+                defaultNameStyle = txtMemberName.fontStyle;
+            }
+
+            visualDefaultsCached = true;
+        }
+
+        private void SetLeaderCrown(bool visible)
+        {
+            Transform existing = transform.Find("LeaderCrown");
+            GameObject crownObject = existing != null ? existing.gameObject : null;
+
+            if (crownObject == null && visible && leaderIconSprite != null)
+            {
+                crownObject = new GameObject("LeaderCrown", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                RectTransform crownRect = crownObject.GetComponent<RectTransform>();
+                crownRect.SetParent(transform, false);
+                crownRect.anchorMin = new Vector2(0f, 1f);
+                crownRect.anchorMax = new Vector2(0f, 1f);
+                crownRect.pivot = new Vector2(0.5f, 0.5f);
+                crownRect.anchoredPosition = new Vector2(113f, -15f);
+                crownRect.sizeDelta = new Vector2(38f, 30f);
+
+                Image crownImage = crownObject.GetComponent<Image>();
+                crownImage.sprite = leaderIconSprite;
+                crownImage.preserveAspect = true;
+                crownImage.raycastTarget = false;
+
+                Shadow shadow = crownObject.AddComponent<Shadow>();
+                shadow.effectColor = new Color32(50, 28, 8, 190);
+                shadow.effectDistance = new Vector2(1f, -1f);
+                shadow.useGraphicAlpha = true;
+            }
+
+            if (crownObject != null)
+            {
+                crownObject.transform.SetAsLastSibling();
+                crownObject.SetActive(visible);
             }
         }
     }

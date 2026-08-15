@@ -88,7 +88,7 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
         if (networkPlayer != null)
         {
             int netDamage = _isCrit ? Mathf.RoundToInt(_damage * _critMultiplier) : _damage;
-            networkPlayer.RequestDamage(netDamage);
+            networkPlayer.RequestDamage(netDamage, _isCrit);
         }
         else
         {

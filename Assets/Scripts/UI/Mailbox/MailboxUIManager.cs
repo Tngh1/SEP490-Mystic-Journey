@@ -12,6 +12,8 @@ namespace MysticJourney.Screen.Mail
 {
     public class MailboxUIManager : MonoBehaviour
     {
+        public static event Action MailboxStateChanged;
+
         [Header("Left Panel - General")]
         [SerializeField] private Transform contentContainer;
         [SerializeField] private GameObject mailItemPrefab;
@@ -292,7 +294,11 @@ namespace MysticJourney.Screen.Mail
             {
                 MailboxApi.Instance.MarkAsRead(
                     mailboxData.MailboxId,
-                    res => clickedUI.MarkAsReadLocally(),
+                    res =>
+                    {
+                        clickedUI.MarkAsReadLocally();
+                        MailboxStateChanged?.Invoke();
+                    },
                     err => { }
                 );
             }
@@ -534,6 +540,7 @@ namespace MysticJourney.Screen.Mail
                         _currentSelectedMailboxUI = null;
                     }
                     HideRightPanelContent();
+                    MailboxStateChanged?.Invoke();
                     LoadMailboxesFromBackend();
                 },
                 onError: err =>
