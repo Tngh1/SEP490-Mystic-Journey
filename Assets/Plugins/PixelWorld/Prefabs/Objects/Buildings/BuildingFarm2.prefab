@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6005341019523885908}
   - component: {fileID: 8658643691416230173}
-  - component: {fileID: 4519973327916212291}
   - component: {fileID: 704580861714374363}
+  - component: {fileID: 7184765425433725851}
   m_Layer: 0
   m_Name: Facade
   m_TagString: Untagged
@@ -54,6 +54,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -75,8 +77,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: -44474140, guid: 6ff60416342dbc94c85ce9d290393c24, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -89,8 +92,20 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 1
---- !u!61 &4519973327916212291
-BoxCollider2D:
+--- !u!114 &704580861714374363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6803007512425082019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03da34c53a7b24a4f96391ddfe9ad440, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!60 &7184765425433725851
+PolygonCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -123,7 +138,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.016441345, y: 2.4600315}
+  m_Offset: {x: 0, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.0132158585}
@@ -133,20 +148,28 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 3.864914, y: 4.3921394}
-  m_EdgeRadius: 0
---- !u!114 &704580861714374363
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6803007512425082019}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 03da34c53a7b24a4f96391ddfe9ad440, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Points:
+    m_Paths:
+    - - {x: 2.1875, y: 2.03125}
+      - {x: 2.21875, y: 2.1875}
+      - {x: 2.21875, y: 4.84375}
+      - {x: 1.96875, y: 5.125}
+      - {x: 0.625, y: 6.34375}
+      - {x: 0.65625, y: 6.4375}
+      - {x: 0.125, y: 7}
+      - {x: -0.1875, y: 7}
+      - {x: -0.25, y: 6.875}
+      - {x: -0.59375, y: 6.5}
+      - {x: -1, y: 6.8125}
+      - {x: -1.28125, y: 6.8125}
+      - {x: -1.4375, y: 6.65625}
+      - {x: -1.4375, y: 5.6875}
+      - {x: -2.21875, y: 4.90625}
+      - {x: -2.21875, y: 0}
+      - {x: -2.1875, y: -0.09375}
+      - {x: 2.125, y: -0.09375}
+      - {x: 2.1875, y: -0.03125}
+  m_UseDelaunayMesh: 0
 --- !u!1 &7161740258132390923
 GameObject:
   m_ObjectHideFlags: 0
@@ -293,6 +316,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -314,8 +339,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 561869287
-  m_SortingLayer: 3
+  m_SortingLayer: 0
   m_SortingOrder: 2
   m_Sprite: {fileID: 373954441, guid: 6ff60416342dbc94c85ce9d290393c24, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -442,6 +468,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -463,8 +491,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -1017881387
-  m_SortingLayer: 2
+  m_SortingLayer: 0
   m_SortingOrder: 3
   m_Sprite: {fileID: 1962033361, guid: 5118d47df4a49834eaaa5f67f0011e86, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.42745098}
