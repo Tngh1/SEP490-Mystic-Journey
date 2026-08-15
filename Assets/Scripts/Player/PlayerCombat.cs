@@ -311,7 +311,9 @@ public class PlayerCombat : NetworkBehaviour
     /// </summary>
     public void RequestAttack(Vector2 aimWorldPosition)
     {
-        if (IsSilenced || IsBusy() || Time.time < nextAttackTime) return;
+        // Left click confirms a targeted AoE. Do not let the same input edge also
+        // start a basic attack through NetworkPlayer.FixedUpdateNetwork.
+        if (_isAimingAoE || IsSilenced || IsBusy() || Time.time < nextAttackTime) return;
 
         if (Runner == null || !Runner.IsRunning)
         {
@@ -404,7 +406,7 @@ public class PlayerCombat : NetworkBehaviour
         ScheduleLegacySkillFallbackDestruction(skillObj);
     }
 
-    private static GameObject FindLoadedSkillPrefab(string prefabName)
+    public static GameObject FindLoadedSkillPrefab(string prefabName)
     {
         if (string.IsNullOrEmpty(prefabName)) return null;
 
@@ -451,9 +453,9 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Attack()
     {
-        if (IsSilenced || IsBusy() || Time.time < nextAttackTime)
+        if (_isAimingAoE || IsSilenced || IsBusy() || Time.time < nextAttackTime)
         {
-            Debug.Log($"[PlayerCombat] Attack ignored. IsSilenced: {IsSilenced}, IsBusy: {IsBusy()}, Cooldown remaining: {(nextAttackTime - Time.time):F2}s");
+            Debug.Log($"[PlayerCombat] Attack ignored. IsAimingAoE: {_isAimingAoE}, IsSilenced: {IsSilenced}, IsBusy: {IsBusy()}, Cooldown remaining: {(nextAttackTime - Time.time):F2}s");
             return;
         }
         Debug.Log($"[PlayerCombat] Attack triggered. Cooldown: {currentAttackCooldown}, Delay: {currentAttackDelay}");
@@ -1056,7 +1058,9 @@ public class PlayerCombat : NetworkBehaviour
             return;
         }
 
-        if (IsNetworked)
+        // ProtectiveShieldSkill broadcasts one visual per affected player itself.
+        // Broadcasting the cast object here too would duplicate the caster shield.
+        if (IsNetworked && skillPrefab.GetComponent<ProtectiveShieldSkill>() == null)
         {
             RPC_SpawnLegacySkillVisual(
                 skillPrefab.name,
