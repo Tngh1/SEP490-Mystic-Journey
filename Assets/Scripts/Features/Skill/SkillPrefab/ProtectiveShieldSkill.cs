@@ -59,7 +59,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         if (PlayerSkillVisualReplica.IsReplica(this))
         {
             Destroy(gameObject, duration);
-            return;
+            yield break;
         }
 
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;
@@ -101,7 +101,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         if (broadcastNetworkVisual)
         {
             Destroy(gameObject);
-            return;
+            yield break;
         }
 
         Destroy(gameObject, duration);
