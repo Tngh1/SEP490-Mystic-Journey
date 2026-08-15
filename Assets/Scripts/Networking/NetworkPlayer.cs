@@ -988,12 +988,19 @@ public class NetworkPlayer : NetworkBehaviour
     // Damage / Death / Respawn (server-authoritative)
     // ─────────────────────────────────────────────────────────────────────────
 
-    public void ApplyDamage(int amount)
+    public void ApplyDamage(int amount, bool isCritical = false)
     {
         if (!Object.HasStateAuthority) return;
         if (!IsAlive) return;
 
+        int previousHp = CurrentHp;
         CurrentHp = Mathf.Max(0, CurrentHp - amount);
+        int appliedDamage = previousHp - CurrentHp;
+        if (appliedDamage > 0)
+        {
+            RPC_ShowPlayerCombatPopup(transform.position, appliedDamage, isCritical, false);
+        }
+
         if (CurrentHp <= 0)
         {
             Die();
@@ -1006,20 +1013,20 @@ public class NetworkPlayer : NetworkBehaviour
     /// StateAuthority over its own avatar, so the request is routed there via RPC
     /// and applied authoritatively. Safe to call from the enemy authority.
     /// </summary>
-    public void RequestDamage(int amount)
+    public void RequestDamage(int amount, bool isCritical = false)
     {
         if (amount <= 0) return;
 
         if (Object.HasStateAuthority)
-            ApplyDamage(amount);
+            ApplyDamage(amount, isCritical);
         else
-            RPC_RequestDamage(amount);
+            RPC_RequestDamage(amount, isCritical);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestDamage(int amount)
+    private void RPC_RequestDamage(int amount, NetworkBool isCritical)
     {
-        ApplyDamage(amount);
+        ApplyDamage(amount, isCritical);
     }
 
     public void ApplyHeal(int amount)
@@ -1027,12 +1034,12 @@ public class NetworkPlayer : NetworkBehaviour
         if (!Object.HasStateAuthority) return;
         if (!IsAlive) return;
 
+        int previousHp = CurrentHp;
         CurrentHp = Mathf.Min(MaxHp, CurrentHp + amount);
-
-        if (DamagePopupManager.Instance != null)
+        int appliedHeal = CurrentHp - previousHp;
+        if (appliedHeal > 0)
         {
-            // Spawn a green popup for healing
-            DamagePopupManager.Instance.Create(transform.position, amount, false, false, true); 
+            RPC_ShowPlayerCombatPopup(transform.position, appliedHeal, false, true);
         }
     }
 
@@ -1050,6 +1057,35 @@ public class NetworkPlayer : NetworkBehaviour
     private void RPC_RequestHeal(int amount)
     {
         ApplyHeal(amount);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowPlayerCombatPopup(Vector3 worldPosition, int amount,
+        NetworkBool isCritical, NetworkBool isHeal)
+    {
+        if (DamagePopupManager.Instance != null)
+        {
+            DamagePopupManager.Instance.Create(worldPosition, amount, isCritical, true, isHeal);
+        }
+    }
+
+    /// <summary>
+    /// Replicates a legacy buff visual on the player who actually received it.
+    /// The copy is marked visual-only before Start runs, so it cannot apply stats
+    /// or broadcast another effect.
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ShowBuffVisual(string prefabName)
+    {
+        GameObject prefab = PlayerCombat.FindLoadedSkillPrefab(prefabName);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[NetworkPlayer] Cannot resolve buff visual prefab '{prefabName}'.");
+            return;
+        }
+
+        GameObject effect = Instantiate(prefab, transform.position, Quaternion.identity);
+        PlayerSkillVisualReplica.Mark(effect, transform);
     }
 
     public void Die()

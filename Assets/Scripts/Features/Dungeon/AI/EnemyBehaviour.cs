@@ -596,7 +596,7 @@ public class EnemyBehaviour : MonoBehaviour
             if (networkPlayer != null)
             {
                 int netDamage = isCrit ? Mathf.RoundToInt(attackDamage * critDamageMultiplier) : attackDamage;
-                networkPlayer.RequestDamage(netDamage);
+                networkPlayer.RequestDamage(netDamage, isCrit);
             }
             else
             {

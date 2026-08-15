@@ -20,6 +20,8 @@ public class UIItemDisplayData
     public Sprite currencyIcon;
 
     public int shopItemId;
+    public int skinId;
+    public bool isSkin;
     public string shopSection;
     public bool canPurchase = true;
     public string unavailableReason;
@@ -45,6 +47,9 @@ public class UIItemDisplayData
 
     public int GetMaxPurchaseQuantity(int hardCap = 99)
     {
+        if (isSkin)
+            return canPurchase ? 1 : 0;
+
         int max = Mathf.Max(1, hardCap);
 
         if (!isUnlimitedStock && stock >= 0)

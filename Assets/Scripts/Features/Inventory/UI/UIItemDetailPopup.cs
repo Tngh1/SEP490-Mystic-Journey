@@ -130,7 +130,7 @@ public class UIItemDetailPopup : MonoBehaviour
 
         // Equip Comparison Buttons
         if (confirmEquipButton) confirmEquipButton.onClick.AddListener(HandleEquipConfirmed);
-        if (cancelEquipButton)  cancelEquipButton.onClick.AddListener(() => SwitchPanel(detailPanel));
+        if (cancelEquipButton)  cancelEquipButton.onClick.AddListener(Hide);
 
         // Consume Buttons
         if (btnMinus) btnMinus.onClick.AddListener(() => ChangeConsumeQty(-1));

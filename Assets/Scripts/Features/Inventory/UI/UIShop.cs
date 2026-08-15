@@ -16,6 +16,7 @@ public class UIShop : MonoBehaviour
     private const string DailyCategoryAlias = "Daily";
     private const string TodayCategoryAlias = "Today";
     private const string AllCategory = "All";
+    private const string SkinCategory = "Skin";
 
     [Header("Shop UI Settings")]
     [Tooltip("Prefab for Shop Slot")]
@@ -43,7 +44,7 @@ public class UIShop : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
 
     [Header("Category Mapping")]
-    [SerializeField] private string[] categoryMapping = { DailyDealsCategory, AllCategory, "Weapon", "Armor", "Consumable", "Material", "Gacha" };
+    [SerializeField] private string[] categoryMapping = { DailyDealsCategory, AllCategory, "Weapon", "Armor", "Consumable", "Material", "Gacha", SkinCategory };
 
     private readonly List<UIShopSlot> slots = new List<UIShopSlot>();
     private List<UIItemDisplayData> allCurrentItems = new List<UIItemDisplayData>();
@@ -62,6 +63,8 @@ public class UIShop : MonoBehaviour
             Instance = this;
         else if (Instance != this)
             Destroy(gameObject);
+
+        EnsureSkinCategoryTab();
             
         // Force Grid Layout Group to Fixed Column Count = 3
         if (contentParent != null)
@@ -196,8 +199,38 @@ public class UIShop : MonoBehaviour
             return;
         }
 
+        if (IsSkinCategory(currentCategory))
+        {
+            LoadSkins();
+            return;
+        }
+
         string itemType = IsAllCategory(currentCategory) ? null : currentCategory;
         LoadFixedShopPage(1, new List<UIItemDisplayData>(), itemType);
+    }
+
+    private void LoadSkins()
+    {
+        ShopApi.Instance.GetSkins(
+            onSuccess: response =>
+            {
+                requestInFlight = false;
+                SetLoading(false);
+                var items = new List<UIItemDisplayData>();
+                response = response ?? Array.Empty<SkinShopItemResponse>();
+                for (int i = 0; i < response.Length; i++)
+                    items.Add(MapSkinShopItem(response[i]));
+                RefreshShop(items);
+                UpdateRefreshButton();
+            },
+            onError: error =>
+            {
+                requestInFlight = false;
+                SetLoading(false);
+                SetStatus($"Cannot load skin shop: {error.Message}");
+                Debug.LogError($"[UIShop] LoadSkins FAIL: {error.Message}");
+                UpdateRefreshButton();
+            });
     }
 
     private void LoadDailyDeals()
@@ -305,6 +338,7 @@ public class UIShop : MonoBehaviour
             unitPrice = unitPrice,
             originalUnitPrice = item?.OriginalPrice ?? 0,
             currency = NormalizeCurrency(item?.Currency),
+            currencyIcon = ResolveCurrencyIcon(item?.Currency),
             stock = item?.Stock ?? -1,
             isUnlimitedStock = item?.IsUnlimitedStock ?? true,
             dailyPurchaseLimit = item?.DailyPurchaseLimit ?? 0,
@@ -316,6 +350,31 @@ public class UIShop : MonoBehaviour
             purchasedThisWeek = item?.PurchasedThisWeek ?? 0,
             remainingWeeklyPurchases = item?.RemainingWeeklyPurchases ?? -1,
             rawData = item
+        };
+    }
+
+    private UIItemDisplayData MapSkinShopItem(SkinShopItemResponse skin)
+    {
+        decimal price = skin?.Price ?? 0;
+        return new UIItemDisplayData
+        {
+            skinId = skin?.SkinId ?? 0,
+            isSkin = true,
+            itemName = skin?.SkinName ?? string.Empty,
+            icon = ResolveSkinIcon(skin?.SkinId ?? 0),
+            quantity = 1,
+            rarity = skin?.Rarity,
+            category = SkinCategory,
+            shopSection = SkinCategory,
+            price = ToLegacyPrice(price),
+            unitPrice = price,
+            currency = NormalizeCurrency(skin?.Currency),
+            currencyIcon = ResolveCurrencyIcon(skin?.Currency),
+            stock = skin != null && skin.IsOwned ? 0 : 1,
+            isUnlimitedStock = false,
+            canPurchase = skin?.CanPurchase ?? false,
+            unavailableReason = skin?.UnavailableReason,
+            rawData = skin
         };
     }
 
@@ -355,6 +414,17 @@ public class UIShop : MonoBehaviour
 
         if (flagTagImage == null)
             return;
+
+        if (IsSkinCategory(currentCategory))
+        {
+            Sprite skinIcon = ResolveSkinIcon(GetPremiumSkinIdForCurrentClass());
+            if (skinIcon != null)
+            {
+                flagTagImage.sprite = skinIcon;
+                flagTagImage.enabled = true;
+            }
+            return;
+        }
 
         if (categoryFlags != null && index >= 0 && index < categoryFlags.Length)
         {
@@ -427,13 +497,44 @@ public class UIShop : MonoBehaviour
 
     private void HandlePurchaseConfirmed(UIItemDisplayData itemData, int quantity)
     {
-        if (itemData == null || itemData.shopItemId <= 0 || quantity <= 0 || purchaseInFlight)
+        if (itemData == null || quantity <= 0 || purchaseInFlight)
+            return;
+
+        if ((itemData.isSkin && itemData.skinId <= 0) || (!itemData.isSkin && itemData.shopItemId <= 0))
             return;
 
         purchaseInFlight = true;
         SetLoading(true);
         SetStatus(null);
         UpdateRefreshButton();
+
+        if (itemData.isSkin)
+        {
+            ShopApi.Instance.PurchaseSkin(
+                itemData.skinId,
+                response =>
+                {
+                    purchaseInFlight = false;
+                    SetLoading(false);
+                    SetStatus(response?.Message);
+                    if (response?.Balance != null)
+                        PlayerHUDController.Instance?.ApplyCurrencyBalance(response.Balance);
+                    else
+                        PlayerHUDController.Instance?.RefreshCurrencyBalance();
+                    InventoryManager.RefreshAny(refreshStats: false);
+                    LoadCurrentCategory();
+                    UpdateRefreshButton();
+                },
+                error =>
+                {
+                    purchaseInFlight = false;
+                    SetLoading(false);
+                    SetStatus($"Purchase failed: {error.Message}");
+                    UIPopupBox.Notify(transform, "Purchase Failed", error.Message);
+                    UpdateRefreshButton();
+                });
+            return;
+        }
 
         ShopApi.Instance.PurchaseItem(
             shopItemId: itemData.shopItemId,
@@ -573,6 +674,62 @@ public class UIShop : MonoBehaviour
         return ItemIconDatabase.Instance != null ? ItemIconDatabase.Instance.GetIcon(itemName, itemType) : null;
     }
 
+    private Sprite ResolveCurrencyIcon(string currency)
+    {
+        if (ItemIconDatabase.Instance == null) return null;
+        string normalized = NormalizeCurrency(currency);
+        string key = normalized.Equals("Gems", StringComparison.OrdinalIgnoreCase) ? "Gem" : "Gold";
+        return ItemIconDatabase.Instance.GetIcon(key, "Currency");
+    }
+
+    private static Sprite ResolveSkinIcon(int skinId)
+    {
+        var database = SkinDatabaseSO.LoadDefault();
+        return database != null ? database.GetPreviewSprite(skinId) : null;
+    }
+
+    private void EnsureSkinCategoryTab()
+    {
+        bool mappingHasSkin = false;
+        for (int i = 0; i < categoryMapping.Length; i++)
+            mappingHasSkin |= IsSkinCategory(categoryMapping[i]);
+
+        if (!mappingHasSkin)
+        {
+            Array.Resize(ref categoryMapping, categoryMapping.Length + 1);
+            categoryMapping[categoryMapping.Length - 1] = SkinCategory;
+        }
+
+        if (categoryTabGroup == null) return;
+        for (int i = 0; i < categoryTabGroup.tabButtons.Count; i++)
+        {
+            Button existing = categoryTabGroup.tabButtons[i];
+            if (existing != null && existing.name.Equals("Tab_Skin", StringComparison.OrdinalIgnoreCase))
+                return;
+        }
+
+        if (categoryTabGroup.tabButtons.Count == 0) return;
+        Button template = categoryTabGroup.tabButtons[categoryTabGroup.tabButtons.Count - 1];
+        if (template == null) return;
+
+        Button skinTab = Instantiate(template, template.transform.parent);
+        skinTab.name = "Tab_Skin";
+        skinTab.transform.SetAsLastSibling();
+        skinTab.onClick.RemoveAllListeners();
+        Sprite icon = ResolveSkinIcon(GetPremiumSkinIdForCurrentClass());
+        Image image = skinTab.GetComponent<Image>();
+        if (image != null && icon != null) image.sprite = icon;
+        categoryTabGroup.tabButtons.Add(skinTab);
+    }
+
+    private static int GetPremiumSkinIdForCurrentClass()
+    {
+        string playerClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
+        if (string.Equals(playerClass, "Knight", StringComparison.OrdinalIgnoreCase)) return 5;
+        if (string.Equals(playerClass, "Mage", StringComparison.OrdinalIgnoreCase)) return 6;
+        return 4;
+    }
+
     private void SetLoading(bool isLoading)
     {
         if (loadingIndicator != null)
@@ -610,6 +767,9 @@ public class UIShop : MonoBehaviour
 
     private static bool IsAllCategory(string category)
         => string.IsNullOrWhiteSpace(category) || category.Equals(AllCategory, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSkinCategory(string category)
+        => !string.IsNullOrWhiteSpace(category) && category.Equals(SkinCategory, StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeCurrency(string currency)
     {

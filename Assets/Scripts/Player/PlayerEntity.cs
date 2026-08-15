@@ -248,7 +248,7 @@ public class PlayerEntity : MonoBehaviour
             int networkedDamage = attackerCrit == true
                 ? Mathf.RoundToInt(damage * Mathf.Max(1f, attackerCritMultiplier))
                 : damage;
-            _networkPlayer.ApplyDamage(networkedDamage);
+            _networkPlayer.RequestDamage(networkedDamage, attackerCrit == true);
             return;
         }
 

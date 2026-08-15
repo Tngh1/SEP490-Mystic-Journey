@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class ProtectiveShieldSkill : MonoBehaviour
 {
@@ -59,25 +60,43 @@ public class ProtectiveShieldSkill : MonoBehaviour
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;
         float buffAmount = casterDef * defenseShareRatio;
 
-        // Apply to all players in radius
+        // Apply to all players in radius. A player may have several colliders, so
+        // de-duplicate by PlayerCombat before applying stats or broadcasting VFX.
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
+        var affectedPlayers = new HashSet<PlayerCombat>();
+        bool broadcastNetworkVisual = false;
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Player"))
+            var player = hit.GetComponentInParent<PlayerCombat>();
+            if (player != null && player.CompareTag("Player") && affectedPlayers.Add(player))
             {
-                var player = hit.GetComponent<PlayerCombat>();
-                if (player != null)
+                player.AddDefBuff(buffAmount, duration);
+                player.AddDebuffImmunity(duration);
+
+                var networkPlayer = player.GetComponent<NetworkPlayer>();
+                if (networkPlayer != null && networkPlayer.Object != null)
                 {
-                    player.AddDefBuff(buffAmount, duration);
-                    player.AddDebuffImmunity(duration);
-                    
-                    // Show a text popup for buff
-                    if (DamagePopupManager.Instance != null)
-                    {
-                        DamagePopupManager.Instance.Create(player.transform.position + Vector3.up * 1f, (int)buffAmount, false, false);
-                    }
+                    string prefabName = gameObject.name.EndsWith("(Clone)")
+                        ? gameObject.name.Substring(0, gameObject.name.Length - "(Clone)".Length)
+                        : gameObject.name;
+                    networkPlayer.RPC_ShowBuffVisual(prefabName);
+                    broadcastNetworkVisual = true;
+                }
+
+                // Show a text popup for buff
+                if (DamagePopupManager.Instance != null)
+                {
+                    DamagePopupManager.Instance.Create(player.transform.position + Vector3.up * 1f, (int)buffAmount, false, false);
                 }
             }
+        }
+
+        // Network clients render the per-target visual created by the RPC above.
+        // Remove the original cast object so the caster does not see two shields.
+        if (broadcastNetworkVisual)
+        {
+            Destroy(gameObject);
+            return;
         }
 
         Destroy(gameObject, duration);

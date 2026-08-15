@@ -117,7 +117,10 @@ namespace MysticJourney.UI.Guild
             if (toggleRequireApproval != null)
             {
                 toggleRequireApproval.onValueChanged.AddListener(isOn => {
-                    if (inputRequiredLevel != null) inputRequiredLevel.interactable = isOn;
+                    if (inputRequiredLevel != null)
+                    {
+                        inputRequiredLevel.readOnly = !isOn || !IsCurrentPlayerGuildLeader();
+                    }
                 });
                 toggleRequireApproval.isOn = false;
             }
@@ -681,16 +684,32 @@ namespace MysticJourney.UI.Guild
             {
                 if (toggleRequireApproval != null)
                 {
+                    toggleRequireApproval.gameObject.SetActive(true);
                     toggleRequireApproval.interactable = isLeader;
                     toggleRequireApproval.SetIsOnWithoutNotify(currentGuild.joinPolicy == 1);
                 }
                 
                 if (inputRequiredLevel != null)
                 {
+                    inputRequiredLevel.gameObject.SetActive(true);
                     inputRequiredLevel.text = currentGuild.requiredLevel.ToString();
-                    inputRequiredLevel.interactable = isLeader && (currentGuild.joinPolicy == 1);
+                    inputRequiredLevel.interactable = true;
+                    inputRequiredLevel.readOnly = !isLeader || currentGuild.joinPolicy != 1;
                 }
             }
+        }
+
+        private bool IsCurrentPlayerGuildLeader()
+        {
+            if (currentGuild == null || currentGuild.members == null)
+            {
+                return false;
+            }
+
+            int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
+            return currentGuild.members.Any(member =>
+                member.playerProfileId == myProfileId &&
+                string.Equals(member.role, "Leader", System.StringComparison.OrdinalIgnoreCase));
         }
 
         public void SwitchToRankTab()
@@ -834,7 +853,12 @@ namespace MysticJourney.UI.Guild
                         else if (myRole == "Officer" && member.role == "Member") canKick = true;
                     }
                     
-                    entry.Setup(member, canKick, HandleKickMember, isKickModeActive);
+                    entry.Setup(
+                        member,
+                        canKick,
+                        HandleKickMember,
+                        isKickModeActive,
+                        member.playerProfileId == myProfileId);
                 }
             }
 
