@@ -25,6 +25,8 @@ namespace MysticJourney.Features.Monster
             if (tmpTextUI == null) tmpTextUI = GetComponent<TextMeshProUGUI>();
             if (canvasGroup == null) canvasGroup = GetComponent<CanvasGroup>();
 
+            ApplySilverFont();
+
             // Random nhẹ hướng bay nghiêng để nhiều dòng không bị đè hoàn toàn lên nhau
             float randomX = Random.Range(-0.3f, 0.3f);
             moveDirection = new Vector3(randomX, 1f, 0f).normalized;
@@ -32,6 +34,7 @@ namespace MysticJourney.Features.Monster
 
         public void Setup(string text, Color color, float speedMultiplier = 1f)
         {
+            ApplySilverFont();
             originalColor = color;
             moveSpeed *= speedMultiplier;
 
@@ -46,6 +49,18 @@ namespace MysticJourney.Features.Monster
                 tmpTextUI.text = text;
                 tmpTextUI.color = color;
             }
+        }
+
+        private void ApplySilverFont()
+        {
+            TMP_FontAsset font = SilverFontResolver.Font;
+            if (font == null) return;
+
+            if (tmpText != null)
+                tmpText.font = font;
+
+            if (tmpTextUI != null)
+                tmpTextUI.font = font;
         }
 
         private void Update()

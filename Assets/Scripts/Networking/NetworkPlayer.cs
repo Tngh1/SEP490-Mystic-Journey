@@ -1085,7 +1085,9 @@ public class NetworkPlayer : NetworkBehaviour
         }
 
         GameObject effect = Instantiate(prefab, transform.position, Quaternion.identity);
+        effect.SetActive(false);
         PlayerSkillVisualReplica.Mark(effect, transform);
+        effect.SetActive(true);
     }
 
     public void Die()
