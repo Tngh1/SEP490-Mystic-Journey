@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class ProtectiveShieldSkill : MonoBehaviour
@@ -11,8 +12,12 @@ public class ProtectiveShieldSkill : MonoBehaviour
 
     private Transform _targetToFollow;
 
-    private void Start()
+    private IEnumerator Start()
     {
+        // Replica markers are attached immediately after Instantiate on remote clients.
+        // Delay the gameplay/broadcast logic so a visual copy cannot apply the buff again.
+        yield return null;
+
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
@@ -54,7 +59,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         if (PlayerSkillVisualReplica.IsReplica(this))
         {
             Destroy(gameObject, duration);
-            return;
+            yield break;
         }
 
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;
@@ -96,7 +101,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         if (broadcastNetworkVisual)
         {
             Destroy(gameObject);
-            return;
+            yield break;
         }
 
         Destroy(gameObject, duration);

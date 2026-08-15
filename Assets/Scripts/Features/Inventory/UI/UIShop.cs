@@ -16,6 +16,7 @@ public class UIShop : MonoBehaviour
     private const string DailyCategoryAlias = "Daily";
     private const string TodayCategoryAlias = "Today";
     private const string AllCategory = "All";
+    private const string ArmorCategory = "Armor";
     private const string SkinCategory = "Skin";
 
     [Header("Shop UI Settings")]
@@ -427,12 +428,22 @@ public class UIShop : MonoBehaviour
 
         if (IsSkinCategory(currentCategory))
         {
-            Sprite skinIcon = ResolveSkinIcon(GetPremiumSkinIdForCurrentClass());
-            if (skinIcon != null)
+            int armorCategoryIndex = Array.FindIndex(
+                categoryMapping,
+                category => string.Equals(category, ArmorCategory, StringComparison.OrdinalIgnoreCase));
+
+            if (categoryFlags != null && armorCategoryIndex >= 0 && armorCategoryIndex < categoryFlags.Length)
             {
-                flagTagImage.sprite = skinIcon;
-                flagTagImage.enabled = true;
+                Sprite categoryFlag = categoryFlags[armorCategoryIndex];
+                if (categoryFlag != null)
+                {
+                    flagTagImage.sprite = categoryFlag;
+                    flagTagImage.enabled = true;
+                    return;
+                }
             }
+
+            flagTagImage.enabled = false;
             return;
         }
 
@@ -719,25 +730,20 @@ public class UIShop : MonoBehaviour
         }
 
         if (categoryTabGroup.tabButtons.Count == 0) return;
-        Button template = categoryTabGroup.tabButtons[categoryTabGroup.tabButtons.Count - 1];
+
+        int armorCategoryIndex = Array.FindIndex(
+            categoryMapping,
+            category => string.Equals(category, ArmorCategory, StringComparison.OrdinalIgnoreCase));
+        Button template = armorCategoryIndex >= 0 && armorCategoryIndex < categoryTabGroup.tabButtons.Count
+            ? categoryTabGroup.tabButtons[armorCategoryIndex]
+            : categoryTabGroup.tabButtons[categoryTabGroup.tabButtons.Count - 1];
         if (template == null) return;
 
         Button skinTab = Instantiate(template, template.transform.parent);
         skinTab.name = "Tab_Skin";
         skinTab.transform.SetAsLastSibling();
         skinTab.onClick.RemoveAllListeners();
-        Sprite icon = ResolveSkinIcon(GetPremiumSkinIdForCurrentClass());
-        Image image = skinTab.GetComponent<Image>();
-        if (image != null && icon != null) image.sprite = icon;
         categoryTabGroup.tabButtons.Add(skinTab);
-    }
-
-    private static int GetPremiumSkinIdForCurrentClass()
-    {
-        string playerClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
-        if (string.Equals(playerClass, "Knight", StringComparison.OrdinalIgnoreCase)) return 5;
-        if (string.Equals(playerClass, "Mage", StringComparison.OrdinalIgnoreCase)) return 6;
-        return 4;
     }
 
     private void SetLoading(bool isLoading)

@@ -145,6 +145,27 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         return instance;
     }
 
+    private GameObject ResolveSkillPrefab(string prefabName)
+    {
+        if (string.IsNullOrEmpty(prefabName)) return null;
+        if (_skillPrefabs.TryGetValue(prefabName, out var registered) && registered != null)
+            return registered;
+
+        // Proxy clients do not execute the authority's spawner, so their local
+        // dictionary is empty. Scene-referenced prefab assets are still loaded and
+        // can be resolved by name for the visual replica.
+        foreach (var candidate in Resources.FindObjectsOfTypeAll<GameObject>())
+        {
+            if (candidate != null && candidate.name == prefabName && !candidate.scene.IsValid())
+            {
+                _skillPrefabs[prefabName] = candidate;
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
     public GameObject SpawnEnemyProjectile(GameObject prefab, Vector3 position, Vector3 direction,
         float speed, int damage, bool isCrit, float critMultiplier)
     {
@@ -186,11 +207,16 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
             collider.radius = 0.25f;
         }
 
-        if (visualOnly) instance.AddComponent<EnemySkillVisualReplica>();
+        if (visualOnly)
+        {
+            instance.SetActive(false);
+            instance.AddComponent<EnemySkillVisualReplica>();
+        }
 
         var projectile = instance.GetComponent<EnemyNormalAttackProjectile>();
         if (projectile == null) projectile = instance.AddComponent<EnemyNormalAttackProjectile>();
         projectile.Setup(direction, speed, visualOnly ? 0 : damage, isCrit, critMultiplier);
+        if (visualOnly) instance.SetActive(true);
         return instance;
     }
 
@@ -200,7 +226,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     {
         if (HasStateAuthority) return;
 
-        _skillPrefabs.TryGetValue(prefabName, out var prefab);
+        var prefab = ResolveSkillPrefab(prefabName);
         CreateEnemyProjectile(prefab, position, direction, speed, 0, isCrit, critMultiplier, true);
     }
 
@@ -230,15 +256,18 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     private void RPC_SpawnEnemySkill(string prefabName, Vector3 position, NetworkBool parentToEnemy)
     {
         if (HasStateAuthority) return;
-        if (!_skillPrefabs.TryGetValue(prefabName, out var prefab) || prefab == null)
+        var prefab = ResolveSkillPrefab(prefabName);
+        if (prefab == null)
         {
             Debug.LogWarning($"[NetworkEnemy] Replica prefab '{prefabName}' is not registered on {name}.");
             return;
         }
 
         var instance = Instantiate(prefab, position, Quaternion.identity);
+        instance.SetActive(false);
         instance.AddComponent<EnemySkillVisualReplica>();
         if (parentToEnemy) instance.transform.SetParent(transform, true);
+        instance.SetActive(true);
     }
 
     public override void FixedUpdateNetwork()

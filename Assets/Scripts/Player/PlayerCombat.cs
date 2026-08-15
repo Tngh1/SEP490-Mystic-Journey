@@ -401,9 +401,11 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         GameObject skillObj = Instantiate(prefab, position, rotation);
+        skillObj.SetActive(false);
         PlayerSkillVisualReplica.Mark(skillObj, transform);
         ConfigureLegacySkill(skillObj, 0f, hasTargetPosition ? targetPosition : (Vector3?)null);
         ScheduleLegacySkillFallbackDestruction(skillObj);
+        skillObj.SetActive(true);
     }
 
     public static GameObject FindLoadedSkillPrefab(string prefabName)
