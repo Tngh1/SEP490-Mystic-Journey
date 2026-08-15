@@ -11,11 +11,19 @@ public class DamagePopup : MonoBehaviour
     private void Awake()
     {
         textMesh = GetComponent<TextMeshPro>();
+        ApplySilverFont();
+    }
+
+    private void ApplySilverFont()
+    {
+        if (textMesh != null && SilverFontResolver.Font != null)
+            textMesh.font = SilverFontResolver.Font;
     }
 
     public void SetupText(string text, Color color, float fontSize = 4.5f)
     {
         if (textMesh == null) textMesh = GetComponent<TextMeshPro>();
+        ApplySilverFont();
         textMesh.text = text;
         textMesh.color = color;
         textMesh.fontSize = fontSize;
@@ -27,6 +35,7 @@ public class DamagePopup : MonoBehaviour
 
     public void Setup(int damageAmount, bool isCritical, bool isPlayerTakingDamage = false, bool isHeal = false)
     {
+        ApplySilverFont();
         textMesh.text = isHeal ? $"+{damageAmount}" : damageAmount.ToString();
 
         if (isHeal)

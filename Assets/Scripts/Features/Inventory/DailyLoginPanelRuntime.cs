@@ -397,7 +397,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
 
         var type = reward.RewardType ?? string.Empty;
 
-        // 2. Lookup in ItemIconDatabase by exact RewardType or synonyms (pass null for itemType to prevent unwanted "Currency" fallback to Gold)
+        // 2. Lookup in ItemIconDatabase by exact RewardType or synonyms
         if (!string.IsNullOrWhiteSpace(type) && ItemIconDatabase.Instance != null)
         {
             // Direct lookup by key (case-insensitive in ItemIconDatabase)
@@ -410,7 +410,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
                 typeIcon = ItemIconDatabase.Instance.GetIcon("Gem", null) ?? ItemIconDatabase.Instance.GetIcon("Gems", null) ?? ItemIconDatabase.Instance.GetIcon("Diamond", null);
                 if (typeIcon != null) return typeIcon;
             }
-            else if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Exp", System.StringComparison.OrdinalIgnoreCase))
             {
                 typeIcon = ItemIconDatabase.Instance.GetIcon("Exp", null) ?? ItemIconDatabase.Instance.GetIcon("EXP", null) ?? ItemIconDatabase.Instance.GetIcon("Experience", null);
                 if (typeIcon != null) return typeIcon;
@@ -429,7 +429,8 @@ public class DailyLoginPanelRuntime : MonoBehaviour
              string.Equals(type, "Stamina", System.StringComparison.OrdinalIgnoreCase)) && energyIcon != null)
             return energyIcon;
         if ((string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase)) && expIcon != null)
+             string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(type, "Exp", System.StringComparison.OrdinalIgnoreCase)) && expIcon != null)
             return expIcon;
         if ((string.Equals(type, "Gem", System.StringComparison.OrdinalIgnoreCase) ||
              string.Equals(type, "Gems", System.StringComparison.OrdinalIgnoreCase) ||
@@ -446,10 +447,30 @@ public class DailyLoginPanelRuntime : MonoBehaviour
                 loaded = Resources.Load<Sprite>("Icons/Gem");
                 if (loaded != null) return loaded;
             }
-            if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Exp", System.StringComparison.OrdinalIgnoreCase))
             {
                 loaded = Resources.Load<Sprite>("Icons/Exp");
                 if (loaded != null) return loaded;
+            }
+        }
+
+        // 5. ItemIconDatabase Fallback: Lookup by standard Item Name ("Exp" currency item / "Energy Elixir" consumable)
+        if (ItemIconDatabase.Instance != null)
+        {
+            if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Exp", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var expSprite = ItemIconDatabase.Instance.GetIcon("Exp", "Currency") ?? ItemIconDatabase.Instance.GetIcon("EXP", null);
+                if (expSprite != null) return expSprite;
+            }
+            if (string.Equals(type, "Energy", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var energySprite = ItemIconDatabase.Instance.GetIcon("Energy Elixir", "Consumable") ?? ItemIconDatabase.Instance.GetIcon("Energy", null);
+                if (energySprite != null) return energySprite;
+            }
+            if (string.Equals(type, "Gold", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var goldSprite = ItemIconDatabase.Instance.GetIcon("Gold", "Currency");
+                if (goldSprite != null) return goldSprite;
             }
         }
 

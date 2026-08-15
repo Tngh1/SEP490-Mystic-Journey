@@ -61,9 +61,9 @@ public class UIConfirmPurchase : MonoBehaviour
         {
             itemNameText.text = currentItem?.itemName ?? string.Empty;
             if (currentItem != null && currentItem.weeklyPurchaseLimit > 0)
-                itemNameText.text += $" (Tuần: {Mathf.Max(0, currentItem.remainingWeeklyPurchases)}/{currentItem.weeklyPurchaseLimit})";
+                itemNameText.text += $" (Weekly: {Mathf.Max(0, currentItem.remainingWeeklyPurchases)}/{currentItem.weeklyPurchaseLimit})";
             else if (currentItem != null && currentItem.dailyPurchaseLimit > 0)
-                itemNameText.text += $" (Ngày: {Mathf.Max(0, currentItem.remainingDailyPurchases)}/{currentItem.dailyPurchaseLimit})";
+                itemNameText.text += $" (Daily: {Mathf.Max(0, currentItem.remainingDailyPurchases)}/{currentItem.dailyPurchaseLimit})";
         }
 
         if (itemIcon != null)

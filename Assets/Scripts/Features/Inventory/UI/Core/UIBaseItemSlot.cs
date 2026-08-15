@@ -173,6 +173,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             case "rare": return new Color(0.35f, 0.62f, 1f);
             case "epic": return new Color(0.75f, 0.45f, 1f);
             case "legendary": return new Color(1f, 0.72f, 0.2f);
+            case "mythic": return new Color(1f, 0.3f, 0.3f);
             default: return Color.white;
         }
     }

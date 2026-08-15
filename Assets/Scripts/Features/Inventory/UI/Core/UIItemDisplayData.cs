@@ -35,6 +35,18 @@ public class UIItemDisplayData
     public int remainingWeeklyPurchases = -1;
     public float corruptionReduction;
 
+    // Equipment & Item Stats
+    public int baseHp;
+    public int baseAtk;
+    public int baseDef;
+    public int bonusHp;
+    public int bonusAtk;
+    public int bonusDef;
+    public float bonusCritRate;
+    public float bonusCritDamage;
+    public string description;
+    public string slot;
+
     public bool isClaimed;
     public bool isAvailable;
     public bool isMissed;

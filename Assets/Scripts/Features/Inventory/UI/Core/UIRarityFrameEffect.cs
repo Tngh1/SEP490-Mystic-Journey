@@ -130,6 +130,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         {
             case "epic": return 0.18f;
             case "legendary": return 0.32f;
+            case "mythic": return 0.42f;
             default: return 0f;
         }
     }
@@ -146,6 +147,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
             case "rare": return new Color(0.22f, 0.55f, 1f);
             case "epic": return new Color(0.72f, 0.32f, 1f);
             case "legendary": return new Color(1f, 0.62f, 0.08f);
+            case "mythic": return new Color(1f, 0.3f, 0.3f);
             default: return new Color(0.72f, 0.75f, 0.8f);
         }
     }
