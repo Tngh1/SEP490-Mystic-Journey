@@ -349,6 +349,16 @@ public class UIShop : MonoBehaviour
             weeklyPurchaseLimit = item?.WeeklyPurchaseLimit ?? 0,
             purchasedThisWeek = item?.PurchasedThisWeek ?? 0,
             remainingWeeklyPurchases = item?.RemainingWeeklyPurchases ?? -1,
+            baseHp = item?.BaseHp ?? 0,
+            baseAtk = item?.BaseAtk ?? 0,
+            baseDef = item?.BaseDef ?? 0,
+            bonusHp = item?.BonusHp ?? 0,
+            bonusAtk = item?.BonusAtk ?? 0,
+            bonusDef = item?.BonusDef ?? 0,
+            bonusCritRate = item?.BonusCritRate ?? 0f,
+            bonusCritDamage = item?.BonusCritDamage ?? 0f,
+            description = item?.Description,
+            slot = item?.Slot,
             rawData = item
         };
     }

@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
+public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Core UI Elements")]
     [SerializeField] protected Image iconImage;
@@ -130,6 +130,20 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
     {
         if (RawData != null)
             OnSlotClicked?.Invoke(this);
+    }
+
+    public virtual void OnPointerEnter(PointerEventData eventData)
+    {
+        if (DisplayData != null)
+        {
+            var tooltip = UIShopItemTooltip.GetOrCreate(GetComponentInParent<Canvas>());
+            tooltip?.ShowTooltip(DisplayData, transform as RectTransform);
+        }
+    }
+
+    public virtual void OnPointerExit(PointerEventData eventData)
+    {
+        UIShopItemTooltip.Instance?.HideTooltip();
     }
 
     protected void BindCore()
