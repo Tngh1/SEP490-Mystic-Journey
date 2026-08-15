@@ -5,7 +5,9 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine.Serialization;
 
-public class UIShopSlot : UIBaseItemSlot
+using UnityEngine.EventSystems;
+
+public class UIShopSlot : UIBaseItemSlot, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Shop Specifics")]
     [FormerlySerializedAs("nameText")]
@@ -25,6 +27,20 @@ public class UIShopSlot : UIBaseItemSlot
     {
         if (buyButton != null)
             buyButton.onClick.AddListener(OnBuyButtonClicked);
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (DisplayData != null)
+        {
+            var tooltip = UIShopItemTooltip.GetOrCreate(GetComponentInParent<Canvas>());
+            tooltip?.ShowTooltip(DisplayData, transform as RectTransform);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        UIShopItemTooltip.Instance?.HideTooltip();
     }
 
     public void SetupShop(UIItemDisplayData data)

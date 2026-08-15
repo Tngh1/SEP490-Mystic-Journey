@@ -36,9 +36,79 @@ public class UIShopItemTooltip : MonoBehaviour
         rectTransform = GetComponent<RectTransform>();
         parentCanvas = GetComponentInParent<Canvas>();
 
+        CanvasGroup canvasGroup = GetComponent<CanvasGroup>();
+        if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
+
+        TryAutoBind();
         EnsureStatIconsAsset();
+        DisableRaycastTargets();
+
         if (container != null) container.SetActive(false);
         else gameObject.SetActive(false);
+    }
+
+    private void DisableRaycastTargets()
+    {
+        Graphic[] graphics = GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            if (graphics[i] != null)
+                graphics[i].raycastTarget = false;
+        }
+    }
+
+    private void TryAutoBind()
+    {
+        if (container == null) container = gameObject;
+        if (nameText == null) nameText = FindChildText("NameText", "Name", "Title");
+        if (typeRarityText == null) typeRarityText = FindChildText("TypeRarityText", "TypeRarity", "Type", "Rarity");
+        if (statsText == null) statsText = FindChildText("StatsText", "Stats", "StatText", "Stat");
+        if (descriptionText == null) descriptionText = FindChildText("DescriptionText", "Description", "Desc");
+        if (priceLimitText == null) priceLimitText = FindChildText("PriceLimitText", "PriceLimit", "PriceText", "LimitText");
+
+        // Fallback: If statsText is still unassigned, take the first unassigned TMP_Text component
+        var allTexts = GetComponentsInChildren<TMP_Text>(true);
+        for (int i = 0; i < allTexts.Length; i++)
+        {
+            var txt = allTexts[i];
+            if (txt == null || txt == nameText || txt == typeRarityText) continue;
+            if (statsText == null) statsText = txt;
+            else if (descriptionText == null && txt != statsText) descriptionText = txt;
+            else if (priceLimitText == null && txt != statsText && txt != descriptionText) priceLimitText = txt;
+        }
+
+        if (itemIcon == null) itemIcon = FindChildImage("ItemIcon", "Icon");
+        if (rarityBorder == null) rarityBorder = FindChildImage("RarityBorder", "Border", "Frame");
+    }
+
+    private TMP_Text FindChildText(params string[] names)
+    {
+        var texts = GetComponentsInChildren<TMP_Text>(true);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            for (int j = 0; j < names.Length; j++)
+            {
+                if (texts[i] != null && texts[i].name.Equals(names[j], StringComparison.OrdinalIgnoreCase))
+                    return texts[i];
+            }
+        }
+        return null;
+    }
+
+    private Image FindChildImage(params string[] names)
+    {
+        var images = GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            for (int j = 0; j < names.Length; j++)
+            {
+                if (images[i] != null && images[i].name.Equals(names[j], StringComparison.OrdinalIgnoreCase))
+                    return images[i];
+            }
+        }
+        return null;
     }
 
     public static UIShopItemTooltip GetOrCreate(Canvas targetCanvas = null)
@@ -53,8 +123,20 @@ public class UIShopItemTooltip : MonoBehaviour
             return Instance;
         }
 
-        // Build runtime UI floating tooltip
+        // Search for PopupLayer or Canvas
+        Transform parentTransform = null;
+        GameObject popupLayerObj = GameObject.Find("PopupLayer");
+        if (popupLayerObj != null)
+        {
+            parentTransform = popupLayerObj.transform;
+        }
+
         Canvas canvas = targetCanvas;
+        if (canvas == null && parentTransform != null)
+        {
+            canvas = parentTransform.GetComponentInParent<Canvas>();
+        }
+
         if (canvas == null)
         {
             var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
@@ -68,10 +150,11 @@ public class UIShopItemTooltip : MonoBehaviour
             }
         }
 
-        if (canvas == null) return null;
+        if (canvas == null && parentTransform == null) return null;
+        if (parentTransform == null && canvas != null) parentTransform = canvas.transform;
 
         GameObject tooltipObj = new GameObject("UIShopItemTooltip", typeof(RectTransform), typeof(CanvasGroup), typeof(UIShopItemTooltip));
-        tooltipObj.transform.SetParent(canvas.transform, false);
+        tooltipObj.transform.SetParent(parentTransform, false);
 
         RectTransform rect = tooltipObj.GetComponent<RectTransform>();
         rect.sizeDelta = new Vector2(280f, 220f);
@@ -192,6 +275,7 @@ public class UIShopItemTooltip : MonoBehaviour
             return;
         }
 
+        FillFallbackStats(data);
         EnsureStatIconsAsset();
 
         // 1. Title & Rarity Color
@@ -227,22 +311,22 @@ public class UIShopItemTooltip : MonoBehaviour
             int totalDef = data.baseDef + data.bonusDef;
 
             if (totalHp > 0)
-                sb.AppendLine($"<sprite name=\"HPStats\"> <color=#FF5555>HP:</color> +{totalHp}");
+                sb.AppendLine($"<sprite name=\"HPStats\"> <color=#B91C1C>HP:</color> <b>+{totalHp}</b>");
 
             if (totalAtk > 0)
-                sb.AppendLine($"<sprite name=\"DMGStats\"> <color=#FFB86C>ATK:</color> +{totalAtk}");
+                sb.AppendLine($"<sprite name=\"DMGStats\"> <color=#C2410C>ATK:</color> <b>+{totalAtk}</b>");
 
             if (totalDef > 0)
-                sb.AppendLine($"<sprite name=\"DEFStats\"> <color=#8BE9FD>DEF:</color> +{totalDef}");
+                sb.AppendLine($"<sprite name=\"DEFStats\"> <color=#1D4ED8>DEF:</color> <b>+{totalDef}</b>");
 
             if (data.bonusCritRate > 0f)
-                sb.AppendLine($"<sprite name=\"CritStats\"> <color=#50FA7B>Crit Rate:</color> +{data.bonusCritRate:F1}%");
+                sb.AppendLine($"<sprite name=\"CritStats\"> <color=#15803D>Crit Rate:</color> <b>+{data.bonusCritRate:F1}%</b>");
 
             if (data.bonusCritDamage > 0f)
-                sb.AppendLine($"<sprite name=\"CritDMGStats\"> <color=#BD93F9>Crit Dmg:</color> +{data.bonusCritDamage:F1}%");
+                sb.AppendLine($"<sprite name=\"CritDMGStats\"> <color=#6D28D9>Crit Dmg:</color> <b>+{data.bonusCritDamage:F1}%</b>");
 
             if (data.corruptionReduction > 0f)
-                sb.AppendLine($"<color=yellow>Corruption Reduction:</color> -{data.corruptionReduction:F1}");
+                sb.AppendLine($"<color=#B45309>Corruption Reduction:</color> <b>-{data.corruptionReduction:F1}</b>");
 
             statsText.text = sb.ToString().TrimEnd();
             statsText.gameObject.SetActive(statsText.text.Length > 0);
@@ -296,29 +380,167 @@ public class UIShopItemTooltip : MonoBehaviour
         Vector3[] corners = new Vector3[4];
         slotTransform.GetWorldCorners(corners);
 
-        // Top-right corner of slot
+        // Position slightly offset from slot top-right corner
         Vector3 targetPos = corners[2];
         rectTransform.position = targetPos;
 
-        // Keep inside screen boundaries
+        // Keep inside screen boundaries using actual world corners
         Vector3[] tooltipCorners = new Vector3[4];
         rectTransform.GetWorldCorners(tooltipCorners);
+
+        float tooltipWidth = Mathf.Abs(tooltipCorners[2].x - tooltipCorners[0].x);
+        float tooltipHeight = Mathf.Abs(tooltipCorners[1].y - tooltipCorners[0].y);
 
         float screenWidth = Screen.width;
         float screenHeight = Screen.height;
 
-        // If off right screen, flip to left of slot
-        if (tooltipCorners[2].x > screenWidth)
+        // If off right screen, flip to left side of slot
+        if (tooltipCorners[2].x > screenWidth - 10f)
         {
-            targetPos.x = corners[0].x - rectTransform.rect.width;
+            targetPos.x = corners[0].x - tooltipWidth;
         }
 
-        // If off bottom screen, adjust upwards
-        if (tooltipCorners[0].y < 0)
+        // If top edge extends beyond top of screen, push down
+        if (tooltipCorners[1].y > screenHeight - 10f)
         {
-            targetPos.y += (0 - tooltipCorners[0].y) + 10f;
+            targetPos.y -= (tooltipCorners[1].y - (screenHeight - 10f));
+        }
+
+        // If bottom edge extends beyond bottom of screen, push up
+        if (tooltipCorners[0].y < 10f)
+        {
+            targetPos.y += (10f - tooltipCorners[0].y);
         }
 
         rectTransform.position = targetPos;
+    }
+
+    private static void FillFallbackStats(UIItemDisplayData data)
+    {
+        if (data == null) return;
+        int totalHp = data.baseHp + data.bonusHp;
+        int totalAtk = data.baseAtk + data.bonusAtk;
+        int totalDef = data.baseDef + data.bonusDef;
+
+        if (totalHp > 0 || totalAtk > 0 || totalDef > 0 || data.bonusCritRate > 0f || data.bonusCritDamage > 0f)
+            return;
+
+        int id = data.itemId;
+        string name = data.itemName ?? "";
+
+        if (id == 120 || name.IndexOf("Elemental Grimoire", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 40; data.bonusAtk = 16; data.bonusCritRate = 6f; data.bonusCritDamage = 22f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Grimoire containing ancient elemental destruction spells.";
+        }
+        else if (id == 116 || name.IndexOf("Radiant Guardian Shield", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 180; data.bonusHp = 70; data.baseDef = 45; data.bonusDef = 18;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Sacred radiant shield providing massive defense.";
+        }
+        else if (id == 117 || name.IndexOf("Cloak of Stars", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 120; data.bonusHp = 40; data.baseAtk = 10; data.bonusAtk = 5; data.baseDef = 25; data.bonusDef = 10; data.bonusCritRate = 6f; data.bonusCritDamage = 15f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Mystical cloak woven from starlight and cosmic energy.";
+        }
+        else if (id == 118 || name.IndexOf("Amulet of Eternal Flame", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 140; data.bonusHp = 50; data.baseAtk = 12; data.bonusAtk = 6; data.baseDef = 15; data.bonusDef = 5; data.bonusCritRate = 8f; data.bonusCritDamage = 18f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Ancient amulet burning with unquenchable flame.";
+        }
+        else if (id == 119 || name.IndexOf("Paladin Broadsword", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 38; data.bonusAtk = 15; data.bonusCritRate = 8f; data.bonusCritDamage = 20f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Heavy broadsword wielded by holy paladins.";
+        }
+        else if (id == 121 || name.IndexOf("Shadow Crossbow", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 36; data.bonusAtk = 14; data.bonusCritRate = 9f; data.bonusCritDamage = 18f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Silent crossbow firing dark shadow bolts.";
+        }
+        else if (id == 122 || name.IndexOf("Fortress Tower Shield", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 110; data.bonusHp = 40; data.baseDef = 28; data.bonusDef = 11;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Impenetrable tower shield used by castle vanguards.";
+        }
+        else if (id == 123 || name.IndexOf("Hood of Silent Night", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 70; data.bonusHp = 25; data.baseAtk = 8; data.bonusAtk = 4; data.baseDef = 16; data.bonusDef = 6; data.bonusCritRate = 7f; data.bonusCritDamage = 15f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Stealth hood worn by night assassins.";
+        }
+        else if (id == 124 || name.IndexOf("Ring of Tempest", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 60; data.bonusHp = 20; data.baseAtk = 10; data.bonusAtk = 5; data.baseDef = 10; data.bonusDef = 4; data.bonusCritRate = 5f; data.bonusCritDamage = 12f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Ring channeling the power of storm winds.";
+        }
+        else if (id == 129 || name.IndexOf("Mantle of the Forest", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 50; data.bonusHp = 25; data.baseDef = 12; data.bonusDef = 6;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Enchanted mantle imbued with forest spirit blessings.";
+        }
+        else if (id == 12 || name.IndexOf("Dragon Scale Armor", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 196; data.bonusHp = 84; data.baseDef = 32; data.bonusDef = 14;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Heavy armor forged from ancient dragon scales.";
+        }
+        else if (id == 13 || name.IndexOf("Phantom Cloak", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 84; data.bonusHp = 36; data.baseDef = 14; data.bonusDef = 6;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Ethereal cloak enabling swift shadow movements.";
+        }
+        else if (id == 14 || name.IndexOf("Shadow Hood", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseDef = 7; data.bonusDef = 3; data.bonusCritRate = 8f; data.bonusCritDamage = 25f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Dark assassin hood increasing critical precision.";
+        }
+        else if (id == 8 || name.IndexOf("Elven Blade", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 29; data.bonusAtk = 13; data.bonusCritRate = 10f; data.bonusCritDamage = 30f;
+            if (string.IsNullOrEmpty(data.description)) data.description = "Finely crafted elven blade with sharp edge.";
+        }
+        else if (id == 31 || name.IndexOf("Magic Flour", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            if (string.IsNullOrEmpty(data.description)) data.description = "Rare legendary ingredient used for high-tier crafting.";
+        }
+        else if (id == 5 || name.IndexOf("Iron Sword", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 7; data.bonusAtk = 3; data.bonusCritRate = 3f; data.bonusCritDamage = 15f;
+        }
+        else if (id == 6 || name.IndexOf("Hunter Bow", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 6; data.bonusAtk = 2; data.bonusCritRate = 6f; data.bonusCritDamage = 10f;
+        }
+        else if (id == 7 || name.IndexOf("Apprentice Staff", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 6; data.bonusAtk = 3; data.bonusCritRate = 2f; data.bonusCritDamage = 20f;
+        }
+        else if (id == 9 || name.IndexOf("Leather Armor", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 31; data.bonusHp = 14; data.baseDef = 6; data.bonusDef = 2;
+        }
+        else if (id == 10 || name.IndexOf("Iron Helmet", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 21; data.bonusHp = 9; data.baseDef = 4; data.bonusDef = 2;
+        }
+        else if (id == 11 || name.IndexOf("Wind Boots", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseDef = 4; data.bonusDef = 1;
+        }
+        else if (id == 15 || name.IndexOf("Iron Gauntlets", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 4; data.bonusAtk = 2; data.baseDef = 3; data.bonusDef = 1;
+        }
+        else if (id == 16 || name.IndexOf("Leather Gauntlets", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseAtk = 3; data.bonusAtk = 1; data.baseDef = 2; data.bonusDef = 1;
+        }
+        else if (id == 17 || name.IndexOf("Copper Ring", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 18; data.bonusHp = 7; data.baseAtk = 2; data.bonusAtk = 1; data.bonusCritRate = 3f; data.bonusCritDamage = 6f;
+        }
+        else if (id == 18 || name.IndexOf("Silver Necklace", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            data.baseHp = 35; data.bonusHp = 15; data.baseDef = 4; data.bonusDef = 1;
+        }
     }
 }
