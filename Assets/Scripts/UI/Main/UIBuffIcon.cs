@@ -20,7 +20,7 @@ public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
 
         if (iconImage != null && !string.IsNullOrEmpty(_buff.IconName))
         {
-            Sprite sprite = Resources.Load<Sprite>("Icons/Buffs/" + _buff.IconName);
+            Sprite sprite = Resources.Load<Sprite>("Icons/Effects/" + _buff.IconName);
             if (sprite != null)
             {
                 iconImage.sprite = sprite;

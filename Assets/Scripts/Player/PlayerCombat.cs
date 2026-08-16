@@ -131,6 +131,13 @@ public class PlayerCombat : NetworkBehaviour
             _silenceTimer = duration;
         }
 
+        var buffMgr = GetComponent<BuffManager>();
+        if (buffMgr != null && _silenceTimer > 0f)
+        {
+            // Thêm hiệu ứng vào BuffManager để hiển thị icon (tên icon tuỳ chỉnh)
+            buffMgr.AddBuff("Silence", "silence_icon", _silenceTimer, true);
+        }
+
         if (_isAimingAoE)
         {
             CancelAimingMode();
