@@ -89,7 +89,7 @@ namespace UI.Combat
                 Sprite iconSprite = null;
                 if (!string.IsNullOrEmpty(buff.IconName))
                 {
-                    iconSprite = Resources.Load<Sprite>($"Icons/Buffs/{buff.IconName}");
+                    iconSprite = Resources.Load<Sprite>($"Icons/Effects/{buff.IconName}");
                 }
                 
                 AddOrUpdateBuffIcon(buff.BuffName, iconSprite, buff.DurationRemaining, buff.IsDebuff);
