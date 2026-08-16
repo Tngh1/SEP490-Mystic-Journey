@@ -7,11 +7,11 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 
 // =============================================================================
-// InventoryManager – UC 20 (Manage Inventory) – Controller chính
+// InventoryUIManager – UC 20 (Manage Inventory) – Controller chính
 //
 // Trách nhiệm:
 //   • Load inventory từ API (UC 20.1 View Inventory)
-//   • Hiển thị danh sách item lên UIInventory:
+//   • Hiển thị danh sách item lên InventoryPanel:
 //       Tab "Items" – InventoryItems (Weapon, Armor, Consumable…)
 //       Tab "Skins" – PlayerSkins (từ bảng PlayerSkins, có PlayerSkinId riêng)
 //   • Mở UIItemDetailPopup khi click slot (UC 20.2 View Item Detail)
@@ -28,13 +28,13 @@ using MysticJourney.API.Models.Response;
 //   2. Gán các reference qua Inspector.
 //   3. Gọi LoadInventory() khi mở panel.
 // =============================================================================
-public class InventoryManager : MonoBehaviour
+public class InventoryUIManager : MonoBehaviour
 {
     // -------------------------------------------------------------------------
     // Inspector References
     // -------------------------------------------------------------------------
     [Header("UI Panels")]
-    [SerializeField] private UIInventory uiInventory;
+    [SerializeField] private InventoryPanel uiInventory;
     [SerializeField] private UISkinInventory uiSkinInventory;
     [SerializeField] private UIItemDetailPopup itemDetailPopup;
     [SerializeField] private UISkinDetailPopup skinDetailPopup;
@@ -117,7 +117,7 @@ public class InventoryManager : MonoBehaviour
         ShowTab(_showingSkins);
     }
 
-    // Script này nằm trên GameObject "InventoryManager" RỖNG (0 con), nên
+    // Script này nằm trên GameObject "InventoryUIManager" RỖNG (0 con), nên
     // GetComponentsInChildren<Button> từ đây không với tới nút nào. Phải quét theo
     // CollectSearchRoots (đã gồm panel root + filter bar + 2 popup) mới đủ.
     // Toggle cũng cần: tab và filter trong panel là Toggle, không phải Button.
@@ -154,9 +154,9 @@ public class InventoryManager : MonoBehaviour
     public static void RefreshAny(bool refreshStats = false)
     {
 #if UNITY_2023_1_OR_NEWER
-        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryUIManager>(FindObjectsInactive.Include);
 #else
-        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryUIManager>(FindObjectsInactive.Include);
 #endif
         manager?.LoadInventory(force: true, refreshStats: refreshStats);
     }
@@ -213,7 +213,7 @@ public class InventoryManager : MonoBehaviour
                 _requestInFlight = false;
                 SetLoading(false);
                 SetError($"Failed to load inventory: {error.Message}");
-                Debug.LogError($"[InventoryManager] LoadInventory FAIL: {error.Message}");
+                Debug.LogError($"[InventoryUIManager] LoadInventory FAIL: {error.Message}");
             }
         );
     }
@@ -286,20 +286,20 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[InventoryManager] EquipItem inventoryItemId={item.InventoryItemId}");
+        Debug.Log($"[InventoryUIManager] EquipItem inventoryItemId={item.InventoryItemId}");
         itemDetailPopup?.Hide();
 
         InventoryApi.Instance.EquipItem(
             inventoryItemId: item.InventoryItemId,
             onSuccess: response =>
             {
-                Debug.Log($"[InventoryManager] ✅ EquipItem OK");
+                Debug.Log($"[InventoryUIManager] ✅ EquipItem OK");
                 LoadInventory(force: true);
                 StartCoroutine(RefreshInventoryAfterEquipmentMutation());
             },
             onError: error =>
             {
-                Debug.LogError($"[InventoryManager] ❌ EquipItem FAIL: {error.Message}");
+                Debug.LogError($"[InventoryUIManager] ❌ EquipItem FAIL: {error.Message}");
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Equip failed.");
             }
         );
@@ -380,20 +380,20 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[InventoryManager] UnequipItem inventoryItemId={item.InventoryItemId}");
+        Debug.Log($"[InventoryUIManager] UnequipItem inventoryItemId={item.InventoryItemId}");
         itemDetailPopup?.Hide();
 
         InventoryApi.Instance.UnequipItem(
             inventoryItemId: item.InventoryItemId,
             onSuccess: response =>
             {
-                Debug.Log($"[InventoryManager] ✅ UnequipItem OK");
+                Debug.Log($"[InventoryUIManager] ✅ UnequipItem OK");
                 LoadInventory(force: true);
                 StartCoroutine(RefreshInventoryAfterEquipmentMutation());
             },
             onError: error =>
             {
-                Debug.LogError($"[InventoryManager] ❌ UnequipItem FAIL: {error.Message}");
+                Debug.LogError($"[InventoryUIManager] ❌ UnequipItem FAIL: {error.Message}");
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip failed.");
             }
         );
@@ -429,7 +429,7 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[InventoryManager] ConsumeItem inventoryItemId={item.InventoryItemId} qty={quantity}");
+        Debug.Log($"[InventoryUIManager] ConsumeItem inventoryItemId={item.InventoryItemId} qty={quantity}");
         itemDetailPopup?.Hide();
 
         InventoryApi.Instance.ConsumeItem(
@@ -437,13 +437,13 @@ public class InventoryManager : MonoBehaviour
             quantity: quantity,
             onSuccess: response =>
             {
-                Debug.Log($"[InventoryManager] ✅ ConsumeItem OK | effect={response?.EffectType} | value={response?.EffectValue}");
+                Debug.Log($"[InventoryUIManager] ✅ ConsumeItem OK | effect={response?.EffectType} | value={response?.EffectValue}");
                 ApplyConsumedItemEffect(response);
                 LoadInventory(force: true, refreshStats: false);
             },
             onError: error =>
             {
-                Debug.LogError($"[InventoryManager] ❌ ConsumeItem FAIL: {error.Message}");
+                Debug.LogError($"[InventoryUIManager] ❌ ConsumeItem FAIL: {error.Message}");
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Item use failed.");
             }
         );
@@ -466,19 +466,19 @@ public class InventoryManager : MonoBehaviour
             else
             {
                 // The HUD can exist before the local avatar has spawned.
-                PlayerHUDController.Instance?.ApplyHealth(response.CurrentHp.Value, response.MaxHp.Value);
+                PlayerHUDUIManager.Instance?.ApplyHealth(response.CurrentHp.Value, response.MaxHp.Value);
             }
         }
 
         if (response.CurrentEnergy.HasValue && response.MaxEnergy.HasValue)
         {
-            PlayerHUDController.Instance?.ApplyEnergy(response.CurrentEnergy.Value, response.MaxEnergy.Value);
+            PlayerHUDUIManager.Instance?.ApplyEnergy(response.CurrentEnergy.Value, response.MaxEnergy.Value);
         }
 
         if (response.CorruptionLevel.HasValue)
         {
             MysticJourney.Core.Services.GameStateService.Instance.CorruptionLevel = response.CorruptionLevel.Value;
-            PlayerHUDController.Instance?.ApplyCorruption(response.CorruptionLevel.Value);
+            PlayerHUDUIManager.Instance?.ApplyCorruption(response.CorruptionLevel.Value);
         }
     }
 
@@ -488,20 +488,20 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleEquipSkin(PlayerSkinSummaryResponse skin)
     {
-        Debug.Log($"[InventoryManager] EquipSkin playerSkinId={skin.PlayerSkinId} skinName={skin.SkinName}");
+        Debug.Log($"[InventoryUIManager] EquipSkin playerSkinId={skin.PlayerSkinId} skinName={skin.SkinName}");
         skinDetailPopup?.Hide();
 
         InventoryApi.Instance.EquipSkin(
             playerSkinId: skin.PlayerSkinId,
             onSuccess: response =>
             {
-                Debug.Log($"[InventoryManager] ✅ EquipSkin OK | SkinName={response?.SkinName}");
+                Debug.Log($"[InventoryUIManager] ✅ EquipSkin OK | SkinName={response?.SkinName}");
                 UpdateLocalNetworkPlayerSkin(skin.SkinId);
                 LoadInventory(force: true);
             },
             onError: error =>
             {
-                Debug.LogError($"[InventoryManager] ❌ EquipSkin FAIL: {error.Message}");
+                Debug.LogError($"[InventoryUIManager] ❌ EquipSkin FAIL: {error.Message}");
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Equip skin failed.");
             }
         );
@@ -512,20 +512,20 @@ public class InventoryManager : MonoBehaviour
     // =========================================================================
     private void HandleUnequipSkin(PlayerSkinSummaryResponse skin)
     {
-        Debug.Log($"[InventoryManager] UnequipSkin playerSkinId={skin.PlayerSkinId} skinName={skin.SkinName}");
+        Debug.Log($"[InventoryUIManager] UnequipSkin playerSkinId={skin.PlayerSkinId} skinName={skin.SkinName}");
         skinDetailPopup?.Hide();
 
         InventoryApi.Instance.UnequipSkin(
             playerSkinId: skin.PlayerSkinId,
             onSuccess: _ =>
             {
-                Debug.Log($"[InventoryManager] ✅ UnequipSkin OK");
+                Debug.Log($"[InventoryUIManager] ✅ UnequipSkin OK");
                 UpdateLocalNetworkPlayerSkin(0);
                 LoadInventory(force: true);
             },
             onError: error =>
             {
-                Debug.LogError($"[InventoryManager] ❌ UnequipSkin FAIL: {error.Message}");
+                Debug.LogError($"[InventoryUIManager] ❌ UnequipSkin FAIL: {error.Message}");
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip skin failed.");
             }
         );
@@ -765,7 +765,7 @@ public class InventoryManager : MonoBehaviour
     private void BindUiReferences()
     {
         if (uiInventory == null)
-            uiInventory = GetComponentInChildren<UIInventory>(true);
+            uiInventory = GetComponentInChildren<InventoryPanel>(true);
         if (uiSkinInventory == null)
             uiSkinInventory = GetComponentInChildren<UISkinInventory>(true);
         if (itemDetailPopup == null)
@@ -922,7 +922,7 @@ public class InventoryManager : MonoBehaviour
         var obj = preferredSelectable != null ? preferredSelectable.gameObject : FindObject(names);
         if (obj == null)
         {
-            Debug.LogWarning("[InventoryManager] BindFilterAction: Could not find object for " + filterValue);
+            Debug.LogWarning("[InventoryUIManager] BindFilterAction: Could not find object for " + filterValue);
             return;
         }
 
@@ -931,7 +931,7 @@ public class InventoryManager : MonoBehaviour
         {
             RegisterFilterVisual(FilterKey(isSkinFilter, filterValue), btn);
             btn.onClick.AddListener(() => {
-                Debug.Log("[InventoryManager] Button clicked: " + filterValue);
+                Debug.Log("[InventoryUIManager] Button clicked: " + filterValue);
                 SetFilter(filterValue, isSkinFilter);
             });
             return;
@@ -944,7 +944,7 @@ public class InventoryManager : MonoBehaviour
             toggle.onValueChanged.AddListener((isOn) => {
                 if (isOn)
                 {
-                    Debug.Log("[InventoryManager] Toggle selected: " + filterValue);
+                    Debug.Log("[InventoryUIManager] Toggle selected: " + filterValue);
                     SetFilter(filterValue, isSkinFilter);
                 }
                 else
@@ -957,7 +957,7 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("[InventoryManager] BindFilterAction: Object " + obj.name + " has neither Button nor Toggle for " + filterValue);
+        Debug.LogWarning("[InventoryUIManager] BindFilterAction: Object " + obj.name + " has neither Button nor Toggle for " + filterValue);
     }
 
     // targetGraphic của các nút này là background Image nằm trên chính object đó (đã kiểm trong
@@ -968,7 +968,7 @@ public class InventoryManager : MonoBehaviour
         if (graphic == null) graphic = selectable.GetComponent<Image>();
         if (graphic == null)
         {
-            Debug.LogWarning("[InventoryManager] RegisterFilterVisual: no Image on " + selectable.name);
+            Debug.LogWarning("[InventoryUIManager] RegisterFilterVisual: no Image on " + selectable.name);
             return;
         }
 
@@ -1131,7 +1131,7 @@ public class InventoryManager : MonoBehaviour
 
     private void ShowActionError(string msg)
     {
-        Debug.LogWarning($"[InventoryManager] Action error: {msg}");
+        Debug.LogWarning($"[InventoryUIManager] Action error: {msg}");
         SetError(msg);
 
         // errorText không được gán trong Main.unity (errorText: {fileID: 0}), nên SetError là
@@ -1148,13 +1148,13 @@ public class InventoryManager : MonoBehaviour
                 if (response != null)
                 {
                     UpdatePlayerStatsUI(response);
-                    PlayerHUDController.Instance?.ApplyStats(response);
+                    PlayerHUDUIManager.Instance?.ApplyStats(response);
                     PlayerEntity.Instance?.ApplyHealth(response.CurrentHp, response.MaxHp);
                 }
             },
             onError: error =>
             {
-                Debug.LogWarning($"[InventoryManager] Failed to load character stats: {error.Message}");
+                Debug.LogWarning($"[InventoryUIManager] Failed to load character stats: {error.Message}");
             }
         );
     }
@@ -1191,11 +1191,11 @@ public class InventoryManager : MonoBehaviour
                 valueText.text = value;
             }
             else
-                Debug.LogWarning($"[InventoryManager] ValueText not found or missing TMP_Text component in {rowName}");
+                Debug.LogWarning($"[InventoryUIManager] ValueText not found or missing TMP_Text component in {rowName}");
         }
         else
         {
-            Debug.LogWarning($"[InventoryManager] Row '{rowName}' not found in stats panel.");
+            Debug.LogWarning($"[InventoryUIManager] Row '{rowName}' not found in stats panel.");
         }
     }
 
@@ -1211,7 +1211,7 @@ public class InventoryManager : MonoBehaviour
         var statsPanel = FindStatsPanel();
         if (statsPanel == null)
         {
-            Debug.LogWarning("[InventoryManager] StatsPanel not found.");
+            Debug.LogWarning("[InventoryUIManager] StatsPanel not found.");
             return;
         }
 
@@ -1267,7 +1267,7 @@ public class InventoryManager : MonoBehaviour
             playerAvatarImage.gameObject.SetActive(true);
 
         if (!hasSprite)
-            Debug.LogWarning($"[InventoryManager] No avatar sprite for class '{pClass}'. Assign knight/archer/mage idle sprites in the Inspector.");
+            Debug.LogWarning($"[InventoryUIManager] No avatar sprite for class '{pClass}'. Assign knight/archer/mage idle sprites in the Inspector.");
     }
 
     private Sprite ResolveClassSprite(string playerClass)

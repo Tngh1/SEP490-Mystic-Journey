@@ -472,9 +472,9 @@ namespace MysticJourney.Screen.Mail
                     _currentSelectedMailboxUI?.MarkAsClaimedLocally();
 
                     // Cập nhật HUD ngay để Gold/Gem/Level phản ánh phần thưởng vừa nhận,
-                    // thay vì chờ vòng lặp refresh 3s của PlayerHUDController.
-                    if (PlayerHUDController.Instance != null)
-                        PlayerHUDController.Instance.RefreshHUD();
+                    // thay vì chờ vòng lặp refresh 3s của PlayerHUDUIManager.
+                    if (PlayerHUDUIManager.Instance != null)
+                        PlayerHUDUIManager.Instance.RefreshHUD();
 
                     // Nếu bạn có popup hiển thị tổng kết quà vừa nhận, bạn có thể gọi API/Popup Manager ở đây
                 },

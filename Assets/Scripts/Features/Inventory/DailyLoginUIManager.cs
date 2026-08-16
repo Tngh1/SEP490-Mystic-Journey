@@ -7,7 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class DailyLoginPanelRuntime : MonoBehaviour
+public class DailyLoginUIManager : MonoBehaviour
 {
     [SerializeField] private UIDailyLogin uiDailyLogin;
     [SerializeField] private TMP_Text statusText;
@@ -249,7 +249,7 @@ public class DailyLoginPanelRuntime : MonoBehaviour
     {
         // The backend has already delivered item rewards. Force the cached inventory and
         // player stats to reload so item stacks, currency, and energy update immediately.
-        InventoryManager.RefreshAny(refreshStats: true);
+        InventoryUIManager.RefreshAny(refreshStats: true);
         WorldRuntimeEvents.RaiseCurrencyChanged();
     }
 

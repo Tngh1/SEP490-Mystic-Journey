@@ -4,7 +4,7 @@ using System;
 /// <summary>
 /// Player health adapter. Bridges backend stats and the network-authoritative HP
 /// stored on <see cref="NetworkPlayer"/> to the legacy single-player UI / event
-/// consumers (<c>PlayerHUDController</c>, <c>DamagePopupManager</c>, etc.).
+/// consumers (<c>PlayerHUDUIManager</c>, <c>DamagePopupManager</c>, etc.).
 ///
 /// Why adapter (not NetworkBehaviour):
 ///   - Per the Phase 0 decision, the multiplayer path keeps the legacy
@@ -325,9 +325,9 @@ public class PlayerEntity : MonoBehaviour
         Debug.Log("[PlayerEntity] Player died.");
         OnDeath?.Invoke(this, EventArgs.Empty);
 
-        if (PlayerHUDController.Instance != null)
+        if (PlayerHUDUIManager.Instance != null)
         {
-            PlayerHUDController.Instance.ShowDeathPopup();
+            PlayerHUDUIManager.Instance.ShowDeathPopup();
         }
     }
 

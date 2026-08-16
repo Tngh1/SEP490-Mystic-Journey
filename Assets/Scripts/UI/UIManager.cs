@@ -252,12 +252,12 @@ public class UIManager : MonoBehaviour
         EnsureQuestManager();
         EnsureRuntime<MainQuestPanelRuntime>();
         EnsureRuntime<AchievementPopupRuntime>();
-        EnsureRuntime<MainNpcPanelRuntime>();
+        EnsureRuntime<MainNpcPanel>();
         EnsureRuntime<PlayerUIHotkeys>();
-        EnsurePanelRuntime<InventoryManager>(inventoryPanel, "InventoryPanel");
-        EnsurePanelRuntime<DailyLoginPanelRuntime>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
+        EnsurePanelRuntime<InventoryUIManager>(inventoryPanel, "InventoryPanel");
+        EnsurePanelRuntime<DailyLoginUIManager>(dailyPanel, "DailyPanel", "Login30daysGiftPanel");
         EnsurePanelRuntime<UIChestRewardPanel>(chestPanel, "ChestPanel");
-        EnsurePanelRuntime<UIPartyPanel>(dungeonPanel, "TeamPanel");
+        EnsurePanelRuntime<PartyPanel>(dungeonPanel, "TeamPanel");
         EnsureButtonHoverEffects();
 
         if (DungeonManager.Instance == null)
@@ -269,18 +269,18 @@ public class UIManager : MonoBehaviour
 
     private void EnsureQuestManager()
     {
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
             return;
 
-        var existing = Resources.FindObjectsOfTypeAll<QuestManager>();
+        var existing = Resources.FindObjectsOfTypeAll<QuestUIManager>();
         foreach (var manager in existing)
         {
             if (manager != null && manager.gameObject.scene.IsValid())
                 return;
         }
 
-        var questManagerObject = new GameObject("QuestManager");
-        questManagerObject.AddComponent<QuestManager>();
+        var questManagerObject = new GameObject("QuestUIManager");
+        questManagerObject.AddComponent<QuestUIManager>();
     }
 
     private void EnsureRuntime<T>() where T : Component
@@ -440,9 +440,9 @@ public class UIManager : MonoBehaviour
         var hudGo = FindSceneObject("HUD");
         if (hudGo != null)
         {
-            if (hudGo.GetComponent<PlayerHUDController>() == null)
+            if (hudGo.GetComponent<PlayerHUDUIManager>() == null)
             {
-                hudGo.AddComponent<PlayerHUDController>();
+                hudGo.AddComponent<PlayerHUDUIManager>();
             }
         }
         else

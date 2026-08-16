@@ -281,7 +281,7 @@ public class EnemyEntity : MonoBehaviour
             }
 
             // Cộng dồn tiến độ cho Quest giết quái
-            if (QuestManager.Instance != null)
+            if (QuestUIManager.Instance != null)
             {
                 // Lọc bỏ "(Clone)" hoặc các số phía sau nếu quái được sinh ra từ prefab
                 string cleanName = gameObject.name.Replace("(Clone)", "").Trim();
@@ -290,9 +290,9 @@ public class EnemyEntity : MonoBehaviour
 
                 string normCleanName = cleanName.Replace(" ", "").Trim();
 
-                foreach (var quest in QuestManager.Instance.GetMainQuests())
+                foreach (var quest in QuestUIManager.Instance.GetMainQuests())
                 {
-                    if (!QuestManager.IsStatus(quest, "InProgress")) continue;
+                    if (!QuestUIManager.IsStatus(quest, "InProgress")) continue;
                     if (!string.Equals(quest.ObjectiveType, "Kill", StringComparison.OrdinalIgnoreCase) &&
                         !string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase)) continue;
                     if (string.IsNullOrWhiteSpace(quest.ObjectiveTarget)) continue;
@@ -321,7 +321,7 @@ public class EnemyEntity : MonoBehaviour
                         if (!isMatch) continue;
 
                         Debug.Log($"[EnemyEntity] Adding progress to Quest {quest.QuestId} for killing {cleanName}");
-                        QuestManager.Instance.AddProgress(quest.QuestId, 1);
+                        QuestUIManager.Instance.AddProgress(quest.QuestId, 1);
                         break;
                     }
                 }

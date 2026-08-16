@@ -5,7 +5,7 @@ using UnityEngine;
 ///
 /// PHẢI nằm ở file riêng trùng tên class: Unity chỉ serialize được MonoBehaviour
 /// khi tên file khớp tên class. Trước đây class này khai báo lồng ở cuối
-/// UIPartyPanel.cs nên không kéo được vào prefab/scene qua Inspector — hệ quả là
+/// PartyPanel.cs nên không kéo được vào prefab/scene qua Inspector — hệ quả là
 /// 15 panel mỗi cái tự viết một vòng AddComponent giống nhau, còn button
 /// Instantiate lúc runtime (entry bạn bè, slot guild, ô shop/inventory/daily)
 /// thì không ai phủ nên không có hover. Đừng gộp class này trở lại file khác.

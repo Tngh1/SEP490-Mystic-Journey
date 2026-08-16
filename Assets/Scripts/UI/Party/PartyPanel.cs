@@ -23,9 +23,9 @@ using MysticJourney.Core.Utilities;
 /// Inviting the first friend lazily creates the party (PartyService.InviteByProfileId),
 /// so the solo→party transition is seamless.
 /// </summary>
-public class UIPartyPanel : MonoBehaviour
+public class PartyPanel : MonoBehaviour
 {
-    public static UIPartyPanel Instance { get; private set; }
+    public static PartyPanel Instance { get; private set; }
 
     [Header("Static References")]
     [SerializeField] private TMP_Text dungeonNameText;
@@ -259,7 +259,7 @@ public class UIPartyPanel : MonoBehaviour
             },
             error =>
             {
-                Debug.LogWarning($"[UIPartyPanel] GetMyProfile failed: {error.Message}");
+                Debug.LogWarning($"[PartyPanel] GetMyProfile failed: {error.Message}");
                 playerEnergy = 100; // Fallback
                 localPlayerName = WorldState.PlayerName ?? "Player";
                 localPlayerLevel = Mathf.Max(1, WorldState.PlayerLevel);
@@ -276,7 +276,7 @@ public class UIPartyPanel : MonoBehaviour
     {
         if (transform.Find("Players") == null)
         {
-            Debug.LogError("[UIPartyPanel] Players child not found on PartyPanel! Designed UI hierarchy is incorrect.");
+            Debug.LogError("[PartyPanel] Players child not found on PartyPanel! Designed UI hierarchy is incorrect.");
             return;
         }
 
@@ -454,7 +454,7 @@ public class UIPartyPanel : MonoBehaviour
                 // Tắt hẳn thay vì để nguyên sprite mặc định của prefab (đồng vàng):
                 // giữ lại thì item thiếu icon sẽ hiện SAI icon chứ không lộ ra là thiếu.
                 image.enabled = false;
-                Debug.LogWarning($"[UIPartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
+                Debug.LogWarning($"[PartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
             }
         }
 
@@ -757,7 +757,7 @@ public class UIPartyPanel : MonoBehaviour
         // Safety check: ensure slots array is never null or empty
         if (slots == null || slots.Length == 0)
         {
-            Debug.LogWarning("[UIPartyPanel] No party slots found under 'Players'. UI may not display correctly.");
+            Debug.LogWarning("[PartyPanel] No party slots found under 'Players'. UI may not display correctly.");
         }
     }
 
@@ -882,7 +882,7 @@ public class UIPartyPanel : MonoBehaviour
         if (party != null && party.IsLocalHost)
         {
             // Party path — flip networked state; PartyManager (Step 5) drives the load.
-            Debug.Log($"[UIPartyPanel] Start clicked: config={selectedConfigId}, scene='{selectedSceneName}', " +
+            Debug.Log($"[PartyPanel] Start clicked: config={selectedConfigId}, scene='{selectedSceneName}', " +
                       $"state={party.State}, members={party.MemberCount}, ready={party.ReadyCount}, " +
                       $"pendingInvites={party.PendingInviteCount}.");
 
@@ -1088,7 +1088,7 @@ public class UIPartyPanel : MonoBehaviour
             },
             error =>
             {
-                Debug.LogWarning($"[UIPartyPanel] GetFriendList failed: {error.Message}");
+                Debug.LogWarning($"[PartyPanel] GetFriendList failed: {error.Message}");
                 AddNoFriendsLabel(scrollAreaObj.transform);
             }
         );

@@ -153,7 +153,7 @@ public class NetworkPlayer : NetworkBehaviour
             if (IsAlive)
             {
                 // When revived (e.g. dungeon restart), ensure death UI is hidden on the client
-                var hud = FindFirstObjectByType<PlayerHUDController>();
+                var hud = FindFirstObjectByType<PlayerHUDUIManager>();
                 if (hud != null)
                 {
                     hud.HideDeathPopup();
@@ -266,7 +266,7 @@ public class NetworkPlayer : NetworkBehaviour
 
     /// <summary>
     /// Party chat received while in the dungeon room. Static because the receiver
-    /// (UIChatPanel) has no reason to know which avatar carried the RPC.
+    /// (ChatUIManager) has no reason to know which avatar carried the RPC.
     ///
     /// PartyLobby cannot serve chat here: it is a NetworkObject of the SOCIAL LOBBY
     /// room, and entering a dungeon tears the runner down (PhotonManager.MigrateToRoomAsync),
@@ -578,7 +578,7 @@ public class NetworkPlayer : NetworkBehaviour
             var localCombat = GetComponent<PlayerCombat>();
             if (localCombat != null) localCombat.LoadEquippedSkills();
 
-            var hud = FindFirstObjectByType<PlayerHUDController>(FindObjectsInactive.Include);
+            var hud = FindFirstObjectByType<PlayerHUDUIManager>(FindObjectsInactive.Include);
             if (hud != null)
             {
                 hud.SubscribeToLocalPlayer(this);

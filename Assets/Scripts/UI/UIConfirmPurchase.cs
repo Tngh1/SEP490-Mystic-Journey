@@ -94,10 +94,10 @@ public class UIConfirmPurchase : MonoBehaviour
         waitingForBalance = currentItem != null && !HasCachedBalance(currentItem);
         maxQuantity = waitingForBalance
             ? 0
-            : CalculateAffordableQuantity(currentItem, PlayerHUDController.CachedGold, PlayerHUDController.CachedGems);
+            : CalculateAffordableQuantity(currentItem, PlayerHUDUIManager.CachedGold, PlayerHUDUIManager.CachedGems);
         currentQuantity = maxQuantity > 0 ? 1 : 0;
         if (waitingForBalance)
-            PlayerHUDController.Instance?.RefreshCurrencyBalance();
+            PlayerHUDUIManager.Instance?.RefreshCurrencyBalance();
 
         if (titleText != null)
         {
@@ -156,7 +156,7 @@ public class UIConfirmPurchase : MonoBehaviour
     {
         if (!waitingForBalance || currentItem == null || !HasCachedBalance(currentItem)) return;
         waitingForBalance = false;
-        maxQuantity = CalculateAffordableQuantity(currentItem, PlayerHUDController.CachedGold, PlayerHUDController.CachedGems);
+        maxQuantity = CalculateAffordableQuantity(currentItem, PlayerHUDUIManager.CachedGold, PlayerHUDUIManager.CachedGems);
         currentQuantity = maxQuantity > 0 ? 1 : 0;
         UpdateUI();
     }
@@ -209,7 +209,7 @@ public class UIConfirmPurchase : MonoBehaviour
         bool isGems = currency.Equals("Gem", StringComparison.OrdinalIgnoreCase) ||
                       currency.Equals("Gems", StringComparison.OrdinalIgnoreCase) ||
                       currency.Equals("Diamond", StringComparison.OrdinalIgnoreCase);
-        return isGems ? PlayerHUDController.CachedGems >= 0 : PlayerHUDController.CachedGold >= 0;
+        return isGems ? PlayerHUDUIManager.CachedGems >= 0 : PlayerHUDUIManager.CachedGold >= 0;
     }
 
     private void UpdateUI()

@@ -59,7 +59,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
 
     private void Apply()
     {
-        // Trong hầm ngục, PlayerHUDController.ToggleDungeonMode(true) ẩn cụm nút bên trái.
+        // Trong hầm ngục, PlayerHUDUIManager.ToggleDungeonMode(true) ẩn cụm nút bên trái.
         // Apply() lại chạy theo LevelChanged/QuestsChanged — tức là ngay khi nhận exp/thưởng
         // giữa hầm ngục — và SetActive(true) từng nút, làm mấy tab panel bên trái hiện lại.
         // Hoãn tới khi ra khỏi hầm ngục: ToggleDungeonMode(false) + RefreshLevelFromApi

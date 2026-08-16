@@ -742,7 +742,7 @@ public class GachaUIManager : MonoBehaviour
                 {
                     ShowResultPopup(result);
                     LoadUserTicketCount();
-                    InventoryManager.RefreshAny(refreshStats: true);
+                    InventoryUIManager.RefreshAny(refreshStats: true);
                 });
             },
             onError: (error) =>

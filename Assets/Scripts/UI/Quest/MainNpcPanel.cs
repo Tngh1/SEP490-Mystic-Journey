@@ -9,9 +9,9 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
-public class MainNpcPanelRuntime : MonoBehaviour
+public class MainNpcPanel : MonoBehaviour
 {
-    public static MainNpcPanelRuntime Instance { get; private set; }
+    public static MainNpcPanel Instance { get; private set; }
 
     [Header("Scene UI")]
     [SerializeField] private GameObject npcPanel;
@@ -90,7 +90,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         var manager = GetQuestManager();
         if (manager == null)
         {
-            Debug.LogWarning("[MainNpcPanelRuntime] QuestManager was not found in Main scene.");
+            Debug.LogWarning("[MainNpcPanel] QuestUIManager was not found in Main scene.");
             ShowPanel();
             RenderLocal(interactable);
             return;
@@ -120,7 +120,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
                 ShowPanel();
                 RenderLocal(interactable);
                 StartTypewriter(dialogueText, string.IsNullOrWhiteSpace(interactable.GreetingText) ? error : interactable.GreetingText);
-                Debug.LogWarning($"[MainNpcPanelRuntime] TalkToNpc failed: {error}");
+                Debug.LogWarning($"[MainNpcPanel] TalkToNpc failed: {error}");
             }
         );
     }
@@ -131,7 +131,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         if (npcPanel == null)
         {
             if (!didBind)
-                Debug.LogWarning("[MainNpcPanelRuntime] NPCPanel was not found in Main scene.");
+                Debug.LogWarning("[MainNpcPanel] NPCPanel was not found in Main scene.");
             didBind = true;
             return;
         }
@@ -196,7 +196,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
     {
         var acceptedQuest = linkedQuests?
             .Where(q => q != null &&
-                        QuestManager.IsStatus(q, "InProgress") &&
+                        QuestUIManager.IsStatus(q, "InProgress") &&
                         !HasEnoughQuestProgress(q) &&
                         !RequiresNpcCompletionFlow(q))
             .OrderBy(q => q.QuestId)
@@ -230,8 +230,8 @@ public class MainNpcPanelRuntime : MonoBehaviour
     {
         var npc = response?.Npc;
         var linkedQuests = response?.LinkedQuests?
-            .Where(q => q != null && !QuestManager.IsStatus(q, "Claimed"))
-            .OrderBy(q => QuestManager.IsStatus(q, "InProgress") ? 0 : QuestManager.IsStatus(q, "Completed") ? 1 : 2)
+            .Where(q => q != null && !QuestUIManager.IsStatus(q, "Claimed"))
+            .OrderBy(q => QuestUIManager.IsStatus(q, "InProgress") ? 0 : QuestUIManager.IsStatus(q, "Completed") ? 1 : 2)
             // Chuỗi main quest đi theo QuestId. KHÔNG sắp theo RequiredLevel: Arthur giữ quest
             // 14 (lv12), 15 (lv12), 16 (lv5) → sắp theo level sẽ đưa quest 16 lên đầu và BE
             // chặn "locked until the previous main quest is claimed" → player kẹt.
@@ -474,7 +474,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         }
 
         // [FIX] Ưu tiên xử lý Quest đang InProgress (Giao nhiệm vụ, báo cáo) trước khi xem xét Quest từ Dialogue
-        var inProgressQuest = currentLinkedQuests.FirstOrDefault(q => QuestManager.IsStatus(q, "InProgress"));
+        var inProgressQuest = currentLinkedQuests.FirstOrDefault(q => QuestUIManager.IsStatus(q, "InProgress"));
         if (inProgressQuest != null)
         {
             if (IsCollectQuest(inProgressQuest) && HasEnoughQuestProgress(inProgressQuest))
@@ -500,13 +500,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
             return;
 
         var quest = ResolveQuest(questId, activeQuest ?? linkedQuest, manager);
-        if (QuestManager.IsStatus(quest, "Claimed"))
+        if (QuestUIManager.IsStatus(quest, "Claimed"))
         {
             SetText(questHintText, "Reward already claimed.");
             return;
         }
 
-        if (QuestManager.IsStatus(quest, "Completed"))
+        if (QuestUIManager.IsStatus(quest, "Completed"))
         {
             // Completed nhưng chưa Claimed: tự claim luôn thay vì route mở panel mỗi lần talk
             // (route lặp gây popup "Quest completed" lặp vô hạn khi nói chuyện lại NPC).
@@ -514,7 +514,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
             return;
         }
 
-        if (QuestManager.IsStatus(quest, "InProgress"))
+        if (QuestUIManager.IsStatus(quest, "InProgress"))
         {
             if (IsCollectQuest(quest) && HasEnoughQuestProgress(quest))
             {
@@ -536,7 +536,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         AcceptLinkedQuest(manager, questId, quest, dialogue);
     }
 
-    private void AcceptLinkedQuest(QuestManager manager, int questId, PlayerQuestResponse quest, NPCDialogueResponse dialogue)
+    private void AcceptLinkedQuest(QuestUIManager manager, int questId, PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
         processingQuestIds.Add(questId);
         manager.AcceptQuest(
@@ -576,7 +576,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         );
     }
 
-    private void CompleteTalkQuestAndRouteToReward(QuestManager manager, int questId, PlayerQuestResponse quest)
+    private void CompleteTalkQuestAndRouteToReward(QuestUIManager manager, int questId, PlayerQuestResponse quest)
     {
         if (manager == null || questId <= 0)
         {
@@ -609,7 +609,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
                     onError: err =>
                     {
                         processingQuestIds.Remove(questId);
-                        Debug.LogWarning($"[MainNpcPanelRuntime] Auto claim failed: {err}");
+                        Debug.LogWarning($"[MainNpcPanel] Auto claim failed: {err}");
                         // Đây là nhánh LỖI: chỉ mở panel để người chơi tự claim, không bắn popup
                         // "Quest completed..." vì InferKind sẽ dựng title thành công "Quest Completed!".
                         RouteToQuestReward(questId, null);
@@ -618,13 +618,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
             error =>
             {
                 processingQuestIds.Remove(questId);
-                Debug.LogWarning($"[MainNpcPanelRuntime] Auto complete talk quest failed: {error}");
+                Debug.LogWarning($"[MainNpcPanel] Auto complete talk quest failed: {error}");
                 WorldRuntimeEvents.RaiseQuestsChanged();
             }
         );
     }
 
-    private void AutoClaimCompletedQuest(QuestManager manager, int questId, PlayerQuestResponse quest)
+    private void AutoClaimCompletedQuest(QuestUIManager manager, int questId, PlayerQuestResponse quest)
     {
         if (manager == null || questId <= 0 || processingQuestIds.Contains(questId))
             return;
@@ -642,7 +642,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
             onError: err =>
             {
                 processingQuestIds.Remove(questId);
-                Debug.LogWarning($"[MainNpcPanelRuntime] Auto-claim completed quest failed: {err}");
+                Debug.LogWarning($"[MainNpcPanel] Auto-claim completed quest failed: {err}");
                 SetText(questHintText, "Come back to claim your reward.");
             });
     }
@@ -666,7 +666,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.RaiseQuestsChanged();
     }
 
-    private static PlayerQuestResponse ResolveQuest(int questId, PlayerQuestResponse fallback, QuestManager manager)
+    private static PlayerQuestResponse ResolveQuest(int questId, PlayerQuestResponse fallback, QuestUIManager manager)
     {
         if (questId <= 0)
             return fallback;
@@ -741,7 +741,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
                 // Khi quest Collect hoàn thành → tự động Claim luôn, không cần player bấm tay.
                 // Quest tiếp theo sẽ unlock ngay lập tức.
-                if (response.Success && QuestManager.IsStatus(response.Quest, "Completed"))
+                if (response.Success && QuestUIManager.IsStatus(response.Quest, "Completed"))
                 {
                     var completedQuestId = quest.QuestId;
                     manager.ClaimReward(
@@ -749,14 +749,14 @@ public class MainNpcPanelRuntime : MonoBehaviour
                         onSuccess: () =>
                         {
                             // ClaimReward (non-silent) tự bắn popup "Reward Claimed!" — không bắn thêm ở đây.
-                            Debug.Log($"[MainNpcPanelRuntime] Auto-claimed questId={completedQuestId}");
+                            Debug.Log($"[MainNpcPanel] Auto-claimed questId={completedQuestId}");
                             WorldRuntimeEvents.RaiseQuestsChanged();
                             ClosePanel();
                         },
                         onError: err =>
                         {
                             // Fallback: route sang Reward panel để player claim tay nếu auto-claim thất bại
-                            Debug.LogWarning($"[MainNpcPanelRuntime] Auto-claim failed ({err}), routing to panel.");
+                            Debug.LogWarning($"[MainNpcPanel] Auto-claim failed ({err}), routing to panel.");
                             // Nhánh lỗi: không popup (InferKind sẽ dựng "Quest Completed!" sai ngữ cảnh).
                             RouteToQuestReward(completedQuestId, null);
                         });
@@ -790,14 +790,14 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private string BuildGiftHintActionLabel()
     {
-        var quest = QuestManager.PickPreferredQuest(currentLinkedQuests);
+        var quest = QuestUIManager.PickPreferredQuest(currentLinkedQuests);
         if (quest == null)
             return "Do you have any advice for me?";
 
-        if (QuestManager.IsStatus(quest, "Completed"))
+        if (QuestUIManager.IsStatus(quest, "Completed"))
             return "I have finished this quest.";
 
-        if (QuestManager.IsStatus(quest, "InProgress"))
+        if (QuestUIManager.IsStatus(quest, "InProgress"))
         {
             if (IsCollectQuest(quest))
                 return HasEnoughQuestProgress(quest) ? "I have the items you need." : "Any hints for this task?";
@@ -842,7 +842,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
     }
     private void NotifyQuestAccepted(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
-        // KHÔNG bắn popup ở đây: QuestManager.AcceptQuest đã bắn popup "Quest Accepted!" (kind Accepted)
+        // KHÔNG bắn popup ở đây: QuestUIManager.AcceptQuest đã bắn popup "Quest Accepted!" (kind Accepted)
         // khi server xác nhận. Bắn thêm ở đây gây popup trùng, và trước đây còn sai kind (Claimed →
         // "Reward Claimed!" cho một quest vừa nhận). Chỉ log fallback khi không có panel.
         if (MainQuestPanelRuntime.Instance == null && FindQuestPanelRuntime() == null)
@@ -860,7 +860,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
     private void OnGiftHintAction()
     {
         var dialogue = NpcDialogueFlow.FindChoice(currentDialogues, currentNpcId, "Gift", "Hint");
-        var quest = QuestManager.PickPreferredQuest(currentLinkedQuests);
+        var quest = QuestUIManager.PickPreferredQuest(currentLinkedQuests);
         if (quest == null)
         {
             SetText(dialogueText, Safe(dialogue?.Content, "I have no gift for you right now. Come back when your path has moved forward."));
@@ -871,13 +871,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
         firstQuestId = quest.QuestId;
         SetText(questHintText, BuildQuestHint(new List<PlayerQuestResponse> { quest }));
 
-        if (QuestManager.IsStatus(quest, "Completed"))
+        if (QuestUIManager.IsStatus(quest, "Completed"))
         {
             AutoClaimCompletedQuest(GetQuestManager(), quest.QuestId, quest);
             return;
         }
 
-        if (QuestManager.IsStatus(quest, "InProgress"))
+        if (QuestUIManager.IsStatus(quest, "InProgress"))
         {
             if (ShouldAutoCompleteNpcTalkQuest(quest))
             {
@@ -994,13 +994,13 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
     private string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
     {
-        if (QuestManager.IsStatus(quest, "Claimed"))
+        if (QuestUIManager.IsStatus(quest, "Claimed"))
             return "Thank you for your guidance.";
 
-        if (QuestManager.IsStatus(quest, "Completed"))
+        if (QuestUIManager.IsStatus(quest, "Completed"))
             return "I completed the task.";
 
-        if (QuestManager.IsStatus(quest, "InProgress"))
+        if (QuestUIManager.IsStatus(quest, "InProgress"))
         {
             if (ShouldAutoCompleteNpcTalkQuest(quest))
                 return "Let's talk about my task.";
@@ -1116,7 +1116,7 @@ public class MainNpcPanelRuntime : MonoBehaviour
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogWarning($"[MainNpcPanelRuntime] Load NPC icon failed: {request.error}");
+            Debug.LogWarning($"[MainNpcPanel] Load NPC icon failed: {request.error}");
             yield break;
         }
 
@@ -1161,12 +1161,12 @@ public class MainNpcPanelRuntime : MonoBehaviour
         return portrait.GetComponent<Image>() ?? portrait.GetComponentInChildren<Image>(true);
     }
 
-    private static QuestManager GetQuestManager()
+    private static QuestUIManager GetQuestManager()
     {
-        if (QuestManager.Instance != null)
-            return QuestManager.Instance;
+        if (QuestUIManager.Instance != null)
+            return QuestUIManager.Instance;
 
-        var managers = Resources.FindObjectsOfTypeAll<QuestManager>();
+        var managers = Resources.FindObjectsOfTypeAll<QuestUIManager>();
         for (var i = 0; i < managers.Length; i++)
         {
             var manager = managers[i];

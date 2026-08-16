@@ -100,7 +100,7 @@ public class DiggingInteractable : MonoBehaviour
     {
         if (_isDigging || _dug) return;
 
-        var questState = QuestManager.Instance != null ? QuestManager.Instance.GetQuestState(linkedQuestId) : null;
+        var questState = QuestUIManager.Instance != null ? QuestUIManager.Instance.GetQuestState(linkedQuestId) : null;
         var questStatus = questState != null ? questState.status : string.Empty;
 
         if (string.Equals(questStatus, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
@@ -198,9 +198,9 @@ public class DiggingInteractable : MonoBehaviour
                 WorldRuntimeEvents.RaiseMessage(response?.Message ?? $"{displayName}: bạn đã đào được vật phẩm!");
 
                 if (response?.Quest != null)
-                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
+                    QuestUIManager.Instance?.ApplyServerQuestState(response.Quest);
                 if (response != null && response.CollectedItemId.HasValue)
-                    InventoryManager.RefreshAny(refreshStats: false);
+                    InventoryUIManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
 
                 FinalizeAfterDig();
@@ -238,13 +238,13 @@ public class DiggingInteractable : MonoBehaviour
     /// </summary>
     private void RefreshVisibility()
     {
-        if (QuestManager.Instance == null) return;
+        if (QuestUIManager.Instance == null) return;
 
-        var quests = QuestManager.Instance.GetMainQuests();
+        var quests = QuestUIManager.Instance.GetMainQuests();
         bool shouldShow = false;
         foreach (var q in quests)
         {
-            if (q.QuestId == linkedQuestId && QuestManager.IsStatus(q, "InProgress"))
+            if (q.QuestId == linkedQuestId && QuestUIManager.IsStatus(q, "InProgress"))
             {
                 shouldShow = true;
                 break;

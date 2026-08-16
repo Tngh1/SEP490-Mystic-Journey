@@ -36,7 +36,7 @@ public class SkillItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler,
         parentScrollRect = GetComponentInParent<ScrollRect>();
     }
 
-    // Hàm này sẽ được gọi bởi SkillPanelManager khi nhận dữ liệu từ API
+    // Hàm này sẽ được gọi bởi SkillUIManager khi nhận dữ liệu từ API
     public void Setup(SkillData vData, PlayerSkillResponse sData)
     {
         visualData = vData;

@@ -16,7 +16,7 @@ namespace UI.Friend
 
         private string _selectedAvatarId;
         private int _myProfileId;
-        private UIFriendProfilePanel _profilePanel;
+        private PlayerProfileUIManager _profilePanel;
 
         // Cấu hình danh sách avatar mặc định
         private readonly List<string> _availableAvatars = new List<string>
@@ -75,7 +75,7 @@ namespace UI.Friend
             }
         }
 
-        public void OpenPanel(int myProfileId, string currentAvatarId, UIFriendProfilePanel profilePanel)
+        public void OpenPanel(int myProfileId, string currentAvatarId, PlayerProfileUIManager profilePanel)
         {
             _myProfileId = myProfileId;
             _selectedAvatarId = currentAvatarId;

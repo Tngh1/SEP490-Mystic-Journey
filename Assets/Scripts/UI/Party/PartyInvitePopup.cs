@@ -13,7 +13,7 @@ using TMPro;
 /// queue and are shown one at a time.
 ///
 /// The popup UI is built in code to match the existing convention in
-/// <see cref="UIPartyPanel"/> (which also builds its modal at runtime).
+/// <see cref="PartyPanel"/> (which also builds its modal at runtime).
 /// </summary>
 public class PartyInvitePopup : MonoBehaviour
 {

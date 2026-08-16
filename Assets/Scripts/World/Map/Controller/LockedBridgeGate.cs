@@ -49,7 +49,7 @@ public class LockedBridgeGate : MonoBehaviour
 
     public void CheckUnlockState()
     {
-        var state = QuestManager.Instance?.GetQuestState(requiredQuestId);
+        var state = QuestUIManager.Instance?.GetQuestState(requiredQuestId);
         var unlocked = state != null &&
             (string.Equals(state.status, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
              string.Equals(state.status, "Claimed", System.StringComparison.OrdinalIgnoreCase));
@@ -98,7 +98,7 @@ public class LockedBridgeGate : MonoBehaviour
         CheckUnlockState();
         if (_isUnlocked || _isUnlocking) return;
 
-        var state = QuestManager.Instance?.GetQuestState(requiredQuestId);
+        var state = QuestUIManager.Instance?.GetQuestState(requiredQuestId);
         if (state == null || !string.Equals(state.status, "InProgress", System.StringComparison.OrdinalIgnoreCase))
         {
             NotifyLocked();
@@ -121,8 +121,8 @@ public class LockedBridgeGate : MonoBehaviour
             {
                 _isUnlocking = false;
                 if (response?.Quest != null)
-                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
-                InventoryManager.RefreshAny(refreshStats: false);
+                    QuestUIManager.Instance?.ApplyServerQuestState(response.Quest);
+                InventoryUIManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
                 SetGateUnlocked(true, showNotice: true);
             },

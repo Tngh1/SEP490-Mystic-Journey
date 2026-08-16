@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIQuestPanelView : MonoBehaviour
+public class QuestPanel : MonoBehaviour
 {
     [Header("Quest List (Left)")]
     [SerializeField] private Transform questListContent;
@@ -74,14 +74,14 @@ public class UIQuestPanelView : MonoBehaviour
     private void ValidateReferences()
     {
         if (questListContent == null)
-            Debug.LogError("[UIQuestPanelView] questListContent missing.", this);
+            Debug.LogError("[QuestPanel] questListContent missing.", this);
         if (questSlotPrefab == null)
-            Debug.LogError("[UIQuestPanelView] questSlotPrefab missing.", this);
+            Debug.LogError("[QuestPanel] questSlotPrefab missing.", this);
         if (rewardItemsContainer == null)
-            Debug.LogError("[UIQuestPanelView] rewardItemsContainer missing.", this);
+            Debug.LogError("[QuestPanel] rewardItemsContainer missing.", this);
         if (rewardSlotPrefab == null)
-            Debug.LogError("[UIQuestPanelView] rewardSlotPrefab missing.", this);
+            Debug.LogError("[QuestPanel] rewardSlotPrefab missing.", this);
         if (skillRewardSlotPrefab == null)
-            Debug.LogError("[UIQuestPanelView] skillRewardSlotPrefab missing.", this);
+            Debug.LogError("[QuestPanel] skillRewardSlotPrefab missing.", this);
     }
 }

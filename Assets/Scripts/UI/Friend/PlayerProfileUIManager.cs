@@ -12,7 +12,7 @@ using MysticJourney.API.Models.Response;
 
 namespace UI.Friend
 {
-    public class UIFriendProfilePanel : MonoBehaviour
+    public class PlayerProfileUIManager : MonoBehaviour
     {
         [Header("UI References")]
         [SerializeField] private TMP_Text nameText;
@@ -214,15 +214,15 @@ namespace UI.Friend
             }
             else
             {
-                Debug.LogWarning("[UIFriendProfilePanel] Cannot find local Player Profile ID.");
+                Debug.LogWarning("[PlayerProfileUIManager] Cannot find local Player Profile ID.");
             }
         }
 
         public void ShowProfile(int profileId, string token) // Token kept here for legacy signature if called from elsewhere, though unused in API
         {
-            Debug.Log("[UIFriendProfilePanel] ShowProfile called for " + profileId);
+            Debug.Log("[PlayerProfileUIManager] ShowProfile called for " + profileId);
             if (transform.parent != null) {
-                Debug.Log($"[UIFriendProfilePanel] Parent is {transform.parent.name}, activeInHierarchy: {transform.parent.gameObject.activeInHierarchy}");
+                Debug.Log($"[PlayerProfileUIManager] Parent is {transform.parent.name}, activeInHierarchy: {transform.parent.gameObject.activeInHierarchy}");
             }
             gameObject.SetActive(true);
             transform.SetAsLastSibling(); // Ensure it renders on top of FriendPanel
@@ -396,7 +396,7 @@ namespace UI.Friend
             {
                 int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
                 if (myProfileId <= 0)
-                    Debug.LogWarning("[UIFriendProfilePanel] Cannot edit avatar: local profile ID is not ready.");
+                    Debug.LogWarning("[PlayerProfileUIManager] Cannot edit avatar: local profile ID is not ready.");
 
                 string currentAvatar = _currentProfile != null && !string.IsNullOrEmpty(_currentProfile.AvatarUrl)
                     ? _currentProfile.AvatarUrl
@@ -405,7 +405,7 @@ namespace UI.Friend
             }
             else
             {
-                Debug.LogWarning("[UIFriendProfilePanel] Cannot open avatar editor: AvatarSelectionPanel is missing.");
+                Debug.LogWarning("[PlayerProfileUIManager] Cannot open avatar editor: AvatarSelectionPanel is missing.");
             }
         }
 
@@ -419,7 +419,7 @@ namespace UI.Friend
             // Avatar còn hiện ở HUD (TopBar). HUD chỉ tự tải lại mỗi 15 giây nên nếu không đẩy
             // sang đây, người chơi đổi avatar xong vẫn thấy ảnh cũ ở góc màn hình.
             if (_isCurrentPlayerProfile)
-                PlayerHUDController.Instance?.ApplyAvatar(avatarUrl);
+                PlayerHUDUIManager.Instance?.ApplyAvatar(avatarUrl);
         }
 
         private void LoadFriendsCount()
@@ -969,7 +969,7 @@ namespace UI.Friend
 
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    Debug.LogWarning($"[UIFriendProfilePanel] Failed to load achievement icon: {request.error}");
+                    Debug.LogWarning($"[PlayerProfileUIManager] Failed to load achievement icon: {request.error}");
                     yield break;
                 }
 

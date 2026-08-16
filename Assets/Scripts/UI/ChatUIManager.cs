@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class UIChatPanel : MonoBehaviour
+public class ChatUIManager : MonoBehaviour
 {
     private enum ChatChannel
     {
@@ -238,19 +238,19 @@ public class UIChatPanel : MonoBehaviour
     {
         if (isLoadingWorldHistory || !isActiveAndEnabled)
         {
-            Debug.Log($"[UIChatPanel] LoadWorldHistory SKIP: isLoading={isLoadingWorldHistory} isActiveAndEnabled={isActiveAndEnabled}");
+            Debug.Log($"[ChatUIManager] LoadWorldHistory SKIP: isLoading={isLoadingWorldHistory} isActiveAndEnabled={isActiveAndEnabled}");
             return;
         }
 
         if (!ApiClient.Instance.HasToken())
         {
-            Debug.LogWarning("[UIChatPanel] LoadWorldHistory SKIP: No auth token.");
+            Debug.LogWarning("[ChatUIManager] LoadWorldHistory SKIP: No auth token.");
             return;
         }
 
         isLoadingWorldHistory = true;
         int safePageSize = Mathf.Clamp(historyPageSize, 1, 100);
-        Debug.Log($"[UIChatPanel] LoadWorldHistory -> requesting page=1 pageSize={safePageSize}");
+        Debug.Log($"[ChatUIManager] LoadWorldHistory -> requesting page=1 pageSize={safePageSize}");
 
         ChatApi.Instance.GetWorldMessages(
             1,
@@ -258,13 +258,13 @@ public class UIChatPanel : MonoBehaviour
             response =>
             {
                 isLoadingWorldHistory = false;
-                Debug.Log($"[UIChatPanel] GetWorldMessages success: TotalCount={response?.TotalCount ?? 0} Items={response?.Items?.Length ?? 0}");
+                Debug.Log($"[ChatUIManager] GetWorldMessages success: TotalCount={response?.TotalCount ?? 0} Items={response?.Items?.Length ?? 0}");
                 PopulateWorldHistory(response);
             },
             error =>
             {
                 isLoadingWorldHistory = false;
-                Debug.LogWarning($"[UIChatPanel] Load world chat history failed: {error}");
+                Debug.LogWarning($"[ChatUIManager] Load world chat history failed: {error}");
             });
     }
 
@@ -651,7 +651,7 @@ public class UIChatPanel : MonoBehaviour
             error =>
             {
                 isLoadingGuildHistory = false;
-                Debug.LogWarning($"[UIChatPanel] Load guild chat failed: {BuildErrorMessage(error)}");
+                Debug.LogWarning($"[ChatUIManager] Load guild chat failed: {BuildErrorMessage(error)}");
             });
     }
 
@@ -730,7 +730,7 @@ public class UIChatPanel : MonoBehaviour
     {
         if (chatMessagePrefab == null || contentParent == null)
         {
-            Debug.LogError($"[UIChatPanel] AddMessage SKIP: chatMessagePrefab={chatMessagePrefab} contentParent={contentParent}");
+            Debug.LogError($"[ChatUIManager] AddMessage SKIP: chatMessagePrefab={chatMessagePrefab} contentParent={contentParent}");
             return;
         }
 
@@ -774,7 +774,7 @@ public class UIChatPanel : MonoBehaviour
         }
         else
         {
-            Debug.LogError("[UIChatPanel] Player context menu is not assigned in Inspector.");
+            Debug.LogError("[ChatUIManager] Player context menu is not assigned in Inspector.");
         }
     }
 
@@ -821,12 +821,12 @@ public class UIChatPanel : MonoBehaviour
             {
                 pendingReportIds.Remove(item.ChatMessageId);
                 item.MarkReported();
-                Debug.Log($"[UIChatPanel] ReportWorldMessage submitted. ChatMessageId={item.ChatMessageId}");
+                Debug.Log($"[ChatUIManager] ReportWorldMessage submitted. ChatMessageId={item.ChatMessageId}");
             },
             error =>
             {
                 pendingReportIds.Remove(item.ChatMessageId);
-                Debug.LogWarning($"[UIChatPanel] ReportWorldMessage failed: {BuildErrorMessage(error)}");
+                Debug.LogWarning($"[ChatUIManager] ReportWorldMessage failed: {BuildErrorMessage(error)}");
             });
     }
 
@@ -834,11 +834,11 @@ public class UIChatPanel : MonoBehaviour
     {
         if (response == null || response.Items == null)
         {
-            Debug.LogWarning("[UIChatPanel] PopulateWorldHistory: response or Items is null.");
+            Debug.LogWarning("[ChatUIManager] PopulateWorldHistory: response or Items is null.");
             return;
         }
 
-        Debug.Log($"[UIChatPanel] PopulateWorldHistory: {response.Items.Length} messages");
+        Debug.Log($"[ChatUIManager] PopulateWorldHistory: {response.Items.Length} messages");
         foreach (var message in response.Items)
         {
             AddWorldMessage(message);

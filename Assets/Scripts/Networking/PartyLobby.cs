@@ -9,7 +9,7 @@ using UnityEngine;
 /// Chỉ được sinh ra (Spawn) DUY NHẤT một lần bởi chủ phòng (master client) 
 /// thông qua <see cref="PhotonManager.EnsurePartyLobbySpawned"/> ngay sau khi vào phòng mạng của party. 
 /// Mọi client khác sẽ đọc danh sách thành viên được đồng bộ này để vẽ giao diện các ô trống 
-/// và trạng thái sẵn sàng (ready) trong <see cref="UIPartyPanel"/>.
+/// và trạng thái sẵn sàng (ready) trong <see cref="PartyPanel"/>.
 ///
 /// Mô hình thẩm quyền (Authority model - Shared Mode): chủ phòng giữ quyền quản lý trạng thái (StateAuthority) 
 /// trên đối tượng này và là người duy nhất có quyền thay đổi các mảng có nhãn [Networked]. 

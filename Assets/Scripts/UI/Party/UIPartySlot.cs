@@ -14,7 +14,7 @@ using TMPro;
 ///   • Ready       — check badge shown when a member is ready (member slots only).
 ///   • KickButton  — remove a member (shown to the host on member slots only).
 ///
-/// It is a dumb renderer: <see cref="UIPartyPanel"/> calls one Render* method per roster
+/// It is a dumb renderer: <see cref="PartyPanel"/> calls one Render* method per roster
 /// change and this pushes values onto the widgets. It holds NO party logic — the kick
 /// click is forwarded via the callback passed in.
 ///

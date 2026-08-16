@@ -279,7 +279,7 @@ public class UIPlayerContextMenu : MonoBehaviour
 
     /// <summary>
     /// Gắn hiệu ứng phóng to khi rê chuột, dùng đúng component UIHoverScaleEffect mà HUD
-    /// đang dùng (nó sống trong UIPartyPanel.cs — không có helper dùng chung, mỗi panel tự
+    /// đang dùng (nó sống trong PartyPanel.cs — không có helper dùng chung, mỗi panel tự
     /// opt-in bằng đúng 2 dòng này).
     ///
     /// CHỈ gắn cho 3 nút trong MenuBox, KHÔNG quét GetComponentsInChildren&lt;Button&gt;():

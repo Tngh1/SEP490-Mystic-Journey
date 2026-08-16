@@ -501,7 +501,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             SceneManager.SetActiveScene(mainSceneObj);
         }
 
-        PlayerHUDController.Instance?.ToggleDungeonMode(true);
+        PlayerHUDUIManager.Instance?.ToggleDungeonMode(true);
         Debug.Log($"[DungeonManager] Entered dungeon scene: {dungeonSceneName}");
 
         yield return LoadingScreen.Hide();
@@ -1106,7 +1106,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         }
 
         // Credit any "Explore ... Dungeon" objective (Q14 "Train in the Old Dungeon").
-        // NOTHING else in Assets/Scripts/Features/Dungeon touched QuestManager, so clearing a
+        // NOTHING else in Assets/Scripts/Features/Dungeon touched QuestUIManager, so clearing a
         // dungeon never credited quest progress and Q14 sat InProgress forever — which
         // dead-ended the whole Chapter 2 chain, since it gates on Claimed.
         //
@@ -1149,7 +1149,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
     /// </summary>
     private void CreditDungeonExploreQuests()
     {
-        var quests = QuestManager.Instance?.GetMainQuests();
+        var quests = QuestUIManager.Instance?.GetMainQuests();
         if (quests == null) return;
 
         bool credited = false;
@@ -1162,7 +1162,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             if (!q.ObjectiveTarget.Contains("Dungeon", StringComparison.OrdinalIgnoreCase)) continue;
 
             Debug.Log($"[DungeonManager] Crediting Explore quest {q.QuestId} for dungeon clear.");
-            QuestManager.Instance.AddProgress(q.QuestId, 1);
+            QuestUIManager.Instance.AddProgress(q.QuestId, 1);
             credited = true;
             // No popup here, same reason as MapTeleportPortal: the batch sync loop
             // Completes + Claims and fires the single "Reward Claimed!" popup.
@@ -1173,7 +1173,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
         // so without this flush a fast exit after the boss dies drops the credit and Q14 stays
         // InProgress. Same reason MapTeleportPortal flushes before unloading a scene.
         if (credited)
-            QuestManager.Instance.FlushPendingProgressNow();
+            QuestUIManager.Instance.FlushPendingProgressNow();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1402,7 +1402,7 @@ public void CreatePartySession(int configId, string dungeonSceneName, int cost, 
             SceneManager.SetActiveScene(mainScene);
         }
 
-        PlayerHUDController.Instance?.ToggleDungeonMode(false);
+        PlayerHUDUIManager.Instance?.ToggleDungeonMode(false);
         // Same leak as the restart path: the chest lives in Main, so Exit carried it out to
         // the world map instead of unloading it with the dungeon.
         DespawnRewardChest();

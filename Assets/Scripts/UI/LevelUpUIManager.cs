@@ -14,7 +14,7 @@ public struct StatIconMapping
     public Sprite icon;
 }
 
-public class UILevelUpPanel : MonoBehaviour
+public class LevelUpUIManager : MonoBehaviour
 {
     [Header("UI Component References")]
     [SerializeField] private Button[] statButtons;
@@ -231,12 +231,12 @@ public class UILevelUpPanel : MonoBehaviour
             {
                 SetLoading(false);
                 // Call GetMyProfile or update stats directly if needed
-                if (PlayerHUDController.Instance != null)
+                if (PlayerHUDUIManager.Instance != null)
                 {
-                    PlayerHUDController.Instance.RefreshHUD();
+                    PlayerHUDUIManager.Instance.RefreshHUD();
                 }
                 
-                var inventory = FindFirstObjectByType<InventoryManager>();
+                var inventory = FindFirstObjectByType<InventoryUIManager>();
                 if (inventory != null)
                 {
                     inventory.LoadInventory(force: true, refreshStats: true);

@@ -246,7 +246,7 @@ public class PlayerCombat : NetworkBehaviour
             // A network avatar is initialized from NetworkPlayer.Spawned(), after it
             // has input authority. The offline avatar has no NetworkPlayer, so it can
             // load immediately here. Skill configuration must not depend on opening
-            // SkillPanelManager: that panel builds its HUD slot list only in OnEnable.
+            // SkillUIManager: that panel builds its HUD slot list only in OnEnable.
             if (GetComponent<NetworkPlayer>() == null)
             {
                 LoadEquippedSkills();
@@ -936,7 +936,7 @@ public class PlayerCombat : NetworkBehaviour
         var state = MysticJourney.Core.Services.GameStateService.Instance;
         if (state == null || Mathf.Approximately(delta, 0f)) return;
         state.CorruptionLevel = Mathf.Clamp(state.CorruptionLevel + delta, 0f, 100f);
-        PlayerHUDController.Instance?.ApplyCorruption(state.CorruptionLevel);
+        PlayerHUDUIManager.Instance?.ApplyCorruption(state.CorruptionLevel);
         SyncCorruptionLevelToServer();
     }
 
@@ -1182,7 +1182,7 @@ public class PlayerCombat : NetworkBehaviour
             return _skillMasterData;
         }
 
-        var panelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+        var panelManager = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);
         if (panelManager != null && panelManager.allSkillsInGame != null && panelManager.allSkillsInGame.Length > 0)
         {
             _skillMasterData = panelManager.allSkillsInGame;

@@ -9,9 +9,9 @@ using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Utilities;
 using UnityEngine;
 
-public class QuestManager : MonoBehaviour
+public class QuestUIManager : MonoBehaviour
 {
-    public static QuestManager Instance { get; private set; }
+    public static QuestUIManager Instance { get; private set; }
 
     [Header("Data")]
     [SerializeField] private QuestDatabase questDatabase;
@@ -116,7 +116,7 @@ public class QuestManager : MonoBehaviour
             {
                 if (generation != _questLoadGeneration)
                 {
-                    Debug.Log($"[QuestManager] Ignoring stale LoadMainQuests response generation={generation}, latest={_questLoadGeneration}.");
+                    Debug.Log($"[QuestUIManager] Ignoring stale LoadMainQuests response generation={generation}, latest={_questLoadGeneration}.");
                     return;
                 }
 
@@ -127,7 +127,7 @@ public class QuestManager : MonoBehaviour
             onError: err =>
             {
                 if (generation != _questLoadGeneration) return;
-                Debug.LogError($"[QuestManager] LoadMainQuests FAIL: {err.Message}");
+                Debug.LogError($"[QuestUIManager] LoadMainQuests FAIL: {err.Message}");
                 ApplyOfflineQueue();
                 onError?.Invoke(err.Message);
             }
@@ -137,7 +137,7 @@ public class QuestManager : MonoBehaviour
     public void TalkToNpc(int npcId, Action<TalkToNpcResponse> onSuccess, Action<string> onError = null)
     {
         WorldApi.Instance.TalkToNpc(npcId, onSuccess,
-            err => { Debug.LogError($"[QuestManager] TalkToNpc FAIL: {err.Message}"); onError?.Invoke(err.Message); });
+            err => { Debug.LogError($"[QuestUIManager] TalkToNpc FAIL: {err.Message}"); onError?.Invoke(err.Message); });
     }
 
     public void TurnInQuestItem(int npcId, int questId, Action<TurnInQuestItemResponse> onSuccess, Action<string> onError = null)
@@ -147,11 +147,11 @@ public class QuestManager : MonoBehaviour
             {
                 if (response?.Quest != null) UpsertQuestState(response.Quest);
                 if (response?.Success == true && response.ConsumedQuantity > 0)
-                    InventoryManager.RefreshAny(refreshStats: false);
+                    InventoryUIManager.RefreshAny(refreshStats: false);
                 OnQuestProgressChanged?.Invoke(questId);
                 onSuccess?.Invoke(response);
             },
-            err => { Debug.LogError($"[QuestManager] TurnInQuestItem FAIL: {err.Message}"); onError?.Invoke(err.Message); });
+            err => { Debug.LogError($"[QuestUIManager] TurnInQuestItem FAIL: {err.Message}"); onError?.Invoke(err.Message); });
     }
 
     public bool CanEnterMap(MapData map)
@@ -179,7 +179,7 @@ public class QuestManager : MonoBehaviour
             {
                 if (generation != _questLoadGeneration)
                 {
-                    Debug.Log($"[QuestManager] Ignoring stale LoadMyQuests response generation={generation}, latest={_questLoadGeneration}.");
+                    Debug.Log($"[QuestUIManager] Ignoring stale LoadMyQuests response generation={generation}, latest={_questLoadGeneration}.");
                     return;
                 }
 
@@ -188,7 +188,7 @@ public class QuestManager : MonoBehaviour
             onError: err =>
             {
                 if (generation != _questLoadGeneration) return;
-                Debug.LogError($"[QuestManager] LoadMyQuests FAIL: {err.Message}");
+                Debug.LogError($"[QuestUIManager] LoadMyQuests FAIL: {err.Message}");
                 ApplyOfflineQueue();
                 if (_batchCoroutine != null) StopCoroutine(_batchCoroutine);
                 _batchCoroutine = StartCoroutine(BatchSyncLoop());
@@ -205,7 +205,7 @@ public class QuestManager : MonoBehaviour
             existingState.status != "Failed" &&
             existingState.status != null)
         {
-            Debug.Log($"[QuestManager] AcceptQuest: questId={questId} already {existingState.status}, skipping.");
+            Debug.Log($"[QuestUIManager] AcceptQuest: questId={questId} already {existingState.status}, skipping.");
             onSuccess?.Invoke();
             return;
         }
@@ -224,7 +224,7 @@ public class QuestManager : MonoBehaviour
                     cached.isDirty = false;
                 }
 
-                Debug.Log($"[QuestManager] Accepted questId={questId} -> InProgress");
+                Debug.Log($"[QuestUIManager] Accepted questId={questId} -> InProgress");
                 MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = true;
                 
                 string qTitle = response?.QuestTitle ?? GetQuestTitle(questId);
@@ -237,7 +237,7 @@ public class QuestManager : MonoBehaviour
             },
             onError: err =>
             { 
-                Debug.LogWarning($"[QuestManager] AcceptQuest FAIL: {err.Message}"); 
+                Debug.LogWarning($"[QuestUIManager] AcceptQuest FAIL: {err.Message}"); 
                 onError?.Invoke(err.Message); 
             });
 
@@ -251,14 +251,14 @@ public class QuestManager : MonoBehaviour
                 if (response != null) UpsertQuestState(response);
                 onSuccess?.Invoke(response);
             },
-            onError: err => { Debug.LogError($"[QuestManager] GetQuestDetail FAIL: {err.Message}"); onError?.Invoke(err.Message); });
+            onError: err => { Debug.LogError($"[QuestUIManager] GetQuestDetail FAIL: {err.Message}"); onError?.Invoke(err.Message); });
     }
 
     public void CompleteQuest(int questId, Action onSuccess = null, Action<string> onError = null)
     {
         if (!TryBeginInFlight(_completing, questId))
         {
-            Debug.Log($"[QuestManager] CompleteQuest: questId={questId} already in-flight, skipping.");
+            Debug.Log($"[QuestUIManager] CompleteQuest: questId={questId} already in-flight, skipping.");
             return;
         }
 
@@ -267,7 +267,7 @@ public class QuestManager : MonoBehaviour
             {
                 _completing.Remove(questId);
                 if (response != null) UpsertQuestState(response);
-                InventoryManager.RefreshAny(refreshStats: false);
+                InventoryUIManager.RefreshAny(refreshStats: false);
 
                 // KHÔNG bắn popup ở đây: CompleteQuest luôn là bước trung gian, ngay sau đó
                 // ClaimReward bắn popup kết thúc duy nhất. Bắn ở cả hai gây popup chồng.
@@ -277,7 +277,7 @@ public class QuestManager : MonoBehaviour
             onError: err =>
             {
                 _completing.Remove(questId);
-                Debug.LogError($"[QuestManager] CompleteQuest FAIL: {err.Message}");
+                Debug.LogError($"[QuestUIManager] CompleteQuest FAIL: {err.Message}");
                 onError?.Invoke(err.Message);
             });
     }
@@ -340,7 +340,7 @@ public class QuestManager : MonoBehaviour
 
         if (!TryBeginInFlight(_claiming, questId))
         {
-            Debug.Log($"[QuestManager] ClaimReward: questId={questId} already in-flight, skipping.");
+            Debug.Log($"[QuestUIManager] ClaimReward: questId={questId} already in-flight, skipping.");
             return;
         }
 
@@ -367,8 +367,8 @@ public class QuestManager : MonoBehaviour
 
                 // Không tự động AcceptQuest tiếp theo: người chơi phải về gặp NPC QuestGiver
                 // để đọc dialogue rồi mới nhận nhiệm vụ kế.
-                Debug.Log($"[QuestManager] Claimed questId={questId}");
-                InventoryManager.RefreshAny(refreshStats: false);
+                Debug.Log($"[QuestUIManager] Claimed questId={questId}");
+                InventoryUIManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseCurrencyChanged();
 
                 if (!silent)
@@ -392,7 +392,7 @@ public class QuestManager : MonoBehaviour
             onError: err =>
             {
                 _claiming.Remove(questId);
-                Debug.LogError($"[QuestManager] ClaimReward FAIL: {err.Message}");
+                Debug.LogError($"[QuestUIManager] ClaimReward FAIL: {err.Message}");
                 onError?.Invoke(err.Message);
             });
     }
@@ -437,7 +437,7 @@ public class QuestManager : MonoBehaviour
     /// <summary>
     /// Đẩy ngay progress đang chờ lên server, không đợi tick 1s của BatchSyncLoop.
     /// Bắt buộc gọi trước khi unload scene (đổi map/portal): coroutine chạy trên
-    /// QuestManager (DontDestroyOnLoad) nhưng nếu chưa kịp tick thì
+    /// QuestUIManager (DontDestroyOnLoad) nhưng nếu chưa kịp tick thì
     /// HandleLoadedQuestResponses của map mới sẽ _pendingBatch.Clear() và mất progress.
     /// </summary>
     public void FlushPendingProgressNow() => PushPendingBatch();
@@ -459,7 +459,7 @@ public class QuestManager : MonoBehaviour
                 {
                     if (sentVersion < _batchVersion - 5)
                     {
-                        Debug.Log($"[QuestManager] Stale batch response (v{sentVersion} < v{_batchVersion}), skip.");
+                        Debug.Log($"[QuestUIManager] Stale batch response (v{sentVersion} < v{_batchVersion}), skip.");
                         return;
                     }
                     foreach (var key in syncedKeys)
@@ -501,11 +501,11 @@ public class QuestManager : MonoBehaviour
                         if (!isFinished) continue;
 
                         var qid = r.QuestId;
-                        Debug.Log($"[QuestManager] Auto-completing questId={qid} ({objectiveType})");
+                        Debug.Log($"[QuestUIManager] Auto-completing questId={qid} ({objectiveType})");
                         CompleteQuest(qid,
                             onSuccess: () =>
                             {
-                                Debug.Log($"[QuestManager] Auto-complete done questId={qid}");
+                                Debug.Log($"[QuestUIManager] Auto-complete done questId={qid}");
 
                                 // ClaimReward (non-silent) tự bắn popup "Reward Claimed!" — không bắn
                                 // thêm popup ở đây để tránh chồng 2 popup cho cùng 1 lần hoàn thành.
@@ -513,16 +513,16 @@ public class QuestManager : MonoBehaviour
                                     onSuccess: () => WorldRuntimeEvents.RaiseQuestsChanged(),
                                     onError: err =>
                                     {
-                                        Debug.LogWarning($"[QuestManager] Auto-claim fail questId={qid}: {err}");
+                                        Debug.LogWarning($"[QuestUIManager] Auto-claim fail questId={qid}: {err}");
                                         WorldRuntimeEvents.RaiseQuestsChanged();
                                     });
                             },
-                            onError: err => Debug.LogWarning($"[QuestManager] Auto-complete fail questId={qid}: {err}"));
+                            onError: err => Debug.LogWarning($"[QuestUIManager] Auto-complete fail questId={qid}: {err}"));
                     }
                 },
                 onError: err =>
                 {
-                    Debug.LogWarning($"[QuestManager] Batch FAIL (v{sentVersion}), rolling back: {err.Message}");
+                    Debug.LogWarning($"[QuestUIManager] Batch FAIL (v{sentVersion}), rolling back: {err.Message}");
                     foreach (var key in syncedKeys)
                     {
                         if (_snapshot.TryGetValue(key, out var snap))
@@ -558,7 +558,7 @@ public class QuestManager : MonoBehaviour
             var json = JsonUtility.ToJson(new OfflineQueueWrapper { entries = dirty });
             PlayerPrefs.SetString(OfflineQueueKey, json);
             PlayerPrefs.Save();
-            Debug.Log($"[QuestManager] Saved offline queue: {dirty.Count} entries.");
+            Debug.Log($"[QuestUIManager] Saved offline queue: {dirty.Count} entries.");
         }
     }
 
@@ -591,11 +591,11 @@ public class QuestManager : MonoBehaviour
 
             PlayerPrefs.DeleteKey(OfflineQueueKey);
             PlayerPrefs.Save();
-            Debug.Log($"[QuestManager] Applied offline queue: {wrapper.entries.Count} entries.");
+            Debug.Log($"[QuestUIManager] Applied offline queue: {wrapper.entries.Count} entries.");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[QuestManager] ApplyOfflineQueue parse error: {ex.Message}");
+            Debug.LogError($"[QuestUIManager] ApplyOfflineQueue parse error: {ex.Message}");
             PlayerPrefs.DeleteKey(OfflineQueueKey);
         }
     }
@@ -636,26 +636,26 @@ public class QuestManager : MonoBehaviour
             // Tự động nhận thưởng (ClaimReward) với mọi quest đã Completed (như Quest 24) ngoại trừ Collect (nộp cho NPC)
             if (isFinished && !string.Equals(objectiveType, "Collect", StringComparison.OrdinalIgnoreCase))
             {
-                Debug.Log($"[QuestManager] Auto-claiming completed questId={qid}");
+                Debug.Log($"[QuestUIManager] Auto-claiming completed questId={qid}");
                 int claimId = qid;
                 ClaimReward(claimId,
                     onSuccess: () => { },
-                    onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={claimId}: {err}"),
+                    onError: err => Debug.LogWarning($"[QuestUIManager] Auto-claim on load fail questId={claimId}: {err}"),
                     silent: true);
             }
             else if (canComplete && !string.Equals(objectiveType, "Collect", StringComparison.OrdinalIgnoreCase))
             {
-                Debug.Log($"[QuestManager] Auto-completing loaded questId={qid}");
+                Debug.Log($"[QuestUIManager] Auto-completing loaded questId={qid}");
                 int completeId = qid;
                 CompleteQuest(completeId,
                     onSuccess: () =>
                     {
                         ClaimReward(completeId,
                             onSuccess: () => { },
-                            onError: err => Debug.LogWarning($"[QuestManager] Auto-claim on load fail questId={completeId}: {err}"),
+                            onError: err => Debug.LogWarning($"[QuestUIManager] Auto-claim on load fail questId={completeId}: {err}"),
                             silent: true);
                     },
-                    onError: err => Debug.LogWarning($"[QuestManager] Auto-complete on load fail questId={completeId}: {err}"));
+                    onError: err => Debug.LogWarning($"[QuestUIManager] Auto-complete on load fail questId={completeId}: {err}"));
             }
         }
 
@@ -676,7 +676,7 @@ public class QuestManager : MonoBehaviour
         if (_batchCoroutine != null) StopCoroutine(_batchCoroutine);
         _batchCoroutine = StartCoroutine(BatchSyncLoop());
 
-        Debug.Log($"[QuestManager] Loaded {_cache.Count} quests from server.");
+        Debug.Log($"[QuestUIManager] Loaded {_cache.Count} quests from server.");
         OnQuestsLoaded?.Invoke();
         WorldRuntimeEvents.RaiseQuestsChanged();
     }
@@ -697,7 +697,7 @@ public class QuestManager : MonoBehaviour
         {
             int claimId = response.QuestId;
             ClaimReward(claimId,
-                onError: err => Debug.LogWarning($"[QuestManager] Auto-claim fail questId={claimId}: {err}"));
+                onError: err => Debug.LogWarning($"[QuestUIManager] Auto-claim fail questId={claimId}: {err}"));
         }
     }
 
@@ -730,9 +730,9 @@ public class QuestManager : MonoBehaviour
                         // ClaimReward (non-silent) tự bắn popup — không bắn thêm ở đây.
                         ClaimReward(q.QuestId,
                             onSuccess: () => WorldRuntimeEvents.RaiseQuestsChanged(),
-                            onError: err => Debug.LogWarning($"[QuestManager] Auto-claim EquipSkill fail: {err}"));
+                            onError: err => Debug.LogWarning($"[QuestUIManager] Auto-claim EquipSkill fail: {err}"));
                     },
-                    onError: err => Debug.LogWarning($"[QuestManager] Auto-complete EquipSkill fail: {err}"));
+                    onError: err => Debug.LogWarning($"[QuestUIManager] Auto-complete EquipSkill fail: {err}"));
             }
         }
     }

@@ -51,7 +51,7 @@ public class MapTeleportPortal : MonoBehaviour
         if (requiredQuestId > 0)
         {
             // Portal gating belongs to gameplay state, not the normalized UI response list.
-            var requiredQuest = QuestManager.Instance?.GetQuestState(requiredQuestId);
+            var requiredQuest = QuestUIManager.Instance?.GetQuestState(requiredQuestId);
             if (requiredQuest == null ||
                 !string.Equals(requiredQuest.status, "Claimed", System.StringComparison.OrdinalIgnoreCase))
             {
@@ -86,9 +86,9 @@ public class MapTeleportPortal : MonoBehaviour
 
         bool justExplored = false;
         // Try to update any "Explore" objective related to portals before checking entry condition
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            var quests = QuestManager.Instance.GetMainQuests();
+            var quests = QuestUIManager.Instance.GetMainQuests();
             if (quests != null)
             {
                 foreach (var q in quests)
@@ -97,7 +97,7 @@ public class MapTeleportPortal : MonoBehaviour
                         string.Equals(q.ObjectiveType, "Explore", System.StringComparison.OrdinalIgnoreCase) &&
                         (q.ObjectiveTarget != null && q.ObjectiveTarget.Contains("Portal", System.StringComparison.OrdinalIgnoreCase)))
                     {
-                        QuestManager.Instance.AddProgress(q.QuestId, 1);
+                        QuestUIManager.Instance.AddProgress(q.QuestId, 1);
                         justExplored = true;
                         // KHÔNG popup ở đây: "Explored: X" không chứa từ khoá nào nên InferKind trả None
                         // -> PaperPopup sẽ hiện một thông báo không có loại cụ thể dù vừa hoàn thành mục tiêu.
@@ -108,7 +108,7 @@ public class MapTeleportPortal : MonoBehaviour
         }
 
         // Kiểm tra xem người chơi đã đủ điều kiện (hoàn thành quest) để vào map này chưa
-        if (QuestManager.Instance != null && !QuestManager.Instance.CanEnterMap(targetMapData) && !justExplored)
+        if (QuestUIManager.Instance != null && !QuestUIManager.Instance.CanEnterMap(targetMapData) && !justExplored)
         {
             string mapTitle = targetMapData.mapName;
             if (mapTitle.Contains(",")) mapTitle = mapTitle.Split(',')[0]; // Cleanup weird map names
@@ -130,8 +130,8 @@ public class MapTeleportPortal : MonoBehaviour
         // Đẩy progress Explore lên server NGAY, trước khi scene unload. BatchSyncLoop chỉ
         // tick mỗi 1s; nếu chưa kịp tick thì LoadMyQuests của map mới sẽ xoá _pendingBatch
         // và quest "đi qua cổng" mắc kẹt ở InProgress mãi.
-        if (justExplored && QuestManager.Instance != null)
-            QuestManager.Instance.FlushPendingProgressNow();
+        if (justExplored && QuestUIManager.Instance != null)
+            QuestUIManager.Instance.FlushPendingProgressNow();
 
         // Gọi hàm EnterMap để tiến hành load map (không dùng cache vì qua cổng phải ra đúng cổng)
         if (useSpecificSpawn)

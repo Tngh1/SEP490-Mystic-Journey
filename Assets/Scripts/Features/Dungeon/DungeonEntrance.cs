@@ -73,7 +73,7 @@ public class DungeonEntrance : MonoBehaviour
             return;
         }
 
-        // WorldState.PlayerLevel do PlayerHUDController.RefreshHUD() ghi từ GetMyProfile
+        // WorldState.PlayerLevel do PlayerHUDUIManager.RefreshHUD() ghi từ GetMyProfile
         // mỗi 15s. HUD sống ở scene Main và world scene load ADDITIVE lên nó
         // (GameBootstrap.EnsureSceneLoaded), nên vòng lặp đó vẫn chạy ở đây — đây là
         // giá trị server, không phải cache offline.
@@ -110,7 +110,7 @@ public class DungeonEntrance : MonoBehaviour
 
         if (targetPanel != null)
         {
-            // Activate the panel first so that Awake() runs and UIPartyPanel.Instance is initialized!
+            // Activate the panel first so that Awake() runs and PartyPanel.Instance is initialized!
             if (UIManager.Instance != null && UIManager.Instance.dungeonPanel == targetPanel)
             {
                 UIManager.Instance.ShowPanel(targetPanel);
@@ -120,10 +120,10 @@ public class DungeonEntrance : MonoBehaviour
                 targetPanel.SetActive(true);
             }
 
-            var lobbyScript = targetPanel.GetComponent<UIPartyPanel>();
+            var lobbyScript = targetPanel.GetComponent<PartyPanel>();
             if (lobbyScript == null)
             {
-                lobbyScript = targetPanel.AddComponent<UIPartyPanel>();
+                lobbyScript = targetPanel.AddComponent<PartyPanel>();
             }
             // The dungeon scene name is now hardcoded since the game uses one common scene
             lobbyScript.OpenForDungeon(dungeonConfigId, "HollowCryptDungeon", energyCost, dungeonName);

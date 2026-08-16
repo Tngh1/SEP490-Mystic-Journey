@@ -59,7 +59,7 @@ public class OriginTreeInteractable : MonoBehaviour
     {
         if (_isHealing || _healed) return;
 
-        var questState = QuestManager.Instance?.GetQuestState(linkedQuestId);
+        var questState = QuestUIManager.Instance?.GetQuestState(linkedQuestId);
         if (questState == null ||
             !string.Equals(questState.status, "InProgress", System.StringComparison.OrdinalIgnoreCase))
         {
@@ -83,8 +83,8 @@ public class OriginTreeInteractable : MonoBehaviour
             response =>
             {
                 if (response?.Quest != null)
-                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
-                InventoryManager.RefreshAny(refreshStats: false);
+                    QuestUIManager.Instance?.ApplyServerQuestState(response.Quest);
+                InventoryUIManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
                 StartCoroutine(HealingSequence());
             },
@@ -178,9 +178,9 @@ public class OriginTreeInteractable : MonoBehaviour
 
     private void RefreshVisibility()
     {
-        if (QuestManager.Instance == null) return;
+        if (QuestUIManager.Instance == null) return;
 
-        var state = QuestManager.Instance.GetQuestState(linkedQuestId);
+        var state = QuestUIManager.Instance.GetQuestState(linkedQuestId);
         var status = state?.status ?? string.Empty;
         _healed = string.Equals(status, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
                   string.Equals(status, "Claimed", System.StringComparison.OrdinalIgnoreCase);

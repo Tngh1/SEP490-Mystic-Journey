@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Keeps the HUD mail/chat notification dots in sync with unread content.
-/// Added by PlayerHUDController at runtime so existing scene references stay valid.
+/// Added by PlayerHUDUIManager at runtime so existing scene references stay valid.
 /// </summary>
 public sealed class HUDNotificationController : MonoBehaviour
 {
@@ -23,7 +23,7 @@ public sealed class HUDNotificationController : MonoBehaviour
     private Button _chatButton;
     private GameObject _mailBadge;
     private GameObject _chatBadge;
-    private UIChatPanel _chatPanel;
+    private ChatUIManager _chatPanel;
     private PartyLobby _subscribedParty;
     private Coroutine _mailRefreshCoroutine;
     private bool _configured;
@@ -49,7 +49,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         _chatButton = _chatButtonObject != null ? _chatButtonObject.GetComponent<Button>() : null;
         _mailBadge = EnsureBadge(_mailButtonObject, "MailNotificationBadge");
         _chatBadge = EnsureBadge(_chatButtonObject, "ChatNotificationBadge");
-        _chatPanel = FindFirstObjectByType<UIChatPanel>(FindObjectsInactive.Include);
+        _chatPanel = FindFirstObjectByType<ChatUIManager>(FindObjectsInactive.Include);
         _configured = true;
 
         BindButtonEvents();
@@ -77,7 +77,7 @@ public sealed class HUDNotificationController : MonoBehaviour
 
         if (_chatPanel == null)
         {
-            _chatPanel = FindFirstObjectByType<UIChatPanel>(FindObjectsInactive.Include);
+            _chatPanel = FindFirstObjectByType<ChatUIManager>(FindObjectsInactive.Include);
         }
 
         if (_subscribedParty != PartyLobby.Local)
