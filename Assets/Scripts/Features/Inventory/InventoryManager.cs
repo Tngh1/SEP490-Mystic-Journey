@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -294,6 +295,7 @@ public class InventoryManager : MonoBehaviour
             {
                 Debug.Log($"[InventoryManager] ✅ EquipItem OK");
                 LoadInventory(force: true);
+                StartCoroutine(RefreshInventoryAfterEquipmentMutation());
             },
             onError: error =>
             {
@@ -387,6 +389,7 @@ public class InventoryManager : MonoBehaviour
             {
                 Debug.Log($"[InventoryManager] ✅ UnequipItem OK");
                 LoadInventory(force: true);
+                StartCoroutine(RefreshInventoryAfterEquipmentMutation());
             },
             onError: error =>
             {
@@ -394,6 +397,14 @@ public class InventoryManager : MonoBehaviour
                 ShowActionError(!string.IsNullOrEmpty(error.Message) ? error.Message : "Unequip failed.");
             }
         );
+    }
+
+    private IEnumerator RefreshInventoryAfterEquipmentMutation()
+    {
+        // The equipment endpoint and inventory projection are committed in
+        // separate steps. A short follow-up load prevents stale slot icons.
+        yield return new WaitForSecondsRealtime(0.35f);
+        LoadInventory(force: true, refreshStats: true);
     }
 
     // =========================================================================

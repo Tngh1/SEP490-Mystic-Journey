@@ -18,6 +18,13 @@ namespace MysticJourney.API.Models.Response
         public int RewardQuantity { get; set; }
         public decimal RewardGold { get; set; }
         public int RewardGem { get; set; }          // Chú ý: "Gem" không phải "Gems"
+        // Some API versions serialize the plural form. Keep both names so the
+        // achievement detail never silently falls back to zero gems.
+        public int RewardGems
+        {
+            get => RewardGem;
+            set => RewardGem = value;
+        }
         public int Point { get; set; }
     }
 }

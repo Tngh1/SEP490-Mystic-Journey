@@ -960,7 +960,7 @@ public class PlayerCombat : NetworkBehaviour
         if (duration > defBuffTimer) defBuffTimer = duration;
         
         var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Bảo Hộ", "shield_icon", duration, false);
+        if (buffMgr != null) buffMgr.AddBuff("Protection", "shield_icon", duration, false);
     }
 
     public void AddDebuffImmunity(float duration)
@@ -977,7 +977,7 @@ public class PlayerCombat : NetworkBehaviour
         {
             buffMgr.IsStatusImmune = true;
             buffMgr.ClearAllDebuffs();
-            buffMgr.AddBuff("Kháng Hiệu Ứng", "immunity_icon", duration, false);
+            buffMgr.AddBuff("Status Immunity", "immunity_icon", duration, false);
         }
 
         var burn = GetComponent<BurnDebuff>();

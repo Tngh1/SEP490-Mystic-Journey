@@ -36,7 +36,7 @@ public class UILevelUpPanel : MonoBehaviour
     private void Awake()
     {
         if (closeButton != null) closeButton.onClick.AddListener(ClosePanel);
-        for (int i = 0; i < statButtons.Length; i++)
+        for (int i = 0; statButtons != null && i < statButtons.Length; i++)
         {
             int index = i;
             if (statButtons[i] != null)
@@ -45,6 +45,29 @@ public class UILevelUpPanel : MonoBehaviour
             }
         }
         AutoDetectStatIcons();
+        SetupButtonFeedback();
+    }
+
+    private void SetupButtonFeedback()
+    {
+        AddButtonFeedback(closeButton);
+        if (statButtons == null) return;
+        foreach (var button in statButtons)
+            AddButtonFeedback(button);
+    }
+
+    private static void AddButtonFeedback(Button button)
+    {
+        if (button == null) return;
+
+        // Buttons created/configured in the scene can lose their target graphic
+        // when the panel is rebuilt. Restore a raycast target so clicks and
+        // pointer enter/exit events reach the button itself.
+        if (button.targetGraphic == null)
+            button.targetGraphic = button.GetComponent<Graphic>();
+
+        if (button.GetComponent<UIHoverScaleEffect>() == null)
+            button.gameObject.AddComponent<UIHoverScaleEffect>();
     }
     
     private void OnEnable()
