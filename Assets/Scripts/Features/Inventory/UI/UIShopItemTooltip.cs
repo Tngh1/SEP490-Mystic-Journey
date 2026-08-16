@@ -283,10 +283,10 @@ public class UIShopItemTooltip : MonoBehaviour
         if (nameText != null)
         {
             nameText.enableWordWrapping = true;
-            nameText.enableAutoSizing = true;
-            nameText.fontSizeMin = 10f;
-            nameText.fontSizeMax = 16f;
-            nameText.overflowMode = TextOverflowModes.Ellipsis;
+            nameText.enableAutoSizing = false;
+            nameText.fontSize = 30f;
+            nameText.fontStyle = FontStyles.Bold;
+            nameText.overflowMode = TextOverflowModes.Overflow;
             nameText.text = data.itemName ?? "Unknown Item";
             nameText.color = rarityColor;
         }
@@ -299,6 +299,12 @@ public class UIShopItemTooltip : MonoBehaviour
         // 2. Type & Rarity Header
         if (typeRarityText != null)
         {
+            typeRarityText.enableAutoSizing = false;
+            typeRarityText.enableWordWrapping = true;
+            typeRarityText.fontSize = 24f;
+            typeRarityText.fontStyle = FontStyles.Bold;
+            typeRarityText.overflowMode = TextOverflowModes.Overflow;
+
             string categoryOrSlot = !string.IsNullOrEmpty(data.slot) && !data.slot.Equals("None", StringComparison.OrdinalIgnoreCase)
                 ? data.slot
                 : (!string.IsNullOrEmpty(data.category) ? data.category : "Item");
@@ -309,6 +315,11 @@ public class UIShopItemTooltip : MonoBehaviour
         // 3. Equipment Stats with Stat Icons (<sprite name="...">)
         if (statsText != null)
         {
+            statsText.enableAutoSizing = false;
+            statsText.enableWordWrapping = true;
+            statsText.fontSize = 24f;
+            statsText.fontStyle = FontStyles.Bold;
+
             StringBuilder sb = new StringBuilder();
 
             int totalHp = data.baseHp + data.bonusHp;
@@ -340,6 +351,11 @@ public class UIShopItemTooltip : MonoBehaviour
         // 4. Description
         if (descriptionText != null)
         {
+            descriptionText.enableAutoSizing = false;
+            descriptionText.enableWordWrapping = true;
+            descriptionText.fontSize = 22f;
+            descriptionText.overflowMode = TextOverflowModes.Overflow;
+
             descriptionText.text = data.description ?? string.Empty;
             descriptionText.gameObject.SetActive(!string.IsNullOrWhiteSpace(data.description));
         }
@@ -347,6 +363,12 @@ public class UIShopItemTooltip : MonoBehaviour
         // 5. Price & Limit Info
         if (priceLimitText != null)
         {
+            priceLimitText.enableAutoSizing = false;
+            priceLimitText.enableWordWrapping = true;
+            priceLimitText.fontSize = 24f;
+            priceLimitText.fontStyle = FontStyles.Bold;
+            priceLimitText.overflowMode = TextOverflowModes.Overflow;
+
             StringBuilder sb = new StringBuilder();
             sb.Append($"Price: {data.EffectiveUnitPrice:N0} {data.currency}");
 
