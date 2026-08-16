@@ -51,8 +51,19 @@ public class CharacterFactory : MonoBehaviour
         StripGameplayComponents(instance);
         ConfigureSorting(instance);
         ConfigureAnimator(instance, skinId, characterClass);
+        EnsureAnimationComponent(instance);
 
         return instance;
+    }
+
+    private static void EnsureAnimationComponent(GameObject instance)
+    {
+        var animator = instance != null ? instance.GetComponentInChildren<Animator>(true) : null;
+        if (animator == null)
+            return;
+
+        if (instance.GetComponentInChildren<PlayerAnimation>(true) == null)
+            animator.gameObject.AddComponent<PlayerAnimation>();
     }
 
     private SkinDatabaseSO EnsureSkinDatabase()

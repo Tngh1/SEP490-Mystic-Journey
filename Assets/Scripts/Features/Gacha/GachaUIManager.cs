@@ -95,8 +95,10 @@ public class GachaUIManager : MonoBehaviour
 
     [Header("--- Free Pull ---")]
     public TextMeshProUGUI freeCountdownText;
-    private const string LastFreePullKey = "LastFreePullTime";
     private int _pull1CostCache = 0;
+    private bool _freePullStateLoaded;
+    private System.DateTime _lastFreePullUtc = System.DateTime.MinValue;
+    private System.DateTime _previousFreePullUtc = System.DateTime.MinValue;
 
     private int _pityLimit = 90;
     private List<GachaBannerItemResponse> _cachedBannerItems = new List<GachaBannerItemResponse>();
@@ -244,6 +246,7 @@ public class GachaUIManager : MonoBehaviour
 
         LoadBannerData(currentBannerId);
         LoadUserTicketCount();
+        LoadFreePullState();
     }
 
     private void OnDisable()
@@ -646,7 +649,7 @@ public class GachaUIManager : MonoBehaviour
 
     private void UpdateFreePullUI()
     {
-        if (pull1CostText == null || _pull1CostCache == 0) return;
+        if (pull1CostText == null || _pull1CostCache == 0 || !_freePullStateLoaded) return;
 
         if (IsFreePullAvailable())
         {
@@ -677,25 +680,53 @@ public class GachaUIManager : MonoBehaviour
 
     private System.DateTime GetNextFreePullTime()
     {
-        string timeStr = PlayerPrefs.GetString(LastFreePullKey, "");
-        if (string.IsNullOrEmpty(timeStr)) return System.DateTime.MinValue;
-        if (System.DateTime.TryParse(timeStr, out System.DateTime lastTime))
-        {
-            return lastTime.AddHours(24);
-        }
-        return System.DateTime.MinValue;
+        return _lastFreePullUtc == System.DateTime.MinValue
+            ? System.DateTime.MinValue
+            : _lastFreePullUtc.AddHours(24);
     }
 
     private void UseFreePull()
     {
-        PlayerPrefs.SetString(LastFreePullKey, System.DateTime.Now.ToString("O"));
-        PlayerPrefs.Save();
+        _previousFreePullUtc = _lastFreePullUtc;
+        _lastFreePullUtc = System.DateTime.UtcNow;
+    }
+
+    private void LoadFreePullState()
+    {
+        _freePullStateLoaded = false;
+        _lastFreePullUtc = System.DateTime.MinValue;
+        _previousFreePullUtc = System.DateTime.MinValue;
+
+        PlayerApi.Instance.GetMyProfile(
+            profile =>
+            {
+                if (profile != null && !string.IsNullOrWhiteSpace(profile.LastFreeGachaTime) &&
+                    System.DateTime.TryParse(
+                        profile.LastFreeGachaTime,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                        out var lastFreeUtc))
+                {
+                    _lastFreePullUtc = lastFreeUtc;
+                }
+
+                _freePullStateLoaded = true;
+                UpdateFreePullUI();
+            },
+            error =>
+            {
+                // Keep the panel usable if profile refresh fails; the pull API
+                // remains authoritative and will reject an invalid free pull.
+                Debug.LogWarning($"[GachaUI] Failed to load free-pull state: {error.Message}");
+                _freePullStateLoaded = true;
+                UpdateFreePullUI();
+            });
     }
 
     private void PerformPull(int amount)
     {
         bool isFreePull = false;
-        if (amount == 1 && IsFreePullAvailable())
+        if (amount == 1 && _freePullStateLoaded && IsFreePullAvailable())
         {
             isFreePull = true;
             UseFreePull();
@@ -721,8 +752,8 @@ public class GachaUIManager : MonoBehaviour
                 // Nếu có lỗi, hoàn lại lượt free
                 if (isFreePull)
                 {
-                    PlayerPrefs.DeleteKey(LastFreePullKey);
-                    PlayerPrefs.Save();
+                    _lastFreePullUtc = _previousFreePullUtc;
+                    UpdateFreePullUI();
                 }
 
                 ShowWarningPopup("Not enough tickets or an error occurred!\n" + error.Message);

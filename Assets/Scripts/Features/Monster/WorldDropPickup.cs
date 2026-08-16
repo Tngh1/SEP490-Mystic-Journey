@@ -186,6 +186,18 @@ namespace MysticJourney.Features.Monster
                 return;
             }
 
+            // The visual player can be spawned before NetworkPlayer.Local is
+            // published (and some offline/test sessions have no network player
+            // at all). PlayerEntity is the stable local-player anchor in both
+            // paths, so drops must use it as a fallback instead of remaining on
+            // the ground forever.
+            if (PlayerEntity.Instance != null && PlayerEntity.Instance.gameObject.activeInHierarchy)
+            {
+                _sharedPlayer = PlayerEntity.Instance.transform;
+                _playerTransform = _sharedPlayer;
+                return;
+            }
+
             if (Time.frameCount < _nextPlayerSearchFrame) return;
             _nextPlayerSearchFrame = Time.frameCount + 15;
 
@@ -193,6 +205,14 @@ namespace MysticJourney.Features.Monster
             if (player != null)
             {
                 _sharedPlayer = player.transform;
+                _playerTransform = _sharedPlayer;
+                return;
+            }
+
+            var entity = Object.FindFirstObjectByType<PlayerEntity>();
+            if (entity != null && entity.gameObject.activeInHierarchy)
+            {
+                _sharedPlayer = entity.transform;
                 _playerTransform = _sharedPlayer;
             }
         }

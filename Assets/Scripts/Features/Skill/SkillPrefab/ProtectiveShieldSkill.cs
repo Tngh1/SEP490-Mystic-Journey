@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class ProtectiveShieldSkill : MonoBehaviour
@@ -11,8 +12,12 @@ public class ProtectiveShieldSkill : MonoBehaviour
 
     private Transform _targetToFollow;
 
-    private void Start()
+    private IEnumerator Start()
     {
+        // Replica markers are attached immediately after Instantiate on remote clients.
+        // Delay the gameplay/broadcast logic so a visual copy cannot apply the buff again.
+        yield return null;
+
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
@@ -54,7 +59,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         if (PlayerSkillVisualReplica.IsReplica(this))
         {
             Destroy(gameObject, duration);
-            return;
+            yield break;
         }
 
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;
@@ -70,17 +75,24 @@ public class ProtectiveShieldSkill : MonoBehaviour
             var player = hit.GetComponentInParent<PlayerCombat>();
             if (player != null && player.CompareTag("Player") && affectedPlayers.Add(player))
             {
-                player.AddDefBuff(buffAmount, duration);
-                player.AddDebuffImmunity(duration);
-
                 var networkPlayer = player.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null && networkPlayer.Object != null)
                 {
+                    // Call RPC to apply buff to all clients (including UI)
+                    networkPlayer.RPC_ApplyDefBuff(buffAmount, duration);
+                    networkPlayer.RPC_ApplyDebuffImmunity(duration);
+
                     string prefabName = gameObject.name.EndsWith("(Clone)")
                         ? gameObject.name.Substring(0, gameObject.name.Length - "(Clone)".Length)
                         : gameObject.name;
                     networkPlayer.RPC_ShowBuffVisual(prefabName);
                     broadcastNetworkVisual = true;
+                }
+                else
+                {
+                    // Fallback for offline mode
+                    player.AddDefBuff(buffAmount, duration);
+                    player.AddDebuffImmunity(duration);
                 }
 
                 // Show a text popup for buff
@@ -96,7 +108,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         if (broadcastNetworkVisual)
         {
             Destroy(gameObject);
-            return;
+            yield break;
         }
 
         Destroy(gameObject, duration);

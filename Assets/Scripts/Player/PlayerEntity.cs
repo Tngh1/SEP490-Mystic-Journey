@@ -59,7 +59,10 @@ public class PlayerEntity : MonoBehaviour
 
     private void Awake()
     {
-        Instance = this;
+        // Xóa gán Instance = this ở đây để tránh đè mất Local Player khi có người chơi khác join vào phòng
+        // Việc gán Instance chính xác cho Local Player đã được xử lý trong NetworkPlayer.EnsureLocalInputComponents()
+        if (Instance == null) Instance = this; // Chỉ giữ fallback cho chế độ Offline
+        
         currentHealth = maxHealth;
         _networkPlayer = GetComponent<NetworkPlayer>();
         

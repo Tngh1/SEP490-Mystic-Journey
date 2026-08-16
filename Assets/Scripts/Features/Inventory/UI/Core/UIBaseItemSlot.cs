@@ -37,6 +37,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             iconImage.enabled = data.icon != null;
             iconImage.preserveAspect = true;
             iconImage.color = Color.white;
+            EnsureIconCentered();
         }
 
         if (itemNameText != null)
@@ -104,25 +105,110 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
     protected virtual void SetRarityColor(string rarity)
     {
-        if (rarityBorder == null)
-            return;
+        bool isSkinSlot = this is UIInventorySkinSlot || 
+                         (DisplayData != null && (DisplayData.isSkin || string.Equals(DisplayData.category, "Skin", StringComparison.OrdinalIgnoreCase))) ||
+                         RawData is MysticJourney.API.Models.Response.PlayerSkinSummaryResponse;
 
-        // Keep a real sprite frame when the prefab provides one. The current inventory prefab
-        // has no frame sprite, so use a generated four-edge effect that never covers the icon.
-        if (rarityBorder.sprite != null)
+        if (isSkinSlot || IsConsumableOrNonEquip(DisplayData, RawData))
         {
+            if (rarityBorder != null) rarityBorder.enabled = false;
             rarityEffect?.SetVisible(false);
-            rarityBorder.enabled = true;
-            rarityBorder.color = UIRarityFrameEffect.GetRarityColor(rarity);
             return;
         }
 
-        rarityBorder.enabled = false;
-        if (rarityEffect == null)
-            rarityEffect = rarityBorder.GetComponent<UIRarityFrameEffect>()
-                ?? rarityBorder.gameObject.AddComponent<UIRarityFrameEffect>();
+        if (string.IsNullOrWhiteSpace(rarity))
+            rarity = "Common";
 
-        rarityEffect.Configure(rarity);
+        // Determine target object for glow effect:
+        // Priority 1: rarityBorder if available
+        // Priority 2: slot root gameObject
+        GameObject targetObj = rarityBorder != null ? rarityBorder.gameObject : gameObject;
+
+        if (rarityEffect == null || rarityEffect.gameObject != targetObj)
+        {
+            if (rarityEffect != null && rarityEffect.gameObject != targetObj)
+                rarityEffect.SetVisible(false);
+
+            rarityEffect = targetObj.GetComponent<UIRarityFrameEffect>()
+                ?? targetObj.AddComponent<UIRarityFrameEffect>();
+        }
+
+        rarityEffect.Configure(rarity, rarityBorder);
+
+        // Disable static rarityBorder image so it doesn't block or clash with multi-layer glow
+        if (rarityBorder != null)
+            rarityBorder.enabled = false;
+
+        // Ensure icon and quantity text always render ON TOP of the glow layers
+        if (iconImage != null) iconImage.transform.SetAsLastSibling();
+        if (quantityText != null) quantityText.transform.SetAsLastSibling();
+    }
+
+    public static bool IsConsumableOrNonEquip(UIItemDisplayData data, object rawData)
+    {
+        if (data != null && (data.isSkin || string.Equals(data.category, "Skin", System.StringComparison.OrdinalIgnoreCase)))
+            return true;
+
+        if (rawData is MysticJourney.API.Models.Response.PlayerSkinSummaryResponse)
+            return true;
+
+        if (data != null && data.isEquipped)
+            return false;
+
+        string category = data?.category;
+        string name = data?.itemName;
+
+        if (rawData is MysticJourney.API.Models.Response.InventoryItemResponse invItem)
+        {
+            if (invItem.IsEquipped || !string.IsNullOrEmpty(invItem.ItemSlot) || !string.IsNullOrEmpty(invItem.EquippedSlot))
+                return false;
+
+            category = !string.IsNullOrEmpty(invItem.ItemType) ? invItem.ItemType : category;
+            name = !string.IsNullOrEmpty(invItem.ItemName) ? invItem.ItemName : name;
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                string catUpper = category.Trim();
+                if (string.Equals(catUpper, "Weapon", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Armor", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Helmet", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Gloves", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Boots", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Ring", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Necklace", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(catUpper, "Shield", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(category))
+        {
+            string cat = category.Trim();
+            if (string.Equals(cat, "Consumable", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Potion", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Material", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Ticket", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "QuestItem", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Quest", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Currency", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(name))
+        {
+            string n = name.ToLowerInvariant();
+            if (n.Contains("potion") || n.Contains("máu") || n.Contains("ticket") || n.Contains("vé") ||
+                n.Contains("flour") || n.Contains("stone") || n.Contains("scroll") || n.Contains("key"))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -130,6 +216,21 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
     {
         if (RawData != null)
             OnSlotClicked?.Invoke(this);
+    }
+
+    protected void EnsureIconCentered()
+    {
+        if (iconImage == null) return;
+        if (this is UIShopSlot) return; // Keep prefab's exact Y offset (27.8f) for Shop slots
+
+        RectTransform rect = iconImage.rectTransform;
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+        }
     }
 
     protected void BindCore()
@@ -144,6 +245,8 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             rarityBorder = FindChild("RarityBorder", "Border", "Frame")?.GetComponent<Image>();
         if (selectHighlight == null)
             selectHighlight = FindChild("SelectHighlight", "Highlight", "Selected")?.gameObject;
+
+        EnsureIconCentered();
     }
 
     private Transform FindChild(params string[] names)
@@ -173,6 +276,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
             case "rare": return new Color(0.35f, 0.62f, 1f);
             case "epic": return new Color(0.75f, 0.45f, 1f);
             case "legendary": return new Color(1f, 0.72f, 0.2f);
+            case "mythic": return new Color(1f, 0.3f, 0.3f);
             default: return Color.white;
         }
     }

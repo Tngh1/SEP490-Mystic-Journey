@@ -16,9 +16,9 @@ GameObject:
   - component: {fileID: 4400808399762276242}
   - component: {fileID: 6615569561067033569}
   - component: {fileID: 2382211699841492343}
-  - component: {fileID: 5112267390245284287}
   - component: {fileID: 6607248291951083532}
   - component: {fileID: 3031493298324683571}
+  - component: {fileID: 1280798777638189543}
   m_Layer: 0
   m_Name: skin_archer
   m_TagString: Player
@@ -246,40 +246,6 @@ MonoBehaviour:
   animator: {fileID: 0}
   spriteRenderer: {fileID: 1234493663112385890}
   invertFlipX: 0
---- !u!114 &5112267390245284287
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2026713391189242349}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 478d08c75ff7b6c4b85174966dead7ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  animator: {fileID: 5429463770904127572}
-  animation: {fileID: 0}
-  maxCastRange: 6
-  aoeIndicatorPrefab: {fileID: 2471827344372199260, guid: 4b888d36b20ff894eac2d1d2dcb95d8e, type: 3}
-  baseAttackCooldown: 0.5
-  basicAttackDelay: 0.8
-  basicAttackDamage: 25
-  critRate: 20
-  critDamageMultiplier: 1.5
-  basicAttackPrefab: {fileID: 6319617498100810868, guid: f0f9c6c79c641bf4f859aa4b3b27bee4, type: 3}
-  meleeRange: 1.2
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  firePoint: {fileID: 0}
-  skillCastDelay: 0.2
-  skill1Prefab: {fileID: 0}
-  skill2Prefab: {fileID: 0}
-  skill3Prefab: {fileID: 0}
-  skill1Cooldown: 3
-  skill2Cooldown: 5
-  skill3Cooldown: 8
 --- !u!114 &6607248291951083532
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -339,6 +305,40 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.21208344, y: 0.05483398}
   m_EdgeRadius: 0
+--- !u!114 &1280798777638189543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026713391189242349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 478d08c75ff7b6c4b85174966dead7ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
+  animator: {fileID: 5429463770904127572}
+  playerAnimation: {fileID: 0}
+  maxCastRange: 6
+  aoeIndicatorPrefab: {fileID: 2471827344372199260, guid: 4b888d36b20ff894eac2d1d2dcb95d8e, type: 3}
+  baseAttackCooldown: 1.2
+  basicAttackDelay: 0.8
+  basicAttackDamage: 25
+  critRate: 20
+  critDamageMultiplier: 1.5
+  basicAttackPrefab: {fileID: 6319617498100810868, guid: f0f9c6c79c641bf4f859aa4b3b27bee4, type: 3}
+  meleeRange: 1.2
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  firePoint: {fileID: 0}
+  skillCastDelay: 0.2
+  skill1Prefab: {fileID: 0}
+  skill2Prefab: {fileID: 0}
+  skill3Prefab: {fileID: 0}
+  skill1Cooldown: 3
+  skill2Cooldown: 5
+  skill3Cooldown: 8
 --- !u!1 &2573703838623645098
 GameObject:
   m_ObjectHideFlags: 0

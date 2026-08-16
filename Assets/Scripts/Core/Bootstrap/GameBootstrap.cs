@@ -162,11 +162,13 @@ public class GameBootstrap : MonoBehaviour
         var level = PlayerPrefs.GetInt(ApiConfig.PlayerLevelKey, 1);
         var playerClass = PlayerPrefs.GetString(ApiConfig.PlayerClassKey, "Knight");
         var profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
+        var equippedSkinId = PlayerPrefs.GetInt("mj_equipped_skin_id", 0);
 
         WorldState.CurrentMapName = string.IsNullOrWhiteSpace(mapName) ? "ElfForest" : mapName.Trim();
         WorldState.LastPosition = new Vector3(x, y, 0f);
         WorldState.PlayerLevel = Mathf.Max(1, level);
         WorldState.PlayerClass = string.IsNullOrWhiteSpace(playerClass) ? "Knight" : playerClass.Trim();
         WorldState.PlayerProfileId = profileId;
+        WorldState.EquippedSkinId = Mathf.Max(0, equippedSkinId);
     }
 }

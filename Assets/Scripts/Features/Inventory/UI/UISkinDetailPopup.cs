@@ -105,6 +105,10 @@ public class UISkinDetailPopup : MonoBehaviour
             skinIcon.enabled = icon != null;
             skinIcon.preserveAspect = true;
             skinIcon.color = Color.white;
+
+            var effect = skinIcon.GetComponent<UIRarityFrameEffect>() ?? skinIcon.GetComponentInParent<UIRarityFrameEffect>();
+            if (effect != null) effect.SetVisible(false);
+
             Debug.Log($"[UISkinDetailPopup] Setting skinIcon ({skinIcon.gameObject.name}) to sprite: {(icon ? icon.name : "NULL")}");
         }
         else
@@ -112,7 +116,15 @@ public class UISkinDetailPopup : MonoBehaviour
             Debug.LogWarning("[UISkinDetailPopup] skinIcon is NULL!");
         }
 
-        if (skinNameText) skinNameText.text = skin.SkinName;
+        if (skinNameText)
+        {
+            skinNameText.enableWordWrapping = true;
+            skinNameText.enableAutoSizing = true;
+            skinNameText.fontSizeMin = 10f;
+            skinNameText.fontSizeMax = 20f;
+            skinNameText.overflowMode = TextOverflowModes.Ellipsis;
+            skinNameText.text = skin.SkinName;
+        }
 
         if (skinTitleText)
         {

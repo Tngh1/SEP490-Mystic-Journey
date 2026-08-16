@@ -65,7 +65,7 @@ public class DarknessCurseSkill : MonoBehaviour
             }
 
             // Bắt đầu chu kỳ gây sát thương và cộng dồn hắc hoá
-            if (buffMgr != null) buffMgr.AddBuff("Lời Nguyền Bóng Đêm", "curse_icon", duration, true);
+            if (buffMgr != null) buffMgr.AddBuff("Darkness Curse", "curse_icon", duration, true);
             StartCoroutine(CurseRoutine());
 
             // Tự động huỷ sau thời gian duration

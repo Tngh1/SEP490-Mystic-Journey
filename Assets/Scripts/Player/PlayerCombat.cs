@@ -131,6 +131,13 @@ public class PlayerCombat : NetworkBehaviour
             _silenceTimer = duration;
         }
 
+        var buffMgr = GetComponent<BuffManager>();
+        if (buffMgr != null && _silenceTimer > 0f)
+        {
+            // Thêm hiệu ứng vào BuffManager để hiển thị icon (tên icon tuỳ chỉnh)
+            buffMgr.AddBuff("Silence", "silence_icon", _silenceTimer, true);
+        }
+
         if (_isAimingAoE)
         {
             CancelAimingMode();
@@ -401,9 +408,11 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         GameObject skillObj = Instantiate(prefab, position, rotation);
+        skillObj.SetActive(false);
         PlayerSkillVisualReplica.Mark(skillObj, transform);
         ConfigureLegacySkill(skillObj, 0f, hasTargetPosition ? targetPosition : (Vector3?)null);
         ScheduleLegacySkillFallbackDestruction(skillObj);
+        skillObj.SetActive(true);
     }
 
     public static GameObject FindLoadedSkillPrefab(string prefabName)
@@ -636,14 +645,18 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (prefab == null) return;
 
-        float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
-        if (IsSilenced || IsBusy() || Time.time < nextTime) return;
-
-        // Chỉ cho phép 1 kỹ năng ngắm 1 lúc, huỷ kỹ năng cũ nếu có
+        // Skill input is a toggle while an AoE is being aimed: the second
+        // press cancels the preview instead of cancelling and immediately
+        // opening it again. Handle this before cooldown/busy checks so the
+        // player can always escape an active targeting mode.
         if (_isAimingAoE)
         {
             CancelAimingMode();
+            return;
         }
+
+        float nextTime = slotIndex == 0 ? nextSkill1Time : slotIndex == 1 ? nextSkill2Time : nextSkill3Time;
+        if (IsSilenced || IsBusy() || Time.time < nextTime) return;
 
         bool isAoE = IsTargetedAoESkill(prefab);
         if (isAoE) EnterAimingMode(prefab, slotIndex, cooldown, animTrigger);
@@ -738,6 +751,11 @@ public class PlayerCombat : NetworkBehaviour
     private void CancelAimingMode()
     {
         _isAimingAoE = false;
+        foreach (var sr in _highlightedMonsters)
+        {
+            if (sr != null) sr.color = Color.white;
+        }
+        _highlightedMonsters.Clear();
         if (_aimingIndicatorInstance != null) _aimingIndicatorInstance.SetActive(false);
         if (_rangeIndicatorInstance != null) _rangeIndicatorInstance.SetActive(false);
     }
@@ -951,7 +969,7 @@ public class PlayerCombat : NetworkBehaviour
         if (duration > defBuffTimer) defBuffTimer = duration;
         
         var buffMgr = GetComponent<BuffManager>();
-        if (buffMgr != null) buffMgr.AddBuff("Bảo Hộ", "shield_icon", duration, false);
+        if (buffMgr != null) buffMgr.AddBuff("Protection", "shield_icon", duration, false);
     }
 
     public void AddDebuffImmunity(float duration)
@@ -968,7 +986,7 @@ public class PlayerCombat : NetworkBehaviour
         {
             buffMgr.IsStatusImmune = true;
             buffMgr.ClearAllDebuffs();
-            buffMgr.AddBuff("Kháng Hiệu Ứng", "immunity_icon", duration, false);
+            buffMgr.AddBuff("Status Immunity", "immunity_icon", duration, false);
         }
 
         var burn = GetComponent<BurnDebuff>();

@@ -5,7 +5,9 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine.Serialization;
 
-public class UIShopSlot : UIBaseItemSlot
+using UnityEngine.EventSystems;
+
+public class UIShopSlot : UIBaseItemSlot, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Shop Specifics")]
     [FormerlySerializedAs("nameText")]
@@ -27,6 +29,20 @@ public class UIShopSlot : UIBaseItemSlot
             buyButton.onClick.AddListener(OnBuyButtonClicked);
     }
 
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (DisplayData != null)
+        {
+            var tooltip = UIShopItemTooltip.GetOrCreate(GetComponentInParent<Canvas>());
+            tooltip?.ShowTooltip(DisplayData, transform as RectTransform);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        UIShopItemTooltip.Instance?.HideTooltip();
+    }
+
     public void SetupShop(UIItemDisplayData data)
     {
         if (data == null)
@@ -38,15 +54,29 @@ public class UIShopSlot : UIBaseItemSlot
         base.SetupCore(data);
         RawData = data;
 
-        // 1. Tên vật phẩm: hiển thị tên sạch (không đính kèm số lượng), cân chỉnh căn giữa + Auto-size
+        if (iconImage != null)
+        {
+            iconImage.rectTransform.anchoredPosition = new Vector2(0f, 27.8f);
+        }
+
+        if (shopNameText == null && itemNameText == null)
+        {
+            shopNameText = transform.Find("NameText")?.GetComponent<TMP_Text>()
+                        ?? transform.Find("TitleText")?.GetComponent<TMP_Text>()
+                        ?? transform.Find("Name")?.GetComponent<TMP_Text>();
+        }
+
+        // 1. Tên vật phẩm: hiển thị tên sạch (không đính kèm số lượng), cân chỉnh căn giữa
         TMP_Text nameLabel = shopNameText != null ? shopNameText : itemNameText;
         if (nameLabel != null)
         {
-            nameLabel.enableAutoSizing = true;
-            nameLabel.fontSizeMin = 20f;
-            nameLabel.fontSizeMax = 30f;
+            nameLabel.enableAutoSizing = false;
+            nameLabel.enableWordWrapping = true;
+            nameLabel.fontSize = 20f;
+            nameLabel.fontStyle = FontStyles.Bold;
+            nameLabel.overflowMode = TextOverflowModes.Overflow;
             nameLabel.alignment = TextAlignmentOptions.Center;
-            nameLabel.margin = new Vector4(2, 2, 2, 2);
+            nameLabel.margin = Vector4.zero;
             nameLabel.text = data.itemName ?? string.Empty;
         }
 
@@ -109,13 +139,16 @@ public class UIShopSlot : UIBaseItemSlot
             
             if (gemPriceText != null)
             {
-                gemPriceText.enableAutoSizing = true;
-                gemPriceText.fontSizeMin = 12f;
-                gemPriceText.fontSizeMax = 22f;
+                gemPriceText.enableAutoSizing = false;
+                gemPriceText.fontSize = 24f;
+                gemPriceText.fontStyle = FontStyles.Bold;
                 gemPriceText.richText = true;
                 gemPriceText.alignment = TextAlignmentOptions.Center;
-                gemPriceText.margin = new Vector4(2, 0, 2, 0);
+                gemPriceText.overflowMode = TextOverflowModes.Overflow;
+                gemPriceText.margin = Vector4.zero;
                 gemPriceText.text = FormatDisplayPrice(data);
+                if (gemPriceText.rectTransform != null && gemPriceText.rectTransform.rect.height < 28f)
+                    gemPriceText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 30f);
             }
         }
         else
@@ -125,13 +158,16 @@ public class UIShopSlot : UIBaseItemSlot
             
             if (priceText != null)
             {
-                priceText.enableAutoSizing = true;
-                priceText.fontSizeMin = 12f;
-                priceText.fontSizeMax = 22f;
+                priceText.enableAutoSizing = false;
+                priceText.fontSize = 24f;
+                priceText.fontStyle = FontStyles.Bold;
                 priceText.richText = true;
                 priceText.alignment = TextAlignmentOptions.Center;
-                priceText.margin = new Vector4(2, 0, 2, 0);
+                priceText.overflowMode = TextOverflowModes.Overflow;
+                priceText.margin = Vector4.zero;
                 priceText.text = FormatDisplayPrice(data);
+                if (priceText.rectTransform != null && priceText.rectTransform.rect.height < 28f)
+                    priceText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 30f);
             }
         }
 
@@ -179,6 +215,6 @@ public class UIShopSlot : UIBaseItemSlot
     private static string FormatPrice(decimal amount, string currency)
     {
         string formatted = amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
-        return $"${formatted}";
+        return formatted;
     }
 }
