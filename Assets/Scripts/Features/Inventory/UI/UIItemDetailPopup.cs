@@ -698,14 +698,18 @@ public class UIItemDetailPopup : MonoBehaviour
     {
         if (text == null) return;
         text.enableWordWrapping = true;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        if (text.fontSizeMax <= text.fontSizeMin || text.fontSizeMax > 24f)
+        text.enableAutoSizing = false;
+        text.fontSize = 24f;
+        text.fontStyle = FontStyles.Bold;
+        text.overflowMode = TextOverflowModes.Overflow;
+        text.margin = Vector4.zero;
+        if (text.rectTransform != null)
         {
-            text.fontSizeMax = 18f;
+            if (text.rectTransform.rect.height < 32f)
+                text.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 36f);
+            if (text.rectTransform.rect.width < 150f)
+                text.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 220f);
         }
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.margin = new Vector4(2, 0, 2, 0);
     }
 
     private void AdjustConsumePanelLayout()

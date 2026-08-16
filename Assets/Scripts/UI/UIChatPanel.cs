@@ -94,8 +94,11 @@ public class UIChatPanel : MonoBehaviour
     private bool partyStaticEventBound;
     private bool partyNetworkEventBound;
 
+    private float enableTime;
+
     private void OnEnable()
     {
+        enableTime = Time.unscaledTime;
         PrepareRuntimeBindings();
         SubscribeChannelRelays();
 
@@ -129,6 +132,47 @@ public class UIChatPanel : MonoBehaviour
         }
 
         UpdateHistoryFallbackState();
+        CheckClickOutside();
+    }
+
+    private void CheckClickOutside()
+    {
+        if (Time.unscaledTime - enableTime < 0.15f)
+            return;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            RectTransform rect = GetComponent<RectTransform>();
+            if (rect == null) return;
+
+            Vector2 mousePos = Input.mousePosition;
+            Camera cam = null;
+            Canvas canvas = GetComponentInParent<Canvas>();
+            if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                cam = canvas.worldCamera;
+            }
+
+            if (!RectTransformUtility.RectangleContainsScreenPoint(rect, mousePos, cam))
+            {
+                if (contextMenu != null && contextMenu.gameObject.activeInHierarchy)
+                {
+                    RectTransform ctxRect = contextMenu.GetComponent<RectTransform>();
+                    if (ctxRect != null && RectTransformUtility.RectangleContainsScreenPoint(ctxRect, mousePos, cam))
+                        return;
+                }
+
+                if (reportConfirmPopup != null && reportConfirmPopup.gameObject.activeInHierarchy)
+                {
+                    RectTransform rptRect = reportConfirmPopup.GetComponent<RectTransform>();
+                    if (rptRect != null && RectTransformUtility.RectangleContainsScreenPoint(rptRect, mousePos, cam))
+                        return;
+                }
+
+                // Close ONLY ChatPanel
+                gameObject.SetActive(false);
+            }
+        }
     }
 
     private void OnDisable()
