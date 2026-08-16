@@ -38,6 +38,7 @@ public class UIConfirmPurchase : MonoBehaviour
     {
         TryAutoBindCurrencyIcon();
         EnsureMaxButton();
+        ArrangeQuantityGroup();
         if (plusButton != null) { plusButton.onClick.RemoveAllListeners(); plusButton.onClick.AddListener(IncreaseQuantity); }
         if (minusButton != null) { minusButton.onClick.RemoveAllListeners(); minusButton.onClick.AddListener(DecreaseQuantity); }
         if (maxButton != null) { maxButton.onClick.RemoveAllListeners(); maxButton.onClick.AddListener(SetMaxQuantity); }
@@ -80,6 +81,7 @@ public class UIConfirmPurchase : MonoBehaviour
             currencyNameText.text = string.IsNullOrWhiteSpace(currentItem?.currency) ? "Gold" : currentItem.currency;
 
         UpdateCurrencyIcon();
+        ArrangeQuantityGroup();
         UpdateUI();
     }
 
@@ -192,41 +194,164 @@ public class UIConfirmPurchase : MonoBehaviour
 
     private void EnsureMaxButton()
     {
-        if (maxButton != null || plusButton == null || plusButton.transform.parent == null) return;
+        if (maxButton == null && plusButton != null && plusButton.transform.parent != null)
+        {
+            Transform parent = plusButton.transform.parent;
+            foreach (Transform child in parent)
+            {
+                if (child.gameObject != plusButton.gameObject && child.gameObject != minusButton?.gameObject &&
+                   (child.name.Equals("MaxButton", StringComparison.OrdinalIgnoreCase) ||
+                    child.name.Equals("Max", StringComparison.OrdinalIgnoreCase) ||
+                    child.name.Contains("Max")))
+                {
+                    maxButton = child.GetComponent<Button>();
+                    if (maxButton != null) break;
+                }
+            }
 
-        maxButton = Instantiate(plusButton, plusButton.transform.parent);
-        maxButton.name = "MaxButton";
-        maxButton.transform.SetAsLastSibling();
-        maxButton.onClick.RemoveAllListeners();
-        for (int i = 0; i < maxButton.transform.childCount; i++)
-            maxButton.transform.GetChild(i).gameObject.SetActive(false);
+            if (maxButton == null)
+            {
+                var buttons = transform.GetComponentsInChildren<Button>(true);
+                foreach (var btn in buttons)
+                {
+                    if (btn != plusButton && btn != minusButton && btn != confirmButton && btn != cancelButton)
+                    {
+                        string btnName = btn.name.ToLower();
+                        TMP_Text txt = btn.GetComponentInChildren<TMP_Text>(true);
+                        string txtVal = txt != null ? txt.text.ToLower() : "";
+                        if (btnName.Contains("max") || txtVal.Contains("max"))
+                        {
+                            maxButton = btn;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
-        var labelObject = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        labelObject.transform.SetParent(maxButton.transform, false);
-        var rect = (RectTransform)labelObject.transform;
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        // Clean up any fake duplicate MaxButton if a real maxButton is present
+        if (maxButton != null && plusButton != null && plusButton.transform.parent != null)
+        {
+            Transform parent = plusButton.transform.parent;
+            for (int i = parent.childCount - 1; i >= 0; i--)
+            {
+                Transform child = parent.GetChild(i);
+                if (child != maxButton.transform && child.gameObject != plusButton.gameObject && child.gameObject != minusButton?.gameObject && child.name.Equals("MaxButton", StringComparison.OrdinalIgnoreCase))
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+        }
 
-        var label = labelObject.GetComponent<TextMeshProUGUI>();
-        label.text = "MAX";
-        label.alignment = TextAlignmentOptions.Center;
-        label.fontStyle = FontStyles.Bold;
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 8f;
-        label.fontSizeMax = 13f;
-        label.raycastTarget = false;
-        if (quantityText != null) label.font = quantityText.font;
+        // Only instantiate fallback MaxButton if no Max button exists anywhere
+        if (maxButton == null && plusButton != null && plusButton.transform.parent != null)
+        {
+            maxButton = Instantiate(plusButton, plusButton.transform.parent);
+            maxButton.name = "MaxButton";
+            maxButton.onClick.RemoveAllListeners();
+            for (int i = 0; i < maxButton.transform.childCount; i++)
+                maxButton.transform.GetChild(i).gameObject.SetActive(false);
 
-        var layout = maxButton.gameObject.GetComponent<LayoutElement>();
-        if (layout == null) layout = maxButton.gameObject.AddComponent<LayoutElement>();
-        layout.minWidth = 55f;
-        layout.preferredWidth = 62f;
-        layout.flexibleWidth = 0f;
+            var labelObject = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(maxButton.transform, false);
+            var rect = (RectTransform)labelObject.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
 
-        if (plusButton.transform.parent is RectTransform groupRect)
-            groupRect.sizeDelta = new Vector2(groupRect.sizeDelta.x + 74f, groupRect.sizeDelta.y);
+            var label = labelObject.GetComponent<TextMeshProUGUI>();
+            label.text = "Max";
+            label.alignment = TextAlignmentOptions.Center;
+            label.fontStyle = FontStyles.Bold;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 8f;
+            label.fontSizeMax = 14f;
+            label.raycastTarget = false;
+            if (quantityText != null) label.font = quantityText.font;
+
+            var layout = maxButton.gameObject.GetComponent<LayoutElement>();
+            if (layout == null) layout = maxButton.gameObject.AddComponent<LayoutElement>();
+            layout.minWidth = 55f;
+            layout.preferredWidth = 70f;
+            layout.flexibleWidth = 0f;
+        }
+    }
+
+    private void OnValidate()
+    {
+        ArrangeQuantityGroup();
+    }
+
+    private void ArrangeQuantityGroup()
+    {
+        Transform groupTransform = plusButton != null ? plusButton.transform.parent : (maxButton != null ? maxButton.transform.parent : null);
+        if (groupTransform == null) return;
+
+        HorizontalLayoutGroup hlg = groupTransform.GetComponent<HorizontalLayoutGroup>();
+        if (hlg == null)
+        {
+            hlg = groupTransform.gameObject.AddComponent<HorizontalLayoutGroup>();
+        }
+
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = false;
+        hlg.childForceExpandHeight = false;
+        hlg.spacing = 6f;
+        hlg.padding = new RectOffset(2, 2, 2, 2);
+
+        if (minusButton != null) minusButton.transform.SetSiblingIndex(0);
+        if (quantityText != null) quantityText.transform.SetSiblingIndex(1);
+        if (plusButton != null) plusButton.transform.SetSiblingIndex(2);
+        if (maxButton != null) maxButton.transform.SetSiblingIndex(3);
+
+        EnsureLayoutElement(minusButton != null ? minusButton.gameObject : null, 36f, 36f);
+        EnsureLayoutElement(quantityText != null ? quantityText.gameObject : null, 44f, 36f);
+        EnsureLayoutElement(plusButton != null ? plusButton.gameObject : null, 36f, 36f);
+        EnsureLayoutElement(maxButton != null ? maxButton.gameObject : null, 70f, 36f);
+
+        if (maxButton != null)
+        {
+            TMP_Text maxTxt = maxButton.GetComponentInChildren<TMP_Text>(true);
+            if (maxTxt != null)
+            {
+                maxTxt.text = "Max";
+                maxTxt.alignment = TextAlignmentOptions.Center;
+                maxTxt.enableAutoSizing = true;
+                maxTxt.fontSizeMin = 8f;
+                maxTxt.fontSizeMax = 14f;
+                maxTxt.fontStyle = FontStyles.Bold;
+                maxTxt.raycastTarget = false;
+            }
+        }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(groupTransform as RectTransform);
+    }
+
+    private static void EnsureLayoutElement(GameObject go, float targetWidth, float targetHeight)
+    {
+        if (go == null) return;
+
+        LayoutElement le = go.GetComponent<LayoutElement>();
+        if (le == null) le = go.AddComponent<LayoutElement>();
+
+        le.minWidth = targetWidth;
+        le.preferredWidth = targetWidth;
+        le.flexibleWidth = 0f;
+
+        le.minHeight = targetHeight;
+        le.preferredHeight = targetHeight;
+        le.flexibleHeight = 0f;
+
+        RectTransform rect = go.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, targetWidth);
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, targetHeight);
+        }
     }
 
     private static string FormatDisplayPrice(UIItemDisplayData item)
