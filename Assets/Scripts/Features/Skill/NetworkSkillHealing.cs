@@ -68,10 +68,19 @@ public class NetworkSkillHealing : NetworkBehaviour
             if (pEntity != null)
             {
                 pEntity.Heal(finalHeal);
-                var combat = pEntity.GetComponent<PlayerCombat>();
-                if (combat != null)
+
+                var networkPlayer = pEntity.GetComponent<NetworkPlayer>();
+                if (networkPlayer != null && networkPlayer.Object != null)
                 {
-                    combat.AddDebuffImmunity(3f); // Buff kháng hiệu ứng 3 giây
+                    networkPlayer.RPC_ApplyDebuffImmunity(3f);
+                }
+                else 
+                {
+                    var combat = pEntity.GetComponent<PlayerCombat>();
+                    if (combat != null)
+                    {
+                        combat.AddDebuffImmunity(3f); // Buff kháng hiệu ứng 3 giây
+                    }
                 }
                 
                 // Track the healed player so the shield follows them
@@ -86,10 +95,19 @@ public class NetworkSkillHealing : NetworkBehaviour
         if (!healedSomeone && PlayerEntity.Instance != null)
         {
             PlayerEntity.Instance.Heal(finalHeal);
-            var combat = PlayerEntity.Instance.GetComponent<PlayerCombat>();
-            if (combat != null)
+
+            var networkPlayer = PlayerEntity.Instance.GetComponent<NetworkPlayer>();
+            if (networkPlayer != null && networkPlayer.Object != null)
             {
-                combat.AddDebuffImmunity(3f);
+                networkPlayer.RPC_ApplyDebuffImmunity(3f);
+            }
+            else 
+            {
+                var combat = PlayerEntity.Instance.GetComponent<PlayerCombat>();
+                if (combat != null)
+                {
+                    combat.AddDebuffImmunity(3f);
+                }
             }
             
             _targetToFollow = PlayerEntity.Instance.transform;

@@ -1103,6 +1103,26 @@ public class NetworkPlayer : NetworkBehaviour
         effect.SetActive(true);
     }
 
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ApplyDefBuff(float amount, float duration)
+    {
+        var combat = GetComponent<PlayerCombat>();
+        if (combat != null)
+        {
+            combat.AddDefBuff(amount, duration);
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ApplyDebuffImmunity(float duration)
+    {
+        var combat = GetComponent<PlayerCombat>();
+        if (combat != null)
+        {
+            combat.AddDebuffImmunity(duration);
+        }
+    }
+
     public void Die()
     {
         if (!IsAlive) return;

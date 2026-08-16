@@ -20,6 +20,13 @@ namespace MysticJourney.Core.Services
         private static AudioManager _instance;
         private static bool _isQuitting = false;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Init()
+        {
+            _instance = null;
+            _isQuitting = false;
+        }
+
         public static AudioManager Instance
         {
             get
