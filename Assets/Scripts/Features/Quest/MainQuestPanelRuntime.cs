@@ -25,7 +25,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private GameObject rewardSlotPrefab;
     private GameObject skillRewardSlotPrefab;
     private GameObject skillRewardSlotInstance;
-    private SkillPanelManager skillPanelManager;
+    private SkillUIManager skillPanelManager;
     private GameObject rewardsContainer;
 
     private readonly List<PlayerQuestResponse> quests = new List<PlayerQuestResponse>();
@@ -36,7 +36,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private readonly HashSet<int> pendingQuestDefinitionRequests = new HashSet<int>();
 
     private GameObject popupLayer;
-    private UIQuestPanelView questPanelView;
+    private QuestPanel questPanelView;
     private UIPaperPopupView paperPopupView;
 
     private Button trackButton;
@@ -97,15 +97,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged += RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
         WorldRuntimeEvents.MapChanged += OnMapChanged;
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
-            QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
-            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
-            QuestManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
+            QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestUIManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+            QuestUIManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+            QuestUIManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
         }
 
-        // Nếu sau BindUi + Refresh mà vẫn không có quest (QuestManager chưa load xong API),
+        // Nếu sau BindUi + Refresh mà vẫn không có quest (QuestUIManager chưa load xong API),
         // bắt đầu retry để đảm bảo tracker cập nhật ngay khi dữ liệu sẵn sàng.
         if (quests.Count == 0)
         {
@@ -119,10 +119,10 @@ public class MainQuestPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
 
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
-            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+            QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestUIManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
         }
 
         if (Instance == this)
@@ -135,7 +135,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     }
 
     /// <summary>
-    /// Gọi khi QuestManager load xong quest từ server (HandleLoadedQuestResponses).
+    /// Gọi khi QuestUIManager load xong quest từ server (HandleLoadedQuestResponses).
     /// Đảm bảo tracker cập nhật ngay mà không cần chờ QuestsChanged event.
     /// </summary>
     private void OnQuestsLoadedHandler()
@@ -147,21 +147,21 @@ public class MainQuestPanelRuntime : MonoBehaviour
             waitForQuestDataRoutine = null;
         }
 
-        // Đăng ký lại QuestManager events phòng trường hợp QuestManager bị tạo lại.
-        if (QuestManager.Instance != null)
+        // Đăng ký lại QuestUIManager events phòng trường hợp QuestUIManager bị tạo lại.
+        if (QuestUIManager.Instance != null)
         {
-            QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
-            QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
-            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
-            QuestManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
+            QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+            QuestUIManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+            QuestUIManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+            QuestUIManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
         }
 
         RefreshWorldAndQuests();
     }
 
     /// <summary>
-    /// Retry coroutine: nếu QuestManager chưa sẵn sàng hoặc chưa load xong quest từ API,
-    /// thử lại mỗi 0.5s tối đa 10 lần (5 giây). Cover trường hợp QuestManager được tạo
+    /// Retry coroutine: nếu QuestUIManager chưa sẵn sàng hoặc chưa load xong quest từ API,
+    /// thử lại mỗi 0.5s tối đa 10 lần (5 giây). Cover trường hợp QuestUIManager được tạo
     /// SAU MainQuestPanelRuntime và OnQuestsLoaded không được đăng ký kịp.
     /// </summary>
     private IEnumerator WaitForQuestData()
@@ -171,13 +171,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             yield return wait;
 
-            // QuestManager có thể xuất hiện muộn (UIManager.EnsureQuestManager) → đăng ký lại.
-            if (QuestManager.Instance != null)
+            // QuestUIManager có thể xuất hiện muộn (UIManager.EnsureQuestManager) → đăng ký lại.
+            if (QuestUIManager.Instance != null)
             {
-                QuestManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
-                QuestManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
-                QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
-                QuestManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
+                QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
+                QuestUIManager.Instance.OnQuestProgressChanged += OnQuestProgressChangedHandler;
+                QuestUIManager.Instance.OnQuestsLoaded -= OnQuestsLoadedHandler;
+                QuestUIManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
             }
 
             RefreshWorldAndQuests();
@@ -246,14 +246,14 @@ public class MainQuestPanelRuntime : MonoBehaviour
         var manager = GetQuestManager();
         if (manager == null)
         {
-            Debug.LogWarning("[MainQuestPanelRuntime] QuestManager was not found in Main scene.");
+            Debug.LogWarning("[MainQuestPanelRuntime] QuestUIManager was not found in Main scene.");
             quests.Clear();
             selectedQuest = null;
             RenderAll();
             return;
         }
 
-        // Render immediately from QuestManager local cache (no API call) so UI is always in sync
+        // Render immediately from QuestUIManager local cache (no API call) so UI is always in sync
         // with the latest known server state (e.g. after TurnInQuestItem / AcceptQuest etc.)
         var cached = manager.GetMainQuests();
         if (cached.Count > 0)
@@ -306,7 +306,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return;
         }
 
-        questPanelView = questPanelView != null ? questPanelView : questPanel.GetComponent<UIQuestPanelView>();
+        questPanelView = questPanelView != null ? questPanelView : questPanel.GetComponent<QuestPanel>();
         if (questPanelView != null)
         {
             questListContent = questListContent != null ? questListContent : questPanelView.QuestListContent;
@@ -344,7 +344,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
 
         // ProgressText là object riêng tách khỏi ObjectiveText, chỉ hiện với quest có đếm
-        // (targetAmount > 1). Không nằm trong UIQuestPanelView nên bind theo tên.
+        // (targetAmount > 1). Không nằm trong QuestPanel nên bind theo tên.
         if (detailProgressObj == null)
         {
             detailProgressObj = FindDescendant(questPanel.transform, "ProgressText");
@@ -555,7 +555,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             if (!didWarnMissingListTemplate)
             {
-                Debug.LogError("[MainQuestPanelRuntime] Quest list requires questListContent and a questSlotTemplate prefab assigned on UIQuestPanelView.");
+                Debug.LogError("[MainQuestPanelRuntime] Quest list requires questListContent and a questSlotTemplate prefab assigned on QuestPanel.");
                 didWarnMissingListTemplate = true;
             }
             return;
@@ -983,7 +983,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private void BindSkillRewardAssets()
     {
         if (skillPanelManager == null)
-            skillPanelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+            skillPanelManager = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);
 
         if (skillRewardSlotPrefab == null && skillPanelManager != null)
             skillRewardSlotPrefab = skillPanelManager.skillItemPrefab;
@@ -1230,12 +1230,12 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
-    private static QuestManager GetQuestManager()
+    private static QuestUIManager GetQuestManager()
     {
-        if (QuestManager.Instance != null)
-            return QuestManager.Instance;
+        if (QuestUIManager.Instance != null)
+            return QuestUIManager.Instance;
 
-        var managers = Resources.FindObjectsOfTypeAll<QuestManager>();
+        var managers = Resources.FindObjectsOfTypeAll<QuestUIManager>();
         for (var i = 0; i < managers.Length; i++)
         {
             var manager = managers[i];

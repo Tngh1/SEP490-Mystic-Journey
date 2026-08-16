@@ -236,7 +236,7 @@ public class MapSceneController : MonoBehaviour
                 WorldRuntimeEvents.RaiseMapChanged(targetScene);
 
             // Server LastMapName is settled before quest data is requested.
-            QuestManager.Instance?.LoadMyQuests();
+            QuestUIManager.Instance?.LoadMyQuests();
         }
         else
         {

@@ -10,7 +10,7 @@ using MysticJourney.API.Models.Response;
 using UnityEditor;
 #endif
 
-public class SkillPanelManager : MonoBehaviour
+public class SkillUIManager : MonoBehaviour
 {
     private void Awake()
     {
@@ -119,7 +119,7 @@ private void FinalizeSkillListLayout()
         {
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
         }
-        Debug.Log($"<color=green>[SkillPanelManager] Đã tự động nạp thành công {allSkillsInGame.Length} SkillData vào allSkillsInGame!</color>");
+        Debug.Log($"<color=green>[SkillUIManager] Đã tự động nạp thành công {allSkillsInGame.Length} SkillData vào allSkillsInGame!</color>");
     }
 #endif
 
@@ -170,7 +170,7 @@ private void FinalizeSkillListLayout()
         var inventoryApi = InventoryApi.Instance;
         if (inventoryApi == null)
         {
-            Debug.LogWarning("[SkillPanelManager] Inventory API is unavailable while the application is closing.");
+            Debug.LogWarning("[SkillUIManager] Inventory API is unavailable while the application is closing.");
             return;
         }
 
@@ -196,7 +196,7 @@ private void FinalizeSkillListLayout()
             },
             onError: (err) =>
             {
-                Debug.LogWarning("[SkillPanelManager] Could not load stone count: " + err.Message);
+                Debug.LogWarning("[SkillUIManager] Could not load stone count: " + err.Message);
             }
         );
     }
@@ -221,7 +221,7 @@ private void FinalizeSkillListLayout()
         var skillApi = SkillApi.Instance;
         if (skillApi == null)
         {
-            Debug.LogWarning("[SkillPanelManager] Skill API is unavailable while the application is closing.");
+            Debug.LogWarning("[SkillUIManager] Skill API is unavailable while the application is closing.");
             return;
         }
 

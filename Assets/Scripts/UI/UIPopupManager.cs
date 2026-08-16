@@ -67,7 +67,7 @@ namespace MysticJourney.UI
             // tự SetActive(true) lên GameObject này) đúng lúc PopupLayer đang bật là màn hình có
             // ngay một Button trong suốt phủ kín, không popup nào để bấm OK => treo cả UI.
             // Kiểu null-check `if (UIPopupManager.Instance != null)` đó nằm rải rác ở
-            // UIFriendPanel, GuildUIManager...
+            // FriendUIManager, GuildUIManager...
             if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
 
             if (popupContainer != null) popupContainer.SetActive(false);

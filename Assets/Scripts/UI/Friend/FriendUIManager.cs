@@ -11,7 +11,7 @@ using MysticJourney.UI;
 
 namespace UI.Friend
 {
-    public class UIFriendPanel : MonoBehaviour
+    public class FriendUIManager : MonoBehaviour
     {
         [Header("Tabs")]
         [SerializeField] private Button friendTabButton;
@@ -131,7 +131,7 @@ namespace UI.Friend
         private UIFriendChatPanel CreateRuntimeFriendChatPanel()
         {
             UIChatMessage fallbackMessagePrefab = null;
-            var worldChatPanel = FindFirstObjectByType<UIChatPanel>(FindObjectsInactive.Include);
+            var worldChatPanel = FindFirstObjectByType<ChatUIManager>(FindObjectsInactive.Include);
             if (worldChatPanel != null)
             {
                 fallbackMessagePrefab = worldChatPanel.chatMessagePrefab;
@@ -296,7 +296,7 @@ namespace UI.Friend
         {
             if (selectedProfileId <= 0)
             {
-                Debug.LogWarning("[UIFriendPanel] Cannot open friend chat because selectedProfileId is 0.");
+                Debug.LogWarning("[FriendUIManager] Cannot open friend chat because selectedProfileId is 0.");
                 return;
             }
 
@@ -312,11 +312,11 @@ namespace UI.Friend
 
             if (friendChatPanel == null)
             {
-                Debug.LogWarning("[UIFriendPanel] Friend chat panel is not available.");
+                Debug.LogWarning("[FriendUIManager] Friend chat panel is not available.");
                 return;
             }
 
-            Debug.Log($"[UIFriendPanel] OpenSelectedFriendChat -> profileId={selectedProfileId} name={selectedFriendName}");
+            Debug.Log($"[FriendUIManager] OpenSelectedFriendChat -> profileId={selectedProfileId} name={selectedFriendName}");
             friendChatPanel.Open(selectedProfileId, selectedFriendName);
         }
 
@@ -414,7 +414,7 @@ namespace UI.Friend
 
         private void OnDetailProfileClicked()
         {
-            var panel = FindFirstObjectByType<UIFriendProfilePanel>(FindObjectsInactive.Include);
+            var panel = FindFirstObjectByType<PlayerProfileUIManager>(FindObjectsInactive.Include);
             if (panel != null)
             {
                 // Deselect any focused UI (e.g. chat InputField) to prevent it stealing focus
@@ -427,7 +427,7 @@ namespace UI.Friend
             }
             else
             {
-                Debug.LogWarning("[UIFriendPanel] UIFriendProfilePanel not found in scene!");
+                Debug.LogWarning("[FriendUIManager] PlayerProfileUIManager not found in scene!");
             }
         }
 

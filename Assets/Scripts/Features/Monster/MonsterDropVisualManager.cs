@@ -248,14 +248,14 @@ namespace MysticJourney.Features.Monster
         {
             yield return new WaitForSeconds(0.25f);
 
-            if (PlayerHUDController.Instance != null)
-                PlayerHUDController.Instance.RefreshHUD();
+            if (PlayerHUDUIManager.Instance != null)
+                PlayerHUDUIManager.Instance.RefreshHUD();
 
             if (_pendingInventoryRefresh)
             {
-                InventoryManager.RefreshAny(refreshStats: true);
+                InventoryUIManager.RefreshAny(refreshStats: true);
 
-                var skillPanel = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+                var skillPanel = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);
                 if (skillPanel != null)
                     skillPanel.RefreshStoneCount();
 

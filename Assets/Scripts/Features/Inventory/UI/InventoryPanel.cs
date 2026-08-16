@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIInventory : MonoBehaviour
+public class InventoryPanel : MonoBehaviour
 {
-    public static UIInventory Instance;
+    public static InventoryPanel Instance;
 
     [SerializeField] private UIInventorySlot slotPrefab;
     [SerializeField] private Transform contentParent;
@@ -29,7 +29,7 @@ public class UIInventory : MonoBehaviour
 
         if (slotPrefab == null || contentParent == null)
         {
-            Debug.LogWarning("[UIInventory] Slot prefab or content parent is missing.", this);
+            Debug.LogWarning("[InventoryPanel] Slot prefab or content parent is missing.", this);
             return;
         }
 

@@ -117,7 +117,7 @@ public class PlayerUIHotkeys : MonoBehaviour
             case 1:
                 // Trong dungeon không cho mở: panel chỉ dùng để dịch chuyển map, mà dịch chuyển
                 // đang bị chặn. Đứng yên ở bước 0 để lần nhấn sau thử mở lại từ đầu.
-                if (!MainMapPanelRuntime.CanOpen) { _mapCycleStep = 0; return; }
+                if (!MapUIManager.CanOpen) { _mapCycleStep = 0; return; }
                 ui.ShowPanel(ui.mapPanel);
                 break;
 

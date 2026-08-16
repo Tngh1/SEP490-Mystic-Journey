@@ -32,7 +32,7 @@ public class UIMapSlotReference
     public Image progressBarFill; // ProgressBar fill amount
 }
 
-public class MainMapPanelRuntime : MonoBehaviour
+public class MapUIManager : MonoBehaviour
 {
     [Header("UI Elements")]
     public RawImage mapBackground;
@@ -138,7 +138,7 @@ public class MainMapPanelRuntime : MonoBehaviour
         // texture full-map rồi panel mới tắt, và HUD minimap trong dungeon đứng ở khung sai.
         if (!CanOpen)
         {
-            Debug.Log("[MainMapPanelRuntime] Blocked: cannot open the Map Panel inside a dungeon.");
+            Debug.Log("[MapUIManager] Blocked: cannot open the Map Panel inside a dungeon.");
             _openRejected = true;
             gameObject.SetActive(false);
             return;
@@ -163,11 +163,11 @@ public class MainMapPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged += OnQuestsChanged;
         WorldRuntimeEvents.MapChanged += OnMapChanged;
 
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            QuestManager.Instance.OnQuestsLoaded -= FetchMapProgress;
-            QuestManager.Instance.OnQuestsLoaded += FetchMapProgress;
-            QuestManager.Instance.LoadMyQuests();
+            QuestUIManager.Instance.OnQuestsLoaded -= FetchMapProgress;
+            QuestUIManager.Instance.OnQuestsLoaded += FetchMapProgress;
+            QuestUIManager.Instance.LoadMyQuests();
         }
 
         FetchMapProgress();
@@ -191,9 +191,9 @@ public class MainMapPanelRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged -= OnQuestsChanged;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
 
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            QuestManager.Instance.OnQuestsLoaded -= FetchMapProgress;
+            QuestUIManager.Instance.OnQuestsLoaded -= FetchMapProgress;
         }
     }
 
@@ -210,8 +210,8 @@ public class MainMapPanelRuntime : MonoBehaviour
             if (slot == null || slot.mapData == null) continue;
 
             bool isUnlocked = slot.mapData.unlockQuestId <= 0 ||
-                              (QuestManager.Instance != null &&
-                               QuestManager.Instance.CanEnterMap(slot.mapData));
+                              (QuestUIManager.Instance != null &&
+                               QuestUIManager.Instance.CanEnterMap(slot.mapData));
 
             _mapUnlockState[slot.mapData.mapName] = isUnlocked;
 
@@ -258,7 +258,7 @@ public class MainMapPanelRuntime : MonoBehaviour
         var api = WorldApi.Instance;
         if (api == null)
         {
-            Debug.LogWarning("[MainMapPanelRuntime] WorldApi is unavailable, skipping map progress fetch.");
+            Debug.LogWarning("[MapUIManager] WorldApi is unavailable, skipping map progress fetch.");
             return;
         }
 
@@ -276,7 +276,7 @@ public class MainMapPanelRuntime : MonoBehaviour
             },
             error =>
             {
-                Debug.LogError($"[MainMapPanelRuntime] Failed to fetch World State: {error.Message}");
+                Debug.LogError($"[MapUIManager] Failed to fetch World State: {error.Message}");
                 CompleteFetch();
             }
         );
@@ -306,7 +306,7 @@ public class MainMapPanelRuntime : MonoBehaviour
                 QuestUtils.IsSameMap(m.MapName, slot.mapData.mapName));
 
             var apiUnlocked = progress != null && progress.IsUnlocked;
-            var questUnlocked = QuestManager.Instance != null && QuestManager.Instance.CanEnterMap(slot.mapData);
+            var questUnlocked = QuestUIManager.Instance != null && QuestUIManager.Instance.CanEnterMap(slot.mapData);
             var isUnlocked = slot.mapData.unlockQuestId <= 0 || apiUnlocked || questUnlocked;
 
             int explorationPct = progress?.ExplorationPercent ?? 0;
@@ -371,12 +371,12 @@ public class MainMapPanelRuntime : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("[MainMapPanelRuntime] Map Detail Popup is not assigned!");
+                Debug.LogWarning("[MapUIManager] Map Detail Popup is not assigned!");
             }
         }
         else
         {
-            Debug.Log($"[MainMapPanelRuntime] Map '{slot.mapData.mapName}' is locked.");
+            Debug.Log($"[MapUIManager] Map '{slot.mapData.mapName}' is locked.");
         }
     }
 
@@ -402,7 +402,7 @@ public class MainMapPanelRuntime : MonoBehaviour
             var parent = parents.Pop();
             if (parent != null && !parent.gameObject.activeSelf)
             {
-                Debug.Log($"[MainMapPanelRuntime] Re-enabling inactive popup ancestor '{parent.name}'.");
+                Debug.Log($"[MapUIManager] Re-enabling inactive popup ancestor '{parent.name}'.");
                 parent.gameObject.SetActive(true);
             }
         }
@@ -445,7 +445,7 @@ public class MainMapPanelRuntime : MonoBehaviour
 
         if (!newMapJustUnlocked) return;
 
-        Debug.Log($"[MainMapPanelRuntime] Map unlocked by questId={claimedQuestId}. Opening Map Panel.");
+        Debug.Log($"[MapUIManager] Map unlocked by questId={claimedQuestId}. Opening Map Panel.");
         StartCoroutine(OpenMapPanelDelayed());
     }
 

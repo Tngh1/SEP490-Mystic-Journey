@@ -122,7 +122,7 @@ public static class UIPopupBox
 
         // SetActive(true) on the popup alone is not enough while PopupLayer is off: activeSelf turns
         // true but activeInHierarchy stays false, so nothing appears and no error is logged to trace
-        // it back from. Re-enable inactive ancestors first (same as MainMapPanelRuntime).
+        // it back from. Re-enable inactive ancestors first (same as MapUIManager).
         // Bật toàn bộ các cấp cha bị ẩn (bao gồm PopupLayer)
         for (var current = popup.parent; current != null; current = current.parent)
         {

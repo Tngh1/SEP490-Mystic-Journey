@@ -8,7 +8,7 @@ public class HUDSkillManager : MonoBehaviour
     public Image[] hudSkillIcons; // Mảng chứa 3 ô (Slot_1, Slot_2, Slot_3)
 
     [Header("Master Data")]
-    public SkillData[] allSkillsInGame; // Kéo file SkillData vào đây y như SkillPanelManager
+    public SkillData[] allSkillsInGame; // Kéo file SkillData vào đây y như SkillUIManager
 
     private void OnEnable()
     {
@@ -76,7 +76,7 @@ public class HUDSkillManager : MonoBehaviour
         // 1. Tự động tìm tất cả ô SkillSlot thuộc HUD (nằm ngoài SkillPanel)
         var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         var hudSlots = new System.Collections.Generic.List<SkillSlot>();
-        var skillPanelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+        var skillPanelManager = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);
 
         foreach (var s in allSlots)
         {

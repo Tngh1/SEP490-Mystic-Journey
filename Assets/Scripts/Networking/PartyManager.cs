@@ -11,7 +11,7 @@ using UnityEngine;
 ///     invited friend sees the roster without manually opening any menu (24.6).
 ///   • Bridging "host pressed Start" into the actual dungeon load + migration (Step 5).
 ///
-/// This keeps <see cref="UIPartyPanel"/> a pure view and <see cref="PartyService"/>
+/// This keeps <see cref="PartyPanel"/> a pure view and <see cref="PartyService"/>
 /// a pure command facade — the reactive glue lives here.
 /// </summary>
 public class PartyManager : MonoBehaviour
@@ -114,12 +114,12 @@ public class PartyManager : MonoBehaviour
 
     private void OpenPartyPanelForMember()
     {
-        // Resolve the panel GameObject WITHOUT relying on UIPartyPanel.Instance: the
+        // Resolve the panel GameObject WITHOUT relying on PartyPanel.Instance: the
         // panel starts inactive in the scene, so its Awake (which sets Instance) has not
         // run yet for an invited member who never opened it manually. UIManager holds a
         // direct reference regardless of active state.
         GameObject panelGo = null;
-        if (UIPartyPanel.Instance != null) panelGo = UIPartyPanel.Instance.gameObject;
+        if (PartyPanel.Instance != null) panelGo = PartyPanel.Instance.gameObject;
         else if (UIManager.Instance != null) panelGo = UIManager.Instance.dungeonPanel;
         if (panelGo == null)
         {
@@ -142,7 +142,7 @@ public class PartyManager : MonoBehaviour
             panelGo.SetActive(true);
 
         // Awake has now run → the component's Instance is set. Fetch it off the GameObject.
-        var panel = panelGo.GetComponent<UIPartyPanel>();
+        var panel = panelGo.GetComponent<PartyPanel>();
         if (panel != null)
             panel.OpenForDungeon(configId, string.IsNullOrEmpty(scene) ? "HollowCryptDungeon" : scene, 0, string.IsNullOrEmpty(name) ? "Dungeon" : name);
     }

@@ -34,6 +34,6 @@ public class InventoryTest : MonoBehaviour
         }
 
         Debug.Log("CALL REFRESH");
-        UIInventory.Instance.Refresh(items);
+        InventoryPanel.Instance.Refresh(items);
     }
 }

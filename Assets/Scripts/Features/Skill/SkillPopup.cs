@@ -344,13 +344,13 @@ public class SkillPopup : MonoBehaviour
                 // Refresh stone count and update upgrade button state
                 FetchStonesAndUpdateUI();
 
-                var panelManager = FindFirstObjectByType<SkillPanelManager>(FindObjectsInactive.Include);
+                var panelManager = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);
                 if (panelManager != null)
                 {
                     panelManager.RefreshSkillList();
                 }
 
-                var invManager = FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+                var invManager = FindFirstObjectByType<InventoryUIManager>(FindObjectsInactive.Include);
                 if (invManager != null)
                 {
                     invManager.LoadInventory(true);

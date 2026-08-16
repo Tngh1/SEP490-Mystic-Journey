@@ -9,9 +9,9 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Services;
 
-public class PlayerHUDController : MonoBehaviour
+public class PlayerHUDUIManager : MonoBehaviour
 {
-    public static PlayerHUDController Instance { get; private set; }
+    public static PlayerHUDUIManager Instance { get; private set; }
 
     [Header("UI Reference Cache")]
     [SerializeField] private TMP_Text playerNameText;
@@ -40,7 +40,7 @@ public class PlayerHUDController : MonoBehaviour
     [SerializeField] private GameObject pauseButtonObj;
     [SerializeField] private Button levelUpButton;
     [SerializeField] private TMP_Text levelUpPointsText;
-    [SerializeField] private UILevelUpPanel levelUpPanel;
+    [SerializeField] private LevelUpUIManager levelUpPanel;
 
     [Header("HUD Groups")]
     [SerializeField] private GameObject nonCombatActionGroup;
@@ -194,7 +194,7 @@ public class PlayerHUDController : MonoBehaviour
     {
         if (levelUpPanel == null)
         {
-            levelUpPanel = UnityEngine.Object.FindFirstObjectByType<UILevelUpPanel>(FindObjectsInactive.Include);
+            levelUpPanel = UnityEngine.Object.FindFirstObjectByType<LevelUpUIManager>(FindObjectsInactive.Include);
         }
 
         if (levelUpPanel != null)
@@ -203,7 +203,7 @@ public class PlayerHUDController : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[PlayerHUDController] UILevelUpPanel is null and not found in scene!");
+            Debug.LogWarning("[PlayerHUDUIManager] LevelUpUIManager is null and not found in scene!");
         }
     }
 
@@ -504,7 +504,7 @@ public class PlayerHUDController : MonoBehaviour
             },
             error =>
             {
-                Debug.LogWarning($"[PlayerHUDController] Failed to refresh profile: {error.Message}");
+                Debug.LogWarning($"[PlayerHUDUIManager] Failed to refresh profile: {error.Message}");
                 CompleteProfileRefresh();
             }
         );
@@ -583,7 +583,7 @@ public class PlayerHUDController : MonoBehaviour
             },
             error =>
             {
-                Debug.LogWarning($"[PlayerHUDController] Failed to refresh currency balance: {error.Message}");
+                Debug.LogWarning($"[PlayerHUDUIManager] Failed to refresh currency balance: {error.Message}");
                 CompleteCurrencyRefresh();
             }
         );
@@ -1500,7 +1500,7 @@ public class PlayerHUDController : MonoBehaviour
 
     private void UpdateQuestPointers()
     {
-        var manager = QuestManager.Instance;
+        var manager = QuestUIManager.Instance;
         if (manager == null) return;
         var quests = manager.GetMainQuests();
         if (quests == null) return;
@@ -1656,12 +1656,12 @@ public class PlayerHUDController : MonoBehaviour
 
     private IEnumerator ShowDeathPopupCoroutine()
     {
-        Debug.Log("[PlayerHUDController] Player died. Waiting for animation and fading red overlay...");
+        Debug.Log("[PlayerHUDUIManager] Player died. Waiting for animation and fading red overlay...");
 
         if (_deathRedOverlay == null) FindDeathPanelReferences();
         if (_deathRedOverlay == null)
         {
-            Debug.LogError("[PlayerHUDController] DeathPanel is not assigned in Main scene.");
+            Debug.LogError("[PlayerHUDUIManager] DeathPanel is not assigned in Main scene.");
             _isDeathPopupShowing = false;
             yield break;
         }
@@ -1717,7 +1717,7 @@ public class PlayerHUDController : MonoBehaviour
 
     private void ShowWorldDeathPopup()
     {
-        Debug.Log("[PlayerHUDController] Showing WORLD death popup...");
+        Debug.Log("[PlayerHUDUIManager] Showing WORLD death popup...");
         ShowStyledDeathContent(false);
     }
 
@@ -1874,13 +1874,13 @@ public class PlayerHUDController : MonoBehaviour
             if (_deathRespawnButton != null)
                 _deathRespawnButton.onClick.AddListener(OnWorldRespawnClicked);
             else
-                Debug.LogError("[PlayerHUDController] RespawnButton is not assigned in DeathPanel.");
+                Debug.LogError("[PlayerHUDUIManager] RespawnButton is not assigned in DeathPanel.");
         }
     }
 
     private void OnWorldRespawnClicked()
     {
-        Debug.Log("[PlayerHUDController] OnWorldRespawnClicked - respawning at map spawn point...");
+        Debug.Log("[PlayerHUDUIManager] OnWorldRespawnClicked - respawning at map spawn point...");
         _isDeathPopupShowing = false;
 
         if (_deathRedOverlay != null)
@@ -1920,7 +1920,7 @@ public class PlayerHUDController : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[PlayerHUDController] Cannot respawn. Player not found.");
+            Debug.LogWarning("[PlayerHUDUIManager] Cannot respawn. Player not found.");
         }
     }
 
@@ -1946,7 +1946,7 @@ public class PlayerHUDController : MonoBehaviour
 
     private void ShowDungeonDeathPopup()
     {
-        Debug.Log("[PlayerHUDController] Showing DUNGEON death popup...");
+        Debug.Log("[PlayerHUDUIManager] Showing DUNGEON death popup...");
 
         if (deathPopupPanel == null || deathPopupPanel == _worldDeathContent)
         {
@@ -2001,7 +2001,7 @@ public class PlayerHUDController : MonoBehaviour
         else
         {
             // Fallback to the shared designer-authored UIPopup if no custom death panel exists.
-            Debug.Log("[PlayerHUDController] No DeathPopup found, using UIPopup fallback.");
+            Debug.Log("[PlayerHUDUIManager] No DeathPopup found, using UIPopup fallback.");
             MysticJourney.UI.UIPopup.Instance.ShowConfirm(
                 "YOU DIED",
                 "You have been defeated in battle.",
@@ -2049,7 +2049,7 @@ public class PlayerHUDController : MonoBehaviour
     /// </summary>
     private void OnAgainClicked()
     {
-        Debug.Log("[PlayerHUDController] OnAgainClicked - requesting respawn...");
+        Debug.Log("[PlayerHUDUIManager] OnAgainClicked - requesting respawn...");
 
         // Disable button to prevent spam
         if (btnAgain != null)
@@ -2064,7 +2064,7 @@ public class PlayerHUDController : MonoBehaviour
         }
         else
         {
-            Debug.Log("[PlayerHUDController] Single-player restart.");
+            Debug.Log("[PlayerHUDUIManager] Single-player restart.");
             HideDeathPopup();
             if (DungeonManager.Instance != null)
             {
@@ -2078,7 +2078,7 @@ public class PlayerHUDController : MonoBehaviour
     /// </summary>
     private void OnQuitClicked()
     {
-        Debug.Log("[PlayerHUDController] OnQuitClicked - leaving dungeon...");
+        Debug.Log("[PlayerHUDUIManager] OnQuitClicked - leaving dungeon...");
 
         // Hide death popup
         HideDeathPopup();

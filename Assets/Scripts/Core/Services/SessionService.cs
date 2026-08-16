@@ -101,7 +101,7 @@ namespace MysticJourney.Core.Services
             // Dùng FindObjects... chứ KHÔNG dùng property Instance: getter của MonsterManager tự
             // TẠO một GameObject mới khi chưa có instance, nên chỉ đọc Instance lúc dọn dẹp là
             // sinh ra đúng cái mình đang muốn xoá.
-            DestroyAll<QuestManager>();
+            DestroyAll<QuestUIManager>();
             DestroyAll<MonsterManager>();
             DestroyAll<DungeonManager>();
 

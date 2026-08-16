@@ -138,7 +138,7 @@ namespace MysticJourney.Features.Dungeon.UI
 
             if (response.Wallet != null)
             {
-                PlayerHUDController.Instance?.ApplyCurrencyBalance(new CurrencyBalanceResponse
+                PlayerHUDUIManager.Instance?.ApplyCurrencyBalance(new CurrencyBalanceResponse
                 {
                     Gold = response.Wallet.Gold,
                     Gems = response.Wallet.Gems
@@ -147,7 +147,7 @@ namespace MysticJourney.Features.Dungeon.UI
 
             if (response.Character != null)
             {
-                PlayerHUDController.Instance?.ApplyEnergy(
+                PlayerHUDUIManager.Instance?.ApplyEnergy(
                     response.Character.Energy,
                     response.Character.MaxEnergy);
             }

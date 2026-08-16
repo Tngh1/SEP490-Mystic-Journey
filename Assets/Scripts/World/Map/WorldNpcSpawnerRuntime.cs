@@ -204,7 +204,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     // Chỉ ẩn khi "Claimed", KHÔNG phải "Completed".
     //
     // Quest 33 có ObjectiveTarget = "Ivy Tree" nhưng QuestGiverName = "Natalie": mục tiêu hoàn
-    // thành ở Ivy Tree, còn phần TRẢ nhiệm vụ (AutoClaimCompletedQuest trong MainNpcPanelRuntime)
+    // thành ở Ivy Tree, còn phần TRẢ nhiệm vụ (AutoClaimCompletedQuest trong MainNpcPanel)
     // vẫn phải nói chuyện với Natalie. BatchUpdateProgress flip Status = "Completed" ngay lúc chạm
     // Ivy Tree, nên gate theo "Completed" sẽ bỏ qua việc spawn Natalie TRƯỚC khi người chơi kịp trả
     // nhiệm vụ → "làm xong nhiệm vụ của NPC thì không interact được với NPC đó nữa".
@@ -213,7 +213,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     // nói chuyện cuối rồi mới cho cô an nghỉ.
     private static bool ShouldHideNatalie()
     {
-        var quests = QuestManager.Instance?.GetMainQuests();
+        var quests = QuestUIManager.Instance?.GetMainQuests();
         return quests != null && quests.Any(q =>
             q != null && q.QuestId == NatalieRestQuestId &&
             string.Equals(q.Status, "Claimed", System.StringComparison.OrdinalIgnoreCase));

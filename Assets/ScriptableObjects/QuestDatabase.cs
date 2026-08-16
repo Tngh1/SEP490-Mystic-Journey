@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Runtime lookup database cho tất cả QuestData ScriptableObjects.
-/// Được khởi tạo một lần bởi QuestManager → O(1) lookup theo questId.
+/// Được khởi tạo một lần bởi QuestUIManager → O(1) lookup theo questId.
 /// </summary>
 [CreateAssetMenu(menuName = "Mystic Journey/Quest Database", fileName = "QuestDatabase")]
 public class QuestDatabase : ScriptableObject
@@ -14,7 +14,7 @@ public class QuestDatabase : ScriptableObject
     private Dictionary<int, QuestData> _lookup;
     private bool _initialized;
 
-    /// <summary>Gọi một lần từ QuestManager.Awake() để build lookup dict.</summary>
+    /// <summary>Gọi một lần từ QuestUIManager.Awake() để build lookup dict.</summary>
     public void Initialize()
     {
         _lookup = new Dictionary<int, QuestData>(allQuests.Count);

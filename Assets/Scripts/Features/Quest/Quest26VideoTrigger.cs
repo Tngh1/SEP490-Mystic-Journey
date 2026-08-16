@@ -21,7 +21,7 @@ public class Quest26VideoTrigger : MonoBehaviour
 
     private void Update()
     {
-        if (!_hasSubscribed && QuestManager.Instance != null)
+        if (!_hasSubscribed && QuestUIManager.Instance != null)
         {
             SubscribeToQuestManager();
         }
@@ -31,21 +31,21 @@ public class Quest26VideoTrigger : MonoBehaviour
 
     private void SubscribeToQuestManager()
     {
-        if (QuestManager.Instance == null) return;
+        if (QuestUIManager.Instance == null) return;
         _hasSubscribed = true;
-        QuestManager.Instance.OnQuestProgressChanged += OnQuestChanged;
-        QuestManager.Instance.OnQuestClaimed += OnQuestClaimed;
-        QuestManager.Instance.OnQuestsLoaded += OnQuestsLoaded;
+        QuestUIManager.Instance.OnQuestProgressChanged += OnQuestChanged;
+        QuestUIManager.Instance.OnQuestClaimed += OnQuestClaimed;
+        QuestUIManager.Instance.OnQuestsLoaded += OnQuestsLoaded;
         CheckInitialState();
     }
 
     private void OnDestroy()
     {
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            QuestManager.Instance.OnQuestProgressChanged -= OnQuestChanged;
-            QuestManager.Instance.OnQuestClaimed -= OnQuestClaimed;
-            QuestManager.Instance.OnQuestsLoaded -= OnQuestsLoaded;
+            QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestChanged;
+            QuestUIManager.Instance.OnQuestClaimed -= OnQuestClaimed;
+            QuestUIManager.Instance.OnQuestsLoaded -= OnQuestsLoaded;
         }
         if (_videoPlayer != null)
         {
@@ -55,8 +55,8 @@ public class Quest26VideoTrigger : MonoBehaviour
 
     private void CheckInitialState()
     {
-        if (_initialStateChecked || QuestManager.Instance == null) return;
-        var state = QuestManager.Instance.GetQuestState(26);
+        if (_initialStateChecked || QuestUIManager.Instance == null) return;
+        var state = QuestUIManager.Instance.GetQuestState(26);
         if (state != null)
         {
             _initialStateChecked = true;
@@ -92,9 +92,9 @@ public class Quest26VideoTrigger : MonoBehaviour
 
     private void CheckQuestStatus()
     {
-        if (_hasPlayed || _wasAlreadyFinishedOnLoad || QuestManager.Instance == null) return;
+        if (_hasPlayed || _wasAlreadyFinishedOnLoad || QuestUIManager.Instance == null) return;
 
-        var state = QuestManager.Instance.GetQuestState(26);
+        var state = QuestUIManager.Instance.GetQuestState(26);
         if (state == null) return;
 
         int target = state.targetAmount > 0 ? state.targetAmount : 2;

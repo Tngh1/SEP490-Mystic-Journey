@@ -108,7 +108,7 @@ public static class WorldSceneInteractableBootstrap
         // Chỉ ẩn Natalie khi quest 33 đã "Claimed", KHÔNG phải "Completed".
         // Quest 33 ("[Chapter 4] Lay Natalie to Rest") có ObjectiveTarget = "Ivy Tree" nhưng
         // QuestGiverName = "Natalie": mục tiêu hoàn thành ở Ivy Tree, còn phần trả nhiệm vụ
-        // (AutoClaimCompletedQuest trong MainNpcPanelRuntime) phải nói chuyện với Natalie.
+        // (AutoClaimCompletedQuest trong MainNpcPanel) phải nói chuyện với Natalie.
         // BatchUpdateProgress flip Status = "Completed" ngay khi chạm Ivy Tree
         // (PlayerQuestService.BatchUpdateProgress), rồi RaiseQuestsChanged gọi lại hàm này
         // → ẩn Natalie TRƯỚC khi người chơi kịp trả nhiệm vụ: "làm xong quest của NPC thì

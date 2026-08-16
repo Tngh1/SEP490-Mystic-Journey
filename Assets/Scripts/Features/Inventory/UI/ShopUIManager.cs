@@ -7,9 +7,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIShop : MonoBehaviour
+public class ShopUIManager : MonoBehaviour
 {
-    public static UIShop Instance;
+    public static ShopUIManager Instance;
 
     private const string DailyDealsCategory = "Daily Deals";
     private const string DailyDealCategoryAlias = "DailyDeal";
@@ -176,7 +176,7 @@ public class UIShop : MonoBehaviour
                 requestInFlight = false;
                 SetLoading(false);
                 SetStatus($"Refresh failed: {error.Message}");
-                Debug.LogError($"[UIShop] Refresh FAIL: {error.Message}");
+                Debug.LogError($"[ShopUIManager] Refresh FAIL: {error.Message}");
                 LoadRefreshStatus();
                 UpdateRefreshButton();
             },
@@ -229,7 +229,7 @@ public class UIShop : MonoBehaviour
                 requestInFlight = false;
                 SetLoading(false);
                 SetStatus($"Cannot load skin shop: {error.Message}");
-                Debug.LogError($"[UIShop] LoadSkins FAIL: {error.Message}");
+                Debug.LogError($"[ShopUIManager] LoadSkins FAIL: {error.Message}");
                 UpdateRefreshButton();
             });
     }
@@ -250,7 +250,7 @@ public class UIShop : MonoBehaviour
                 requestInFlight = false;
                 SetLoading(false);
                 SetStatus($"Cannot load daily deals: {error.Message}");
-                Debug.LogError($"[UIShop] LoadDailyDeals FAIL: {error.Message}");
+                Debug.LogError($"[ShopUIManager] LoadDailyDeals FAIL: {error.Message}");
                 UpdateRefreshButton();
             },
             includeSoldOut: includeSoldOut);
@@ -285,7 +285,7 @@ public class UIShop : MonoBehaviour
                 requestInFlight = false;
                 SetLoading(false);
                 SetStatus($"Cannot load shop: {error.Message}");
-                Debug.LogError($"[UIShop] LoadFixedShop FAIL: {error.Message}");
+                Debug.LogError($"[ShopUIManager] LoadFixedShop FAIL: {error.Message}");
                 UpdateRefreshButton();
             },
             itemType: itemType,
@@ -302,7 +302,7 @@ public class UIShop : MonoBehaviour
             },
             onError: error =>
             {
-                Debug.LogWarning($"[UIShop] Load refresh status FAIL: {error.Message}");
+                Debug.LogWarning($"[ShopUIManager] Load refresh status FAIL: {error.Message}");
                 UpdateRefreshButton();
             });
     }
@@ -467,7 +467,7 @@ public class UIShop : MonoBehaviour
             {
                 if (shopSlotPrefab == null || contentParent == null)
                 {
-                    Debug.LogError("[UIShop] Missing shopSlotPrefab or contentParent.");
+                    Debug.LogError("[ShopUIManager] Missing shopSlotPrefab or contentParent.");
                     return;
                 }
 
@@ -503,7 +503,7 @@ public class UIShop : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[UIShop] Item clicked: {data.itemName} price {FormatAmount(data.EffectiveUnitPrice)} {data.currency}");
+        Debug.Log($"[ShopUIManager] Item clicked: {data.itemName} price {FormatAmount(data.EffectiveUnitPrice)} {data.currency}");
 
         if (confirmPurchasePanel != null)
         {
@@ -539,10 +539,10 @@ public class UIShop : MonoBehaviour
                     SetLoading(false);
                     SetStatus(response?.Message);
                     if (response?.Balance != null)
-                        PlayerHUDController.Instance?.ApplyCurrencyBalance(response.Balance);
+                        PlayerHUDUIManager.Instance?.ApplyCurrencyBalance(response.Balance);
                     else
-                        PlayerHUDController.Instance?.RefreshCurrencyBalance();
-                    InventoryManager.RefreshAny(refreshStats: false);
+                        PlayerHUDUIManager.Instance?.RefreshCurrencyBalance();
+                    InventoryUIManager.RefreshAny(refreshStats: false);
                     LoadCurrentCategory();
                     UpdateRefreshButton();
                 },
@@ -567,11 +567,11 @@ public class UIShop : MonoBehaviour
                 SetStatus(response?.Message);
 
                 if (response?.Balance != null)
-                    PlayerHUDController.Instance?.ApplyCurrencyBalance(response.Balance);
+                    PlayerHUDUIManager.Instance?.ApplyCurrencyBalance(response.Balance);
                 else
-                    PlayerHUDController.Instance?.RefreshCurrencyBalance();
+                    PlayerHUDUIManager.Instance?.RefreshCurrencyBalance();
 
-                InventoryManager.RefreshAny(refreshStats: false);
+                InventoryUIManager.RefreshAny(refreshStats: false);
                 LoadCurrentCategory();
                 UpdateRefreshButton();
             },
@@ -580,7 +580,7 @@ public class UIShop : MonoBehaviour
                 purchaseInFlight = false;
                 SetLoading(false);
                 SetStatus($"Purchase failed: {error.Message}");
-                Debug.LogError($"[UIShop] Purchase FAIL: {error.Message}");
+                Debug.LogError($"[ShopUIManager] Purchase FAIL: {error.Message}");
 
                 // statusText chưa được gán trong Main.unity nên SetStatus chỉ ghi console — thiếu tiền
                 // trước giờ hoàn toàn im lặng với người chơi. BE ném BadRequestException cho MỌI lỗi mua
@@ -761,7 +761,7 @@ public class UIShop : MonoBehaviour
         }
 
         if (!string.IsNullOrEmpty(message))
-            Debug.Log($"[UIShop] {message}");
+            Debug.Log($"[ShopUIManager] {message}");
     }
 
     private static string NormalizeCategory(string category)

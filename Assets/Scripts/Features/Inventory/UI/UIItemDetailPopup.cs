@@ -105,7 +105,7 @@ public class UIItemDetailPopup : MonoBehaviour
     private Sprite _currentIcon;
 
     // Callbacks
-    public Action<InventoryItemResponse> OnEquipInitiated; // Khi click Equip ở Detail -> InventoryManager tìm đồ đang mặc để so sánh
+    public Action<InventoryItemResponse> OnEquipInitiated; // Khi click Equip ở Detail -> InventoryUIManager tìm đồ đang mặc để so sánh
     public Action<InventoryItemResponse> OnEquipConfirmed; // Khi click Equip ở Comparison -> Thực sự mặc
     public Action<InventoryItemResponse> OnUnequipClicked; // Bấm gỡ
     public Action<InventoryItemResponse, int> OnConsumeConfirmed; // Thực sự dùng item với số lượng
@@ -533,10 +533,10 @@ public class UIItemDetailPopup : MonoBehaviour
         int currentHp = 0;
         int maxHp = 0;
 
-        if (PlayerHUDController.Instance != null && PlayerHUDController.Instance.MaxHp > 0)
+        if (PlayerHUDUIManager.Instance != null && PlayerHUDUIManager.Instance.MaxHp > 0)
         {
-            currentHp = PlayerHUDController.Instance.CurrentHp;
-            maxHp = PlayerHUDController.Instance.MaxHp;
+            currentHp = PlayerHUDUIManager.Instance.CurrentHp;
+            maxHp = PlayerHUDUIManager.Instance.MaxHp;
         }
         else if (PlayerEntity.Instance != null && PlayerEntity.Instance.MaxHealth > 0)
         {

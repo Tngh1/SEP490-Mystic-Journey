@@ -134,8 +134,8 @@ namespace MysticJourney.Features.Quest
         public Transform GetTargetForActiveQuest()
         {
             if (!IsTrackingEnabled) return null;
-            if (QuestManager.Instance == null) return null;
-            var quests = QuestManager.Instance.GetMainQuests();
+            if (QuestUIManager.Instance == null) return null;
+            var quests = QuestUIManager.Instance.GetMainQuests();
             var active = MysticJourney.Core.Utilities.QuestUtils.PickPreferredQuest(quests);
 
             if (active == null) return null;
@@ -173,8 +173,8 @@ namespace MysticJourney.Features.Quest
                 return;
             }
 
-            if (QuestManager.Instance == null) return;
-            var quests = QuestManager.Instance.GetMainQuests();
+            if (QuestUIManager.Instance == null) return;
+            var quests = QuestUIManager.Instance.GetMainQuests();
             var active = QuestUtils.PickPreferredQuest(quests);
 
             if (active == null)

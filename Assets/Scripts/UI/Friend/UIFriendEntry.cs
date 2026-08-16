@@ -24,10 +24,10 @@ namespace UI.Friend
         [SerializeField] private Button declineButton;
         [SerializeField] private Button unblockButton;
 
-        private UIFriendPanel parentPanel;
+        private FriendUIManager parentPanel;
         private int currentProfileId;
 
-        public void SetupAsFriend(FriendDto friend, UIFriendPanel panel)
+        public void SetupAsFriend(FriendDto friend, FriendUIManager panel)
         {
             parentPanel = panel;
             currentProfileId = friend.FriendProfileId;
@@ -53,7 +53,7 @@ namespace UI.Friend
             HideInlineButtons();
         }
 
-        public void SetupAsRequest(PendingFriendRequestDto req, UIFriendPanel panel)
+        public void SetupAsRequest(PendingFriendRequestDto req, FriendUIManager panel)
         {
             parentPanel = panel;
             currentProfileId = req.RequesterId;
@@ -89,7 +89,7 @@ namespace UI.Friend
             }
         }
 
-        public void SetupAsSearch(FriendSearchDto searchResult, UIFriendPanel panel)
+        public void SetupAsSearch(FriendSearchDto searchResult, FriendUIManager panel)
         {
             parentPanel = panel;
             currentProfileId = searchResult.ProfileId;
@@ -168,7 +168,7 @@ namespace UI.Friend
             }
         }
 
-        public void SetupAsBlock(FriendProfileDto blockResult, UIFriendPanel panel)
+        public void SetupAsBlock(FriendProfileDto blockResult, FriendUIManager panel)
         {
             parentPanel = panel;
             currentProfileId = blockResult.ProfileId;

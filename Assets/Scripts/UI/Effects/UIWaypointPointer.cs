@@ -56,7 +56,7 @@ namespace MysticJourney.UI.Effects
             }
 
             // Ẩn mũi tên khi đang mở bảng hội thoại NPC hoặc bảng Main Quest Panel
-            if (MainNpcPanelRuntime.Instance != null && MainNpcPanelRuntime.Instance.IsOpen)
+            if (MainNpcPanel.Instance != null && MainNpcPanel.Instance.IsOpen)
             {
                 if (gameObject.activeSelf) gameObject.SetActive(false);
                 return;

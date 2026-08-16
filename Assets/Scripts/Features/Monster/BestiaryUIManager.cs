@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BestiaryUI : MonoBehaviour
+public class BestiaryUIManager : MonoBehaviour
 {
     [Header("Left Panel - List")]
     [SerializeField] private Transform contentContainer;

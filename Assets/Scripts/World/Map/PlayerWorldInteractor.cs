@@ -117,11 +117,11 @@ public class PlayerWorldInteractor : MonoBehaviour
 
         if (kind == WorldInteractableKind.Npc)
         {
-            var panel = MainNpcPanelRuntime.Instance != null ? MainNpcPanelRuntime.Instance : FindMainNpcPanelRuntime();
+            var panel = MainNpcPanel.Instance != null ? MainNpcPanel.Instance : FindMainNpcPanelRuntime();
             if (panel != null)
                 panel.OpenForNpc(target);
             else
-                Debug.LogWarning("[PlayerWorldInteractor] MainNpcPanelRuntime not found in Main scene.");
+                Debug.LogWarning("[PlayerWorldInteractor] MainNpcPanel not found in Main scene.");
             return;
         }
 
@@ -178,10 +178,10 @@ public class PlayerWorldInteractor : MonoBehaviour
         }
 
         int? questIdToSend = null;
-        if (QuestManager.Instance != null)
+        if (QuestUIManager.Instance != null)
         {
-            var inProgressQuests = QuestManager.Instance.GetMainQuests()
-                .Where(q => QuestManager.IsStatus(q, "InProgress"))
+            var inProgressQuests = QuestUIManager.Instance.GetMainQuests()
+                .Where(q => QuestUIManager.IsStatus(q, "InProgress"))
                 .ToList();
 
             // Chỉ gửi questId nếu quest đó ĐANG ở trạng thái InProgress của người chơi
@@ -207,13 +207,13 @@ public class PlayerWorldInteractor : MonoBehaviour
         }
 
         var progressDeltaToSend = target.ProgressDelta;
-        if (questIdToSend.HasValue && QuestManager.Instance != null)
+        if (questIdToSend.HasValue && QuestUIManager.Instance != null)
         {
-            var quest = QuestManager.Instance.GetQuestResponse(questIdToSend.Value);
+            var quest = QuestUIManager.Instance.GetQuestResponse(questIdToSend.Value);
             if (quest != null && string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase))
             {
-                QuestManager.Instance.AddProgress(quest.QuestId, target.ProgressDelta);
-                var localState = QuestManager.Instance.GetQuestState(quest.QuestId);
+                QuestUIManager.Instance.AddProgress(quest.QuestId, target.ProgressDelta);
+                var localState = QuestUIManager.Instance.GetQuestState(quest.QuestId);
                 var targetAmount = Mathf.Max(1, quest.TargetAmount);
 
                 if (localState == null || localState.progress < targetAmount)
@@ -234,13 +234,13 @@ public class PlayerWorldInteractor : MonoBehaviour
             progressDeltaToSend,
             response =>
             {
-                // Áp state server trước: scene có thể unload trong lúc request nhưng QuestManager
+                // Áp state server trước: scene có thể unload trong lúc request nhưng QuestUIManager
                 // sống xuyên scene và vẫn phải nhận lần commit cuối thành công.
-                if (response?.Quest != null && QuestManager.Instance != null)
-                    QuestManager.Instance.ApplyServerQuestState(response.Quest);
+                if (response?.Quest != null && QuestUIManager.Instance != null)
+                    QuestUIManager.Instance.ApplyServerQuestState(response.Quest);
 
                 if (response != null && response.CollectedItemId.HasValue && response.CollectedItemId.Value > 0)
-                    InventoryManager.RefreshAny(refreshStats: false);
+                    InventoryUIManager.RefreshAny(refreshStats: false);
 
                 WorldRuntimeEvents.RaiseQuestsChanged();
                 if (target == null) return;
@@ -292,7 +292,7 @@ public class PlayerWorldInteractor : MonoBehaviour
     /// and open a dialogue panel that has nothing to offer ("No linked quest
     /// available."). The server is the gate: PlayerQuestService.GetMyQuests only
     /// materialises a PlayerQuest row once the main chain unlocks it, so "the
-    /// QuestManager has no response for this id" == "quest not reached yet".
+    /// QuestUIManager has no response for this id" == "quest not reached yet".
     /// NPCs with no linked quest at all stay talkable (flavour/vendor NPCs), and the
     /// QuestsChanged → RefreshSceneLinks loop re-opens the NPC the moment the quest
     /// unlocks.
@@ -303,7 +303,7 @@ public class PlayerWorldInteractor : MonoBehaviour
         if (linked == null || linked.Count == 0)
             return true;
 
-        var manager = QuestManager.Instance;
+        var manager = QuestUIManager.Instance;
         // No quest state loaded (offline / still loading): don't lock the player out.
         if (manager == null)
             return true;
@@ -377,7 +377,7 @@ public class PlayerWorldInteractor : MonoBehaviour
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
             return true;
 
-        var manager = QuestManager.Instance;
+        var manager = QuestUIManager.Instance;
         if (manager == null)
             return true;
 
@@ -399,7 +399,7 @@ public class PlayerWorldInteractor : MonoBehaviour
 
                 governed = true;
                 if (responses.TryGetValue(questId, out var linkedQuest) &&
-                    QuestManager.IsStatus(linkedQuest, "InProgress"))
+                    QuestUIManager.IsStatus(linkedQuest, "InProgress"))
                     return true;
             }
         }
@@ -416,7 +416,7 @@ public class PlayerWorldInteractor : MonoBehaviour
                 continue;
 
             governed = true;
-            if (QuestManager.IsStatus(quest, "InProgress"))
+            if (QuestUIManager.IsStatus(quest, "InProgress"))
                 return true;
         }
 
@@ -494,13 +494,13 @@ public class PlayerWorldInteractor : MonoBehaviour
 
     private static bool IsNpcPanelOpen()
     {
-        var panel = MainNpcPanelRuntime.Instance != null ? MainNpcPanelRuntime.Instance : FindMainNpcPanelRuntime();
+        var panel = MainNpcPanel.Instance != null ? MainNpcPanel.Instance : FindMainNpcPanelRuntime();
         return panel != null && panel.IsOpen;
     }
 
-    private static MainNpcPanelRuntime FindMainNpcPanelRuntime()
+    private static MainNpcPanel FindMainNpcPanelRuntime()
     {
-        return Resources.FindObjectsOfTypeAll<MainNpcPanelRuntime>()
+        return Resources.FindObjectsOfTypeAll<MainNpcPanel>()
             .FirstOrDefault(r => r != null && r.gameObject.scene.IsValid() && !string.IsNullOrEmpty(r.gameObject.scene.name));
     }
 }

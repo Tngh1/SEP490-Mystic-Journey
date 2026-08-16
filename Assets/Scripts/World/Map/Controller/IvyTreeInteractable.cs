@@ -55,7 +55,7 @@ public class IvyTreeInteractable : MonoBehaviour
     {
         if (_isInteracting || _interacted) return;
 
-        var questState = QuestManager.Instance != null ? QuestManager.Instance.GetQuestState(linkedQuestId) : null;
+        var questState = QuestUIManager.Instance != null ? QuestUIManager.Instance.GetQuestState(linkedQuestId) : null;
         var questStatus = questState != null ? questState.status : string.Empty;
 
         if (string.Equals(questStatus, "Completed", System.StringComparison.OrdinalIgnoreCase) ||
@@ -93,8 +93,8 @@ public class IvyTreeInteractable : MonoBehaviour
             {
                 WorldRuntimeEvents.RaiseMessage(CompletionMessage);
                 if (response?.Quest != null)
-                    QuestManager.Instance?.ApplyServerQuestState(response.Quest);
-                InventoryManager.RefreshAny(refreshStats: false);
+                    QuestUIManager.Instance?.ApplyServerQuestState(response.Quest);
+                InventoryUIManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
                 FinalizeAfterInteraction();
             },
@@ -128,14 +128,14 @@ public class IvyTreeInteractable : MonoBehaviour
         // Luôn giữ GameObject của cây active để môi trường thiên nhiên hiển thị đầy đủ
         gameObject.SetActive(true);
 
-        if (QuestManager.Instance == null) return;
+        if (QuestUIManager.Instance == null) return;
 
-        var quests = QuestManager.Instance.GetMainQuests();
+        var quests = QuestUIManager.Instance.GetMainQuests();
         bool shouldShowPrompt = false;
         foreach (var q in quests)
         {
             if (q.QuestId == linkedQuestId &&
-                (QuestManager.IsStatus(q, "NotStarted") || QuestManager.IsStatus(q, "InProgress")))
+                (QuestUIManager.IsStatus(q, "NotStarted") || QuestUIManager.IsStatus(q, "InProgress")))
             {
                 shouldShowPrompt = true;
                 break;
