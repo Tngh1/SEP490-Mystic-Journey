@@ -20,6 +20,18 @@ public class BuffManager : MonoBehaviour
 
     public event Action OnBuffsUpdated;
 
+    private static string NormalizeDisplayName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Status Effect";
+        switch (name.Trim())
+        {
+            case "Bảo Hộ": return "Protection";
+            case "Kháng Hiệu Ứng": return "Status Immunity";
+            case "Lời Nguyền Bóng Đêm": return "Darkness Curse";
+            default: return name;
+        }
+    }
+
     public bool IsStatusImmune { get; set; } = false;
 
     private float _syncTimer = 0f;
@@ -57,6 +69,7 @@ public class BuffManager : MonoBehaviour
 
     public void AddBuff(string name, string iconName, float duration, bool isDebuff)
     {
+        name = NormalizeDisplayName(name);
         var combat = GetComponent<PlayerCombat>();
         bool immune = IsStatusImmune || (combat != null && combat.IsDebuffImmune);
 
@@ -119,7 +132,7 @@ public class BuffManager : MonoBehaviour
             {
                 ActiveBuffs.Add(new ActiveBuff
                 {
-                    BuffName = b.BuffName,
+                    BuffName = NormalizeDisplayName(b.BuffName),
                     IconName = b.IconName,
                     DurationRemaining = b.DurationRemaining,
                     IsDebuff = b.IsDebuff

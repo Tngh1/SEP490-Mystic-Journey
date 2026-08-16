@@ -23,6 +23,11 @@ namespace MysticJourney.API.Models.Response
         public int RewardQuantity { get; set; }
         public decimal RewardGold { get; set; }
         public int RewardGem { get; set; }
+        public int RewardGems
+        {
+            get => RewardGem;
+            set => RewardGem = value;
+        }
     }
 
     [Serializable]

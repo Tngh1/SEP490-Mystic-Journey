@@ -676,7 +676,7 @@ namespace UI.Friend
             if (goldAmountText != null)
                 goldAmountText.text = rewardGold.ToString("0");
             if (gemAmountText != null)
-                gemAmountText.text = rewardGem.ToString();
+                gemAmountText.text = rewardGem.ToString("N0");
 
             // --- Reward Item: InventorySlot_Prefab ---
             PopulateItemSlots(achievement);

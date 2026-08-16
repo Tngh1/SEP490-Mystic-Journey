@@ -75,17 +75,24 @@ public class ProtectiveShieldSkill : MonoBehaviour
             var player = hit.GetComponentInParent<PlayerCombat>();
             if (player != null && player.CompareTag("Player") && affectedPlayers.Add(player))
             {
-                player.AddDefBuff(buffAmount, duration);
-                player.AddDebuffImmunity(duration);
-
                 var networkPlayer = player.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null && networkPlayer.Object != null)
                 {
+                    // Call RPC to apply buff to all clients (including UI)
+                    networkPlayer.RPC_ApplyDefBuff(buffAmount, duration);
+                    networkPlayer.RPC_ApplyDebuffImmunity(duration);
+
                     string prefabName = gameObject.name.EndsWith("(Clone)")
                         ? gameObject.name.Substring(0, gameObject.name.Length - "(Clone)".Length)
                         : gameObject.name;
                     networkPlayer.RPC_ShowBuffVisual(prefabName);
                     broadcastNetworkVisual = true;
+                }
+                else
+                {
+                    // Fallback for offline mode
+                    player.AddDefBuff(buffAmount, duration);
+                    player.AddDebuffImmunity(duration);
                 }
 
                 // Show a text popup for buff

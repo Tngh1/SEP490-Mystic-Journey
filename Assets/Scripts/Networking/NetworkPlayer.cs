@@ -66,6 +66,11 @@ public class NetworkPlayer : NetworkBehaviour
 
     // (PlayerClass, EquippedSkinId) the current visual was built from. -1 = none yet.
     private long _builtVisualKey = -1;
+    // API equip responses arrive on the input client before the networked skin
+    // property is replicated back from state authority. Keep a local override so
+    // the player's own visual changes immediately without writing a Networked
+    // property from the wrong authority.
+    private int _localSkinOverride = -1;
 
     public void OnSkinChanged()
     {
@@ -85,11 +90,14 @@ public class NetworkPlayer : NetworkBehaviour
         // Spawned(), both OnChangedRender hooks and the async inventory fetch all
         // funnel here, so the same (class, skin) pair was rebuilt 2-3 times per
         // spawn — each rebuild destroys and re-instantiates the whole visual.
-        long visualKey = ((long)PlayerClass << 32) | (uint)EquippedSkinId;
+        int visualSkinId = (Object != null && Object.HasInputAuthority && _localSkinOverride >= 0)
+            ? _localSkinOverride
+            : EquippedSkinId;
+        long visualKey = ((long)PlayerClass << 32) | (uint)visualSkinId;
         if (_spawnedVisual != null && _builtVisualKey == visualKey) return;
         _builtVisualKey = visualKey;
 
-        Debug.Log($"[NetworkPlayer] Building visual for {(CharacterClass)PlayerClass} skin={EquippedSkinId}");
+        Debug.Log($"[NetworkPlayer] Building visual for {(CharacterClass)PlayerClass} skin={visualSkinId}");
 
         if (_spawnedVisual != null)
         {
@@ -99,7 +107,7 @@ public class NetworkPlayer : NetworkBehaviour
 
         if (characterFactory != null)
         {
-            _spawnedVisual = characterFactory.Create(EquippedSkinId, (CharacterClass)PlayerClass, visualRoot);
+            _spawnedVisual = characterFactory.Create(visualSkinId, (CharacterClass)PlayerClass, visualRoot);
         }
         else
         {
@@ -468,7 +476,12 @@ public class NetworkPlayer : NetworkBehaviour
 
         if (Object != null && Object.HasStateAuthority)
         {
+            _localSkinOverride = -1;
             EquippedSkinId = normalizedSkinId;
+        }
+        else if (Object != null && Object.HasInputAuthority)
+        {
+            _localSkinOverride = normalizedSkinId;
         }
 
         OnPlayerClassChanged();
@@ -1088,6 +1101,26 @@ public class NetworkPlayer : NetworkBehaviour
         effect.SetActive(false);
         PlayerSkillVisualReplica.Mark(effect, transform);
         effect.SetActive(true);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ApplyDefBuff(float amount, float duration)
+    {
+        var combat = GetComponent<PlayerCombat>();
+        if (combat != null)
+        {
+            combat.AddDefBuff(amount, duration);
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ApplyDebuffImmunity(float duration)
+    {
+        var combat = GetComponent<PlayerCombat>();
+        if (combat != null)
+        {
+            combat.AddDebuffImmunity(duration);
+        }
     }
 
     public void Die()

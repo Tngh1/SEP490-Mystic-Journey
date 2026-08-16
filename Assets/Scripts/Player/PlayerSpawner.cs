@@ -138,15 +138,20 @@ public class PlayerSpawner : MonoBehaviour
     private IEnumerator HydrateEquippedSkinBeforeSpawn()
     {
         var done = false;
+        var skinAtRequestStart = WorldState.EquippedSkinId;
         InventoryApi.Instance.GetInventory(
             response =>
             {
-                var equippedSkinId = 0;
+                // Keep the locally persisted skin while the API request is unavailable.
+                // A successful inventory response is authoritative and may replace it
+                // with 0 when the default skin is equipped.
+                var equippedSkinId = WorldState.EquippedSkinId;
                 if (response != null && response.PlayerSkins != null)
                 {
+                    equippedSkinId = 0;
                     foreach (var skin in response.PlayerSkins)
                     {
-                        if (skin.IsEquipped)
+                        if (skin != null && skin.IsEquipped)
                         {
                             equippedSkinId = skin.SkinId;
                             break;
@@ -154,13 +159,22 @@ public class PlayerSpawner : MonoBehaviour
                     }
                 }
 
-                WorldState.EquippedSkinId = equippedSkinId;
-                WorldState.SaveToPlayerPrefs();
+                // Do not let a stale boot-time response overwrite a skin equipped
+                // while this request was in flight.
+                if (WorldState.EquippedSkinId == skinAtRequestStart)
+                {
+                    WorldState.EquippedSkinId = equippedSkinId;
+                    WorldState.SaveToPlayerPrefs();
+                }
+                else
+                {
+                    Debug.Log($"[PlayerSpawner] Ignored stale inventory skin={equippedSkinId}; keeping newer SkinId={WorldState.EquippedSkinId}.");
+                }
                 done = true;
             },
             error =>
             {
-                Debug.LogWarning($"[PlayerSpawner] GetInventory failed: {error.Message}");
+                Debug.LogWarning($"[PlayerSpawner] GetInventory failed; keeping persisted SkinId={WorldState.EquippedSkinId}. {error.Message}");
                 done = true;
             }
         );
@@ -176,7 +190,9 @@ public class PlayerSpawner : MonoBehaviour
             return;
         }
 
-        if (FindFirstObjectByType<PlayerMovement>() != null)
+        // Both components identify the local gameplay root; checking both also
+        // protects against a partially initialized player during scene loading.
+        if (FindFirstObjectByType<PlayerMovement>() != null || FindFirstObjectByType<PlayerEntity>() != null)
             return;
 
         var playerClass = string.IsNullOrWhiteSpace(WorldState.PlayerClass)
@@ -203,15 +219,6 @@ public class PlayerSpawner : MonoBehaviour
         GameObject player = Instantiate(prefab, spawnPosition, Quaternion.identity);
 
         // Safeguard: Fallback Animator Controller nếu Controller của Skin rỗng (0 parameters)
-        var animator = player.GetComponentInChildren<Animator>();
-        if (animator != null && animator.parameterCount == 0 && basePrefab != null)
-        {
-            var baseAnim = basePrefab.GetComponentInChildren<Animator>();
-            if (baseAnim != null && baseAnim.runtimeAnimatorController != null)
-            {
-                animator.runtimeAnimatorController = baseAnim.runtimeAnimatorController;
-            }
-        }
         var mainScene = SceneManager.GetSceneByName("Main");
         if (mainScene.isLoaded)
         {
@@ -233,15 +240,51 @@ public class PlayerSpawner : MonoBehaviour
 
     public void RespawnWithSkin()
     {
-        var existingPlayer = FindFirstObjectByType<PlayerMovement>();
-        if (existingPlayer != null && existingPlayer.GetComponent<Fusion.NetworkObject>() == null)
+        var existingPlayer = FindOfflinePlayerRoot();
+        if (existingPlayer != null)
         {
             WorldState.LastPosition = existingPlayer.transform.position;
             Destroy(existingPlayer.gameObject);
             Debug.Log("[PlayerSpawner] Destroyed old local player for Skin Respawn.");
         }
 
+        // Clean up visual-only skin instances created by older builds. They have
+        // the Player tag but no gameplay component, so they otherwise survive the
+        // respawn and appear as a frozen duplicate.
+        CleanupLegacyVisualOnlyPlayers();
+
         StartCoroutine(RespawnNextFrame());
+    }
+
+    private static GameObject FindOfflinePlayerRoot()
+    {
+        var entity = FindFirstObjectByType<PlayerEntity>();
+        if (entity != null && entity.GetComponent<Fusion.NetworkObject>() == null)
+            return entity.gameObject;
+
+        var movement = FindFirstObjectByType<PlayerMovement>();
+        if (movement != null && movement.GetComponent<Fusion.NetworkObject>() == null)
+            return movement.gameObject;
+
+        return null;
+    }
+
+    private static void CleanupLegacyVisualOnlyPlayers()
+    {
+        var taggedPlayers = GameObject.FindGameObjectsWithTag("Player");
+        for (var i = 0; i < taggedPlayers.Length; i++)
+        {
+            var candidate = taggedPlayers[i];
+            if (candidate == null || candidate.transform.parent != null)
+                continue;
+            if (candidate.GetComponent<Fusion.NetworkObject>() != null)
+                continue;
+            if (candidate.GetComponent<PlayerMovement>() != null || candidate.GetComponent<PlayerEntity>() != null)
+                continue;
+
+            Destroy(candidate);
+            Debug.Log($"[PlayerSpawner] Removed stale visual-only player '{candidate.name}'.");
+        }
     }
 
     private GameObject ResolveBasePrefab(string playerClass)
