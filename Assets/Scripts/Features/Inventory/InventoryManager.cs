@@ -1338,6 +1338,7 @@ public class InventoryManager : MonoBehaviour
                 // Ô rỗng: ẩn icon để lộ nền ô, KHÔNG tắt cả ô (nền phải luôn thấy).
                 iconImage.sprite = null;
                 iconImage.enabled = false;
+                SetEquipSlotRarity(slotObject, null, false);
                 continue;
             }
 
@@ -1345,10 +1346,41 @@ public class InventoryManager : MonoBehaviour
             iconImage.sprite = icon;
             iconImage.enabled = icon != null;
             iconImage.preserveAspect = true;
+            SetEquipSlotRarity(slotObject, item.ItemRarity, true);
         }
     }
 
+    private void SetEquipSlotRarity(string slotObjectName, string rarity, bool visible)
+    {
+        var slot = FindEquipSlotObject(slotObjectName);
+        if (slot == null)
+            return;
+
+        var effect = slot.GetComponent<UIRarityFrameEffect>();
+        if (!visible)
+        {
+            effect?.SetVisible(false);
+            return;
+        }
+
+        if (effect == null)
+            effect = slot.AddComponent<UIRarityFrameEffect>();
+
+        effect.Configure(rarity);
+    }
+
     private Image FindEquipSlotIcon(string slotObjectName)
+    {
+        var slot = FindEquipSlotObject(slotObjectName);
+        if (slot == null) return null;
+
+        // Con tên "Image" là lớp vẽ icon; nếu prefab không có thì dùng luôn Image của ô.
+        var child = slot.transform.Find("Image");
+        var image = child != null ? child.GetComponent<Image>() : null;
+        return image != null ? image : slot.GetComponent<Image>();
+    }
+
+    private GameObject FindEquipSlotObject(string slotObjectName)
     {
         var slot = FindObject(slotObjectName);
         if (slot == null && slotObjectName == "RingSlot")
@@ -1356,12 +1388,7 @@ public class InventoryManager : MonoBehaviour
         if (slot == null && slotObjectName == "NecklaceSlot")
             slot = FindObject("ShieldSlot", "Necklace");
 
-        if (slot == null) return null;
-
-        // Con tên "Image" là lớp vẽ icon; nếu prefab không có thì dùng luôn Image của ô.
-        var child = slot.transform.Find("Image");
-        var image = child != null ? child.GetComponent<Image>() : null;
-        return image != null ? image : slot.GetComponent<Image>();
+        return slot;
     }
 
     private static InventoryItemResponse FindEquippedForSlot(InventoryItemResponse[] equipped, string slotObject)
