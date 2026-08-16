@@ -54,13 +54,20 @@ public class UIShopSlot : UIBaseItemSlot, IPointerEnterHandler, IPointerExitHand
         base.SetupCore(data);
         RawData = data;
 
+        if (iconImage != null)
+        {
+            iconImage.rectTransform.anchoredPosition = new Vector2(0f, 27.8f);
+        }
+
         // 1. Tên vật phẩm: hiển thị tên sạch (không đính kèm số lượng), cân chỉnh căn giữa + Auto-size
         TMP_Text nameLabel = shopNameText != null ? shopNameText : itemNameText;
         if (nameLabel != null)
         {
             nameLabel.enableAutoSizing = true;
-            nameLabel.fontSizeMin = 20f;
-            nameLabel.fontSizeMax = 30f;
+            nameLabel.enableWordWrapping = true;
+            nameLabel.fontSizeMin = 10f;
+            nameLabel.fontSizeMax = 20f;
+            nameLabel.overflowMode = TextOverflowModes.Ellipsis;
             nameLabel.alignment = TextAlignmentOptions.Center;
             nameLabel.margin = new Vector4(2, 2, 2, 2);
             nameLabel.text = data.itemName ?? string.Empty;

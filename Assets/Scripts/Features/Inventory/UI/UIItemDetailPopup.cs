@@ -120,6 +120,12 @@ public class UIItemDetailPopup : MonoBehaviour
             if (t != null) iconRarity = t.GetComponent<Image>();
         }
 
+        ConfigureNameText(itemNameText);
+        ConfigureNameText(oldItemName);
+        ConfigureNameText(newItemName);
+        ConfigureNameText(consumeName);
+        ConfigureNameText(skinNameText);
+
         SetupHoverEffects();
 
         // Detail Buttons
@@ -211,6 +217,7 @@ public class UIItemDetailPopup : MonoBehaviour
 
         if (itemNameText)
         {
+            ConfigureNameText(itemNameText);
             itemNameText.text = item.ItemName ?? "Unknown";
             itemNameText.color = rarityColor;
         }
@@ -222,6 +229,7 @@ public class UIItemDetailPopup : MonoBehaviour
         }
         if (itemDescriptionText) 
         {
+            itemDescriptionText.enableWordWrapping = true;
             itemDescriptionText.text = item.ItemDescription ?? "";
             if (item.CorruptionReduction > 0)
             {
@@ -241,6 +249,7 @@ public class UIItemDetailPopup : MonoBehaviour
         {
             if (icon != null) { itemIcon.sprite = icon; itemIcon.enabled = true; }
             else itemIcon.enabled = false;
+            ApplyRarityGlowToImage(itemIcon, item.ItemRarity);
         }
 
         bool isEquipment = IsEquipment(item);
@@ -361,6 +370,7 @@ public class UIItemDetailPopup : MonoBehaviour
         {
             if (oldItemName)
             {
+                ConfigureNameText(oldItemName);
                 oldItemName.text = equippedItem.ItemName;
                 oldItemName.color = GetRarityColor(equippedItem.ItemRarity);
             }
@@ -370,19 +380,21 @@ public class UIItemDetailPopup : MonoBehaviour
             if (oldItemIcon) {
                 if (oldIcon != null) { oldItemIcon.sprite = oldIcon; oldItemIcon.enabled = true; }
                 else oldItemIcon.enabled = false;
+                ApplyRarityGlowToImage(oldItemIcon, equippedItem?.ItemRarity);
             }
         }
         else
         {
             if (oldItemName)
             {
+                ConfigureNameText(oldItemName);
                 oldItemName.text = "None";
                 oldItemName.color = Color.white;
             }
             if (oldItemType) oldItemType.text = "";
             if (oldItemStats) oldItemStats.text = "";
             if (oldItemEffect) oldItemEffect.text = "";
-            if (oldItemIcon) oldItemIcon.enabled = false;
+            if (oldItemIcon) { oldItemIcon.enabled = false; ApplyRarityGlowToImage(oldItemIcon, null); }
         }
 
         // Fill new item (New)
@@ -390,6 +402,7 @@ public class UIItemDetailPopup : MonoBehaviour
         {
             if (newItemName)
             {
+                ConfigureNameText(newItemName);
                 newItemName.text = _currentItem.ItemName;
                 newItemName.color = GetRarityColor(_currentItem.ItemRarity);
             }
@@ -399,6 +412,7 @@ public class UIItemDetailPopup : MonoBehaviour
             if (newItemIcon) {
                 if (_currentIcon != null) { newItemIcon.sprite = _currentIcon; newItemIcon.enabled = true; }
                 else newItemIcon.enabled = false;
+                ApplyRarityGlowToImage(newItemIcon, _currentItem?.ItemRarity);
             }
         }
     }
@@ -460,17 +474,25 @@ public class UIItemDetailPopup : MonoBehaviour
         Color rarityColor = GetRarityColor(_currentItem.ItemRarity);
         if (consumeName)
         {
+            ConfigureNameText(consumeName);
             consumeName.text = _currentItem.ItemName;
             consumeName.color = rarityColor;
         }
-        if (consumeDesc) consumeDesc.text = _currentItem.ItemDescription;
+        if (consumeDesc)
+        {
+            consumeDesc.enableWordWrapping = true;
+            consumeDesc.overflowMode = TextOverflowModes.Overflow;
+            consumeDesc.text = _currentItem.ItemDescription;
+        }
         if (consumeOwnedText) consumeOwnedText.text = $"Quantity owned: {_currentSlotStackQuantity}";
         if (consumeIcon) {
             if (_currentIcon != null) { consumeIcon.sprite = _currentIcon; consumeIcon.enabled = true; }
             else consumeIcon.enabled = false;
+            ApplyRarityGlowToImage(consumeIcon, null);
         }
 
         UpdateConsumeQuantityText();
+        AdjustConsumePanelLayout();
     }
 
     private int GetMaxUsableInCurrentSlot()
@@ -647,6 +669,90 @@ public class UIItemDetailPopup : MonoBehaviour
             case "legendary": return new Color(1f, 0.72f, 0.2f); // Gold / Yellow
             case "mythic": return new Color(1f, 0.3f, 0.3f);     // Red
             default: return Color.white;
+        }
+    }
+
+    private static void ApplyRarityGlowToImage(Image targetImage, string rarity)
+    {
+        if (targetImage == null) return;
+        GameObject targetObj = targetImage.transform.parent != null &&
+                               (targetImage.transform.parent.name.Contains("Icon", StringComparison.OrdinalIgnoreCase) ||
+                                targetImage.transform.parent.name.Contains("Frame", StringComparison.OrdinalIgnoreCase))
+            ? targetImage.transform.parent.gameObject
+            : targetImage.gameObject;
+
+        UIRarityFrameEffect effect = targetObj.GetComponent<UIRarityFrameEffect>()
+                                     ?? targetObj.AddComponent<UIRarityFrameEffect>();
+
+        if (!string.IsNullOrEmpty(rarity))
+        {
+            effect.Configure(rarity);
+        }
+        else
+        {
+            effect.SetVisible(false);
+        }
+    }
+
+    private static void ConfigureNameText(TMP_Text text)
+    {
+        if (text == null) return;
+        text.enableWordWrapping = true;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 10f;
+        if (text.fontSizeMax <= text.fontSizeMin || text.fontSizeMax > 24f)
+        {
+            text.fontSizeMax = 18f;
+        }
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.margin = new Vector4(2, 0, 2, 0);
+    }
+
+    private void AdjustConsumePanelLayout()
+    {
+        if (consumePanel == null) return;
+
+        Canvas.ForceUpdateCanvases();
+        if (consumeName != null) consumeName.ForceMeshUpdate();
+        if (consumeDesc != null) consumeDesc.ForceMeshUpdate();
+        if (consumeOwnedText != null) consumeOwnedText.ForceMeshUpdate();
+
+        Transform descParent = consumeDesc != null ? consumeDesc.transform.parent : null;
+        Transform ownedParent = consumeOwnedText != null ? consumeOwnedText.transform.parent : null;
+
+        if (descParent != null && descParent == ownedParent)
+        {
+            VerticalLayoutGroup vlg = descParent.GetComponent<VerticalLayoutGroup>();
+            if (vlg != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(descParent as RectTransform);
+                return;
+            }
+        }
+
+        if (consumeDesc != null && consumeOwnedText != null)
+        {
+            RectTransform nameRect = consumeName != null ? consumeName.rectTransform : null;
+            RectTransform descRect = consumeDesc.rectTransform;
+            RectTransform ownedRect = consumeOwnedText.rectTransform;
+
+            float descStartY = descRect.anchoredPosition.y;
+            if (nameRect != null && consumeName != null)
+            {
+                float nameHeight = Mathf.Max(consumeName.preferredHeight, nameRect.rect.height);
+                nameRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, nameHeight);
+                float nameTopY = nameRect.anchoredPosition.y;
+                descStartY = nameTopY - nameHeight - 4f;
+                descRect.anchoredPosition = new Vector2(descRect.anchoredPosition.x, descStartY);
+            }
+
+            float descHeight = Mathf.Max(consumeDesc.preferredHeight, descRect.rect.height);
+            descRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, descHeight);
+
+            float ownedStartY = descStartY - descHeight - 6f;
+            ownedRect.anchoredPosition = new Vector2(ownedRect.anchoredPosition.x, ownedStartY);
+
+            Canvas.ForceUpdateCanvases();
         }
     }
 

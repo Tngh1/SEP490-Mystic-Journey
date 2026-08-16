@@ -1357,16 +1357,28 @@ public class InventoryManager : MonoBehaviour
             return;
 
         var effect = slot.GetComponent<UIRarityFrameEffect>();
-        if (!visible)
+
+        if (visible)
+        {
+            if (string.IsNullOrWhiteSpace(rarity))
+                rarity = "Common";
+
+            if (effect == null)
+                effect = slot.AddComponent<UIRarityFrameEffect>();
+
+            effect.Configure(rarity);
+
+            var iconImg = FindEquipSlotIcon(slotObjectName);
+            if (iconImg != null) iconImg.transform.SetAsLastSibling();
+        }
+        else
         {
             effect?.SetVisible(false);
-            return;
         }
 
-        if (effect == null)
-            effect = slot.AddComponent<UIRarityFrameEffect>();
-
-        effect.Configure(rarity);
+        var slotImage = slot.GetComponent<Image>();
+        if (slotImage != null)
+            slotImage.color = Color.white;
     }
 
     private Image FindEquipSlotIcon(string slotObjectName)

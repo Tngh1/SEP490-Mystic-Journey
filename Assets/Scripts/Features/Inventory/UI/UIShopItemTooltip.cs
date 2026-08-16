@@ -282,6 +282,11 @@ public class UIShopItemTooltip : MonoBehaviour
         Color rarityColor = UIItemDetailPopup.GetRarityColor(data.rarity);
         if (nameText != null)
         {
+            nameText.enableWordWrapping = true;
+            nameText.enableAutoSizing = true;
+            nameText.fontSizeMin = 10f;
+            nameText.fontSizeMax = 16f;
+            nameText.overflowMode = TextOverflowModes.Ellipsis;
             nameText.text = data.itemName ?? "Unknown Item";
             nameText.color = rarityColor;
         }
