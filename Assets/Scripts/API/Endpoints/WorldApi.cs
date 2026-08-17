@@ -8,22 +8,14 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // WORLD API - Thế giới game
-    // ═══════════════════════════════════════════════════════════════════════
     public class WorldApi : BaseApiService<WorldApi>
     {
         private const string DefaultMap = "Map001";
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════════════
 
-        // ── Lấy trạng thái world ──────────────────────
+        // Executes get state operation.
         public void GetState(Action<WorldStateResponse> onSuccess, Action<ApiException> onError)
         {
-            // Ghi nhận map tại lúc gửi request. GetState(map cũ) có thể trả về sau
-            // UpdatePosition(map mới) và không được phép ghi đè lần chuyển map mới hơn.
             var stateAtRequest = GameStateService.Instance;
             var mapAtRequest = stateAtRequest?.CurrentMapName;
 
@@ -32,7 +24,7 @@ namespace MysticJourney.API.Endpoints
                 response =>
                 {
                     var state = GameStateService.Instance;
-                    if (state != null)
+                    if (state != null)  // Entity exists — proceed with conditional branch
                     {
                         state.PlayerProfileId = response.PlayerProfileId;
                         ApplyMapProgression(state, response);
@@ -58,7 +50,7 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
-        // ── Lấy riêng vị trí khi bootstrap ───────────
+        // Executes get position operation.
         public void GetPosition(Action<PlayerWorldPositionResponse> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Get<PlayerWorldPositionResponse>(
@@ -73,7 +65,7 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
-        // ── Cập nhật vị trí world ────────────────────
+        // Process the supplied values: normalizes or validates the text before returning the derived result.
         public void UpdatePosition(
             string mapName,
             Vector3 position,
@@ -100,7 +92,7 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
-        // ── Nói chuyện với NPC ───────────────────────
+        // Executes talk to npc operation.
         public void TalkToNpc(int npcId, Action<TalkToNpcResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new TalkToNpcRequest { NPCId = npcId };
@@ -110,7 +102,7 @@ namespace MysticJourney.API.Endpoints
                 onError, requiresAuth: true);
         }
 
-        // ── Nộp quest cho NPC ─────────────────────────
+        // Process the supplied values: maps the input discriminator to the corresponding domain value and fallback.
         public void TurnInQuestItem(
             int npcId,
             int questId,
@@ -124,7 +116,7 @@ namespace MysticJourney.API.Endpoints
                 onError, requiresAuth: true);
         }
 
-        // ── Tương tác với object ─────────────────────
+        // Process the supplied values: normalizes or validates the text before returning the derived result and maps the input discriminator to the corresponding domain value and fallback.
         public void InteractObject(
             string objectKey,
             string interactionType,
@@ -151,6 +143,7 @@ namespace MysticJourney.API.Endpoints
                 onError, requiresAuth: true);
         }
 
+        // Executes apply map progression operation.
         private static void ApplyMapProgression(GameStateService state, WorldStateResponse response)
         {
             int highestUnlocked = Mathf.Max(
@@ -169,14 +162,17 @@ namespace MysticJourney.API.Endpoints
             PlayerPresence.RefreshLocal();
         }
 
+        // Executes map names equal operation.
+        // Validates input parameters against null or empty values.
         private static bool MapNamesEqual(string left, string right)
         {
             return string.Equals(NormalizeMapName(left), NormalizeMapName(right), StringComparison.OrdinalIgnoreCase);
         }
 
+        // Normalizes world map names and maps aliases (such as ElfForest) to canonical map identifiers.
         private static string NormalizeMapName(string mapName)
         {
-            if (string.IsNullOrWhiteSpace(mapName))
+            if (string.IsNullOrWhiteSpace(mapName))  // Mandatory string argument is blank — fail fast
                 return string.Empty;
 
             var value = mapName.Trim().Replace(" ", string.Empty).Replace("_", string.Empty).Replace("-", string.Empty);
@@ -187,13 +183,13 @@ namespace MysticJourney.API.Endpoints
                 : value;
         }
 
-        // ── Private: Áp dụng vị trí world ────────────
+        // Executes apply world position operation.
         private static void ApplyWorldPosition(PlayerWorldPositionResponse position)
         {
-            if (position == null) return;
+            if (position == null) return;  // Entity not found — short-circuit with appropriate error result
 
             var state = GameStateService.Instance;
-            if (state == null) return;
+            if (state == null) return;  // Entity not found — short-circuit with appropriate error result
 
             var mapName = string.IsNullOrWhiteSpace(position.MapName) ? DefaultMap : position.MapName.Trim();
             var vector = new Vector3((float)position.PositionX, (float)position.PositionY, 0f);

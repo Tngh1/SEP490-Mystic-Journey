@@ -8,13 +8,17 @@ namespace MysticJourney.API.Endpoints
 {
     public class ShopApi : BaseApiService<ShopApi>
     {
+        // ─── Player APIs ───────────────────────────────────────────────────────
+        // Load fixed shop items using page, page size, on success, and on error; it builds player shop query and sends the GET API request.
         public void GetFixedShopItems(
             int page,
             int pageSize,
             Action<PagedResultResponse<ShopItemPublicResponse>> onSuccess,
             Action<ApiException> onError,
             string search = null,
+            // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
             string currency = null,
+            // Supported item types: Weapon, Armor, Consumable, Material, QuestItem, or Currency; the type controls filtering, stacking, and usage behavior.
             string itemType = null,
             bool includeSoldOut = false)
         {
@@ -36,6 +40,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Load daily deals using on success, on error, and include sold out; it builds player shop query and sends the GET API request.
         public void GetDailyDeals(
             Action<PagedResultResponse<ShopItemPublicResponse>> onSuccess,
             Action<ApiException> onError,
@@ -59,6 +64,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Load player shop refresh status using on success and on error; it sends the GET API request.
         public void GetPlayerShopRefreshStatus(
             Action<ShopRefreshStatusResponse> onSuccess,
             Action<ApiException> onError)
@@ -79,13 +85,16 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Update player shop using page, page size, on success, and on error; it builds player shop query and sends the POST API request.
         public void RefreshPlayerShop(
             int page,
             int pageSize,
             Action<ShopRefreshResponse> onSuccess,
             Action<ApiException> onError,
             string search = null,
+            // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
             string currency = null,
+            // Supported item types: Weapon, Armor, Consumable, Material, QuestItem, or Currency; the type controls filtering, stacking, and usage behavior.
             string itemType = null,
             bool includeSoldOut = false)
         {
@@ -107,6 +116,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process purchase item using shop item id, quantity, on success, and on error; it sends the POST API request.
         public void PurchaseItem(
             int shopItemId,
             int quantity,
@@ -136,6 +146,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process the supplied values: maps the input discriminator to the corresponding domain value and fallback.
         public void GetSkins(
             Action<SkinShopItemResponse[]> onSuccess,
             Action<ApiException> onError)
@@ -152,6 +163,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process purchase skin using skin id, on success, and on error; it sends the POST API request.
         public void PurchaseSkin(
             int skinId,
             Action<PurchaseShopSkinResponse> onSuccess,
@@ -171,12 +183,15 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Derive player shop query using base endpoint, page, page size, and search; it creates query.
         private static string BuildPlayerShopQuery(
             string baseEndpoint,
             int page,
             int pageSize,
             string search,
+            // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
             string currency,
+            // Supported item types: Weapon, Armor, Consumable, Material, QuestItem, or Currency; the type controls filtering, stacking, and usage behavior.
             string itemType,
             bool includeSoldOut)
         {
@@ -187,9 +202,11 @@ namespace MysticJourney.API.Endpoints
             return endpoint;
         }
 
+        // Executes add query operation.
+        // Validates input parameters against null or empty values.
         private static string AddQuery(string endpoint, string key, string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value))  // Mandatory string argument is blank — fail fast
                 return endpoint;
 
             return endpoint + $"&{key}={UnityWebRequest.EscapeURL(value.Trim())}";

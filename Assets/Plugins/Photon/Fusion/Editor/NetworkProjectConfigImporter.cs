@@ -9,6 +9,7 @@ namespace Fusion.Editor {
   using UnityEditor.PackageManager;
   using UnityEngine;
 
+  // Executes scripted importer operation.
   [ScriptedImporter(3, ExtensionWithoutDot, ImportQueueOffset)]
   [HelpURL("https://doc.photonengine.com/fusion/current/manual/network-project-config")]
   public class NetworkProjectConfigImporter : ScriptedImporter {
@@ -24,6 +25,7 @@ namespace Fusion.Editor {
     public NetworkPrefabTableOptions PrefabOptions;
 
 #if FUSION_ENABLE_ADDRESSABLES && !FUSION_DISABLE_ADDRESSABLES
+    // Executes register addressable event listeners operation.
     [InitializeOnLoadMethod]
     static void RegisterAddressableEventListeners() {
       AssetDatabaseUtils.AddAddressableAssetsWithLabelMonitor(FusionPrefabTag, (hash) => {
@@ -32,6 +34,9 @@ namespace Fusion.Editor {
     }
 #endif
 
+    // Executes on import asset operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     public override void OnImportAsset(AssetImportContext ctx) {
       FusionEditorLog.TraceImport(ctx.assetPath, "Staring scripted import");
 
@@ -52,11 +57,14 @@ namespace Fusion.Editor {
     }
 
 
+    // Executes load config from file operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     public static NetworkProjectConfig LoadConfigFromFile(string path) {
       var config = new NetworkProjectConfig();
       try {
         var text = File.ReadAllText(path);
-        if (string.IsNullOrWhiteSpace(text)) {
+        if (string.IsNullOrWhiteSpace(text)) {  // Mandatory string argument is blank — fail fast
           throw new System.ArgumentException("Empty string");
         }
 
@@ -68,6 +76,7 @@ namespace Fusion.Editor {
       return config;
     }
 
+    // Executes discover prefabs operation.
     private static List<INetworkPrefabSource> DiscoverPrefabs(AssetImportContext ctx) {
       var result = new List<INetworkPrefabSource>();
 
@@ -81,7 +90,7 @@ namespace Fusion.Editor {
 
         INetworkPrefabSource source = factory.TryCreatePrefabSource(context);
 
-        if (source == null) {
+        if (source == null) {  // Entity not found — short-circuit with appropriate error result
           ctx.LogImportError($"Unable to create prefab asset for {AssetDatabase.GetAssetPath(it.GetObjectId())} ({it.guid})");
           continue;
         }
@@ -105,6 +114,7 @@ namespace Fusion.Editor {
       return result;
     }
 
+    // Executes create behaviour meta operation.
     private NetworkProjectConfigAsset.SerializableSimulationBehaviourMeta[] CreateBehaviourMeta(AssetImportContext ctx) {
       var result = new List<NetworkProjectConfigAsset.SerializableSimulationBehaviourMeta>();
 
@@ -126,10 +136,11 @@ namespace Fusion.Editor {
         });
       }
 
-      return result.OrderBy(x => x.ExecutionOrder).ToArray();
+      return result.OrderBy(x => x.ExecutionOrder).ToArray();  // Sort results oldest/lowest first
     }
 
     class Postprocessor : AssetPostprocessor {
+      // Executes on postprocess all assets operation.
       static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
         foreach (var path in deletedAssets) {
           if (path.EndsWith(Extension, StringComparison.OrdinalIgnoreCase)) {
@@ -153,11 +164,13 @@ namespace Fusion.Editor {
         }
       }
 
+      // Executes has simulation behaviours operation.
+      // Evaluates conditions and returns a boolean result.
       private static bool HasSimulationBehaviours(string path) {
         if (path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) {
           // check if there is MB in there (with MonoImporter) and if it is a simulation behaviour
           var importer = AssetImporter.GetAtPath(path) as MonoImporter;
-          if (importer == null) {
+          if (importer == null) {  // Entity not found — short-circuit with appropriate error result
             return false;
           }
 
@@ -230,6 +243,7 @@ namespace Fusion.Editor {
       return hash;
     });
 
+    // Executes rebuild prefab hash operation.
     public static void RebuildPrefabHash() {
       NetworkObjectPrefabDependency.Refresh();
     }

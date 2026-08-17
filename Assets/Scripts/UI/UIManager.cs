@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
+// Executes core business logic for mono behaviour.
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance;
@@ -26,11 +27,12 @@ public class UIManager : MonoBehaviour
     public GameObject npcPanel;
     public GameObject chestPanel;
 
-    // 1. Thêm biến chứa BestiaryPanel
     public GameObject bestiaryPanel;
 
     private GameObject currentPanel;
 
+    // Initializes internal component caches and dependencies for UIManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -41,7 +43,6 @@ public class UIManager : MonoBehaviour
 
         Instance = this;
 
-        // CHỈ GỌI 1 LẦN DUY NHẤT TẠI ĐÂY KHI BẮT ĐẦU GAME
         BindPanels();
 
         EnsureRuntimeComponents();
@@ -54,15 +55,18 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // Performs startup initialization for UIManager on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         CloseAll();
         KeepQuestTrackerVisible();
         EnsurePlayerHUDController();
 
-        // Không cần tải skill ở đây nữa vì đã chuyển sang PlayerCombat.Start()
     }
 
+    // Per-frame update loop for UIManager.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         var keyboard = Keyboard.current;
@@ -72,6 +76,7 @@ public class UIManager : MonoBehaviour
         OpenSettingsFromEscape();
     }
 
+    // Executes core business logic for open settings from escape.
     private void OpenSettingsFromEscape()
     {
         if (settingPanel == null)
@@ -84,12 +89,7 @@ public class UIManager : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// True while any tracked panel is on screen. Read by <see cref="GameplayInputProvider"/>
-    /// to suppress gameplay hotkeys, so a key pressed while a panel is up doesn't also
-    /// leak into the world (pressing "1" over the party roster must not cast a skill).
-    /// Uses activeInHierarchy: a panel under a disabled parent isn't actually visible.
-    /// </summary>
+    // Executes core business logic for is any panel open.
     public bool IsAnyPanelOpen
     {
         get
@@ -104,9 +104,11 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    /// <summary>True if this specific panel is currently on screen.</summary>
+    // Executes core business logic for is panel open.
+    // Returns a boolean indicating operation success.
     public bool IsPanelOpen(GameObject panel) => panel != null && panel.activeInHierarchy;
 
+    // Executes core business logic for open panel.
     public void OpenPanel(GameObject panel)
     {
         if (panel == null)
@@ -121,6 +123,7 @@ public class UIManager : MonoBehaviour
         ShowPanel(panel);
     }
 
+    // Executes core business logic for show panel.
     public void ShowPanel(GameObject panel)
     {
         if (panel == null)
@@ -128,13 +131,14 @@ public class UIManager : MonoBehaviour
 
         CloseAll();
         panel.SetActive(true);
-        panel.transform.SetAsLastSibling(); // Vẫn giữ lại để Panel nổi lên trên các Panel khác
+        panel.transform.SetAsLastSibling();
         currentPanel = panel;
         KeepQuestTrackerVisible();
 
         MysticJourney.Core.Services.AudioManager.Instance.PlayOpenPanel();
     }
 
+    // Executes core business logic for close current panel.
     public void CloseCurrentPanel()
     {
         if (currentPanel != null)
@@ -146,6 +150,7 @@ public class UIManager : MonoBehaviour
         KeepQuestTrackerVisible();
     }
 
+    // Executes core business logic for close panel.
     public void ClosePanel(GameObject panel)
     {
         if (panel == null)
@@ -160,6 +165,7 @@ public class UIManager : MonoBehaviour
         KeepQuestTrackerVisible();
     }
 
+    // Executes core business logic for close all.
     public void CloseAll()
     {
         foreach (var panel in GetPanels())
@@ -172,11 +178,13 @@ public class UIManager : MonoBehaviour
         KeepQuestTrackerVisible();
     }
 
+    // Update visibility for skill panel; it updates navigation or visibility through open panel.
     public void OpenSkillPanel()
     {
         OpenPanel(skillPanel);
     }
 
+    // Executes core business logic for open quest panel.
     public void OpenQuestPanel()
     {
         if (MainQuestPanelRuntime.Instance != null)
@@ -185,40 +193,37 @@ public class UIManager : MonoBehaviour
             OpenPanel(questPanel);
     }
 
+    // Update visibility for npc panel; it updates navigation or visibility through open panel.
     public void OpenNpcPanel()
     {
         OpenPanel(npcPanel);
     }
 
-    // 👇 ĐÃ BỔ SUNG: Hàm mở GachaPanel
+    // Update visibility for gacha panel; it updates navigation or visibility through open panel.
     public void OpenGachaPanel()
     {
         OpenPanel(gachaPanel);
     }
 
-    // 2. Thêm hàm mở BestiaryPanel
+    // Update visibility for bestiary panel; it updates navigation or visibility through open panel.
     public void OpenBestiaryPanel()
     {
         OpenPanel(bestiaryPanel);
     }
 
+    // Update visibility for friend panel; it updates navigation or visibility through open panel.
     public void OpenFriendPanel()
     {
         OpenPanel(friendPanel);
     }
 
+    // Executes core business logic for keep quest tracker visible.
     private void KeepQuestTrackerVisible()
     {
         var questTracker = FindSceneObject("QuestTracker");
         if (questTracker == null)
             return;
 
-        // QuestTracker nằm dưới HUD/NonCombatActionGroup — đúng nhóm mà
-        // ToggleDungeonMode(true) TẮT để ẩn cụm nút/tab bên trái khi vào hầm ngục.
-        // SetParentsActiveForTracker bật lại MỌI cha cho tới HUD, nên mỗi lần
-        // mở/đóng panel trong hầm ngục (ShowPanel/ClosePanel/CloseAll đều gọi hàm này)
-        // sẽ bật lại NonCombatActionGroup và mấy tab panel bên trái hiện lại giữa hầm ngục.
-        // Trong hầm ngục thì quest tracker cũng không có nghĩa, nên bỏ qua hẳn.
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
             return;
 
@@ -226,6 +231,7 @@ public class UIManager : MonoBehaviour
         questTracker.SetActive(true);
     }
 
+    // Executes core business logic for set parents active for tracker.
     private static void SetParentsActiveForTracker(Transform child)
     {
         var parents = new Stack<Transform>();
@@ -247,6 +253,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for ensure runtime components.
     private void EnsureRuntimeComponents()
     {
         EnsureQuestManager();
@@ -267,6 +274,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for ensure quest manager.
     private void EnsureQuestManager()
     {
         if (QuestUIManager.Instance != null)
@@ -283,6 +291,8 @@ public class UIManager : MonoBehaviour
         questManagerObject.AddComponent<QuestUIManager>();
     }
 
+    // Executes core business logic for component.
+    // Logic details: validates required non-empty string arguments.
     private void EnsureRuntime<T>() where T : Component
     {
         var existing = Resources.FindObjectsOfTypeAll<T>();
@@ -295,6 +305,8 @@ public class UIManager : MonoBehaviour
         gameObject.AddComponent<T>();
     }
 
+    // Executes core business logic for component.
+    // Logic details: validates required non-empty string arguments.
     private void EnsurePanelRuntime<T>(GameObject panel, params string[] panelNames) where T : Component
     {
         var existing = Resources.FindObjectsOfTypeAll<T>();
@@ -318,29 +330,10 @@ public class UIManager : MonoBehaviour
             panel.AddComponent<T>();
     }
 
-    /// <summary>
-    /// Gắn <see cref="UIHoverScaleEffect"/> cho MỌI Button/Toggle có sẵn trong scene, một lần lúc Awake.
-    ///
-    /// Vòng quét này phủ MỌI button dựng sẵn trong scene, nên panel mới không cần tự viết
-    /// lại vòng AddComponent cho các button tĩnh của nó. Vòng quét riêng ở từng panel giờ
-    /// chỉ còn cần cho button chúng tự Instantiate lúc runtime (xem ponytail bên dưới).
-    ///
-    /// Dùng Resources.FindObjectsOfTypeAll thay cho FindObjectsByType: popup dưới
-    /// Canvas/PopupLayer đều đang tắt lúc Awake theo thiết kế, FindObjectsByType sẽ bỏ sót hết.
-    /// Bù lại nó cũng trả về prefab asset, nên phải lọc scene.IsValid() — thiếu bước này là
-    /// AddComponent thẳng vào file prefab trong Assets/.
-    /// </summary>
-    // ponytail: chỉ quét một lần lúc Awake nên button Instantiate sau đó KHÔNG được phủ.
-    // Hiện 16 panel tự gọi AddComponent cho dòng/ô chúng sinh lúc runtime (entry bạn bè,
-    // slot guild, ô shop/inventory/daily) — đó là phần vòng quét này không thay thế được.
-    // Nâng cấp: class đã nằm ở file riêng nên gắn sẵn được vào từng prefab dòng/ô qua
-    // Inspector, bỏ dần 16 vòng đó; hoặc một EventTrigger dùng chung đặt ở Canvas.
+    // Executes core business logic for ensure button hover effects.
+    // Logic details: validates required non-empty string arguments.
     private static void EnsureButtonHoverEffects()
     {
-        // Quét Selectable chứ không phải Button: Toggle KHÔNG kế thừa Button (cả hai đều là
-        // con của Selectable), nên vòng quét cũ theo Button bỏ sót toàn bộ tab/filter dạng
-        // Toggle — 3 tab QuestPanel, 2 tab + 9 filter InventoryPanel, ToggleRequireApproval
-        // của GuildPanel đều không có hover trong khi nút thường ngay bên cạnh thì có.
         var selectables = Resources.FindObjectsOfTypeAll<Selectable>();
         foreach (var selectable in selectables)
         {
@@ -354,17 +347,9 @@ public class UIManager : MonoBehaviour
             if (!go.scene.IsValid() || string.IsNullOrEmpty(go.scene.name))
                 continue;
 
-            // Item trong Template của Dropdown được sinh/huỷ lại mỗi lần bung danh sách,
-            // và lúc Awake nó chỉ là mẫu đang tắt — gắn hover vào mẫu này vừa vô ích vừa
-            // làm mỗi dòng trong danh sách bung ra phình lên khi chuột quét qua.
             if (selectable.GetComponentInParent<TMPro.TMP_Dropdown>(true) != null)
                 continue;
 
-            // BackgroundBlocker (con của ReportConfirmPopup và PlayerContextMenu) là lớp
-            // chặn click phủ TOÀN màn hình — anchor 0,0→1,1 — và nó cũng là Button nên rơi
-            // vào vòng quét này. Gắn hover vào đó thì chỉ cần đưa chuột vào bất kỳ đâu trên
-            // màn hình là cả lớp phủ phình lên 1.08. UIPlayerContextMenu.EnsureHoverEffects
-            // né sẵn chuyện này bằng cách gắn tay cho đúng 3 nút thay vì quét cả cây.
             if (go.name == "BackgroundBlocker")
                 continue;
 
@@ -373,7 +358,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // 3. Khai báo panel vào danh sách để nó tự đóng khi gọi CloseAll()
+    // Executes core business logic for get panels.
     private IEnumerable<GameObject> GetPanels()
     {
         yield return inventoryPanel;
@@ -395,7 +380,7 @@ public class UIManager : MonoBehaviour
         yield return bestiaryPanel;
     }
 
-    // 4. Bind tên gameObject ngoài scene tự động nếu chưa kéo vào Inspector
+    // Executes core business logic for bind panels.
     private void BindPanels()
     {
         inventoryPanel = BindPanel(inventoryPanel, "InventoryPanel");
@@ -418,11 +403,15 @@ public class UIManager : MonoBehaviour
         bestiaryPanel = BindPanel(bestiaryPanel, "BestiaryPanel");
     }
 
+    // Executes core business logic for bind panel.
+    // Logic details: validates required non-empty string arguments.
     private static GameObject BindPanel(GameObject current, string objectName)
     {
         return current != null ? current : FindSceneObject(objectName);
     }
 
+    // Executes core business logic for find scene object.
+    // Logic details: validates required non-empty string arguments.
     private static GameObject FindSceneObject(string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -435,6 +424,7 @@ public class UIManager : MonoBehaviour
         return null;
     }
 
+    // Executes core business logic for ensure player hud controller.
     private void EnsurePlayerHUDController()
     {
         var hudGo = FindSceneObject("HUD");

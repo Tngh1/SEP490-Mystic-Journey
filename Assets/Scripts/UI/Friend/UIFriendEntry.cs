@@ -6,6 +6,7 @@ using MysticJourney.API.Endpoints;
 
 namespace UI.Friend
 {
+    // Executes mono behaviour operation.
     public class UIFriendEntry : MonoBehaviour
     {
         [Header("Common Data")]
@@ -14,7 +15,7 @@ namespace UI.Friend
         [SerializeField] private TMP_Text classText;
         [SerializeField] private TMP_Text statusText;
         [SerializeField] private Image avatarImage;
-        
+
         [Header("Master Button (For Detail View)")]
         [SerializeField] private Button mainButton;
 
@@ -27,6 +28,7 @@ namespace UI.Friend
         private FriendUIManager parentPanel;
         private int currentProfileId;
 
+        // Executes setup as friend operation.
         public void SetupAsFriend(FriendDto friend, FriendUIManager panel)
         {
             parentPanel = panel;
@@ -35,7 +37,7 @@ namespace UI.Friend
             if (nameText != null) nameText.text = friend.FriendName;
             if (levelText != null) levelText.text = $"Lv.{friend.FriendLevel}";
             if (classText != null) classText.text = friend.Class;
-            
+
             if (statusText != null)
             {
                 statusText.color = friend.IsOnline ? Color.green : Color.gray;
@@ -53,6 +55,7 @@ namespace UI.Friend
             HideInlineButtons();
         }
 
+        // Executes setup as request operation.
         public void SetupAsRequest(PendingFriendRequestDto req, FriendUIManager panel)
         {
             parentPanel = panel;
@@ -70,7 +73,7 @@ namespace UI.Friend
                 statusText.text = dateStr;
             }
 
-            if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for requests
+            if (mainButton != null) mainButton.gameObject.SetActive(false);
             ApplyAvatar(req.RequesterAvatarUrl);
             HideInlineButtons();
 
@@ -89,6 +92,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes setup as search operation.
         public void SetupAsSearch(FriendSearchDto searchResult, FriendUIManager panel)
         {
             parentPanel = panel;
@@ -97,13 +101,13 @@ namespace UI.Friend
             if (nameText != null) nameText.text = searchResult.CharacterName;
             if (levelText != null) levelText.text = $"Lv.{searchResult.Level}";
             if (classText != null) classText.text = searchResult.Class;
-            if (statusText != null) 
+            if (statusText != null)
             {
                 statusText.color = searchResult.IsOnline ? Color.green : Color.gray;
                 statusText.text = searchResult.IsOnline ? "Online" : "Offline";
             }
 
-            if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for search
+            if (mainButton != null) mainButton.gameObject.SetActive(false);
             ApplyAvatar(searchResult.Avatar);
             HideInlineButtons();
 
@@ -131,7 +135,7 @@ namespace UI.Friend
                         if (btnText != null) btnText.text = "";
                         if (btnImage != null) btnImage.enabled = true;
                         addFriendButton.interactable = true;
-                        addFriendButton.onClick.AddListener(() => 
+                        addFriendButton.onClick.AddListener(() =>
                         {
                             if (btnText != null) btnText.text = "...";
                             addFriendButton.interactable = false;
@@ -147,7 +151,7 @@ namespace UI.Friend
                         if (btnText != null) btnText.text = "Accept";
                         if (btnImage != null) btnImage.enabled = false;
                         addFriendButton.interactable = true;
-                        addFriendButton.onClick.AddListener(() => 
+                        addFriendButton.onClick.AddListener(() =>
                         {
                             if (btnText != null) btnText.text = "...";
                             addFriendButton.interactable = false;
@@ -168,6 +172,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes setup as block operation.
         public void SetupAsBlock(FriendProfileDto blockResult, FriendUIManager panel)
         {
             parentPanel = panel;
@@ -178,7 +183,7 @@ namespace UI.Friend
             if (classText != null) classText.text = blockResult.Class;
             if (statusText != null) statusText.gameObject.SetActive(false);
 
-            if (mainButton != null) mainButton.gameObject.SetActive(false); // No detail view for blocks
+            if (mainButton != null) mainButton.gameObject.SetActive(false);
             ApplyAvatar(blockResult.AvatarUrl);
             HideInlineButtons();
 
@@ -190,6 +195,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes hide inline buttons operation.
+        // Validates input parameters against null or empty values.
         private void HideInlineButtons()
         {
             if (addFriendButton != null) addFriendButton.gameObject.SetActive(false);
@@ -198,11 +205,13 @@ namespace UI.Friend
             if (unblockButton != null) unblockButton.gameObject.SetActive(false);
         }
 
+        // Executes apply avatar operation.
+        // Validates input parameters against null or empty values.
         private void ApplyAvatar(string avatarUrl)
         {
             if (avatarImage == null) return;
-            if (string.IsNullOrEmpty(avatarUrl)) avatarUrl = "avatar_1"; // Default avatar
-            
+            if (string.IsNullOrEmpty(avatarUrl)) avatarUrl = "avatar_1";
+
             Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
             if (avatarSprite != null)
             {
@@ -210,21 +219,25 @@ namespace UI.Friend
             }
         }
 
+        // Executes on accept clicked operation.
         private void OnAcceptClicked()
         {
             FriendApi.AcceptFriendRequest(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
+        // Executes on decline clicked operation.
         private void OnDeclineClicked()
         {
             FriendApi.DeclineFriendRequest(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
+        // Executes on add friend clicked operation.
         private void OnAddFriendClicked()
         {
             FriendApi.SendFriendRequest(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));
         }
 
+        // Executes on unblock clicked operation.
         private void OnUnblockClicked()
         {
             FriendApi.UnblockPlayer(currentProfileId, (res) => parentPanel.RefreshData(), err => Debug.LogError(err.Message));

@@ -7,6 +7,7 @@ namespace MysticJourney.API.Models.Response
     {
         public int MonsterId { get; set; }
         public string Name { get; set; }
+        // Supported monster types: Normal, Elite, Boss
         public string Type { get; set; }
         public string Description { get; set; }
         public int Level { get; set; }
@@ -49,6 +50,7 @@ namespace MysticJourney.API.Models.Response
         public int MonsterSpawnId { get; set; }
         public int MonsterId { get; set; }
         public string MonsterName { get; set; }
+        // Supported monster types: Normal, Elite, Boss
         public string MonsterType { get; set; }
         public string MapName { get; set; }
         public string RegionName { get; set; }
@@ -67,6 +69,7 @@ namespace MysticJourney.API.Models.Response
     {
         public int MonsterId { get; set; }
         public string Name { get; set; }
+        // Supported monster types: Normal, Elite, Boss
         public string Type { get; set; }
         public string Description { get; set; }
         public int Level { get; set; }

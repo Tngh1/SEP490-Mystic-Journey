@@ -14,12 +14,14 @@ namespace Fusion {
   public class RunnerAOIGizmos : SimulationBehaviour {
 #if UNITY_EDITOR
 
+    // Executes gizmo options enum operation.
     [Flags]
     public enum GizmoOptionsEnum {
       ShowActiveServerZones    = 1,
       ShowPlayerInterest = 2,
     }
 
+    // Executes custom options operation.
     [System.Serializable]
     public struct CustomOptions {
       public Color ServerZonesColor;
@@ -36,10 +38,12 @@ namespace Fusion {
 
     private List<(Vector3 center, Vector3 size, int playerCount, int objectCount)> _reusableGizmoData;
 
+    // Executes on enabled operation.
     private void OnEnabled() {
       
     }
     
+    // Executes on draw gizmos operation.
     private void OnDrawGizmos() {
 
       if (enabled == false) {

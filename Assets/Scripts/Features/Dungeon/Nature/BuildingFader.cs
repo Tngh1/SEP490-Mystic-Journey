@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+// Executes mono behaviour operation.
 public class BuildingFader3 : MonoBehaviour
 {
     const float VISIBLE_ALPHA = 1f;
     const float TRANSPARENT_ALPHA = 0.3f;
-    // Ngưỡng dừng: snap về target và tắt Update() để tiết kiệm CPU.
     const float ALPHA_EPSILON = 0.005f;
 
     private SpriteRenderer[] m_SpriteRenderers;
@@ -16,6 +16,7 @@ public class BuildingFader3 : MonoBehaviour
     private int m_InitialSortOrder;
     private SpriteRenderer m_InteractorRenderer;
 
+    // Executes background object alpha operation.
     private float BackgroundObjectAlpha
     {
         get
@@ -32,7 +33,6 @@ public class BuildingFader3 : MonoBehaviour
     {
         m_SpriteRenderers = GetComponentsInChildren<SpriteRenderer>();
         m_Tilemaps = GetComponentsInChildren<Tilemap>();
-        // Idle ngay từ đầu — OnTriggerEnter2D sẽ bật lại khi cần
         this.enabled = false;
     }
 
@@ -48,7 +48,6 @@ public class BuildingFader3 : MonoBehaviour
 
         if (diff <= ALPHA_EPSILON)
         {
-            // Snap và tắt Update — building không tốn CPU khi không có player
             ApplyAlpha(targetAlpha);
             if (!m_FadeOutEnabled && m_InteractorRenderer != null)
                 m_InteractorRenderer.sortingOrder = m_InitialSortOrder;
@@ -62,6 +61,7 @@ public class BuildingFader3 : MonoBehaviour
             FadeIn();
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (m_FadeOutEnabled) return;
@@ -73,11 +73,12 @@ public class BuildingFader3 : MonoBehaviour
             {
                 m_InitialSortOrder = m_InteractorRenderer.sortingOrder;
                 m_FadeOutEnabled = true;
-                this.enabled = true; // Bật Update để fade out
+                this.enabled = true;
             }
         }
     }
 
+    // Executes on trigger exit2 d operation.
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (!m_FadeOutEnabled) return;
@@ -85,10 +86,11 @@ public class BuildingFader3 : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             m_FadeOutEnabled = false;
-            this.enabled = true; // Bật Update để fade in
+            this.enabled = true;
         }
     }
 
+    // Executes fade out operation.
     private void FadeOut()
     {
         if (m_SpriteRenderers != null)
@@ -99,6 +101,7 @@ public class BuildingFader3 : MonoBehaviour
                 ChangeTilemapOpacity(map, TRANSPARENT_ALPHA);
     }
 
+    // Executes fade in operation.
     private void FadeIn()
     {
         if (m_SpriteRenderers != null)
@@ -109,7 +112,7 @@ public class BuildingFader3 : MonoBehaviour
                 ChangeTilemapOpacity(map, VISIBLE_ALPHA);
     }
 
-    /// <summary>Snap alpha ngay lập tức — không lerp, dùng khi đã đủ gần target.</summary>
+    // Executes apply alpha operation.
     private void ApplyAlpha(float alpha)
     {
         if (m_SpriteRenderers != null)
@@ -120,12 +123,14 @@ public class BuildingFader3 : MonoBehaviour
                 if (t != null) { var c = t.color; t.color = new Color(c.r, c.g, c.b, alpha); }
     }
 
+    // Executes change sprite opacity operation.
     private void ChangeSpriteOpacity(SpriteRenderer renderer, float targetAlpha)
     {
         Color color = renderer.color;
         renderer.color = new Color(color.r, color.g, color.b, Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * 4));
     }
 
+    // Executes change tilemap opacity operation.
     private void ChangeTilemapOpacity(Tilemap map, float targetAlpha)
     {
         Color color = map.color;

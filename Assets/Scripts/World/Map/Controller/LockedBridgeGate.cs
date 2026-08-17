@@ -3,10 +3,7 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.Core.Utilities;
 using UnityEngine;
 
-/// <summary>
-/// Server-authoritative gate for the bridge to the deserted island.
-/// Quest state and Mystic Key consumption are owned by the backend so unlocks do not leak between accounts.
-/// </summary>
+// Executes mono behaviour operation.
 [RequireComponent(typeof(WorldInteractable))]
 public class LockedBridgeGate : MonoBehaviour
 {
@@ -28,6 +25,8 @@ public class LockedBridgeGate : MonoBehaviour
     private bool _isUnlocking;
     private WorldInteractable _interactable;
 
+    // Initializes internal component caches and dependencies for LockedBridgeGate upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (blockingCollider2D == null) blockingCollider2D = GetComponent<Collider2D>();
@@ -36,17 +35,20 @@ public class LockedBridgeGate : MonoBehaviour
         _interactable.ConfigureObject(objectKey, displayName, "Interact", requiredQuestId, 1, 2.75f);
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         WorldRuntimeEvents.QuestsChanged += CheckUnlockState;
         CheckUnlockState();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         WorldRuntimeEvents.QuestsChanged -= CheckUnlockState;
     }
 
+    // Executes check unlock state operation.
     public void CheckUnlockState()
     {
         var state = QuestUIManager.Instance?.GetQuestState(requiredQuestId);
@@ -57,6 +59,7 @@ public class LockedBridgeGate : MonoBehaviour
         SetGateUnlocked(unlocked, showNotice: false);
     }
 
+    // Executes set gate unlocked operation.
     private void SetGateUnlocked(bool unlocked, bool showNotice)
     {
         _isUnlocked = unlocked;
@@ -67,32 +70,38 @@ public class LockedBridgeGate : MonoBehaviour
         if (showNotice) WorldRuntimeEvents.RaiseMessage(unlockedMessage);
     }
 
+    // Executes notify locked operation.
     public void NotifyLocked()
     {
         if (!_isUnlocked)
             WorldRuntimeEvents.RaiseMessage(lockedMessage);
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!_isUnlocked && other.CompareTag("Player")) NotifyLocked();
     }
 
+    // Executes on trigger enter operation.
     private void OnTriggerEnter(Collider other)
     {
         if (!_isUnlocked && other.CompareTag("Player")) NotifyLocked();
     }
 
+    // Executes on collision enter2 d operation.
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (!_isUnlocked && collision.gameObject.CompareTag("Player")) NotifyLocked();
     }
 
+    // Executes on collision enter operation.
     private void OnCollisionEnter(Collision collision)
     {
         if (!_isUnlocked && collision.gameObject.CompareTag("Player")) NotifyLocked();
     }
 
+    // Executes interact with gate operation.
     public void InteractWithGate()
     {
         CheckUnlockState();

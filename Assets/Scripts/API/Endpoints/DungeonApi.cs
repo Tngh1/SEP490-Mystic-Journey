@@ -6,22 +6,18 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // DUNGEON API - Phó bản và Session
-    // ═══════════════════════════════════════════════════════════════════════
     public class DungeonApi : BaseApiService<DungeonApi>
     {
-        // ═══════════════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách dungeons ───────────────────────────────
+        // ─── Player APIs ───────────────────────────────────────────────────────
+        // Load all using page, page size, on success, and on error; it sends the GET API request and guards invalid or unavailable states.
         public void GetAll(
             int page,
             int pageSize,
             Action<PaginatedResponse<DungeonResponse>> onSuccess,
             Action<ApiException> onError,
             string search = null,
+            // Dungeon type is a free-form category with Normal as the current default; the backend does not enforce a closed allowlist.
             string type = null,
             bool? isActive = null)
         {
@@ -46,7 +42,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy dungeon theo ID ───────────────────────────────
+        // Executes get by id operation.
         public void GetById(int dungeonConfigId, Action<DungeonResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.DungeonById, dungeonConfigId);
@@ -66,7 +62,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Vào dungeon ────────────────────────────────────
+        // Process enter using dungeon config id, party members, on success, and on error; it sends the POST API request.
         public void Enter(
             int dungeonConfigId,
             List<string> partyMembers,
@@ -94,7 +90,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Cập nhật tiến trình chiến đấu ──────────────────
+        // Update progress using session id, body, on success, and on error; it sends the POST API request.
         public void UpdateProgress(
             int sessionId,
             UpdateDungeonProgressRequest body,
@@ -119,7 +115,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Hoàn thành dungeon ────────────────────────────────
+        // Process complete using session id, on success, and on error; it sends the POST API request.
         public void Complete(
             int sessionId,
             Action<CompleteDungeonResponse> onSuccess,
@@ -142,7 +138,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nhận thưởng dungeon ──────────────────────────────
+        // Process claim reward using session id, on success, and on error; it sends the POST API request.
         public void ClaimReward(
             int sessionId,
             Action<ClaimDungeonRewardResponse> onSuccess,

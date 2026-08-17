@@ -1,13 +1,12 @@
 using UnityEngine;
 
-/// <summary>
-/// Marks a locally-instantiated copy of another player's legacy skill prefab.
-/// The copy may animate and move, but must never apply gameplay effects.
-/// </summary>
+// Executes mono behaviour operation.
 public sealed class PlayerSkillVisualReplica : MonoBehaviour
 {
+    // Executes owner operation.
     public Transform Owner { get; private set; }
 
+    // Executes mark operation.
     public static PlayerSkillVisualReplica Mark(GameObject instance, Transform owner)
     {
         var marker = instance.GetComponent<PlayerSkillVisualReplica>();
@@ -16,9 +15,11 @@ public sealed class PlayerSkillVisualReplica : MonoBehaviour
         return marker;
     }
 
+    // Executes is replica operation.
     public static bool IsReplica(Component component) =>
         component != null && component.GetComponentInParent<PlayerSkillVisualReplica>() != null;
 
+    // Executes get owner operation.
     public static Transform GetOwner(Component component) =>
         component != null
             ? component.GetComponentInParent<PlayerSkillVisualReplica>()?.Owner

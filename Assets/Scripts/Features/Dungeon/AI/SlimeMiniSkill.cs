@@ -1,11 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Slime Mini Trap Skill - Bẫy Slime Mini do Boss SwampDemon triệu hồi.
-/// Đứng yên tại vị trí triệu hồi. Khi Player giẫm phải:
-/// 1. Kích hoạt hiệu ứng trói/khóa chân Player (ngăn không cho di chuyển).
-/// 2. Chuyển animation Attack/Die và tự hủy ngay lập tức.
-/// </summary>
+// Executes mono behaviour operation.
 public class SlimeMiniSkill : MonoBehaviour
 {
     [Header("Trap Settings")]
@@ -35,17 +30,22 @@ public class SlimeMiniSkill : MonoBehaviour
     private bool _isTriggered = false;
     private Animator _animator;
 
+    // Initializes internal component caches and dependencies for SlimeMiniSkill upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _animator = GetComponent<Animator>();
     }
 
+    // Performs startup initialization for SlimeMiniSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // Tự động biến mất sau thời gian tối đa nếu không ai giẫm phải
         Destroy(gameObject, maxLifeTime);
     }
 
+    // Executes on trigger enter2 d operation.
+    // Validates input parameters against null or empty values.
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (EnemySkillVisualReplica.IsReplica(this)) return;
@@ -68,23 +68,19 @@ public class SlimeMiniSkill : MonoBehaviour
                 return;
             }
 
-            // 1. Áp dụng hiệu ứng Khóa chân (Root) cho Player
             PlayerMovement playerMovement = col.GetComponent<PlayerMovement>();
             if (playerMovement != null)
             {
                 playerMovement.ApplyRoot(rootDuration);
             }
 
-            // 2. Áp dụng hiệu ứng Cấm đánh & Khóa kỹ năng (Silence) cho Player
             if (playerCombat != null)
             {
                 playerCombat.ApplySilence(silenceDuration);
             }
 
-            // Đồng thời áp dụng SlimeDebuff để tạo icon/DoT nếu cần
             SlimeDebuff.ApplyTo(col.gameObject, 0f, damageOnStep, 1f, rootDuration);
 
-            // Gây sát thương tức thì nếu có
             if (damageOnStep > 0)
             {
                 PlayerEntity playerEntity = col.GetComponent<PlayerEntity>();
@@ -94,13 +90,11 @@ public class SlimeMiniSkill : MonoBehaviour
                 }
             }
 
-            // 2. Phát âm thanh
             if (triggerSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
             {
                 MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(triggerSound, soundVolume);
             }
 
-            // 3. Chạy animation Attack / Die
             if (_animator != null)
             {
                 if (!string.IsNullOrEmpty(dieAnimState))
@@ -113,7 +107,6 @@ public class SlimeMiniSkill : MonoBehaviour
                 }
             }
 
-            // 4. Hủy bẫy SlimeMini ngay lập tức sau delay ngắn
             Destroy(gameObject, destroyDelay);
         }
     }

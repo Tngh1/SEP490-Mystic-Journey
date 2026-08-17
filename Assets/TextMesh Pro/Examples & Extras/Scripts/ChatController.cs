@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using TMPro;
 
+// Executes mono behaviour operation.
 public class ChatController : MonoBehaviour {
 
 

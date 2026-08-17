@@ -1,11 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// Script bắn Cầu Lửa Truy Đuổi cho đòn Đánh Thường của Boss Rồng.
-/// Lắng nghe sự kiện OnEnemyAttack của EnemyBehaviour, khi kết thúc/đạt thời điểm
-/// animation đánh sẽ sinh ra quả cầu lửa bay truy đuổi người chơi.
-/// </summary>
+// Executes mono behaviour operation.
 public class DragonAttackShooter : MonoBehaviour
 {
     [Header("Fireball Prefab")]
@@ -21,6 +17,8 @@ public class DragonAttackShooter : MonoBehaviour
 
     private EnemyBehaviour _enemyBehaviour;
 
+    // Initializes internal component caches and dependencies for DragonAttackShooter upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _enemyBehaviour = GetComponent<EnemyBehaviour>();
@@ -32,6 +30,7 @@ public class DragonAttackShooter : MonoBehaviour
         GetComponent<NetworkEnemy>()?.RegisterSkillPrefab(fireballPrefab);
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (_enemyBehaviour != null)
@@ -40,6 +39,7 @@ public class DragonAttackShooter : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (_enemyBehaviour != null)
@@ -48,22 +48,22 @@ public class DragonAttackShooter : MonoBehaviour
         }
     }
 
+    // Executes handle enemy attack operation.
     private void HandleEnemyAttack(object sender, System.EventArgs e)
     {
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(SpawnFireballRoutine());
     }
 
+    // Create fireball routine; it creates fireball.
     private IEnumerator SpawnFireballRoutine()
     {
-        // Chờ animation đánh diễn ra đến thời điểm bắn
         yield return new WaitForSeconds(fireballSpawnDelay);
 
         SpawnFireball();
     }
 
-    /// <summary>
-    /// Hàm sinh quả cầu lửa. Có thể gọi trực tiếp từ Animation Event trong Unity Animation Window.
-    /// </summary>
+    // Executes spawn fireball operation.
     public void SpawnFireball()
     {
         if (fireballPrefab == null)
@@ -78,7 +78,6 @@ public class DragonAttackShooter : MonoBehaviour
             ? networkEnemy.SpawnEnemySkill(fireballPrefab, spawnPos)
             : Instantiate(fireballPrefab, spawnPos, Quaternion.identity);
 
-        // Đảm bảo quả cầu lửa biết được mục tiêu Player
         DragonHomingFireball homingScript = fireballObj.GetComponent<DragonHomingFireball>();
         if (homingScript != null)
         {

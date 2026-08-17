@@ -1,31 +1,27 @@
 using UnityEngine;
 
-/// <summary>
-/// Phóng to nhẹ (1.08x) khi rê chuột vào, trả lại scale gốc khi rời ra.
-///
-/// PHẢI nằm ở file riêng trùng tên class: Unity chỉ serialize được MonoBehaviour
-/// khi tên file khớp tên class. Trước đây class này khai báo lồng ở cuối
-/// PartyPanel.cs nên không kéo được vào prefab/scene qua Inspector — hệ quả là
-/// 15 panel mỗi cái tự viết một vòng AddComponent giống nhau, còn button
-/// Instantiate lúc runtime (entry bạn bè, slot guild, ô shop/inventory/daily)
-/// thì không ai phủ nên không có hover. Đừng gộp class này trở lại file khác.
-/// </summary>
+// Executes i pointer exit handler operation.
 public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPointerEnterHandler, UnityEngine.EventSystems.IPointerExitHandler
 {
     private Vector3 originalScale;
     private Vector3 targetScale;
     private bool _initialized;
 
+    // Initializes internal component caches and dependencies for UIHoverScaleEffect upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         InitScale();
     }
 
+    // Performs startup initialization for UIHoverScaleEffect on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         InitScale();
     }
 
+    // Executes init scale operation.
     private void InitScale()
     {
         if (!_initialized || originalScale == Vector3.zero)
@@ -36,6 +32,8 @@ public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPoint
         }
     }
 
+    // Per-frame update loop for UIHoverScaleEffect.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (transform.localScale != targetScale)
@@ -44,18 +42,21 @@ public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPoint
         }
     }
 
+    // Executes on pointer enter operation.
     public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData)
     {
         InitScale();
         targetScale = originalScale * 1.08f;
     }
 
+    // Executes on pointer exit operation.
     public void OnPointerExit(UnityEngine.EventSystems.PointerEventData eventData)
     {
         InitScale();
         targetScale = originalScale;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (_initialized && originalScale != Vector3.zero)

@@ -1,13 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Skill Cột Sáng Hồi Máu (HealBoss Prefab) do IceFairy triệu hồi lên GolemBoss.
-/// Khi xuất hiện tại vị trí GolemBoss:
-/// 1. Căn chỉnh vị trí cột sáng lên giữa thân người Boss (bằng Offset Y).
-/// 2. Hồi % Máu tối đa cho GolemBoss.
-/// 3. Hiển thị Popup HP màu xanh lá.
-/// 4. Tự hủy sau khi hiệu ứng cột sáng chạy xong.
-/// </summary>
+// Executes mono behaviour operation.
 public class HealBossSkill : MonoBehaviour
 {
     [Header("Heal Settings")]
@@ -25,27 +18,26 @@ public class HealBossSkill : MonoBehaviour
     [SerializeField] private AudioClip healSound;
     [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
 
+    // Performs startup initialization for HealBossSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // 1. Phát âm thanh hồi máu
         if (healSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(healSound, soundVolume);
         }
 
-        // 2. Tìm Boss GolemBoss tại vị trí xuất hiện hoặc gần nhất
         EnemyEntity targetBoss = FindTargetBoss();
         if (targetBoss != null)
         {
-            // Căn chỉnh vị trí cột sáng lên giữa thân Boss
             AlignPositionToBossCenter(targetBoss);
             ApplyHeal(targetBoss);
         }
 
-        // 3. Tự động dọn dẹp Cột sáng sau lifeTime
         Destroy(gameObject, lifeTime);
     }
 
+    // Executes align position to boss center operation.
     private void AlignPositionToBossCenter(EnemyEntity boss)
     {
         Transform foundPoint = boss.transform.Find("SpawnPoint") ?? boss.transform.Find("SkillSpawn");
@@ -59,6 +51,7 @@ public class HealBossSkill : MonoBehaviour
         }
     }
 
+    // Restores player health clamped to MaxHp and triggers combat popup visual effects.
     private void ApplyHeal(EnemyEntity boss)
     {
         if (boss.IsDead) return;
@@ -66,20 +59,18 @@ public class HealBossSkill : MonoBehaviour
         int healAmount = Mathf.RoundToInt(boss.MaxHealth * (healPercent / 100f));
         boss.Heal(healAmount);
 
-        // Hiển thị Popup HP màu Xanh Lá
         if (DamagePopupManager.Instance != null && healAmount > 0)
         {
             DamagePopupManager.Instance.Create(boss.transform.position + new Vector3(0f, 1.5f, 0f), healAmount, false, false, true);
         }
     }
 
+    // Executes find target boss operation.
     private EnemyEntity FindTargetBoss()
     {
-        // Ưu tiên lấy từ Parent nếu Prefab được Instantiate làm con của Boss
         EnemyEntity parentBoss = GetComponentInParent<EnemyEntity>();
         if (parentBoss != null && parentBoss.GetComponent<IceFairySupportAI>() == null) return parentBoss;
 
-        // Tìm quái gần nhất trong bán kính 6m (bỏ qua IceFairy)
         EnemyEntity[] enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
         EnemyEntity nearestBoss = null;
         float minDistance = float.MaxValue;
@@ -88,12 +79,10 @@ public class HealBossSkill : MonoBehaviour
         {
             if (enemy == null || enemy.gameObject == this.gameObject || enemy.IsDead) continue;
 
-            // Bỏ qua chính IceFairy
             if (enemy.GetComponent<IceFairySupportAI>() != null || enemy.gameObject.name.Contains("IceFairy")) continue;
 
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
 
-            // Ưu tiên Boss có tên chứa "Golem" hoặc "Boss"
             bool isBossCandidate = enemy.gameObject.name.IndexOf("Golem", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                   enemy.gameObject.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0;
 

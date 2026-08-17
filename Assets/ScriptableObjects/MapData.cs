@@ -1,15 +1,16 @@
 using UnityEngine;
 
+// Executes scriptable object operation.
 [CreateAssetMenu(menuName = "Mystic Journey/Map Data")]
 public class MapData : ScriptableObject
 {
     public int mapId;
-    public string mapName;     // Tên Unity scene (ví dụ: "ElfForest")
+    public string mapName;
     public Sprite thumbnail;
 
     [Header("Quest Chain")]
-    public int firstQuestId;   // Quest đầu tiên của map (traverse qua nextQuestId)
-    public int unlockQuestId;  // Quest phải Claimed để mở map này (0 = luôn mở)
+    public int firstQuestId;
+    public int unlockQuestId;
 
     [TextArea(2, 4)]
     public string description;

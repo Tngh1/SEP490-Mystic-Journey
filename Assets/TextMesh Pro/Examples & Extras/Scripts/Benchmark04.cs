@@ -5,6 +5,7 @@ using System.Collections;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class Benchmark04 : MonoBehaviour
     {
 

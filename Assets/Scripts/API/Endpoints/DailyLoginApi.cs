@@ -4,16 +4,10 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // DAILY LOGIN API - Thưởng đăng nhập hàng ngày
-    // ═══════════════════════════════════════════════════════════════
     public class DailyLoginApi : BaseApiService<DailyLoginApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy rewards tháng hiện tại ──────────────
+        // Executes get current month operation.
         public void GetCurrentMonth(Action<System.Collections.Generic.List<DailyLoginRewardResponse>> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Get<System.Collections.Generic.List<DailyLoginRewardResponse>>(
@@ -31,7 +25,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nhận thưởng đăng nhập ────────────────
+        // Executes claim operation.
         public void Claim(Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("Claim daily login reward...");
@@ -50,7 +44,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nhận thưởng đăng nhập trễ ──────────
+        // Executes retro claim operation.
         public void RetroClaim(int dayNumber, Action<ClaimDailyRewardResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"Retro claim daily login reward for day {dayNumber}...");

@@ -7,22 +7,24 @@ using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// Initializes a new default instance of the WorldSceneInteractableBootstrap class.
 public static class WorldSceneInteractableBootstrap
 {
     private static readonly HashSet<int> bootstrappedScenes = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    // Executes reset runtime state operation.
     private static void ResetRuntimeState()
     {
         bootstrappedScenes.Clear();
     }
 
+    // Executes ensure for scene operation.
     public static void EnsureForScene(Scene scene)
     {
         if (!scene.IsValid())
             return;
 
-        // Xóa sạch các Skeleton bị gán nhầm script WorldInteractable (quái không được làm NPC)
         var interactables = WorldInteractable.All;
         for (int i = interactables.Count - 1; i >= 0; i--)
         {
@@ -30,8 +32,6 @@ public static class WorldSceneInteractableBootstrap
             if (item == null || item.gameObject.scene != scene)
                 continue;
 
-            // Q36's fourth Warden Relic uses the decorative Skeleton_b prop, not an enemy.
-            // ponytail: Remove the name fallback once quest items are identified before this cleanup by tag or kind.
             if (item.gameObject.CompareTag("QuestItem") ||
                 item.Kind == WorldInteractableKind.QuestItem ||
                 item.gameObject.name.StartsWith("Warden Relic", StringComparison.OrdinalIgnoreCase))
@@ -39,14 +39,12 @@ public static class WorldSceneInteractableBootstrap
 
             if (item.gameObject.name.Contains("Skeleton") || item.DisplayName == "Skeleton")
             {
-                UnityEngine.Object.Destroy(item); // Xóa component bị gán nhầm
+                UnityEngine.Object.Destroy(item);
             }
         }
 
         ConfigureFallback(scene);
 
-        // UnderKing is the Q39 objective. Keep the scene instance dormant until that quest is
-        // actually in progress so killing it early cannot permanently strand the main chain.
         if (string.Equals(scene.name, "AbandonedCastle", StringComparison.OrdinalIgnoreCase))
             SetSceneObjectActive(scene, "UnderKing", false);
 
@@ -57,6 +55,7 @@ public static class WorldSceneInteractableBootstrap
         RefreshFromApi(scene);
     }
 
+    // Executes refresh from api operation.
     public static void RefreshFromApi(Scene scene)
     {
         if (!scene.IsValid())
@@ -71,6 +70,7 @@ public static class WorldSceneInteractableBootstrap
         );
     }
 
+    // Executes configure fallback operation.
     private static void ConfigureFallback(Scene scene)
     {
         var allInteractables = WorldInteractable.All;
@@ -91,13 +91,12 @@ public static class WorldSceneInteractableBootstrap
             );
         }
 
-        // "flower" chỉ tồn tại trong ElfForest.unity. Không gate theo scene thì lookup này chạy ở
-        // mọi world scene (Main, AbandonedCastle, ...) và luôn log warning "no objects found".
         if (IsElfForest(scene))
             ConfigureObject(scene, "flower", "ElfForest.WhiteFlower", "White Flower", "Collect", 0, 2.25f);
         ConfigureTaggedQuestItems(scene, null);
     }
 
+    // Executes apply api state operation.
     private static void ApplyApiState(Scene scene, WorldStateResponse state)
     {
         if (state == null)
@@ -105,15 +104,6 @@ public static class WorldSceneInteractableBootstrap
 
         var allInteractables = WorldInteractable.All;
         var mapNpcs = state.Npcs?.Where(n => n != null && n.IsActive && string.Equals(n.MapName, scene.name, StringComparison.OrdinalIgnoreCase)).ToList() ?? new List<NPCResponse>();
-        // Chỉ ẩn Natalie khi quest 33 đã "Claimed", KHÔNG phải "Completed".
-        // Quest 33 ("[Chapter 4] Lay Natalie to Rest") có ObjectiveTarget = "Ivy Tree" nhưng
-        // QuestGiverName = "Natalie": mục tiêu hoàn thành ở Ivy Tree, còn phần trả nhiệm vụ
-        // (AutoClaimCompletedQuest trong MainNpcPanel) phải nói chuyện với Natalie.
-        // BatchUpdateProgress flip Status = "Completed" ngay khi chạm Ivy Tree
-        // (PlayerQuestService.BatchUpdateProgress), rồi RaiseQuestsChanged gọi lại hàm này
-        // → ẩn Natalie TRƯỚC khi người chơi kịp trả nhiệm vụ: "làm xong quest của NPC thì
-        // không interact được với NPC đó nữa". Gate theo "Claimed" giữ Natalie sống đúng
-        // một lượt nói chuyện cuối.
         var hideNatalie = IsQuestClaimed(state, 33);
 
         if (string.Equals(scene.name, "AbandonedCastle", StringComparison.OrdinalIgnoreCase))
@@ -124,20 +114,8 @@ public static class WorldSceneInteractableBootstrap
             SetSceneObjectActive(scene, "UnderKing", underKingActive);
         }
 
-        // Standardized NPC configuration pipeline for ALL map NPCs
         foreach (var apiNpc in mapNpcs)
         {
-            // Bật/tắt Natalie TRƯỚC khi lọc `matches`.
-            //
-            // SetActive thay vì Destroy: hàm này chạy lại mỗi lần QuestsChanged (kể cả mỗi lần đóng
-            // panel NPC), nên Destroy là một chiều — bắn sai một lần là Natalie mất hẳn tới khi load
-            // lại scene. SetActive(false) còn cứu được vì FindSceneObject dùng
-            // Resources.FindObjectsOfTypeAll nên vẫn thấy object đang tắt.
-            //
-            // Phải đặt trên `matches`: WorldInteractable.OnDisable gỡ object khỏi
-            // WorldInteractable.All, nên lúc Natalie đang tắt thì `allInteractables` không chứa cô.
-            // Bật lại rồi mới lọc thì SetActive(true) → OnEnable → có mặt trong All ngay trong lần
-            // refresh này, khỏi phải chờ refresh sau mới được ConfigureNpc.
             if (string.Equals(apiNpc.Name, "Natalie", StringComparison.OrdinalIgnoreCase))
             {
                 SetSceneObjectActive(scene, apiNpc.Name, !hideNatalie);
@@ -189,11 +167,7 @@ public static class WorldSceneInteractableBootstrap
         ConfigureRespawnableCollectItems(scene, state);
     }
 
-    /// <summary>
-    /// "Claimed" là trạng thái duy nhất bảo đảm người chơi ĐÃ trả nhiệm vụ xong.
-    /// "Completed" chỉ nói mục tiêu đã đạt (BatchUpdateProgress tự flip khi Progress đủ), phần trả
-    /// nhiệm vụ cho NPC thì chưa xảy ra — nên đừng dùng "Completed" để ẩn quest giver.
-    /// </summary>
+    // Executes is quest claimed operation.
     private static bool IsQuestClaimed(WorldStateResponse state, int questId)
     {
         return state?.Quests != null && state.Quests.Any(q =>
@@ -203,16 +177,15 @@ public static class WorldSceneInteractableBootstrap
 
 
 
+    // Executes is elf forest operation.
     private static bool IsElfForest(Scene scene)
     {
         return string.Equals(scene.name, "ElfForest", StringComparison.OrdinalIgnoreCase);
     }
 
+    // Executes configure object operation.
     private static void ConfigureObject(Scene scene, string sceneObjectName, string objectKey, string displayName, string interactionType, int questId, float radius)
     {
-        // Tìm tất cả object có tên chứa sceneObjectName (case-insensitive, partial match).
-        // FindSceneObject (exact) hay bị miss khi Unity spawn prefab tạo tên "flower(Clone)",
-        // "Flower_1", "WhiteFlower" v.v. -- dẫn đến hoa không bao giờ được configure.
         var targets = FindSceneObjects(scene, sceneObjectName);
         if (targets.Count == 0)
         {
@@ -229,6 +202,7 @@ public static class WorldSceneInteractableBootstrap
         }
     }
 
+    // Executes configure quest item by name operation.
     private static void ConfigureQuestItemByName(Scene scene, string sceneObjectName, string objectKey, string itemName, string interactionType, int questId, float radius)
     {
         var targets = FindSceneObjects(scene, sceneObjectName);
@@ -247,16 +221,11 @@ public static class WorldSceneInteractableBootstrap
     }
 
 
+    // Executes configure tagged quest items operation.
     private static void ConfigureTaggedQuestItems(Scene scene, WorldStateResponse state)
     {
         foreach (var obj in FindSceneObjectsByTag(scene, "QuestItem"))
         {
-            // Cổng dịch chuyển (Boat) cũng bị tag "QuestItem" trong scene, nhưng nó KHÔNG phải
-            // vật phẩm thu thập: nó tự quản lý vòng đời (ẩn player, chiếu video, đổi scene) và đã
-            // được cấu hình sẵn trong scene (kind Object, objectKey "Boat", type Interact).
-            // Nếu để chạy tiếp: (1) AddComponent<WorldRespawnable> khiến nhánh respawner trong
-            // OnSuccessfulInteraction tắt hết Renderer → thuyền biến mất mà video không chạy;
-            // (2) ConfigureQuestItem ghi đè kind/objectKey thành QuestItem/"ElfForest.Boat".
             if (obj.GetComponent<MapTeleportPortal>() != null)
                 continue;
 
@@ -271,6 +240,7 @@ public static class WorldSceneInteractableBootstrap
         }
     }
 
+    // Executes configure respawnable collect items operation.
     private static void ConfigureRespawnableCollectItems(Scene scene, WorldStateResponse state)
     {
         foreach (var respawnable in Resources.FindObjectsOfTypeAll<WorldRespawnable>())
@@ -295,6 +265,7 @@ public static class WorldSceneInteractableBootstrap
         }
     }
 
+    // Executes find collect quest id operation.
     private static int FindCollectQuestId(WorldStateResponse state, string itemName)
     {
         var quest = state?.Quests?.FirstOrDefault(q =>
@@ -304,6 +275,8 @@ public static class WorldSceneInteractableBootstrap
         return quest?.QuestId ?? 0;
     }
 
+    // Executes resolve quest item name operation.
+    // Validates input parameters against null or empty values.
     private static string ResolveQuestItemName(string objectName)
     {
         var pretty = PrettyName(objectName);
@@ -312,12 +285,16 @@ public static class WorldSceneInteractableBootstrap
         return Contains(pretty, "Flower") ? "White Flower" : pretty;
     }
 
+    // Executes build object key operation.
+    // Validates input parameters against null or empty values.
     private static string BuildObjectKey(string displayName)
     {
         var compact = PrettyName(displayName).Replace(" ", string.Empty);
         return string.IsNullOrWhiteSpace(compact) ? "QuestItem" : compact;
     }
 
+    // Executes pretty name operation.
+    // Validates input parameters against null or empty values.
     private static string PrettyName(string objectName)
     {
         if (string.IsNullOrWhiteSpace(objectName))
@@ -329,6 +306,7 @@ public static class WorldSceneInteractableBootstrap
             .Trim();
     }
 
+    // Executes find scene objects by tag operation.
     private static IEnumerable<GameObject> FindSceneObjectsByTag(Scene scene, string tag)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -341,6 +319,8 @@ public static class WorldSceneInteractableBootstrap
                 yield return obj;
         }
     }
+    // Executes first dialogue operation.
+    // Validates input parameters against null or empty values.
     private static string FirstDialogue(NPCResponse npc)
     {
         return npc?.Dialogues?
@@ -351,11 +331,14 @@ public static class WorldSceneInteractableBootstrap
             "Chao mung con den ElfLand. Hay noi chuyen voi ta de bat dau hanh trinh.";
     }
 
+    // Executes contains operation.
+    // Validates input parameters against null or empty values.
     private static bool Contains(string source, string value)
     {
         return !string.IsNullOrWhiteSpace(source) && !string.IsNullOrWhiteSpace(value) && source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    // Executes set scene object active operation.
     private static void SetSceneObjectActive(Scene scene, string objectName, bool active)
     {
         var target = FindSceneObject(scene, objectName);
@@ -363,6 +346,7 @@ public static class WorldSceneInteractableBootstrap
             target.SetActive(active);
     }
 
+    // Executes find scene object operation.
     private static GameObject FindSceneObject(Scene scene, string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -375,24 +359,19 @@ public static class WorldSceneInteractableBootstrap
         return null;
     }
 
-    /// <summary>
-    /// Tìm tất cả GameObject trong scene có tên CHỨA <paramref name="nameFragment"/> (case-insensitive).
-    /// Trả về exact-match trước rồi mới partial-match để ưu tiên đúng object khi có nhiều kết quả.
-    /// Đã sửa lỗi partial match quá lỏng lẻo (trước đây "flower" khớp luôn "FlowersRandom" làm
-    /// mũi tên nhiệm vụ chỉ bậy vào các bụi cây trang trí).
-    /// </summary>
+    // Executes find scene objects operation.
     private static List<GameObject> FindSceneObjects(Scene scene, string nameFragment)
     {
         var exact   = new List<GameObject>();
         var partial = new List<GameObject>();
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
-        
+
         string lowerFragment = nameFragment.ToLowerInvariant();
 
         foreach (var obj in objects)
         {
             if (obj == null || obj.scene != scene) continue;
-            
+
             string lowerName = obj.name.ToLowerInvariant();
 
             if (lowerName == lowerFragment)
@@ -401,10 +380,8 @@ public static class WorldSceneInteractableBootstrap
             }
             else if (lowerName.StartsWith(lowerFragment))
             {
-                // Chỉ cho phép khớp partial nếu phần đuôi là (Clone) hoặc dạng _1, _2 (do Unity spawn/duplicate).
-                // Ngăn chặn "flower" khớp bừa vào "FlowersRandom" hoặc "FlowerPot".
                 string remainder = lowerName.Substring(lowerFragment.Length).Trim();
-                if (remainder == "(clone)" || 
+                if (remainder == "(clone)" ||
                     (remainder.StartsWith("_") && int.TryParse(remainder.Substring(1), out _)) ||
                     (remainder.StartsWith("(") && remainder.EndsWith(")") && int.TryParse(remainder.Substring(1, remainder.Length - 2), out _)) ||
                     (remainder.StartsWith(" ") && int.TryParse(remainder.Substring(1), out _)))
@@ -417,6 +394,3 @@ public static class WorldSceneInteractableBootstrap
         return exact;
     }
 }
-
-
-

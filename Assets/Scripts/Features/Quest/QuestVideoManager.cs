@@ -6,10 +6,13 @@ using UnityEngine.Video;
 
 namespace MysticJourney.Features.Quest
 {
+    // Executes core business logic for mono behaviour.
     public class QuestVideoManager : MonoBehaviour
     {
+        // Executes core business logic for instance.
         public static QuestVideoManager Instance { get; private set; }
 
+        // Executes core business logic for is video playing.
         public static bool IsVideoPlaying { get; private set; }
 
         private GameObject _videoCanvasOverlay;
@@ -18,6 +21,8 @@ namespace MysticJourney.Features.Quest
         private RenderTexture _renderTexture;
         private readonly List<GameObject> _hiddenUiElements = new List<GameObject>();
 
+        // Initializes internal component caches and dependencies for QuestVideoManager upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (Instance == null)
@@ -31,6 +36,7 @@ namespace MysticJourney.Features.Quest
             }
         }
 
+        // Executes core business logic for notify video started.
         public static void NotifyVideoStarted(VideoPlayer vp = null)
         {
             EnsureInstance();
@@ -45,6 +51,7 @@ namespace MysticJourney.Features.Quest
             Debug.Log("[QuestVideoManager] Video started playing. Main UI hidden, completion popups paused.");
         }
 
+        // Executes core business logic for notify video ended.
         public static void NotifyVideoEnded(VideoPlayer vp = null)
         {
             IsVideoPlaying = false;
@@ -58,6 +65,7 @@ namespace MysticJourney.Features.Quest
             Debug.Log("[QuestVideoManager] Video ended. Main UI restored, completion popups resumed.");
         }
 
+        // Executes core business logic for ensure instance.
         private static void EnsureInstance()
         {
             if (Instance != null) return;
@@ -67,11 +75,11 @@ namespace MysticJourney.Features.Quest
         }
 
 
+        // Executes core business logic for hide all main ui.
         private void HideAllMainUi()
         {
             _hiddenUiElements.Clear();
 
-            // 1. Target key UI containers in scene
             var targetNames = new[] { "HUD", "QuestTracker", "QuestPanel", "NPCPanel", "PlayerHUD", "Minimap", "Canvas", "MainCanvas" };
             var allSceneObjects = Resources.FindObjectsOfTypeAll<GameObject>();
 
@@ -91,10 +99,10 @@ namespace MysticJourney.Features.Quest
                 }
             }
 
-            // 2. Hide WorldInteractionPromptRuntime
             WorldInteractionPromptRuntime.Hide();
         }
 
+        // Executes core business logic for restore main ui.
         private void RestoreMainUi()
         {
             foreach (var go in _hiddenUiElements)
@@ -109,11 +117,11 @@ namespace MysticJourney.Features.Quest
         }
 
 
+        // Executes core business logic for setup full screen video overlay.
         private void SetupFullScreenVideoOverlay(VideoPlayer vp)
         {
             if (vp == null) return;
 
-            // Enforce max sorting order on Canvas if VideoPlayer is on a UI Canvas
             var parentCanvas = vp.GetComponentInParent<Canvas>();
             if (parentCanvas != null)
             {
@@ -122,7 +130,6 @@ namespace MysticJourney.Features.Quest
                 return;
             }
 
-            // Create full-screen black canvas overlay with highest sorting order
             if (_videoCanvasOverlay == null)
             {
                 _videoCanvasOverlay = new GameObject("QuestVideoCanvasOverlay");
@@ -132,7 +139,7 @@ namespace MysticJourney.Features.Quest
                 _overlayCanvas = _videoCanvasOverlay.AddComponent<Canvas>();
                 _overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 _overlayCanvas.overrideSorting = true;
-                _overlayCanvas.sortingOrder = 32767; // Maximum sorting order to cover ALL UI
+                _overlayCanvas.sortingOrder = 32767;
 
                 var scaler = _videoCanvasOverlay.AddComponent<CanvasScaler>();
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -160,7 +167,6 @@ namespace MysticJourney.Features.Quest
 
             _videoCanvasOverlay.SetActive(true);
 
-            // Configure VideoPlayer to render into RenderTexture for the RawImage
             if (_renderTexture == null)
             {
                 _renderTexture = new RenderTexture(1920, 1080, 16);
@@ -171,6 +177,7 @@ namespace MysticJourney.Features.Quest
             _videoRawImage.color = Color.white;
         }
 
+        // Executes core business logic for cleanup video overlay.
         private void CleanupVideoOverlay(VideoPlayer vp)
         {
             if (_videoCanvasOverlay != null)

@@ -3,6 +3,7 @@
 
 namespace TMPro.Examples
 {
+    // Executes mono behaviour operation.
     public class TMP_TextEventCheck : MonoBehaviour
     {
 

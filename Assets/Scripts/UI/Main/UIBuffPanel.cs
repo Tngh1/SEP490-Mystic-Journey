@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// Executes mono behaviour operation.
 public class UIBuffPanel : MonoBehaviour
 {
     [SerializeField] private UIBuffIcon iconPrefab;
@@ -10,6 +11,7 @@ public class UIBuffPanel : MonoBehaviour
     private Dictionary<string, UIBuffIcon> _activeIcons = new Dictionary<string, UIBuffIcon>();
     private bool _autoBind = true;
 
+    // Executes init operation.
     public void Init(BuffManager manager)
     {
         _autoBind = false;
@@ -22,6 +24,8 @@ public class UIBuffPanel : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for UIBuffPanel.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_autoBind && _buffManager == null)
@@ -38,14 +42,13 @@ public class UIBuffPanel : MonoBehaviour
         }
     }
 
+    // Executes refresh operation.
     private void Refresh()
     {
         if (_buffManager == null) return;
-        
-        // Auto-assign container to self if user forgot to drag it in
+
         if (container == null) container = transform;
 
-        // Tự động tắt tính năng Force Expand Width của HorizontalLayoutGroup để tránh icon bị giãn cách xa nhau
         var layoutGroup = container.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>();
         if (layoutGroup != null)
         {
@@ -63,14 +66,13 @@ public class UIBuffPanel : MonoBehaviour
                 if (icon != null)
                 {
                     icon.Setup(buff);
-                    // Đảm bảo icon nằm cuối danh sách (nếu muốn thứ tự không bị đổi, có thể tính toán lại sibling index)
                 }
                 else
                 {
                     _activeIcons.Remove(buff.BuffName);
                 }
             }
-            
+
             if (!_activeIcons.ContainsKey(buff.BuffName))
             {
                 var newIcon = Instantiate(iconPrefab, container);
@@ -81,7 +83,6 @@ public class UIBuffPanel : MonoBehaviour
             }
         }
 
-        // Remove expired
         List<string> toRemove = new List<string>();
         foreach (var kvp in _activeIcons)
         {
@@ -100,7 +101,8 @@ public class UIBuffPanel : MonoBehaviour
             _activeIcons.Remove(key);
         }
     }
-    
+
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (_buffManager != null) _buffManager.OnBuffsUpdated -= Refresh;

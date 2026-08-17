@@ -3,20 +3,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Listens for incoming party invites (<see cref="PlayerPresence.OnInviteReceived"/>)
-/// and shows a simple "Player XXX invited you [Accept] [Decline]" popup in the Main
-/// scene. Contains NO business logic — Accept/Decline just call <see cref="PartyService"/>.
-///
-/// Self-bootstrapping: a single instance is created on demand under the Main canvas
-/// the first time an invite arrives, so no prefab wiring is required. Multiple invites
-/// queue and are shown one at a time.
-///
-/// The popup UI is built in code to match the existing convention in
-/// <see cref="PartyPanel"/> (which also builds its modal at runtime).
-/// </summary>
+// Executes mono behaviour operation.
 public class PartyInvitePopup : MonoBehaviour
 {
+    // Executes invite operation.
     private struct Invite
     {
         public int HostProfileId;
@@ -31,15 +21,8 @@ public class PartyInvitePopup : MonoBehaviour
     private GameObject _root;
     private TMP_Text _messageText;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Bootstrap
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Ensure a listener exists. Called from Main-scene bootstrap once the player is in.
-    /// Idempotent. The listener survives scene changes so invites still arrive while
-    /// browsing menus.
-    /// </summary>
+    // Executes ensure exists operation.
     public static void EnsureExists()
     {
         if (_instance != null) return;
@@ -48,28 +31,28 @@ public class PartyInvitePopup : MonoBehaviour
         _instance = go.AddComponent<PartyInvitePopup>();
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         PlayerPresence.OnInviteReceived += HandleInvite;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         PlayerPresence.OnInviteReceived -= HandleInvite;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (_instance == this) _instance = null;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Invite handling
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes handle invite operation.
     private void HandleInvite(int hostProfileId, string hostName)
     {
-        // Ignore invites while already in a party (would need to leave first).
         if (PartyService.CurrentParty != null)
         {
             PartyService.DeclineInvite(hostProfileId);
@@ -80,6 +63,7 @@ public class PartyInvitePopup : MonoBehaviour
         if (!_showing) ShowNext();
     }
 
+    // Executes show next operation.
     private void ShowNext()
     {
         if (_queue.Count == 0)
@@ -97,6 +81,7 @@ public class PartyInvitePopup : MonoBehaviour
         _messageText.text = $"<b>{invite.HostName}</b> invited you to a party.";
     }
 
+    // Executes on accept operation.
     private void OnAccept()
     {
         if (_queue.Count == 0) return;
@@ -105,6 +90,7 @@ public class PartyInvitePopup : MonoBehaviour
         ShowNext();
     }
 
+    // Executes on decline operation.
     private void OnDecline()
     {
         if (_queue.Count == 0) return;
@@ -113,13 +99,10 @@ public class PartyInvitePopup : MonoBehaviour
         ShowNext();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // UI construction (runtime, no prefab)
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes build ui operation.
     private void BuildUI()
     {
-        // Own overlay canvas so the popup renders above everything regardless of scene.
         _root = new GameObject("InvitePopupCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         DontDestroyOnLoad(_root);
         var canvas = _root.GetComponent<Canvas>();
@@ -129,7 +112,6 @@ public class PartyInvitePopup : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
 
-        // Frame anchored bottom-right (toast style, non-blocking).
         var frame = new GameObject("Frame", typeof(RectTransform), typeof(Image));
         frame.transform.SetParent(_root.transform, false);
         frame.GetComponent<Image>().color = new Color(0.13f, 0.13f, 0.16f, 0.97f);
@@ -140,7 +122,6 @@ public class PartyInvitePopup : MonoBehaviour
         frameRt.anchoredPosition = new Vector2(-30, 30);
         frameRt.sizeDelta = new Vector2(380, 150);
 
-        // Message
         var msgObj = new GameObject("Message", typeof(RectTransform), typeof(TextMeshProUGUI));
         msgObj.transform.SetParent(frame.transform, false);
         _messageText = msgObj.GetComponent<TextMeshProUGUI>();
@@ -157,11 +138,14 @@ public class PartyInvitePopup : MonoBehaviour
         msgRt.sizeDelta = new Vector2(msgRt.sizeDelta.x, 70);
 
         BuildButton(frame.transform, "AcceptBtn", "ACCEPT", new Color(0.18f, 0.55f, 0.22f),
+            // Process vector2 using transform, parent, name, and label; it builds button, updates parent, loads component, and creates listener.
             new Vector2(0f, 0f), new Vector2(20, 18), OnAccept);
         BuildButton(frame.transform, "DeclineBtn", "DECLINE", new Color(0.55f, 0.2f, 0.2f),
+            // Process vector2 using parent, name, label, and color; it builds button, updates parent, loads component, and creates listener.
             new Vector2(1f, 0f), new Vector2(-20, 18), OnDecline);
     }
 
+    // Derive button using parent, name, label, and color; it updates parent, loads component, and creates listener.
     private void BuildButton(Transform parent, string name, string label, Color color,
                              Vector2 anchor, Vector2 offset, UnityEngine.Events.UnityAction onClick)
     {

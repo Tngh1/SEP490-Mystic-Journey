@@ -1,10 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Spawner triệu hồi Slime Mini xung quanh Boss SwampDemon.
-/// Cứ mỗi `spawnInterval` (mặc định 2s), Boss sẽ triệu hồi `slimeCount` (mặc định 3 con)
-/// SlimeMini xuất hiện ngẫu nhiên trong bán kính xung quanh Boss.
-/// </summary>
+// Executes mono behaviour operation.
 public class SwampDemonSlimeSpawner : MonoBehaviour
 {
     [Header("Summon Settings")]
@@ -34,21 +30,23 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
     private float _timer = 0f;
     private EnemyEntity _enemyEntity;
 
+    // Initializes internal component caches and dependencies for SwampDemonSlimeSpawner upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _enemyEntity = GetComponent<EnemyEntity>();
         GetComponent<NetworkEnemy>()?.RegisterSkillPrefab(slimeMiniPrefab);
     }
 
+    // Per-frame update loop for SwampDemonSlimeSpawner.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
-        // Nếu Boss đã chết thì ngừng triệu hồi
         if (_enemyEntity != null && (_enemyEntity.IsDead || _enemyEntity.CurrentHealth <= 0)) return;
 
         Transform targetPlayer = FindPlayerTarget();
         if (targetPlayer == null) return;
 
-        // Chỉ triệu hồi khi Player tiến vào phạm vi giao tranh
         float distance = Vector3.Distance(transform.position, targetPlayer.position);
         if (distance > combatDetectionRange) return;
 
@@ -60,6 +58,7 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
         }
     }
 
+    // Executes find player target operation.
     private Transform FindPlayerTarget()
     {
         if (PlayerMovement.Instance != null && PlayerMovement.Instance.gameObject.activeInHierarchy)
@@ -71,9 +70,7 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
         return player != null && player.activeInHierarchy ? player.transform : null;
     }
 
-    /// <summary>
-    /// Hàm thực hiện triệu hồi N con SlimeMini xung quanh vị trí Boss
-    /// </summary>
+    // Executes summon slime minis operation.
     public void SummonSlimeMinis()
     {
         if (slimeMiniPrefab == null)
@@ -91,8 +88,8 @@ public class SwampDemonSlimeSpawner : MonoBehaviour
 
         for (int i = 0; i < slimeCount; i++)
         {
-            // Tính vị trí ngẫu nhiên trong khoảng bán kính minRadius -> maxRadius
             Vector2 randomDir = Random.insideUnitCircle.normalized;
+            // Randomize the eligible candidates before selecting this gameplay result.
             float randomDist = Random.Range(minRadius, maxRadius);
             Vector3 spawnPos = transform.position + (Vector3)(randomDir * randomDist);
 

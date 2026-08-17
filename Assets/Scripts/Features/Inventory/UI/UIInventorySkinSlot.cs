@@ -1,11 +1,13 @@
 using UnityEngine;
 
+// Executes ui base item slot operation.
 public class UIInventorySkinSlot : UIBaseItemSlot
 {
     [Header("Skin Specifics")]
     [SerializeField] private GameObject inUseContainer;
     [SerializeField] private GameObject lockedContainer;
 
+    // Executes setup skin operation.
     public void SetupSkin(UIItemDisplayData data)
     {
         if (data == null)
@@ -23,12 +25,11 @@ public class UIInventorySkinSlot : UIBaseItemSlot
 
         if (lockedContainer != null)
         {
-            // itemId is PlayerSkinId, which is 0 for implicitly granted default skins.
-            // An equipped skin is always owned, so never lock it.
             lockedContainer.SetActive(data.itemId <= 0 && !data.isEquipped);
         }
     }
 
+    // Executes clear slot operation.
     public override void ClearSlot()
     {
         base.ClearSlot();

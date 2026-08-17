@@ -2,17 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-/// <summary>
-/// ScriptableObject-style MonoBehaviour that maps item sprite icons.
-/// 
-/// Lookup priority (highest to lowest):
-///   1. item.Name  – e.g. "[ITEM] Gold Coin"   → specific icon
-///   2. item.Type  – e.g. "Currency"            → fallback icon for that type
-///   3. null       – caller should show a default/placeholder sprite
-///
-/// In the Inspector, add entries using either the item's exact Name or its Type.
-/// Name-based entries always win over Type-based entries.
-/// </summary>
+// Executes mono behaviour operation.
 public class ItemIconDatabase : MonoBehaviour
 {
     public static ItemIconDatabase Instance;
@@ -20,9 +10,10 @@ public class ItemIconDatabase : MonoBehaviour
     [SerializeField]
     private List<ItemIconEntry> items;
 
-    // key → sprite (string key is either item.Name or item.Type)
     private Dictionary<string, Sprite> _cache;
 
+    // Initializes internal component caches and dependencies for ItemIconDatabase upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -32,14 +23,13 @@ public class ItemIconDatabase : MonoBehaviour
         }
 
         Instance = this;
-        // Unity chỉ nhận DontDestroyOnLoad trên root GameObject. Object này là con của
-        // "Managers" trong Main.unity, nên phải detach trước — không thì nó bị destroy
-        // khi đổi map và mọi GetIcon() sau đó ném NullReference.
         transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
         BuildCache();
     }
 
+    // Executes build cache operation.
+    // Validates input parameters against null or empty values.
     private void BuildCache()
     {
         _cache = new Dictionary<string, Sprite>(System.StringComparer.OrdinalIgnoreCase);
@@ -51,36 +41,28 @@ public class ItemIconDatabase : MonoBehaviour
             if (entry == null || string.IsNullOrWhiteSpace(entry.itemKey) || entry.icon == null)
                 continue;
 
-            // Last write wins per key — allows overriding fallback types with specific names
             _cache[entry.itemKey.Trim()] = entry.icon;
         }
     }
 
-    // ── Public API ───────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Lookup by item Name first, then by item Type as fallback.
-    /// </summary>
+    // Executes get icon operation.
+    // Validates input parameters against null or empty values.
     public Sprite GetIcon(string itemName, string itemType)
     {
         if (_cache == null) BuildCache();
 
-        // 1. Exact name match
         if (!string.IsNullOrEmpty(itemName) && _cache.TryGetValue(itemName, out var byName) && byName != null)
             return byName;
 
-        // 2. Type fallback
         if (!string.IsNullOrEmpty(itemType) && _cache.TryGetValue(itemType, out var byType) && byType != null)
             return byType;
 
         return null;
     }
 
-    /// <summary>
-    /// Legacy: lookup by itemId (kept for backward compatibility).
-    /// Prefer GetIcon(name, type) instead.
-    /// </summary>
     [System.Obsolete("Use GetIcon(itemName, itemType) instead. itemId-based lookup is fragile with auto-increment IDs.")]
+    // Executes get icon operation.
     public Sprite GetIcon(int itemId)
     {
         Debug.LogWarning($"[ItemIconDatabase] GetIcon(int) called with id={itemId}. " +
@@ -88,9 +70,7 @@ public class ItemIconDatabase : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Lookup by key directly (item.Name or item.Type string).
-    /// </summary>
+    // Executes try get icon operation.
     public bool TryGetIcon(string key, out Sprite icon)
     {
         if (_cache == null) BuildCache();

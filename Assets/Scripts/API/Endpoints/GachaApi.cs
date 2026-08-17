@@ -4,16 +4,10 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // GACHA API - Quay thưởng
-    // ═══════════════════════════════════════════════════════════════
     public class GachaApi : BaseApiService<GachaApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy banner gacha theo ID ─────────────────
+        // Executes get by id operation.
         public void GetById(int gachaBannerId, Action<GachaBannerDetailResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.GachaById, gachaBannerId);
@@ -33,7 +27,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Thực hiện quay gacha ─────────────────────────────
+        // Validate the active banner, player, payment item, pull count, and pity state; spend currency, select rewards by weighted chance, update inventory and history atomically, then return every pull result.
         public void Pull(
             int bannerId,
             int pullCount,
@@ -42,8 +36,8 @@ namespace MysticJourney.API.Endpoints
             Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.GachaPull, bannerId);
-            var body = new MysticJourney.API.Models.Request.GachaPullRequest { 
-                GachaBannerId = bannerId, 
+            var body = new MysticJourney.API.Models.Request.GachaPullRequest {
+                GachaBannerId = bannerId,
                 PullCount = pullCount,
                 IsFreePull = isFreePull
             };
@@ -64,7 +58,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy lịch sử quay ──────────────────────────────
+        // Load history using page, page size, on success, and on error; it sends the GET API request.
         public void GetHistory(
             int page,
             int pageSize,

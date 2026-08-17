@@ -1,13 +1,9 @@
 using UnityEngine;
 
-/// <summary>
-/// Hiệu ứng Thiêu đốt (Burn Debuff) áp dụng lên Người chơi.
-/// Tồn tại trong `duration` (mặc định 3s).
-/// Mỗi giây trừ % Máu tối đa (`percentPerTick`, mặc định 3%) hoặc sát thương cố định (`flatDamagePerTick`).
-/// </summary>
+// Executes mono behaviour operation.
 public class BurnDebuff : MonoBehaviour
 {
-    private float percentPerTick = 3f; // 3% máu tối đa mỗi giây
+    private float percentPerTick = 3f;
     private int flatDamagePerTick = 0;
     private bool usePercentage = true;
 
@@ -19,6 +15,7 @@ public class BurnDebuff : MonoBehaviour
     private PlayerEntity playerEntity;
     private NetworkPlayer networkPlayer;
 
+    // Executes initialize percent operation.
     public void InitializePercent(float percentDmg, float interval, float dur)
     {
         var combat = GetComponent<PlayerCombat>();
@@ -47,6 +44,7 @@ public class BurnDebuff : MonoBehaviour
         if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, true);
     }
 
+    // Executes initialize flat operation.
     public void InitializeFlat(int flatDmg, float interval, float dur)
     {
         var combat = GetComponent<PlayerCombat>();
@@ -75,6 +73,7 @@ public class BurnDebuff : MonoBehaviour
         if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, true);
     }
 
+    // Executes refresh operation.
     public void Refresh(float newDuration)
     {
         var combat = GetComponent<PlayerCombat>();
@@ -98,6 +97,8 @@ public class BurnDebuff : MonoBehaviour
         if (buffMgr != null) buffMgr.AddBuff("Burning", "burn_debuff_icon", duration, true);
     }
 
+    // Per-frame update loop for BurnDebuff.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         var combat = GetComponent<PlayerCombat>();
@@ -112,20 +113,19 @@ public class BurnDebuff : MonoBehaviour
         timer += Time.deltaTime;
         tickTimer += Time.deltaTime;
 
-        // Gây sát thương thiêu đốt theo mỗi khoảng thời gian tickInterval (1s)
         if (tickTimer >= tickInterval)
         {
             tickTimer = 0f;
             ApplyBurnDamage();
         }
 
-        // Hết thời gian thiêu đốt -> xóa debuff
         if (timer >= duration)
         {
             Destroy(this);
         }
     }
 
+    // Executes apply burn damage operation.
     private void ApplyBurnDamage()
     {
         int damageToDeal = 0;
@@ -146,7 +146,6 @@ public class BurnDebuff : MonoBehaviour
                 maxHp = PlayerEntity.Instance.MaxHealth;
             }
 
-            // Tính 3% máu tối đa
             damageToDeal = Mathf.Max(1, Mathf.RoundToInt(maxHp * (percentPerTick / 100f)));
         }
         else
@@ -168,9 +167,7 @@ public class BurnDebuff : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Hàm static áp dụng hiệu ứng Thiêu đốt theo % Máu tối đa (mặc định 3% mỗi 1s trong 3s).
-    /// </summary>
+    // Executes apply percent to operation.
     public static void ApplyPercentTo(GameObject target, float percentDmg = 3f, float interval = 1f, float dur = 3f)
     {
         var combat = target.GetComponent<PlayerCombat>();
@@ -196,9 +193,7 @@ public class BurnDebuff : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Hàm static áp dụng hiệu ứng Thiêu đốt theo sát thương cố định.
-    /// </summary>
+    // Executes apply flat to operation.
     public static void ApplyFlatTo(GameObject target, int flatDmg = 5, float interval = 1f, float dur = 3f)
     {
         var combat = target.GetComponent<PlayerCombat>();

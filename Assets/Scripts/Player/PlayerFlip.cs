@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class PlayerFlip3 : MonoBehaviour
 {
     private bool FacingRight = true;

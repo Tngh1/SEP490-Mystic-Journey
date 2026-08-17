@@ -10,6 +10,7 @@ using MysticJourney.API.Core;
 
 namespace MysticJourney.Screen.Mail
 {
+    // Executes core business logic for mono behaviour.
     public class MailboxUIManager : MonoBehaviour
     {
         public static event Action MailboxStateChanged;
@@ -22,8 +23,6 @@ namespace MysticJourney.Screen.Mail
         [Header("Left Panel - Pagination")]
         [SerializeField] private GameObject paginationContainer;
         [SerializeField] private Button previousButton;
-        // Single "current / total" label. Keeps the reference that used to be wired to
-        // the middle page number so re-assignment in the Inspector isn't required.
         [FormerlySerializedAs("pageNumber2")]
         [SerializeField] private TMP_Text pageInfoText;
         [SerializeField] private Button nextButton;
@@ -59,29 +58,31 @@ namespace MysticJourney.Screen.Mail
         private readonly int _itemsPerPage = 5;
         private bool _isLoading;
 
+        // Binds close buttons, claim/delete handlers, and pagination controls.
         private void Start()
         {
             if (closeButton != null)
             {
-                closeButton.onClick.AddListener(() => gameObject.SetActive(false));
-                // Same hover-scale the HUD/party buttons use.
+                closeButton.onClick.AddListener(() => gameObject.SetActive(false)); // Close mailbox popup
                 if (closeButton.GetComponent<UIHoverScaleEffect>() == null)
                     closeButton.gameObject.AddComponent<UIHoverScaleEffect>();
             }
-            if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
-            if (deleteButton != null) deleteButton.onClick.AddListener(OnDeleteClicked);
-            if (previousButton != null) previousButton.onClick.AddListener(() => GoToPage(_currentPage - 1));
-            if (nextButton != null) nextButton.onClick.AddListener(() => GoToPage(_currentPage + 1));
+            if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked); // Claim reward attachment
+            if (deleteButton != null) deleteButton.onClick.AddListener(OnDeleteClicked); // Delete read message
+            if (previousButton != null) previousButton.onClick.AddListener(() => GoToPage(_currentPage - 1)); // Page back
+            if (nextButton != null) nextButton.onClick.AddListener(() => GoToPage(_currentPage + 1)); // Page forward
         }
 
+        // Resets active page to 1, clears preview pane, and loads messages from backend.
         private void OnEnable()
         {
             if (rightPanel != null) rightPanel.SetActive(true);
-            HideRightPanelContent();
+            HideRightPanelContent(); // Hide preview pane until message selected
             _currentPage = 1;
-            LoadMailboxesFromBackend();
+            LoadMailboxesFromBackend(); // Query inbox
         }
 
+        // Executes core business logic for hide right panel content.
         private void HideRightPanelContent()
         {
             if (titleText != null) titleText.gameObject.SetActive(false);
@@ -93,6 +94,7 @@ namespace MysticJourney.Screen.Mail
             if (claimedStamp != null) claimedStamp.SetActive(false);
         }
 
+        // Executes core business logic for show right panel content.
         private void ShowRightPanelContent()
         {
             if (titleText != null) titleText.gameObject.SetActive(true);
@@ -101,11 +103,7 @@ namespace MysticJourney.Screen.Mail
             if (deleteButton != null) deleteButton.gameObject.SetActive(true);
         }
 
-        // Scrollbar của Rewards là SIBLING của rewardsContainer (không phải con), nên
-        // rewardsContainer.SetActive(false) không ẩn được nó. Thêm nữa, ScrollRect khi bị
-        // disable sẽ ngừng chạy layout pass, nên cơ chế AutoHideAndExpandViewport của Unity
-        // cũng không kịp tự ẩn -> scrollbar treo lại ở trạng thái bật trong scene.
-        // Vì vậy phải tắt scrollbar tường minh cùng lúc với container.
+        // Executes core business logic for set rewards visible.
         private void SetRewardsVisible(bool visible)
         {
             if (rewardsContainer != null) rewardsContainer.SetActive(visible);
@@ -114,8 +112,7 @@ namespace MysticJourney.Screen.Mail
             if (scrollbar != null) scrollbar.gameObject.SetActive(visible);
         }
 
-        // Lấy scrollbar từ chính ScrollRect của rewardsContainer để không phải wire thêm
-        // reference trong Inspector; hỗ trợ cả trục ngang lẫn dọc.
+        // Executes core business logic for get rewards scrollbar.
         private Scrollbar GetRewardsScrollbar()
         {
             if (_rewardsScrollbar != null) return _rewardsScrollbar;
@@ -131,10 +128,11 @@ namespace MysticJourney.Screen.Mail
             return _rewardsScrollbar;
         }
 
+        // Fetches paginated mailbox messages for local player from backend API.
         private void LoadMailboxesFromBackend()
         {
             _isLoading = true;
-            SetPaginationInteractable(false);
+            SetPaginationInteractable(false); // Disable pagination while loading
 
             if (paginationContainer != null) paginationContainer.SetActive(false);
             if (emptyListText != null) emptyListText.gameObject.SetActive(false);
@@ -159,9 +157,9 @@ namespace MysticJourney.Screen.Mail
             );
         }
 
+        // Executes core business logic for set pagination interactable.
         private void SetPaginationInteractable(bool on)
         {
-            // Khi bật lại, để UpdatePaginationUI quyết định enable theo trang hiện tại.
             if (!on)
             {
                 if (previousButton != null) previousButton.interactable = false;
@@ -169,11 +167,11 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
+        // Executes core business logic for populate mailbox list.
         private void PopulateMailboxList(MailboxListPagedResponse response)
         {
             if (response == null || response.Items == null || response.Items.Length == 0)
             {
-                // Xóa thư cuối cùng của trang > 1 làm trang này rỗng -> lùi về trang trước
                 if (_currentPage > 1)
                 {
                     _currentPage--;
@@ -235,14 +233,13 @@ namespace MysticJourney.Screen.Mail
             UpdatePaginationUI(response.Page, response.TotalPages);
         }
 
+        // Executes core business logic for update pagination ui.
         private void UpdatePaginationUI(int currentPage, int totalPages)
         {
             _isLoading = false;
             _currentPage = currentPage;
             _totalPages = totalPages;
 
-            // Show "current / total" (e.g. "2 / 5"). Clamp the displayed total to at
-            // least 1 so an empty mailbox reads "1 / 1" rather than "1 / 0".
             if (pageInfoText != null)
                 pageInfoText.text = $"{currentPage} / {Mathf.Max(1, totalPages)}";
 
@@ -250,6 +247,7 @@ namespace MysticJourney.Screen.Mail
             if (nextButton != null) nextButton.interactable = currentPage < totalPages;
         }
 
+        // Executes core business logic for go to page.
         private void GoToPage(int page)
         {
             if (_isLoading) return;
@@ -261,6 +259,7 @@ namespace MysticJourney.Screen.Mail
             LoadMailboxesFromBackend();
         }
 
+        // Executes core business logic for on mailbox clicked.
         private void OnMailboxClicked(MailboxItemUI clickedUI)
         {
             _currentSelectedMailboxUI = clickedUI;
@@ -273,6 +272,7 @@ namespace MysticJourney.Screen.Mail
             );
         }
 
+        // Executes core business logic for display mailbox detail.
         private void DisplayMailboxDetail(MailboxDetailResponse mailboxData, MailboxItemUI clickedUI)
         {
             if (rightPanel != null) rightPanel.SetActive(true);
@@ -287,7 +287,6 @@ namespace MysticJourney.Screen.Mail
             }
             if (bodyText != null) bodyText.text = mailboxData.Content;
 
-            // Display rewards section
             DisplayRewards(mailboxData);
 
             if (!mailboxData.IsRead)
@@ -304,6 +303,7 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
+        // Executes core business logic for display rewards.
         private void DisplayRewards(MailboxDetailResponse mailboxData)
         {
             bool hasGold = mailboxData.AttachedGold > 0;
@@ -313,10 +313,8 @@ namespace MysticJourney.Screen.Mail
 
             SetRewardsVisible(hasRewards);
 
-            // Build combined list: gold + gems + items
             var allRewards = new List<UIItemDisplayData>();
 
-            // Gold
             if (hasGold)
             {
                 var goldDisplayData = new UIItemDisplayData
@@ -331,7 +329,6 @@ namespace MysticJourney.Screen.Mail
                 allRewards.Add(goldDisplayData);
             }
 
-            // Gems
             if (hasGems)
             {
                 var gemDisplayData = new UIItemDisplayData
@@ -346,7 +343,6 @@ namespace MysticJourney.Screen.Mail
                 allRewards.Add(gemDisplayData);
             }
 
-            // Items
             if (hasItems)
             {
                 foreach (var item in mailboxData.AttachedItems)
@@ -355,10 +351,8 @@ namespace MysticJourney.Screen.Mail
                 }
             }
 
-            // Setup all reward slots
             SetupRewardSlots(allRewards);
 
-            // Claim button / claimed stamp
             if (mailboxData.IsClaimed)
             {
                 if (claimButton != null) claimButton.gameObject.SetActive(false);
@@ -366,7 +360,6 @@ namespace MysticJourney.Screen.Mail
             }
             else if (IsExpired(mailboxData.ExpiredAt))
             {
-                // Hết hạn mà chưa nhận -> BE sẽ từ chối claim, nên ẩn cả nút lẫn stamp.
                 if (claimButton != null) claimButton.gameObject.SetActive(false);
                 if (claimedStamp != null) claimedStamp.SetActive(false);
             }
@@ -377,6 +370,9 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
+        // Executes core business logic for is expired.
+        // Logic details: validates required non-empty string arguments.
+        // Returns a boolean indicating operation success.
         private static bool IsExpired(string expiredAt)
         {
             return !string.IsNullOrEmpty(expiredAt)
@@ -384,12 +380,12 @@ namespace MysticJourney.Screen.Mail
                 && expiry <= DateTime.UtcNow;
         }
 
+        // Executes core business logic for setup reward slots.
         private void SetupRewardSlots(List<UIItemDisplayData> rewards)
         {
             if (itemsContainer == null)
                 return;
 
-            // Clear existing items
             foreach (Transform child in itemsContainer)
             {
                 Destroy(child.gameObject);
@@ -412,6 +408,7 @@ namespace MysticJourney.Screen.Mail
                     slotObj.AddComponent<RectTransform>().sizeDelta = new Vector2(80, 80);
                 }
 
+                // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                 var slot = slotObj.GetComponent<UIBaseItemSlot>();
                 if (slot != null)
                 {
@@ -420,6 +417,7 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
+        // Executes core business logic for get icon from database.
         private Sprite GetIconFromDatabase(string itemName, string itemType)
         {
             if (ItemIconDatabase.Instance != null)
@@ -431,6 +429,7 @@ namespace MysticJourney.Screen.Mail
             return null;
         }
 
+        // Executes core business logic for create item display data.
         private UIItemDisplayData CreateItemDisplayData(MailboxRewardItemResponse item)
         {
             var displayData = new UIItemDisplayData
@@ -442,10 +441,8 @@ namespace MysticJourney.Screen.Mail
                 rawData = item
             };
 
-            // Get icon from ItemIconDatabase
             displayData.icon = GetIconFromDatabase(item.ItemName, null);
 
-            // Try remote cache if no local icon
             if (displayData.icon == null && !string.IsNullOrWhiteSpace(item.IconUrl))
             {
                 var cached = RemoteSpriteCache.GetCached(item.IconUrl);
@@ -456,6 +453,7 @@ namespace MysticJourney.Screen.Mail
             return displayData;
         }
 
+        // Executes core business logic for on claim clicked.
         private void OnClaimClicked()
         {
             if (_currentSelectedMailboxSummary == null || claimButton == null) return;
@@ -471,12 +469,9 @@ namespace MysticJourney.Screen.Mail
                     if (claimedStamp != null) claimedStamp.SetActive(true);
                     _currentSelectedMailboxUI?.MarkAsClaimedLocally();
 
-                    // Cập nhật HUD ngay để Gold/Gem/Level phản ánh phần thưởng vừa nhận,
-                    // thay vì chờ vòng lặp refresh 3s của PlayerHUDUIManager.
                     if (PlayerHUDUIManager.Instance != null)
                         PlayerHUDUIManager.Instance.RefreshHUD();
 
-                    // Nếu bạn có popup hiển thị tổng kết quà vừa nhận, bạn có thể gọi API/Popup Manager ở đây
                 },
                 onError: error =>
                 {
@@ -486,14 +481,11 @@ namespace MysticJourney.Screen.Mail
             );
         }
 
+        // Executes core business logic for on delete clicked.
         private void OnDeleteClicked()
         {
             if (_currentSelectedMailboxSummary == null || deleteButton == null) return;
 
-            // BR-147: thư còn quà chưa nhận thì không được xóa -> chỉ thông báo,
-            // không cho xác nhận xóa nữa (server cũng chặn, trước đây bấm OK là
-            // gọi API rồi thất bại im lặng).
-            // Thư hết hạn thì quà không claim được nữa -> xóa thẳng, khỏi cảnh báo.
             if (_currentSelectedMailboxSummary.HasClaimableReward && !_currentSelectedMailboxSummary.IsClaimed
                 && !IsExpired(_currentSelectedMailboxSummary.ExpiredAt))
             {
@@ -507,6 +499,7 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
+        // Executes core business logic for show confirm popup.
         private void ShowConfirmPopup(string message, bool allowDelete = true)
         {
             if (allowDelete)
@@ -524,6 +517,7 @@ namespace MysticJourney.Screen.Mail
             UIPopupBox.Notify(transform, "Mailbox", message);
         }
 
+        // Executes core business logic for perform delete mailbox.
         private void PerformDeleteMailbox()
         {
             if (_currentSelectedMailboxSummary == null) return;
@@ -545,8 +539,6 @@ namespace MysticJourney.Screen.Mail
                 },
                 onError: err =>
                 {
-                    // Server là nơi chốt BR-147, nên nếu nó từ chối thì phải cho
-                    // người chơi thấy lý do thay vì im lặng như trước.
                     Debug.LogError($"[MailboxUI] Xóa thư thất bại: {err.Message}");
                     ShowConfirmPopup(
                         string.IsNullOrEmpty(err.Message) ? "Failed to delete this mail." : err.Message,
@@ -555,11 +547,12 @@ namespace MysticJourney.Screen.Mail
             );
         }
 
+        // Executes core business logic for get mailbox type color.
+        // Logic details: validates required non-empty string arguments.
         private Color GetMailboxTypeColor(string type)
         {
             if (string.IsNullOrEmpty(type)) return Color.white;
 
-            // Theo FE design, chỉnh mã màu phù hợp với từng loại thư
             switch (type.ToLower())
             {
                 case "gift":

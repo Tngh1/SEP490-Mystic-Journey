@@ -1,21 +1,19 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// RPG-style glowing rarity frame effect for inventory item slots, shop slots, and equipment slots.
-/// Creates a 3-layer intense radiating aura matching the exact slot background shape.
-/// </summary>
+// Executes mono behaviour operation.
 [DisallowMultipleComponent]
 public sealed class UIRarityFrameEffect : MonoBehaviour
 {
-    private Image ambientAura;  // Layer 1: Wide soft radiating aura (+20px)
-    private Image outerGlow;    // Layer 2: Medium vivid aura (+12px)
-    private Image innerGlow;    // Layer 3: Super crisp bright frame glow (+4px)
+    private Image ambientAura;
+    private Image outerGlow;
+    private Image innerGlow;
 
     private Color baseColor = Color.white;
     private float pulseStrength = 0.35f;
     private bool isVisible;
 
+    // Executes configure operation.
     public void Configure(string rarity, Image targetBorderImage = null)
     {
         EnsureGlowObjects(targetBorderImage);
@@ -28,12 +26,15 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         SetGlowActive(true);
     }
 
+    // Executes set visible operation.
     public void SetVisible(bool visible)
     {
         isVisible = visible;
         SetGlowActive(visible);
     }
 
+    // Per-frame update loop for UIRarityFrameEffect.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (!isVisible || pulseStrength <= 0f)
@@ -43,6 +44,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         ApplyColors(pulse);
     }
 
+    // Executes ensure glow objects operation.
     private void EnsureGlowObjects(Image targetBorderImage)
     {
         Image slotBg = targetBorderImage;
@@ -59,21 +61,19 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         Sprite frameSprite = (slotBg != null && slotBg.name != "Icon") ? slotBg.sprite : null;
         Image.Type frameType = slotBg != null ? slotBg.type : Image.Type.Sliced;
 
-        // Layer 1: Ambient Wide Aura (+20px)
         if (ambientAura == null)
             ambientAura = CreateGlowLayer("AmbientAura", new Vector2(20f, 20f), frameSprite, frameType);
 
-        // Layer 2: Outer Glow Aura (+12px)
         if (outerGlow == null)
             outerGlow = CreateGlowLayer("OuterGlowAura", new Vector2(12f, 12f), frameSprite, frameType);
 
-        // Layer 3: Inner Frame Glow (+4px)
         if (innerGlow == null)
             innerGlow = CreateGlowLayer("InnerGlowFrame", new Vector2(4f, 4f), frameSprite, frameType);
 
         ReorderGlowLayers();
     }
 
+    // Executes create glow layer operation.
     private Image CreateGlowLayer(string layerName, Vector2 extraSize, Sprite sprite, Image.Type type)
     {
         Transform existing = transform.Find(layerName);
@@ -106,6 +106,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         return img;
     }
 
+    // Executes reorder glow layers operation.
     private void ReorderGlowLayers()
     {
         Transform bg = transform.Find("Background");
@@ -122,6 +123,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         if (qty != null) qty.SetAsLastSibling();
     }
 
+    // Executes apply colors operation.
     private void ApplyColors(float pulse)
     {
         float p = 1f - pulseStrength + pulseStrength * pulse;
@@ -129,6 +131,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         if (ambientAura != null)
         {
             Color c = baseColor;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             c.a = Mathf.Clamp01(0.40f * p);
             ambientAura.color = c;
         }
@@ -136,6 +139,7 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         if (outerGlow != null)
         {
             Color c = baseColor;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             c.a = Mathf.Clamp01(0.75f * p);
             outerGlow.color = c;
         }
@@ -143,11 +147,14 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         if (innerGlow != null)
         {
             Color c = baseColor;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             c.a = Mathf.Clamp01(1.00f * p);
             innerGlow.color = c;
         }
     }
 
+    // Executes set glow active operation.
+    // Validates input parameters against null or empty values.
     private void SetGlowActive(bool active)
     {
         if (ambientAura != null) ambientAura.gameObject.SetActive(active);
@@ -155,6 +162,8 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         if (innerGlow != null) innerGlow.gameObject.SetActive(active);
     }
 
+    // Executes get pulse strength operation.
+    // Validates input parameters against null or empty values.
     private static float GetPulseStrength(string rarity)
     {
         if (string.IsNullOrWhiteSpace(rarity))
@@ -172,6 +181,8 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         }
     }
 
+    // Executes get rarity color operation.
+    // Validates input parameters against null or empty values.
     public static Color GetRarityColor(string rarity)
     {
         if (string.IsNullOrWhiteSpace(rarity))
@@ -179,12 +190,12 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
 
         switch (rarity.Trim().ToLowerInvariant())
         {
-            case "common":    return new Color(0.00f, 0.95f, 1.00f); // Electric Ice Cyan
-            case "uncommon":  return new Color(0.15f, 1.00f, 0.30f); // Bright Neon Lime Green
-            case "rare":      return new Color(0.00f, 0.55f, 1.00f); // Vivid Hyper Royal Blue
-            case "epic":      return new Color(0.90f, 0.15f, 1.00f); // Radiant Ultra Violet Purple
-            case "legendary": return new Color(1.00f, 0.60f, 0.00f); // Blazing Sun Gold
-            case "mythic":    return new Color(1.00f, 0.10f, 0.10f); // Fiery Plasma Red
+            case "common":    return new Color(0.00f, 0.95f, 1.00f);
+            case "uncommon":  return new Color(0.15f, 1.00f, 0.30f);
+            case "rare":      return new Color(0.00f, 0.55f, 1.00f);
+            case "epic":      return new Color(0.90f, 0.15f, 1.00f);
+            case "legendary": return new Color(1.00f, 0.60f, 0.00f);
+            case "mythic":    return new Color(1.00f, 0.10f, 0.10f);
             default:          return new Color(0.00f, 0.95f, 1.00f);
         }
     }

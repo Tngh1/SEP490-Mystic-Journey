@@ -5,8 +5,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIShopItemTooltip : MonoBehaviour
 {
+    // Executes instance operation.
     public static UIShopItemTooltip Instance { get; private set; }
 
     [Header("UI References")]
@@ -23,6 +25,8 @@ public class UIShopItemTooltip : MonoBehaviour
     private Canvas parentCanvas;
     private TMP_SpriteAsset statSpriteAsset;
 
+    // Initializes internal component caches and dependencies for UIShopItemTooltip upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance == null)
@@ -49,6 +53,7 @@ public class UIShopItemTooltip : MonoBehaviour
         else gameObject.SetActive(false);
     }
 
+    // Executes disable raycast targets operation.
     private void DisableRaycastTargets()
     {
         Graphic[] graphics = GetComponentsInChildren<Graphic>(true);
@@ -59,6 +64,7 @@ public class UIShopItemTooltip : MonoBehaviour
         }
     }
 
+    // Executes try auto bind operation.
     private void TryAutoBind()
     {
         if (container == null) container = gameObject;
@@ -68,7 +74,6 @@ public class UIShopItemTooltip : MonoBehaviour
         if (descriptionText == null) descriptionText = FindChildText("DescriptionText", "Description", "Desc");
         if (priceLimitText == null) priceLimitText = FindChildText("PriceLimitText", "PriceLimit", "PriceText", "LimitText");
 
-        // Fallback: If statsText is still unassigned, take the first unassigned TMP_Text component
         var allTexts = GetComponentsInChildren<TMP_Text>(true);
         for (int i = 0; i < allTexts.Length; i++)
         {
@@ -83,6 +88,7 @@ public class UIShopItemTooltip : MonoBehaviour
         if (rarityBorder == null) rarityBorder = FindChildImage("RarityBorder", "Border", "Frame");
     }
 
+    // Executes find child text operation.
     private TMP_Text FindChildText(params string[] names)
     {
         var texts = GetComponentsInChildren<TMP_Text>(true);
@@ -97,6 +103,7 @@ public class UIShopItemTooltip : MonoBehaviour
         return null;
     }
 
+    // Executes find child image operation.
     private Image FindChildImage(params string[] names)
     {
         var images = GetComponentsInChildren<Image>(true);
@@ -111,11 +118,11 @@ public class UIShopItemTooltip : MonoBehaviour
         return null;
     }
 
+    // Executes get or create operation.
     public static UIShopItemTooltip GetOrCreate(Canvas targetCanvas = null)
     {
         if (Instance != null) return Instance;
 
-        // Try finding in scene
         Instance = FindFirstObjectByType<UIShopItemTooltip>(FindObjectsInactive.Include);
         if (Instance != null)
         {
@@ -123,7 +130,6 @@ public class UIShopItemTooltip : MonoBehaviour
             return Instance;
         }
 
-        // Search for PopupLayer or Canvas
         Transform parentTransform = null;
         GameObject popupLayerObj = GameObject.Find("PopupLayer");
         if (popupLayerObj != null)
@@ -160,7 +166,6 @@ public class UIShopItemTooltip : MonoBehaviour
         rect.sizeDelta = new Vector2(280f, 220f);
         rect.pivot = new Vector2(0f, 1f);
 
-        // Background
         GameObject bgObj = new GameObject("Background", typeof(RectTransform), typeof(Image));
         bgObj.transform.SetParent(tooltipObj.transform, false);
         RectTransform bgRect = bgObj.GetComponent<RectTransform>();
@@ -171,7 +176,6 @@ public class UIShopItemTooltip : MonoBehaviour
         Image bgImage = bgObj.GetComponent<Image>();
         bgImage.color = new Color(0.08f, 0.08f, 0.12f, 0.95f);
 
-        // Border / Frame
         GameObject borderObj = new GameObject("Border", typeof(RectTransform), typeof(Image));
         borderObj.transform.SetParent(tooltipObj.transform, false);
         RectTransform borderRect = borderObj.GetComponent<RectTransform>();
@@ -182,7 +186,6 @@ public class UIShopItemTooltip : MonoBehaviour
         Image borderImage = borderObj.GetComponent<Image>();
         borderImage.color = new Color(1f, 0.8f, 0.2f, 0.6f);
 
-        // Content Layout
         GameObject contentObj = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
         contentObj.transform.SetParent(tooltipObj.transform, false);
         RectTransform contentRect = contentObj.GetComponent<RectTransform>();
@@ -202,28 +205,24 @@ public class UIShopItemTooltip : MonoBehaviour
         ContentSizeFitter fitter = contentObj.GetComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        // Name
         GameObject nameObj = new GameObject("NameText", typeof(RectTransform), typeof(TextMeshProUGUI));
         nameObj.transform.SetParent(contentObj.transform, false);
         TMP_Text nameTextComp = nameObj.GetComponent<TextMeshProUGUI>();
         nameTextComp.fontSize = 16f;
         nameTextComp.fontStyle = FontStyles.Bold;
 
-        // Type & Rarity
         GameObject typeObj = new GameObject("TypeRarityText", typeof(RectTransform), typeof(TextMeshProUGUI));
         typeObj.transform.SetParent(contentObj.transform, false);
         TMP_Text typeTextComp = typeObj.GetComponent<TextMeshProUGUI>();
         typeTextComp.fontSize = 12f;
         typeTextComp.color = new Color(0.7f, 0.7f, 0.8f);
 
-        // Stats
         GameObject statsObj = new GameObject("StatsText", typeof(RectTransform), typeof(TextMeshProUGUI));
         statsObj.transform.SetParent(contentObj.transform, false);
         TMP_Text statsTextComp = statsObj.GetComponent<TextMeshProUGUI>();
         statsTextComp.fontSize = 13f;
         statsTextComp.richText = true;
 
-        // Description
         GameObject descObj = new GameObject("DescriptionText", typeof(RectTransform), typeof(TextMeshProUGUI));
         descObj.transform.SetParent(contentObj.transform, false);
         TMP_Text descTextComp = descObj.GetComponent<TextMeshProUGUI>();
@@ -231,7 +230,6 @@ public class UIShopItemTooltip : MonoBehaviour
         descTextComp.fontStyle = FontStyles.Italic;
         descTextComp.color = new Color(0.85f, 0.85f, 0.9f);
 
-        // Price & Limit
         GameObject priceObj = new GameObject("PriceLimitText", typeof(RectTransform), typeof(TextMeshProUGUI));
         priceObj.transform.SetParent(contentObj.transform, false);
         TMP_Text priceTextComp = priceObj.GetComponent<TextMeshProUGUI>();
@@ -256,6 +254,7 @@ public class UIShopItemTooltip : MonoBehaviour
         return script;
     }
 
+    // Executes ensure stat icons asset operation.
     private void EnsureStatIconsAsset()
     {
         if (statSpriteAsset == null)
@@ -267,6 +266,7 @@ public class UIShopItemTooltip : MonoBehaviour
         }
     }
 
+    // Executes show tooltip operation.
     public void ShowTooltip(UIItemDisplayData data, RectTransform slotTransform)
     {
         if (data == null)
@@ -278,7 +278,6 @@ public class UIShopItemTooltip : MonoBehaviour
         FillFallbackStats(data);
         EnsureStatIconsAsset();
 
-        // 1. Title & Rarity Color
         Color rarityColor = UIItemDetailPopup.GetRarityColor(data.rarity);
         if (nameText != null)
         {
@@ -296,7 +295,6 @@ public class UIShopItemTooltip : MonoBehaviour
             rarityBorder.color = rarityColor;
         }
 
-        // 2. Type & Rarity Header
         if (typeRarityText != null)
         {
             typeRarityText.enableAutoSizing = false;
@@ -312,7 +310,6 @@ public class UIShopItemTooltip : MonoBehaviour
             typeRarityText.text = $"{rarityStr} • {categoryOrSlot}";
         }
 
-        // 3. Equipment Stats with Stat Icons (<sprite name="...">)
         if (statsText != null)
         {
             statsText.enableAutoSizing = false;
@@ -348,7 +345,6 @@ public class UIShopItemTooltip : MonoBehaviour
             statsText.gameObject.SetActive(statsText.text.Length > 0);
         }
 
-        // 4. Description
         if (descriptionText != null)
         {
             descriptionText.enableAutoSizing = false;
@@ -360,7 +356,6 @@ public class UIShopItemTooltip : MonoBehaviour
             descriptionText.gameObject.SetActive(!string.IsNullOrWhiteSpace(data.description));
         }
 
-        // 5. Price & Limit Info
         if (priceLimitText != null)
         {
             priceLimitText.enableAutoSizing = false;
@@ -386,7 +381,6 @@ public class UIShopItemTooltip : MonoBehaviour
             priceLimitText.text = sb.ToString();
         }
 
-        // 6. Display & Position Tooltip near Slot
         if (container != null) container.SetActive(true);
         else gameObject.SetActive(true);
 
@@ -394,12 +388,14 @@ public class UIShopItemTooltip : MonoBehaviour
         PositionNearSlot(slotTransform);
     }
 
+    // Executes hide tooltip operation.
     public void HideTooltip()
     {
         if (container != null) container.SetActive(false);
         else gameObject.SetActive(false);
     }
 
+    // Executes position near slot operation.
     private void PositionNearSlot(RectTransform slotTransform)
     {
         if (slotTransform == null || rectTransform == null) return;
@@ -407,11 +403,9 @@ public class UIShopItemTooltip : MonoBehaviour
         Vector3[] corners = new Vector3[4];
         slotTransform.GetWorldCorners(corners);
 
-        // Position slightly offset from slot top-right corner
         Vector3 targetPos = corners[2];
         rectTransform.position = targetPos;
 
-        // Keep inside screen boundaries using actual world corners
         Vector3[] tooltipCorners = new Vector3[4];
         rectTransform.GetWorldCorners(tooltipCorners);
 
@@ -421,19 +415,16 @@ public class UIShopItemTooltip : MonoBehaviour
         float screenWidth = Screen.width;
         float screenHeight = Screen.height;
 
-        // If off right screen, flip to left side of slot
         if (tooltipCorners[2].x > screenWidth - 10f)
         {
             targetPos.x = corners[0].x - tooltipWidth;
         }
 
-        // If top edge extends beyond top of screen, push down
         if (tooltipCorners[1].y > screenHeight - 10f)
         {
             targetPos.y -= (tooltipCorners[1].y - (screenHeight - 10f));
         }
 
-        // If bottom edge extends beyond bottom of screen, push up
         if (tooltipCorners[0].y < 10f)
         {
             targetPos.y += (10f - tooltipCorners[0].y);
@@ -442,6 +433,8 @@ public class UIShopItemTooltip : MonoBehaviour
         rectTransform.position = targetPos;
     }
 
+    // Executes fill fallback stats operation.
+    // Validates input parameters against null or empty values.
     private static void FillFallbackStats(UIItemDisplayData data)
     {
         if (data == null) return;

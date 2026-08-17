@@ -13,6 +13,8 @@ namespace Fusion {
   [DisallowMultipleComponent]
   public class RunnerEnableVisibility : Behaviour, INetworkRunnerCallbacks {
     
+    // Initializes internal component caches and dependencies for RunnerEnableVisibility upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake() {
       var runner = GetComponentInParent<NetworkRunner>();
       if (runner) {
@@ -25,6 +27,8 @@ namespace Fusion {
       }
     }
 
+    // Cleanup callback executed when RunnerEnableVisibility is destroyed.
+    // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
     private void OnDestroy() {
       if (TryGetComponent<NetworkRunner>(out var runner)) {
         runner.DisableVisibilityExtension();
@@ -33,6 +37,7 @@ namespace Fusion {
       }
     }
 
+    // Executes runner on object acquired operation.
     private void RunnerOnObjectAcquired(NetworkRunner runner, NetworkObject obj) {
       if (runner.IsRunning == false) return;
       if (runner.Config.PeerMode == NetworkProjectConfig.PeerModes.Single) {
@@ -43,6 +48,7 @@ namespace Fusion {
       runner.AddVisibilityNodes(obj.gameObject);
     }
 
+    // Executes on reliable data progress operation.
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) {
     }
 

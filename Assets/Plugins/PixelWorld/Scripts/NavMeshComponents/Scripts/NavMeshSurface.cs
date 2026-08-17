@@ -9,6 +9,8 @@ using UnityEditor.SceneManagement;
 
 namespace NavMeshPlus.Components
 {
+    // Executes collect objects operation.
+    // Evaluates conditions and returns a boolean result.
     public enum CollectObjects
     {
         All = 0,
@@ -16,6 +18,7 @@ namespace NavMeshPlus.Components
         Children = 2,
     }
 
+    // Executes mono behaviour operation.
     [ExecuteAlways]
     [DefaultExecutionOrder(-102)]
     [AddComponentMenu("Navigation/Navigation Surface", 30)]
@@ -24,70 +27,87 @@ namespace NavMeshPlus.Components
     {
         [SerializeField, NavMeshAgent]
         int m_AgentTypeID;
+        // Executes agent type id operation.
         public int agentTypeID { get { return m_AgentTypeID; } set { m_AgentTypeID = value; } }
 
         [SerializeField]
         CollectObjects m_CollectObjects = CollectObjects.All;
+        // Executes collect objects operation.
         public CollectObjects collectObjects { get { return m_CollectObjects; } set { m_CollectObjects = value; } }
 
         [SerializeField]
         Vector3 m_Size = new Vector3(10.0f, 10.0f, 10.0f);
+        // Executes size operation.
         public Vector3 size { get { return m_Size; } set { m_Size = value; } }
 
         [SerializeField]
         Vector3 m_Center = new Vector3(0, 2.0f, 0);
+        // Executes center operation.
         public Vector3 center { get { return m_Center; } set { m_Center = value; } }
 
         [SerializeField]
         LayerMask m_LayerMask = ~0;
+        // Executes layer mask operation.
         public LayerMask layerMask { get { return m_LayerMask; } set { m_LayerMask = value; } }
 
         [SerializeField]
         NavMeshCollectGeometry m_UseGeometry = NavMeshCollectGeometry.RenderMeshes;
+        // Executes use geometry operation.
         public NavMeshCollectGeometry useGeometry { get { return m_UseGeometry; } set { m_UseGeometry = value; } }
 
         [SerializeField, NavMeshArea]
         int m_DefaultArea;
+        // Executes default area operation.
         public int defaultArea { get { return m_DefaultArea; } set { m_DefaultArea = value; } }
 
         [SerializeField]
         bool m_IgnoreNavMeshAgent = true;
+        // Executes ignore nav mesh agent operation.
         public bool ignoreNavMeshAgent { get { return m_IgnoreNavMeshAgent; } set { m_IgnoreNavMeshAgent = value; } }
 
         [SerializeField]
         bool m_IgnoreNavMeshObstacle = true;
+        // Executes ignore nav mesh obstacle operation.
         public bool ignoreNavMeshObstacle { get { return m_IgnoreNavMeshObstacle; } set { m_IgnoreNavMeshObstacle = value; } }
 
         [SerializeField]
         bool m_OverrideTileSize;
+        // Executes override tile size operation.
         public bool overrideTileSize { get { return m_OverrideTileSize; } set { m_OverrideTileSize = value; } }
         [SerializeField]
         int m_TileSize = 256;
+        // Executes tile size operation.
         public int tileSize { get { return m_TileSize; } set { m_TileSize = value; } }
         [SerializeField]
         bool m_OverrideVoxelSize;
+        // Executes override voxel size operation.
         public bool overrideVoxelSize { get { return m_OverrideVoxelSize; } set { m_OverrideVoxelSize = value; } }
         [SerializeField]
         float m_VoxelSize;
+        // Executes voxel size operation.
         public float voxelSize { get { return m_VoxelSize; } set { m_VoxelSize = value; } }
 
         // Currently not supported advanced options
         [SerializeField]
         bool m_BuildHeightMesh;
+        // Executes build height mesh operation.
         public bool buildHeightMesh { get { return m_BuildHeightMesh; } set { m_BuildHeightMesh = value; } }
 
         [SerializeField]
         float m_MinRegionArea = 0;
+        // Executes min region area operation.
         public float minRegionArea { get {  return m_MinRegionArea; } set { m_MinRegionArea = value; } }
         
         [SerializeField]
         bool m_HideEditorLogs;
+        // Executes hide editor logs operation.
         public bool hideEditorLogs { get { return m_HideEditorLogs; } set { m_HideEditorLogs = value; } }
 
         // Reference to whole scene navmesh data asset.
         [UnityEngine.Serialization.FormerlySerializedAs("m_BakedNavMeshData")]
         [SerializeField]
         NavMeshData m_NavMeshData;
+        // Executes nav mesh data operation.
         public NavMeshData navMeshData { get { return m_NavMeshData; } set { m_NavMeshData = value; } }
 
         // Do not serialize - runtime only state.
@@ -95,11 +115,14 @@ namespace NavMeshPlus.Components
         Vector3 m_LastPosition = Vector3.zero;
         Quaternion m_LastRotation = Quaternion.identity;
 
+        // Executes nav mesh data instance operation.
         public NavMeshDataInstance navMeshDataInstance => m_NavMeshDataInstance;
 
         static readonly List<NavMeshSurface> s_NavMeshSurfaces = new List<NavMeshSurface>();
+        // Executes nev mesh extensions operation.
         public INavMeshExtensionsProvider NevMeshExtensions { get; set; } = new NavMeshExtensionsProvider();
 
+        // Executes active surfaces operation.
         public static List<NavMeshSurface> activeSurfaces
         {
             get { return s_NavMeshSurfaces; }
@@ -117,6 +140,7 @@ namespace NavMeshPlus.Components
             Unregister(this);
         }
 
+        // Executes add data operation.
         public void AddData()
         {
 #if UNITY_EDITOR
@@ -132,7 +156,7 @@ namespace NavMeshPlus.Components
             if (m_NavMeshDataInstance.valid)
                 return;
 
-            if (m_NavMeshData != null)
+            if (m_NavMeshData != null)  // Entity exists — proceed with conditional branch
             {
                 m_NavMeshDataInstance = NavMesh.AddNavMeshData(m_NavMeshData, transform.position, transform.rotation);
                 m_NavMeshDataInstance.owner = this;
@@ -142,12 +166,14 @@ namespace NavMeshPlus.Components
             m_LastRotation = transform.rotation;
         }
 
+        // Executes remove data operation.
         public void RemoveData()
         {
-            m_NavMeshDataInstance.Remove();
+            m_NavMeshDataInstance.Remove();  // Mark entity for deletion in the next SaveChanges call
             m_NavMeshDataInstance = new NavMeshDataInstance();
         }
 
+        // Executes get build settings operation.
         public NavMeshBuildSettings GetBuildSettings()
         {
             var buildSettings = NavMesh.GetSettingsByID(m_AgentTypeID);
@@ -172,6 +198,7 @@ namespace NavMeshPlus.Components
             return buildSettings;
         }
 
+        // Executes build nav mesh operation.
         public void BuildNavMesh()
         {
             using var builderState = new NavMeshBuilderState() { };
@@ -193,7 +220,7 @@ namespace NavMeshPlus.Components
             var data = NavMeshBuilder.BuildNavMeshData(GetBuildSettings(),
                     sources, sourcesBounds, transform.position, transform.rotation);
 
-            if (data != null)
+            if (data != null)  // Entity exists — proceed with conditional branch
             {
                 data.name = gameObject.name;
                 RemoveData();
@@ -222,6 +249,7 @@ namespace NavMeshPlus.Components
             return UpdateNavMesh(m_NavMeshData);
         }
 
+        // Executes update nav mesh operation.
         public AsyncOperation UpdateNavMesh(NavMeshData data)
         {
             using var builderState = new NavMeshBuilderState() { };
@@ -243,6 +271,8 @@ namespace NavMeshPlus.Components
             return NavMeshBuilder.UpdateNavMeshDataAsync(data, GetBuildSettings(), sources, sourcesBounds);
         }
 
+        // Registers a new player account with email, username, and hashed password.
+        // Verifies email OTP verification status, initializes player profile, and returns authentication tokens.
         static void Register(NavMeshSurface surface)
         {
 #if UNITY_EDITOR
@@ -262,14 +292,16 @@ namespace NavMeshPlus.Components
                 s_NavMeshSurfaces.Add(surface);
         }
 
+        // Executes unregister operation.
         static void Unregister(NavMeshSurface surface)
         {
-            s_NavMeshSurfaces.Remove(surface);
+            s_NavMeshSurfaces.Remove(surface);  // Mark entity for deletion in the next SaveChanges call
 
             if (s_NavMeshSurfaces.Count == 0)
                 NavMesh.onPreUpdate -= UpdateActive;
         }
 
+        // Executes update active operation.
         static void UpdateActive()
         {
             for (var i = 0; i < s_NavMeshSurfaces.Count; ++i)
@@ -408,11 +440,13 @@ namespace NavMeshPlus.Components
             return sources;
         }
 
+        // Executes abs operation.
         static Vector3 Abs(Vector3 v)
         {
             return new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
         }
 
+        // Executes get world bounds operation.
         public static Bounds GetWorldBounds(Matrix4x4 mat, Bounds bounds)
         {
             var absAxisX = Abs(mat.MultiplyVector(Vector3.right));
@@ -423,6 +457,7 @@ namespace NavMeshPlus.Components
             return new Bounds(worldPosition, worldSize);
         }
 
+        // Executes calculate world bounds operation.
         public Bounds CalculateWorldBounds(List<NavMeshBuildSource> sources)
         {
             // Use the unscaled matrix for the NavMeshSurface
@@ -488,7 +523,7 @@ namespace NavMeshPlus.Components
         bool UnshareNavMeshAsset()
         {
             // Nothing to unshare
-            if (m_NavMeshData == null)
+            if (m_NavMeshData == null)  // Entity not found — short-circuit with appropriate error result
                 return false;
 
             // Prefab parent owns the asset reference

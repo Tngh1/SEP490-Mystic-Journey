@@ -1,11 +1,12 @@
 using System;
 using UnityEngine;
 
-/// <summary>
-/// Extension method để kiểm tra parameter có tồn tại trong Animator Controller không
-/// </summary>
+// Initializes a new default instance of the AnimatorExtensions class.
 public static class AnimatorExtensions
 {
+    // Executes has parameter operation.
+    // Validates input parameters against null or empty values.
+    // Evaluates conditions and returns a boolean result.
     public static bool HasParameter(this Animator animator, string paramName)
     {
         if (animator == null || string.IsNullOrEmpty(paramName))
@@ -20,6 +21,7 @@ public static class AnimatorExtensions
     }
 }
 
+// Executes mono behaviour operation.
 public class EnemyAnimations : MonoBehaviour
 {
     [SerializeField] private EnemyBehaviour enemyBehaviour;
@@ -42,6 +44,8 @@ public class EnemyAnimations : MonoBehaviour
     private float stopDelay = 0.1f;
     private float stopTimer = 0f;
 
+    // Initializes internal component caches and dependencies for AnimatorExtensions upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         anim = GetComponent<Animator>();
@@ -54,6 +58,8 @@ public class EnemyAnimations : MonoBehaviour
             enemyEntity = GetComponent<EnemyEntity>() ?? GetComponentInParent<EnemyEntity>() ?? GetComponentInChildren<EnemyEntity>();
     }
 
+    // Performs startup initialization for AnimatorExtensions on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (enemyBehaviour == null)
@@ -77,16 +83,19 @@ public class EnemyAnimations : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
+    // Executes trigger att anim turn off operation.
     public void TriggerAttAnimTurnOff()
     {
         if (enemyEntity != null) enemyEntity.PolyCollTurnOff();
     }
 
+    // Executes trigger att anim turn on operation.
     public void TriggerAttAnimTurnOn()
     {
         if (enemyEntity != null) enemyEntity.PolyCollTurnOn();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (enemyBehaviour != null)
@@ -118,7 +127,6 @@ public class EnemyAnimations : MonoBehaviour
                 anim.SetBool(IS_RUNNING, false);
         }
 
-        // Chỉ set speed parameter nếu nó tồn tại trong Animator Controller
         float roamingSpeed = enemyBehaviour.GetRoamingAnimationSpeed();
         if (roamingSpeed > 0f)
         {
@@ -129,16 +137,19 @@ public class EnemyAnimations : MonoBehaviour
         }
     }
 
+    // Executes enemy behaviour_on enemy attack operation.
     private void enemyBehaviour_OnEnemyAttack(object sender, System.EventArgs e)
     {
         PlayAttackAnimation();
     }
 
+    // Executes enemy behaviour_on enemy cast skill operation.
     private void enemyBehaviour_OnEnemyCastSkill(object sender, System.EventArgs e)
     {
         PlaySkillAnimation();
     }
 
+    // Executes play attack animation operation.
     public void PlayAttackAnimation()
     {
         if (anim == null) return;
@@ -146,6 +157,7 @@ public class EnemyAnimations : MonoBehaviour
         else if (anim.HasParameter("Attack")) anim.SetTrigger("Attack");
     }
 
+    // Executes play skill animation operation.
     public void PlaySkillAnimation()
     {
         if (anim == null) return;
@@ -154,11 +166,13 @@ public class EnemyAnimations : MonoBehaviour
         else if (anim.HasParameter("Attack")) anim.SetTrigger("Attack");
     }
 
+    // Executes enemy entity_on take hit operation.
     private void enemyEntity_OnTakeHit(object sender, EventArgs e)
     {
         if (anim != null) anim.SetTrigger(TAKEHIT);
     }
 
+    // Executes enemy entity_on death operation.
     private void enemyEntity_OnDeath(object sender, EventArgs e)
     {
         if (anim != null) anim.SetBool(DIED, true);

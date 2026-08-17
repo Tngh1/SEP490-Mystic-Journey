@@ -7,8 +7,11 @@ using UnityEngine.AI;
 //***********************************************************************************
 namespace NavMeshPlus.Extensions
 {
+    // Executes i agent override operation.
     public class RotateAgentSmoothly: IAgentOverride
     {
+        // Initializes a new instance of RotateAgentSmoothly with dependencies: agent, owner, rotateSpeed.
+        // Assigns injected service and configuration instances to readonly fields for runtime operations.
         public RotateAgentSmoothly(NavMeshAgent agent, AgentOverride2d owner, float rotateSpeed)
         {
             this.agent = agent;
@@ -23,6 +26,7 @@ namespace NavMeshPlus.Extensions
         private float targetAngle;
         public float rotateSpeed;
 
+        // Executes update agent operation.
         public void UpdateAgent()
         {
             if (agent.hasPath && agent.path.corners.Length > 1)
@@ -34,10 +38,12 @@ namespace NavMeshPlus.Extensions
                 }
             }
         }
+        // Executes _rotate coroutine operation.
         protected IEnumerator _RotateCoroutine()
         {
             yield return RotateToWaypoints(agent.transform);
         }
+        // Executes rotate to waypoints operation.
         protected IEnumerator RotateToWaypoints(Transform transform)
         {
             Vector2 targetVector = agent.path.corners[1] - transform.position;

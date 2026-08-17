@@ -6,12 +6,9 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // PLAYER API - Quản lý player profile, inventory, bạn bè, mail
-    // ═══════════════════════════════════════════════════════════════════════
     public class PlayerApi : BaseApiService<PlayerApi>
     {
-        // ── Lấy profile theo ID ────────────────────────────────────────────
+        // Executes get profile by id operation.
         public void GetProfileById(int profileId, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"GetProfileById → profileId={profileId}");
@@ -31,7 +28,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy profile của mình ──────────────────────────────────────────
+        // Executes get my profile operation.
         public void GetMyProfile(Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             int profileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
@@ -49,7 +46,7 @@ namespace MysticJourney.API.Endpoints
             GetProfileById(profileId, onSuccess, onError);
         }
 
-        // ── Cập nhật profile ──────────────────────────────────────────────
+        // Executes update profile operation.
         public void UpdateProfile(int profileId, UpdatePlayerProfileRequest body, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"UpdateProfile → profileId={profileId} | DisplayName={body?.DisplayName}");
@@ -69,7 +66,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Đổi tên ──────────────────────────────────────────────
+        // Executes change name operation.
         public void ChangeName(ChangeNameRequestDto body, Action<PlayerProfileResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"ChangeName → NewName={body?.NewName}");

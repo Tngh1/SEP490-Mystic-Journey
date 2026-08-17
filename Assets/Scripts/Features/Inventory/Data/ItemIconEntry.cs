@@ -1,11 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Maps a string key to a Sprite icon.
-/// Key can be item Type (e.g. "Weapon", "Currency") for a fallback icon,
-/// or item Name (e.g. "[ITEM] Gold Coin") for a specific icon.
-/// Name takes priority over Type when both exist.
-/// </summary>
+// Initializes a new default instance of the ItemIconEntry class.
 [System.Serializable]
 public class ItemIconEntry
 {

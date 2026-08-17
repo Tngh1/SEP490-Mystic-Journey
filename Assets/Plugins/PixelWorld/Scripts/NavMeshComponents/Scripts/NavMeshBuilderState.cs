@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace NavMeshPlus.Extensions
 {
+    // Executes i disposable operation.
     public class NavMeshBuilderState: IDisposable
     {
         public Matrix4x4 worldToLocal;
@@ -13,9 +14,10 @@ namespace NavMeshPlus.Extensions
         private Dictionary<Type, System.Object> mExtraState;
         private bool _disposed;
 
+        // Executes new operation.
         public T GetExtraState<T>(bool dispose = true) where T : class, new()
         {
-            if (mExtraState == null)
+            if (mExtraState == null)  // Entity not found — short-circuit with appropriate error result
             { 
                 mExtraState = new Dictionary<Type, System.Object>();
                 disposable = new CompositeDisposable();
@@ -32,6 +34,7 @@ namespace NavMeshPlus.Extensions
             return extra as T;
         }
 
+        // Executes dispose operation.
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
@@ -51,6 +54,7 @@ namespace NavMeshPlus.Extensions
             _disposed = true;
         }
 
+        // Executes dispose operation.
         public void Dispose()
         {
             // Dispose of unmanaged resources.
@@ -64,10 +68,12 @@ namespace NavMeshPlus.Extensions
         private bool _disposed;
         private List<IDisposable> extraStates = new List<IDisposable>();
 
+        // Executes add operation.
         public void Add(IDisposable dispose)
         {
             extraStates.Add(dispose);
         }
+        // Executes add operation.
         public void Add(object dispose)
         {
             if(dispose is IDisposable)
@@ -75,6 +81,7 @@ namespace NavMeshPlus.Extensions
                 extraStates.Add((IDisposable)dispose);
             }
         }
+        // Executes dispose operation.
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
@@ -98,6 +105,7 @@ namespace NavMeshPlus.Extensions
             _disposed = true;
         }
 
+        // Executes dispose operation.
         public void Dispose()
         {
             // Dispose of unmanaged resources.

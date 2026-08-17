@@ -9,8 +9,10 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Services;
 
+// Executes core business logic for mono behaviour.
 public class PlayerHUDUIManager : MonoBehaviour
 {
+    // Executes core business logic for instance.
     public static PlayerHUDUIManager Instance { get; private set; }
 
     [Header("UI Reference Cache")]
@@ -73,12 +75,12 @@ public class PlayerHUDUIManager : MonoBehaviour
     [SerializeField, HideInInspector] private Sprite deathSecondaryButtonSprite;
 
     [Header("Colors")]
-    [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f); // Light Sky Blue
-    [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);  // #4CAF50
-    [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);       // #FFEB3B
+    [SerializeField] private Color expBarColor = new Color(0.35f, 0.78f, 0.98f);
+    [SerializeField] private Color highHealthColor = new Color(0.298f, 0.686f, 0.314f);
+    [SerializeField] private Color mediumHealthColor = new Color(1f, 0.92f, 0.23f);
 
     [SerializeField] private Color hpEmptyColor = new Color32(46, 31, 25, 255);
-    [SerializeField] private Color lowHealthColor = new Color(0.956f, 0.263f, 0.212f);    // #F44336
+    [SerializeField] private Color lowHealthColor = new Color(0.956f, 0.263f, 0.212f);
 
 
     private Coroutine _updateLoopCoroutine;
@@ -95,87 +97,81 @@ public class PlayerHUDUIManager : MonoBehaviour
     private Transform _hpBarContainer;
     private readonly List<GameObject> _resourceDeltaPopups = new List<GameObject>();
 
-    /// <summary>
-    /// Cached currency balance — updated every time the HUD receives a fresh balance
-    /// from the API. Used by UIConfirmPurchase to cap "Max" quantity to what the
-    /// player can actually afford without making a separate API call.
-    /// </summary>
+    // Executes core business logic for cached gold.
     public static decimal CachedGold { get; private set; } = -1m;
+    // Executes core business logic for cached gems.
     public static decimal CachedGems { get; private set; } = -1m;
 
+    // Executes core business logic for current hp.
     public int CurrentHp => _lastHp >= 0 ? _lastHp : (PlayerEntity.Instance != null ? PlayerEntity.Instance.CurrentHealth : 0);
+    // Executes core business logic for max hp.
     public int MaxHp => _lastMaxHp > 0 ? _lastMaxHp : (PlayerEntity.Instance != null ? PlayerEntity.Instance.MaxHealth : 0);
 
-    // MenuButton (Toggle) trong Left: bấm để hiện/ẩn các nút còn lại cho gọn màn hình.
-    // Dùng CanvasGroup trên Left để bật/tắt cả cụm — KHÔNG đụng SetActive của các nút, vì
-    // visibility từng nút do 2 hệ level-gate độc lập quản (ApplyLevelGating +
-    // MainFeatureUnlockRuntime). CanvasGroup là lớp phủ riêng: menu đóng ẩn cả cụm, menu
-    // mở hiện đúng những nút đã đủ level. MenuButton có CanvasGroup ignoreParentGroups
-    // riêng nên luôn hiện/bấm được.
     private bool _menuOpen;
     private bool _menuWired;
     private CanvasGroup _leftGroup;
     private HUDNotificationController _notificationController;
-    private GameObject _menuOpenIcon;  // Icon (menu) — hiện khi menu ĐANG đóng
-    private GameObject _menuCloseIcon; // CloseIcon (X) — hiện khi menu ĐANG mở
+    private GameObject _menuOpenIcon;
+    private GameObject _menuCloseIcon;
 
+    // Initializes internal component caches and dependencies for PlayerHUDUIManager upon GameObject instantiation.
     private void Awake()
     {
         if (Instance == null)
         {
-            Instance = this;
+            Instance = this; // Cache singleton instance
         }
         else if (Instance != this)
         {
-            Destroy(this);
+            Destroy(this); // Prevent duplicate HUD managers
             return;
         }
 
-        FindHUDReferences();
-        FindDeathPanelReferences();
+        FindHUDReferences(); // Cache all text, bar, and button transforms
+        FindDeathPanelReferences(); // Wire up death and restart prompt references
     }
 
     private float _hudEnableTime = 0f;
 
+    // Subscribes event handlers, initializes bar animations, and starts HUD polling loop.
     private void OnEnable()
     {
-        _hudEnableTime = Time.unscaledTime;
+        _hudEnableTime = Time.unscaledTime; // Record startup timestamp
         _isHpInitialized = false;
-        ResetHpTransientEffects();
-        StartHUDLoop();
+        ResetHpTransientEffects(); // Clear flash and shake effects
+        StartHUDLoop(); // Launch periodic health/EXP/resource polling coroutine
         if (levelUpButton != null)
         {
-            levelUpButton.onClick.AddListener(OnLevelUpButtonClicked);
+            levelUpButton.onClick.AddListener(OnLevelUpButtonClicked); // Wire level up modal trigger
         }
-        PlayerEntity.OnHealthChanged += HandleHealthChanged;
+        PlayerEntity.OnHealthChanged += HandleHealthChanged; // Subscribe local player health mutations
         WorldRuntimeEvents.QuestsChanged -= OnQuestsOrCurrencyChanged;
-        WorldRuntimeEvents.QuestsChanged += OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.QuestsChanged += OnQuestsOrCurrencyChanged; // Subscribe quest log progress updates
         WorldRuntimeEvents.CurrencyChanged -= OnQuestsOrCurrencyChanged;
-        WorldRuntimeEvents.CurrencyChanged += OnQuestsOrCurrencyChanged;
+        WorldRuntimeEvents.CurrencyChanged += OnQuestsOrCurrencyChanged; // Subscribe Gold/Gem transactions
 
-        // Subscribe to NetworkPlayer death event
         if (NetworkPlayer.Local != null)
         {
-            NetworkPlayer.Local.OnDied += ShowDeathPopup;
+            NetworkPlayer.Local.OnDied += ShowDeathPopup; // Subscribe local death event
         }
-        NetworkPlayer.OnAnyReadyStateChanged += UpdateDeathPopupState;
+        NetworkPlayer.OnAnyReadyStateChanged += UpdateDeathPopupState; // Subscribe dungeon restart ready votes
 
     }
 
+    // Unsubscribes events and stops update polling loops when HUD is hidden.
     private void OnDisable()
     {
-        StopHUDLoop();
+        StopHUDLoop(); // Stop background polling coroutine
         ResetHpTransientEffects();
-        ClearResourceDeltaPopups();
+        ClearResourceDeltaPopups(); // Clean up floating currency delta text
         if (levelUpButton != null)
         {
-            levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked);
+            levelUpButton.onClick.RemoveListener(OnLevelUpButtonClicked); // Unwire button
         }
-        PlayerEntity.OnHealthChanged -= HandleHealthChanged;
+        PlayerEntity.OnHealthChanged -= HandleHealthChanged; // Unsubscribe health events
         WorldRuntimeEvents.QuestsChanged -= OnQuestsOrCurrencyChanged;
         WorldRuntimeEvents.CurrencyChanged -= OnQuestsOrCurrencyChanged;
 
-        // Unsubscribe from NetworkPlayer death event
         if (NetworkPlayer.Local != null)
         {
             NetworkPlayer.Local.OnDied -= ShowDeathPopup;
@@ -184,22 +180,24 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     }
 
+    // Refreshes HUD displays whenever quest objectives progress or currency balances mutate.
     private void OnQuestsOrCurrencyChanged()
     {
-        UpdateQuestPointers();
-        RefreshHUD();
+        UpdateQuestPointers(); // Reposition minimap and objective guidance arrows
+        RefreshHUD(); // Re-fetch profile and wallet balances
     }
 
+    // Opens the stat allocation card modal when the level up notification button is clicked.
     private void OnLevelUpButtonClicked()
     {
         if (levelUpPanel == null)
         {
-            levelUpPanel = UnityEngine.Object.FindFirstObjectByType<LevelUpUIManager>(FindObjectsInactive.Include);
+            levelUpPanel = UnityEngine.Object.FindFirstObjectByType<LevelUpUIManager>(FindObjectsInactive.Include); // Locate LevelUpUIManager in scene
         }
 
         if (levelUpPanel != null)
         {
-            levelUpPanel.gameObject.SetActive(true);
+            levelUpPanel.gameObject.SetActive(true); // Open stat upgrade modal
         }
         else
         {
@@ -207,6 +205,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for find child recursive.
     private Transform FindChildRecursive(Transform parent, string exactName)
     {
         if (parent.name == exactName) return parent;
@@ -218,16 +217,13 @@ public class PlayerHUDUIManager : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Resolve a button in the left action column. It lives under
-    /// "NonCombatActionGroup/Left"; a plain "Left/..." path returns null and fails
-    /// SILENTLY (no hover effect, no reference), so fall back to a name search.
-    /// </summary>
+    // Executes core business logic for find left.
     private Transform FindLeft(string buttonName)
         => transform.Find("NonCombatActionGroup/Left/" + buttonName)
            ?? transform.Find("Left/" + buttonName)
            ?? FindChildRecursive(transform, buttonName);
 
+    // Executes core business logic for find hud references.
     public void FindHUDReferences()
     {
         if (playerNameText == null) playerNameText = transform.Find("TopBar/Button/PlayerNameText")?.GetComponent<TMP_Text>();
@@ -248,8 +244,6 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
         if (hpBarImage == null) hpBarImage = transform.Find("TopBar/Button/HPBar/HPFill")?.GetComponent<Image>();
 
-        // fillAmount only applies to Filled images; force it so a Simple-typed
-        // sprite in the scene doesn't silently render the bar permanently full.
         MakeHorizontalFill(expBarImage);
         MakeHorizontalFill(hpBarImage);
         SetupHpEffects();
@@ -296,10 +290,10 @@ public class PlayerHUDUIManager : MonoBehaviour
             {
                 levelUpButton = lb.GetComponent<Button>();
                 if (levelUpButton == null) levelUpButton = lb.gameObject.AddComponent<Button>();
-                
+
                 var img = lb.GetComponent<Image>();
                 if (img != null) img.raycastTarget = true;
-                
+
                 lb.SetAsLastSibling();
             }
         }
@@ -380,7 +374,6 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
         _notificationController.Configure(mailButtonObj, chatButtonObj);
 
-        // Same hover-scale transition the party panel uses on its Start/Ready buttons.
         AddHoverEffect(FindLeft("DailyButton"));
         AddHoverEffect(FindLeft("GachaButton"));
         AddHoverEffect(FindLeft("ShopButton"));
@@ -404,7 +397,7 @@ public class PlayerHUDUIManager : MonoBehaviour
             var grp = transform.Find("NonCombatActionGroup") ?? transform.Find("Left");
             if (grp != null) nonCombatActionGroup = grp.gameObject;
         }
-        
+
         if (dungeonSpecificGroup == null)
         {
             var grp = transform.Find("DungeonSpecificGroup");
@@ -417,7 +410,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             if (grp != null) partyRosterContainer = grp.gameObject;
         }
 
-        // Đảm bảo trạng thái nút bấm đúng với map hiện tại khi vừa vào game
         bool inDungeon = false;
         if (DungeonManager.Instance != null)
         {
@@ -426,6 +418,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         ToggleDungeonMode(inDungeon);
     }
 
+    // Executes core business logic for toggle dungeon mode.
     public void ToggleDungeonMode(bool isInDungeon)
     {
         if (settingsButtonObj != null) settingsButtonObj.SetActive(!isInDungeon);
@@ -434,18 +427,18 @@ public class PlayerHUDUIManager : MonoBehaviour
         if (nonCombatActionGroup != null) nonCombatActionGroup.SetActive(!isInDungeon);
         if (dungeonSpecificGroup != null) dungeonSpecificGroup.SetActive(isInDungeon);
 
-        // Danh sách HP/avatar của đồng đội chỉ có nghĩa trong dungeon. Container này được lưu
-        // m_IsActive: 0 trong Main.unity và trước đây KHÔNG có code nào bật nó, nên
-        // UIDungeonPartyRoster.OnEnable chưa từng chạy và party không bao giờ hiện.
         if (partyRosterContainer != null) partyRosterContainer.SetActive(isInDungeon);
     }
 
+    // Executes core business logic for start hud loop.
     public void StartHUDLoop()
     {
         StopHUDLoop();
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         _updateLoopCoroutine = StartCoroutine(UpdateHUDLoop());
     }
 
+    // Executes core business logic for stop hud loop.
     public void StopHUDLoop()
     {
         if (_updateLoopCoroutine != null)
@@ -455,6 +448,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Update hud loop; it updates hud.
     private IEnumerator UpdateHUDLoop()
     {
         while (true)
@@ -464,23 +458,27 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for handle health changed.
     private void HandleHealthChanged(int currentHp, int maxHp)
     {
         FindHUDReferences();
         UpdateStatsUI(currentHp, maxHp);
     }
 
+    // Executes core business logic for force refresh hud.
     public void ForceRefreshHUD()
     {
         RefreshHUD();
     }
 
+    // Update hud; it updates profile and updates currency balance.
     public void RefreshHUD()
     {
         RefreshProfile();
         RefreshCurrencyBalance();
     }
 
+    // Executes core business logic for refresh profile.
     private void RefreshProfile()
     {
         if (_isRefreshing)
@@ -494,7 +492,6 @@ public class PlayerHUDUIManager : MonoBehaviour
         PlayerApi.Instance.GetMyProfile(
             profile =>
             {
-                // Update WorldState Level so other parts of the game are aware
                 WorldState.PlayerLevel = profile.Level;
                 WorldState.PlayerName = profile.DisplayName ?? profile.AccountEmail;
                 GameStateService.Instance.CorruptionLevel = profile.CorruptionLevel;
@@ -510,6 +507,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for complete profile refresh.
     private void CompleteProfileRefresh()
     {
         _isRefreshing = false;
@@ -519,6 +517,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         RefreshProfile();
     }
 
+    // Executes core business logic for ensure filled image mode.
     private void EnsureFilledImageMode(Image img)
     {
         if (img == null) return;
@@ -530,6 +529,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for apply corruption.
     public void ApplyCorruption(float corruptionLevel)
     {
         FindHUDReferences();
@@ -540,22 +540,26 @@ public class PlayerHUDUIManager : MonoBehaviour
         if (corruptionBarImage != null)
         {
             EnsureFilledImageMode(corruptionBarImage);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             corruptionBarImage.fillAmount = Mathf.Clamp01(corruptionLevel / 100f);
         }
     }
 
+    // Executes core business logic for apply health.
     public void ApplyHealth(int currentHp, int maxHp)
     {
         FindHUDReferences();
         UpdateStatsUI(currentHp, maxHp);
     }
 
+    // Executes core business logic for apply energy.
     public void ApplyEnergy(int currentEnergy, int maxEnergy)
     {
         FindHUDReferences();
         UpdateEnergyUI(currentEnergy, maxEnergy);
     }
 
+    // Executes core business logic for apply stats.
     public void ApplyStats(PlayerStatsResponse stats)
     {
         if (stats == null)
@@ -565,6 +569,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         UpdateStatsUI(stats);
     }
 
+    // Executes core business logic for refresh currency balance.
     public void RefreshCurrencyBalance()
     {
         if (_isCurrencyRefreshing)
@@ -589,6 +594,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for complete currency refresh.
     private void CompleteCurrencyRefresh()
     {
         _isCurrencyRefreshing = false;
@@ -598,6 +604,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         RefreshCurrencyBalance();
     }
 
+    // Executes core business logic for apply currency balance.
     public void ApplyCurrencyBalance(CurrencyBalanceResponse balance)
     {
         if (balance == null)
@@ -607,14 +614,10 @@ public class PlayerHUDUIManager : MonoBehaviour
         UpdateCurrencyUI(balance.Gold, balance.Gems);
     }
 
-    /// <summary>
-    /// Đổi avatar trên HUD ngay lập tức. Không có hàm này thì avatar chỉ đổi ở vòng lặp
-    /// RefreshHUD kế tiếp — tức người chơi phải chờ tới 15 giây mới thấy ảnh mới.
-    /// </summary>
+    // Executes core business logic for apply avatar.
+    // Logic details: validates numeric boundary constraints.
     public void ApplyAvatar(string avatarUrl)
     {
-        // Also publish it to the networked avatar so party members see the right picture
-        // in the in-dungeon roster — a proxy cannot fetch another player's profile.
         NetworkPlayer.PublishLocalAvatar(avatarUrl);
 
         FindHUDReferences();
@@ -627,6 +630,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     private int _lastKnownLevel = -1;
 
+    // Executes core business logic for update profile ui.
     private void UpdateProfileUI(PlayerProfileResponse profile)
     {
         if (_lastKnownLevel != -1 && profile.Level > _lastKnownLevel)
@@ -648,7 +652,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             levelText.text = profile.Level.ToString();
         }
 
-        // Apply level-gating for buttons
         ApplyLevelGating(profile.Level);
 
         if (levelUpButton != null)
@@ -670,14 +673,10 @@ public class PlayerHUDUIManager : MonoBehaviour
         if (corruptionBarImage != null)
         {
             EnsureFilledImageMode(corruptionBarImage);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
         }
 
-        // NOT gated on avatarImage: ApplyAvatar also publishes the avatar to the network so
-        // party members can draw it in the dungeon roster. Gating the call on a HUD Image
-        // reference meant that whenever transform.Find("TopBar/Button/Avatar") missed, the
-        // network publish never ran either, WorldState.AvatarUrl stayed empty, and every
-        // proxy silently fell back to avatar_1. ApplyAvatar null-checks the Image itself.
         ApplyAvatar(profile.AvatarUrl);
 
         UpdateCurrencyUI(profile.Gold, profile.Gems);
@@ -687,18 +686,11 @@ public class PlayerHUDUIManager : MonoBehaviour
             int level = profile.Level;
             int totalExp = profile.ExperiencePoints;
 
-            // profile.ExperiencePoints là tổng lũy kế từ backend, không reset khi lên level,
-            // nên phải trừ mốc EXP của level hiện tại mới ra đúng phần dư sau khi lên cấp
-            // (VD: lên Level 4 với tổng 314 EXP, mốc Level 4 là 300 -> dư 14, không phải 314).
-            // Hai mốc tổng EXP, khớp với PlayerProfile.RequiredTotalExperienceForLevel ở backend:
-            // (level - 1) * 100 cho level hiện tại, level * 100 cho level kế tiếp.
             int currentLevelFloor = (level - 1) * 100;
             int nextLevelFloor = level * 100;
 
             int expIntoLevel = Mathf.Max(0, totalExp - currentLevelFloor);
 
-            // Thanh EXP đo phần dư trong level, nên mẫu số là khoảng cách giữa hai mốc
-            // (100 EXP), KHÔNG phải mốc tổng lũy kế (VD: Level 5 hiện 14/100, không phải 14/500).
             int targetExp = nextLevelFloor - currentLevelFloor;
             if (targetExp <= 0) targetExp = 100;
 
@@ -716,28 +708,33 @@ public class PlayerHUDUIManager : MonoBehaviour
             if (expBarImage != null)
             {
                 EnsureFilledImageMode(expBarImage);
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 expBarImage.fillAmount = Mathf.Clamp01(expRatio);
             }
         }
     }
 
+    // Executes core business logic for update stats ui.
+    // Logic details: validates numeric boundary constraints.
     private void UpdateStatsUI(PlayerStatsResponse stats)
     {
         if (stats == null) return;
         UpdateStatsUI(stats.CurrentHp, stats.MaxHp);
     }
 
+    // Executes core business logic for update stats ui.
+    // Logic details: validates numeric boundary constraints.
     private void UpdateStatsUI(int currentHp, int maxHp)
     {
 
         ConfigureHpBackground();
         if (maxHp <= 0) return;
 
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         float targetRatio = Mathf.Clamp01((float)currentHp / (float)maxHp);
-        // Tính previousFill dựa trên _lastHp & _lastMaxHp trước đó để đảm bảo luôn chênh lệch mốc chuẩn
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         float previousFill = (_lastMaxHp > 0 && _lastHp >= 0 && _isHpInitialized) ? Mathf.Clamp01((float)_lastHp / (float)_lastMaxHp) : targetRatio;
 
-        // Guard: 2.5s đầu tiên sau khi Login/bật HUD là thời gian đồng bộ dữ liệu ban đầu từ Server.
         bool isGracePeriod = (Time.unscaledTime - _hudEnableTime) < 2.5f;
         bool isDamageHit = _isHpInitialized && !isGracePeriod && (currentHp < _lastHp);
 
@@ -745,7 +742,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         {
             if (isDamageHit)
             {
-                TriggerDamagePulseEffect(); // Chỉ co nảy ngọn thanh HP ở bên phải, không dùng bất kỳ Hào quang viền đỏ nào
+                TriggerDamagePulseEffect();
             }
         }
         else
@@ -759,6 +756,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         if (hpBarImage != null)
         {
             if (_hpFillCoroutine != null) StopCoroutine(_hpFillCoroutine);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             _hpFillCoroutine = StartCoroutine(AnimateHpFill(targetRatio, previousFill, isDamageHit, isGracePeriod));
         }
 
@@ -770,6 +768,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     [SerializeField] private Image hpDamageCatchupImage;
 
+    // Executes core business logic for setup hp effects.
     private void SetupHpEffects()
     {
         if (hpBarImage == null) return;
@@ -783,7 +782,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             }
         }
 
-        // Tạo 2nd Layer: Lớp Máu Đuổi Sát Thương (Khớp 100% hình dáng & vị trí nội bộ của hpBarImage)
         if (hpDamageCatchupImage == null && hpBarImage != null && hpBarImage.transform.parent != null)
         {
             Transform parent = hpBarImage.transform.parent;
@@ -796,8 +794,7 @@ public class PlayerHUDUIManager : MonoBehaviour
             {
                 GameObject catchupObj = new GameObject("HPDamageCatchup", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
                 catchupObj.transform.SetParent(parent, false);
-                
-                // Đặt ngay phía sau hpBarImage (Thấp hơn 1 bậc sibling)
+
                 int hpBarIndex = hpBarImage.transform.GetSiblingIndex();
                 catchupObj.transform.SetSiblingIndex(Mathf.Max(0, hpBarIndex));
 
@@ -813,7 +810,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             {
                 catchupRt.anchorMin = barRt.anchorMin;
                 catchupRt.anchorMax = barRt.anchorMax;
-                // Thụt lùi 4px bên phải và 2px trên dưới để dải máu trắng nằm gọn 100% trong lòng khung HP
                 catchupRt.offsetMin = new Vector2(barRt.offsetMin.x + 2f, barRt.offsetMin.y + 2f);
                 catchupRt.offsetMax = new Vector2(barRt.offsetMax.x - 4f, barRt.offsetMax.y - 2f);
                 catchupRt.pivot     = barRt.pivot;
@@ -832,6 +828,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     }
 
+    // Executes core business logic for reset hp transient effects.
     private void ResetHpTransientEffects()
     {
         if (_hpScalePulseCoroutine != null)
@@ -853,6 +850,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for configure hp background.
     private void ConfigureHpBackground()
     {
         if (hpBarImage == null || hpBarImage.transform.parent == null) return;
@@ -868,15 +866,18 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     private Coroutine _hpScalePulseCoroutine;
 
+    // Executes core business logic for trigger damage pulse effect.
     public void TriggerDamagePulseEffect()
     {
         if (hpBarImage == null) return;
         SetupHpEffects();
 
         if (_hpScalePulseCoroutine != null) StopCoroutine(_hpScalePulseCoroutine);
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         _hpScalePulseCoroutine = StartCoroutine(DamagePulseRoutine());
     }
 
+    // Executes core business logic for damage pulse routine.
     private IEnumerator DamagePulseRoutine()
     {
         if (hpBarImage == null) yield break;
@@ -884,8 +885,6 @@ public class PlayerHUDUIManager : MonoBehaviour
         float duration = 0.35f;
         float elapsed = 0f;
 
-        // Ép Pivot về góc bên trái (0.0, 0.5)
-        // -> Phía bên trái dính liền Avatar CỐ ĐỊNH 100%, chỉ nảy co rút nhẹ ở ngọn đầu bên phải thanh HP
         RectTransform barRt = hpBarImage.GetComponent<RectTransform>();
         RectTransform catchupRt = hpDamageCatchupImage != null ? hpDamageCatchupImage.GetComponent<RectTransform>() : null;
 
@@ -899,7 +898,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             float t = elapsed / duration;
             float sin = Mathf.Sin(t * Mathf.PI);
 
-            // Co nảy 8% ở ngọn đầu bên phải
             float scaleX = 1f - (sin * 0.08f);
 
             if (barRt != null) barRt.localScale = new Vector3(scaleX, 1f, 1f);
@@ -920,6 +918,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for animate hp fill.
     private IEnumerator AnimateHpFill(float targetFill, float previousFill, bool isDamageHit, bool isGracePeriod)
     {
         if (hpBarImage == null) yield break;
@@ -994,6 +993,7 @@ public class PlayerHUDUIManager : MonoBehaviour
     private decimal _lastGems = -1m;
     private int _lastEnergy = -1;
 
+    // Executes core business logic for update energy ui.
     private void UpdateEnergyUI(int currentEnergy, int maxEnergy)
     {
         if (energyText == null)
@@ -1013,6 +1013,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         energyText.text = currentEnergy + "/" + maxEnergy;
     }
 
+    // Executes core business logic for update currency ui.
     private void UpdateCurrencyUI(decimal gold, decimal gems)
     {
         if (goldText == null || gemText == null)
@@ -1054,6 +1055,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for show resource delta.
     private void ShowResourceDelta(TMP_Text targetText, decimal delta, Color gainColor)
     {
         if (targetText == null || delta == 0m || !isActiveAndEnabled)
@@ -1097,9 +1099,11 @@ public class PlayerHUDUIManager : MonoBehaviour
         popupText.color = delta > 0m ? gainColor : new Color(1f, 0.28f, 0.24f, 1f);
 
         _resourceDeltaPopups.Add(popupObject);
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(ResourceDeltaRoutine(popupObject, popupRect, popupText, startPosition));
     }
 
+    // Process resource delta routine using popup object, popup rect, popup text, and start position; it removes remove and destroys the temporary Unity object and guards invalid or unavailable states.
     private IEnumerator ResourceDeltaRoutine(
         GameObject popupObject,
         RectTransform popupRect,
@@ -1113,7 +1117,9 @@ public class PlayerHUDUIManager : MonoBehaviour
         while (elapsed < duration && popupObject != null)
         {
             elapsed += Time.unscaledDeltaTime;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             float t = Mathf.Clamp01(elapsed / duration);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             float enter = Mathf.Clamp01(t / 0.22f);
             float rise = Mathf.SmoothStep(0f, 1f, t);
             float fade = 1f - Mathf.SmoothStep(0.58f, 1f, t);
@@ -1133,6 +1139,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for clear resource delta popups.
     private void ClearResourceDeltaPopups()
     {
         for (int i = _resourceDeltaPopups.Count - 1; i >= 0; i--)
@@ -1146,6 +1153,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     private static Sprite _solidWhiteSprite;
 
+    // Executes core business logic for get solid white sprite.
     private static Sprite GetSolidWhiteSprite()
     {
         if (_solidWhiteSprite != null) return _solidWhiteSprite;
@@ -1189,6 +1197,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     private static Sprite _hudSoftAuraSprite;
 
+    // Executes core business logic for get soft aura sprite.
     private static Sprite GetSoftAuraSprite()
     {
         if (_hudSoftAuraSprite != null) return _hudSoftAuraSprite;
@@ -1212,7 +1221,7 @@ public class PlayerHUDUIManager : MonoBehaviour
                 float dy = Mathf.Max(0f, Mathf.Max(borderWidth - y, y - (h - 1 - borderWidth)));
                 float dist = Mathf.Sqrt(dx * dx + dy * dy);
 
-                // Smoothstep + Exponential falloff cho viền aura loang nhẹ cực kỳ mềm mại kiểu gacha
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 float norm = Mathf.Clamp01(dist / borderWidth);
                 float alpha = Mathf.SmoothStep(1f, 0f, norm);
                 alpha = Mathf.Pow(alpha, 1.6f);
@@ -1228,15 +1237,18 @@ public class PlayerHUDUIManager : MonoBehaviour
         return _hudSoftAuraSprite;
     }
 
+    // Executes core business logic for trigger resource glow effect.
     private void TriggerResourceGlowEffect(TMP_Text targetText, Color auraColor, string glowName)
     {
         if (targetText == null) return;
         Transform container = targetText.transform.parent;
         if (container == null) container = targetText.transform;
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(ResourceGlowRoutine(container, targetText, auraColor, glowName));
     }
 
+    // Executes core business logic for resource glow routine.
     private IEnumerator ResourceGlowRoutine(Transform container, TMP_Text targetText, Color auraColor, string glowName)
     {
         Vector3 origScale = container.localScale;
@@ -1257,7 +1269,7 @@ public class PlayerHUDUIManager : MonoBehaviour
             RectTransform rt = glowObj.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(-16, -16); // Hào quang tỏa 16px xung quanh ô tài nguyên
+            rt.offsetMin = new Vector2(-16, -16);
             rt.offsetMax = new Vector2(16, 16);
             rt.anchoredPosition = Vector2.zero;
 
@@ -1276,7 +1288,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             float t = elapsed / duration;
             float sinPulse = Mathf.Sin(t * Mathf.PI);
 
-            // Phóng to nhẹ 10% và nhấp nháy hào quang sinh động
             float scaleMultiplier = 1f + (sinPulse * 0.10f);
             container.localScale = origScale * scaleMultiplier;
 
@@ -1298,6 +1309,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         targetText.color = origTextColor;
     }
 
+    // Executes core business logic for configure resource text.
     private static void ConfigureResourceText(TMP_Text text)
     {
         if (text == null)
@@ -1306,6 +1318,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         text.textWrappingMode = TextWrappingModes.NoWrap;
     }
 
+    // Executes core business logic for make horizontal fill.
     private static void MakeHorizontalFill(Image img)
     {
         if (img == null) return;
@@ -1315,25 +1328,14 @@ public class PlayerHUDUIManager : MonoBehaviour
         img.fillOrigin = (int)Image.OriginHorizontal.Left;
     }
 
+    // Executes core business logic for apply level gating.
     private void ApplyLevelGating(int playerLevel)
     {
-        // RefreshHUD chạy mỗi 15s VÀ mỗi lần ăn exp/vàng/nhận thưởng — kể cả trong hầm ngục.
-        // Mấy nút dưới đây nằm trong NonCombatActionGroup mà ToggleDungeonMode(true) đã ẩn,
-        // nên SetActive(true) ở đây bật lại cụm nút/tab bên trái ngay giữa hầm ngục.
-        // Ra khỏi hầm ngục, ToggleDungeonMode(false) + RefreshHUD kế tiếp sẽ gating lại đúng.
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
             return;
 
-        // Toàn bộ HUD mở khi bước sang Chương 2 (AutumnPumpkin).
-        // Cấp 3 là cấp người chơi đạt được khi VÀO Chương 2 theo đường cong exp
-        // trong seed, nên đây chính là mốc "vừa qua Chương 1". Chương 1 là phần
-        // hướng dẫn (Talk/Collect/EquipSkill), giữ HUD gọn để không rối người mới.
-        //
-        // Trước đây mọi nút mở ở cấp 10 — rơi vào giữa Chương 4, tức là đi gần hết
-        // game mới có Shop/Gacha/Chat/Bestiary.
         bool unlocked = playerLevel >= 3;
 
-        // Luôn mở: Mail
         if (mailButtonObj != null) mailButtonObj.SetActive(true);
 
         if (shopButtonObj != null) shopButtonObj.SetActive(unlocked);
@@ -1353,6 +1355,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         EnsureUnlockHighlight(guildButtonObj, unlocked);
     }
 
+    // Executes core business logic for add hover effect.
     private static void AddHoverEffect(Transform t)
     {
         if (t == null) return;
@@ -1360,6 +1363,7 @@ public class PlayerHUDUIManager : MonoBehaviour
             t.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
+    // Executes core business logic for wire menu button.
     private void WireMenuButton()
     {
         var menuTr = FindChildRecursive(transform, "MenuButton");
@@ -1367,7 +1371,6 @@ public class PlayerHUDUIManager : MonoBehaviour
 
         AddHoverEffect(menuTr);
 
-        // Idempotent: FindHUDReferences có thể chạy lại, chỉ gắn listener 1 lần.
         if (_menuWired) return;
         _menuWired = true;
 
@@ -1408,12 +1411,14 @@ public class PlayerHUDUIManager : MonoBehaviour
         ApplyMenuVisibility();
     }
 
+    // Executes core business logic for set menu open.
     private void SetMenuOpen(bool open)
     {
         _menuOpen = open;
         ApplyMenuVisibility();
     }
 
+    // Executes core business logic for apply menu visibility.
     private void ApplyMenuVisibility()
     {
         var leftTr = FindChildRecursive(transform, "Left");
@@ -1423,30 +1428,31 @@ public class PlayerHUDUIManager : MonoBehaviour
             {
                 var child = leftTr.GetChild(i);
                 if (child.name == "MenuButton") continue;
-                
+
                 var cg = child.GetComponent<CanvasGroup>();
                 if (cg == null) cg = child.gameObject.AddComponent<CanvasGroup>();
-                
+
                 cg.alpha = _menuOpen ? 1f : 0f;
                 cg.interactable = _menuOpen;
                 cg.blocksRaycasts = _menuOpen;
             }
         }
 
-        // Đổi icon MenuButton: đóng -> icon menu, mở -> icon X (đóng).
         if (_menuOpenIcon != null) _menuOpenIcon.SetActive(!_menuOpen);
         if (_menuCloseIcon != null) _menuCloseIcon.SetActive(_menuOpen);
     }
 
+    // Executes core business logic for format currency amount.
     private static string FormatCurrencyAmount(decimal amount)
     {
         return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
     }
 
+    // Executes core business logic for ensure unlock highlight.
     private void EnsureUnlockHighlight(GameObject obj, bool unlocked)
     {
         if (obj == null || !unlocked) return;
-        
+
         string key = $"Feature_Clicked_{obj.name}";
         if (PlayerPrefs.GetInt(key, 0) == 1) return;
 
@@ -1456,7 +1462,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         var btn = obj.GetComponent<Button>();
         if (btn != null)
         {
-            btn.onClick.AddListener(() => 
+            btn.onClick.AddListener(() =>
             {
                 PlayerPrefs.SetInt(key, 1);
                 PlayerPrefs.Save();
@@ -1466,13 +1472,14 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for ensure quest pointer.
     private void EnsureQuestPointer(GameObject obj, bool add)
     {
         if (obj == null) return;
         var pointer = obj.GetComponentInChildren<MysticJourney.UI.Effects.UIQuestPointer>();
         if (add)
         {
-            if (pointer == null) 
+            if (pointer == null)
             {
                 var go = new GameObject("QuestPointer");
                 go.transform.SetParent(obj.transform, false);
@@ -1481,7 +1488,7 @@ public class PlayerHUDUIManager : MonoBehaviour
                 text.color = Color.yellow;
                 text.fontSize = 40;
                 text.alignment = TextAlignmentOptions.Center;
-                
+
                 var rect = go.GetComponent<RectTransform>();
                 rect.anchorMin = new Vector2(1, 1);
                 rect.anchorMax = new Vector2(1, 1);
@@ -1498,6 +1505,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for update quest pointers.
     private void UpdateQuestPointers()
     {
         var manager = QuestUIManager.Instance;
@@ -1512,8 +1520,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             return;
         }
 
-        // Chỉ nhắc nút UI khi quest đã ĐƯỢC NHẬN (InProgress). Quest NotStarted vẫn đang chờ
-        // nói chuyện với NPC — nếu nhắc sớm thì ô Skill nảy lên ngay ở nhiệm vụ Talk trước đó.
         if (!MysticJourney.Core.Utilities.QuestUtils.IsStatus(active, "InProgress"))
         {
             ClearAllQuestPointers();
@@ -1522,7 +1528,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
         bool gacha = false, guild = false, shop = false, daily = false, skill = false;
         var objType = active.ObjectiveType?.ToLower() ?? "";
-        
+
         if (objType == "gacha") gacha = true;
         if (objType == "guild") guild = true;
         if (objType == "shop" || objType == "buy") shop = true;
@@ -1544,7 +1550,8 @@ public class PlayerHUDUIManager : MonoBehaviour
         EnsureQuestPointer(skillsButtonObj, skill);
         EnsureHighlightPulse(skillsButtonObj, skill);
     }
-    
+
+    // Executes core business logic for ensure highlight pulse.
     private void EnsureHighlightPulse(GameObject obj, bool add)
     {
         if (obj == null) return;
@@ -1559,6 +1566,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for clear all quest pointers.
     private void ClearAllQuestPointers()
     {
         EnsureQuestPointer(gachaButtonObj, false);
@@ -1569,31 +1577,21 @@ public class PlayerHUDUIManager : MonoBehaviour
         EnsureHighlightPulse(skillsButtonObj, false);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // NetworkPlayer Local Subscription
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Call this from NetworkPlayer.Spawned() when Local is set.
-    /// Ensures the HUD subscribes to the local player's death event.
-    /// </summary>
+    // Executes core business logic for subscribe to local player.
     public void SubscribeToLocalPlayer(NetworkPlayer localPlayer)
     {
         if (localPlayer == null) return;
 
-        // Unsubscribe from old player if any
         if (NetworkPlayer.Local != null && NetworkPlayer.Local != localPlayer)
         {
             NetworkPlayer.Local.OnDied -= ShowDeathPopup;
         }
 
-        // Subscribe to new player
         localPlayer.OnDied += ShowDeathPopup;
     }
 
-    /// <summary>
-    /// Call this when leaving a dungeon / disconnecting.
-    /// </summary>
+    // Executes core business logic for unsubscribe from local player.
     public void UnsubscribeFromLocalPlayer()
     {
         if (NetworkPlayer.Local != null)
@@ -1602,19 +1600,15 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Death Popup
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Show the death popup with Again (respawn) and Quit options.
-    /// </summary>
     private bool _isDeathPopupShowing = false;
-    
+
+    // Executes core business logic for show death popup.
     public void ShowDeathPopup()
     {
         if (_isDeathPopupShowing) return;
         _isDeathPopupShowing = true;
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(ShowDeathPopupCoroutine());
     }
 
@@ -1626,6 +1620,7 @@ public class PlayerHUDUIManager : MonoBehaviour
     private Button _deathSecondaryButton;
     private Button _deathRespawnButton;
 
+    // Executes core business logic for find death panel references.
     private void FindDeathPanelReferences()
     {
         if (deathPopupPanel == null)
@@ -1654,6 +1649,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         deathPopupPanel.SetActive(false);
     }
 
+    // Executes core business logic for show death popup coroutine.
     private IEnumerator ShowDeathPopupCoroutine()
     {
         Debug.Log("[PlayerHUDUIManager] Player died. Waiting for animation and fading red overlay...");
@@ -1672,17 +1668,15 @@ public class PlayerHUDUIManager : MonoBehaviour
         _deathRedOverlay.SetActive(true);
         _deathRedOverlay.transform.SetAsLastSibling();
 
-        // Fade in over 2 seconds
         float t = 0;
         var image = _deathRedOverlay.GetComponent<Image>();
         while (t < 2f)
         {
             t += Time.deltaTime;
-            image.color = new Color(0.7f, 0f, 0f, (t / 2f) * 0.6f); // Semi-transparent red
+            image.color = new Color(0.7f, 0f, 0f, (t / 2f) * 0.6f);
             yield return null;
         }
 
-        // Wait 1 more second before showing the popup
         yield return new WaitForSeconds(1f);
 
         if (inDungeon)
@@ -1695,11 +1689,9 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for prepare death panel for fade.
     private void PrepareDeathPanelForFade(bool inDungeon)
     {
-        // DeathPanel is also the red overlay. Activating it before the fade previously
-        // exposed the scene's default RespawnButton for three seconds, then swapped to
-        // Again/Quit after the dungeon check, which looked like two death popups.
         if (_deathTitleText != null)
             _deathTitleText.text = inDungeon ? "DEFEATED" : "YOU HAVE FALLEN";
         if (_deathSubtitleText != null)
@@ -1715,12 +1707,14 @@ public class PlayerHUDUIManager : MonoBehaviour
             _deathRespawnButton.gameObject.SetActive(false);
     }
 
+    // Update visibility for world death popup; it updates navigation or visibility through show styled death content.
     private void ShowWorldDeathPopup()
     {
         Debug.Log("[PlayerHUDUIManager] Showing WORLD death popup...");
         ShowStyledDeathContent(false);
     }
 
+    // Executes core business logic for build death content.
     private void BuildDeathContent()
     {
         _worldDeathContent = new GameObject("StyledDeathContent", typeof(RectTransform));
@@ -1766,6 +1760,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
         _deathSubtitleText = CreateDeathText("Subtitle", card.transform, deathBodyFont,
             "The old gods have not claimed you yet.", 31f, new Color(0.88f, 0.82f, 0.68f),
+            // Process vector2 using divider, transform, divider rect, and anchored position; it updates parent, loads component, creates death button, and creates death text.
             new Vector2(0f, 25f), new Vector2(560f, 62f));
 
         var divider = new GameObject("Divider", typeof(RectTransform), typeof(Image));
@@ -1782,6 +1777,7 @@ public class PlayerHUDUIManager : MonoBehaviour
             deathSecondaryButtonSprite, "LEAVE", new Vector2(125f, -116f));
     }
 
+    // Create death text using object name, parent, font, and value; it updates parent and loads component.
     private TextMeshProUGUI CreateDeathText(string objectName, Transform parent, TMP_FontAsset font,
         string value, float fontSize, Color color, Vector2 position, Vector2 size)
     {
@@ -1806,6 +1802,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         return text;
     }
 
+    // Executes core business logic for create death button.
     private Button CreateDeathButton(string objectName, Transform parent, Sprite sprite, string label, Vector2 position)
     {
         var buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
@@ -1840,6 +1837,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         return button;
     }
 
+    // Executes core business logic for show styled death content.
     private void ShowStyledDeathContent(bool inDungeon)
     {
         if (_worldDeathContent == null) return;
@@ -1878,6 +1876,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for on world respawn clicked.
     private void OnWorldRespawnClicked()
     {
         Debug.Log("[PlayerHUDUIManager] OnWorldRespawnClicked - respawning at map spawn point...");
@@ -1889,8 +1888,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
 
         Vector3 spawnPos = WorldState.LastPosition;
-        
-        // [FIX] Nếu Map có kịch bản Cập Bến Thuyền, ưu tiên hồi sinh người chơi ở vị trí cập bến (trên bờ)
+
         var boatArrival = UnityEngine.Object.FindFirstObjectByType<BoatAutoArrival>();
         if (boatArrival != null && boatArrival.shoreSpawnPoint != null)
         {
@@ -1924,6 +1922,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for hide death popup.
     public void HideDeathPopup()
     {
         _isDeathPopupShowing = false;
@@ -1944,6 +1943,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for show dungeon death popup.
     private void ShowDungeonDeathPopup()
     {
         Debug.Log("[PlayerHUDUIManager] Showing DUNGEON death popup...");
@@ -1954,7 +1954,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             return;
         }
 
-        // Try to auto-find the death popup panel if not assigned
         if (deathPopupPanel == null)
         {
             deathPopupPanel = transform.Find("DeathPopup")?.gameObject;
@@ -1969,7 +1968,6 @@ public class PlayerHUDUIManager : MonoBehaviour
             deathPopupPanel.SetActive(true);
             deathPopupPanel.transform.SetAsLastSibling();
 
-            // Auto-wire buttons if not assigned
             if (btnAgain == null)
             {
                 var btn = deathPopupPanel.transform.Find("AgainButton");
@@ -1995,12 +1993,11 @@ public class PlayerHUDUIManager : MonoBehaviour
                 btnQuit.onClick.RemoveAllListeners();
                 btnQuit.onClick.AddListener(OnQuitClicked);
             }
-            
+
             UpdateDeathPopupState();
         }
         else
         {
-            // Fallback to the shared designer-authored UIPopup if no custom death panel exists.
             Debug.Log("[PlayerHUDUIManager] No DeathPopup found, using UIPopup fallback.");
             MysticJourney.UI.UIPopup.Instance.ShowConfirm(
                 "YOU DIED",
@@ -2011,15 +2008,13 @@ public class PlayerHUDUIManager : MonoBehaviour
                 cancelText: "Quit",
                 autoClose: false
             );
-            
+
             deathPopupPanel = MysticJourney.UI.UIPopup.Instance.PopupContainer;
             btnAgain = MysticJourney.UI.UIPopup.Instance.BtnConfirm;
         }
     }
 
-    /// <summary>
-    /// Update the death popup "Again" button text based on ready states.
-    /// </summary>
+    // Executes core business logic for update death popup state.
     private void UpdateDeathPopupState()
     {
         if (deathPopupPanel == null || !deathPopupPanel.activeInHierarchy) return;
@@ -2037,27 +2032,21 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
         else
         {
-            // The host clears every ready flag once the restart fires or a vote is
-            // abandoned; without this the button stayed disabled on "Waiting..." forever.
             txt.text = "Again";
             btnAgain.interactable = true;
         }
     }
 
-    /// <summary>
-    /// Handle "Again" button click - respawn the player.
-    /// </summary>
+    // Executes core business logic for on again clicked.
     private void OnAgainClicked()
     {
         Debug.Log("[PlayerHUDUIManager] OnAgainClicked - requesting respawn...");
 
-        // Disable button to prevent spam
         if (btnAgain != null)
         {
             btnAgain.interactable = false;
         }
 
-        // Request ready to restart via NetworkPlayer
         if (NetworkPlayer.Local != null)
         {
             NetworkPlayer.Local.RPC_SetReadyToRestart();
@@ -2073,20 +2062,15 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Handle "Quit" button click - leave dungeon and return to world.
-    /// </summary>
+    // Executes core business logic for on quit clicked.
+    // Logic details: validates numeric boundary constraints.
     private void OnQuitClicked()
     {
         Debug.Log("[PlayerHUDUIManager] OnQuitClicked - leaving dungeon...");
 
-        // Hide death popup
         HideDeathPopup();
 
-        // DungeonManager sở hữu teardown Photon + scene; shutdown trước làm mất trạng thái
-        // dungeon room và khiến pipeline ReturnToWorldMap bỏ qua bước migrate cần thiết.
 
-        // Return to previous map via DungeonManager if in dungeon
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
         {
             if (PlayerEntity.Instance != null && PlayerEntity.Instance.CurrentHealth <= 0)

@@ -3,6 +3,7 @@ using UnityEditor;
 
 namespace NavMeshPlus.Extensions.Editors
 {
+    // Executes editor operation.
     [CanEditMultipleObjects]
     [CustomEditor(typeof(CollectSources2d))]
     internal class CollectSources2dEditor: Editor
@@ -19,6 +20,7 @@ namespace NavMeshPlus.Extensions.Editors
             m_OverrideVector = serializedObject.FindProperty("m_OverrideVector");
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();

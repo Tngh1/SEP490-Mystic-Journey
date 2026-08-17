@@ -6,12 +6,11 @@ using UnityEngine;
 
 namespace MysticJourney.Features.Monster
 {
-    /// <summary>
-    /// Quản lý việc hiển thị hiệu ứng rớt Vàng, EXP và Vật phẩm tại vị trí quái chết khi nhận thông tin từ Server.
-    /// </summary>
+    // Executes core business logic for mono behaviour.
     public class MonsterDropVisualManager : MonoBehaviour
     {
         private static MonsterDropVisualManager _instance;
+        // Executes core business logic for instance.
         public static MonsterDropVisualManager Instance
         {
             get
@@ -32,16 +31,17 @@ namespace MysticJourney.Features.Monster
 
         [Header("Prefab & Styling Options")]
         [SerializeField] private GameObject dropTextPrefab;
-        [SerializeField] private TMP_FontAsset dropFont; // Gán Silver SDF từ Inspector
-        [SerializeField] private Color expColor = new Color(0.3f, 0.85f, 1f);      // Cyan / Blue
-        [SerializeField] private Color goldColor = new Color(1f, 0.85f, 0.15f);    // Gold / Yellow
-        [SerializeField] private Color gemColor = new Color(0.85f, 0.35f, 1f);     // Magenta / Gem Purple
-        [SerializeField] private Color itemColor = new Color(0.4f, 0.95f, 0.45f);   // Green
+        [SerializeField] private TMP_FontAsset dropFont;
+        [SerializeField] private Color expColor = new Color(0.3f, 0.85f, 1f);
+        [SerializeField] private Color goldColor = new Color(1f, 0.85f, 0.15f);
+        [SerializeField] private Color gemColor = new Color(0.85f, 0.35f, 1f);
+        [SerializeField] private Color itemColor = new Color(0.4f, 0.95f, 0.45f);
 
-        // Lưu trữ vị trí quái chết gần nhất theo monsterId
         private readonly Dictionary<int, Vector3> _recentDeathPositions = new Dictionary<int, Vector3>();
         private readonly Queue<Vector3> _fallbackPositions = new Queue<Vector3>();
 
+        // Initializes internal component caches and dependencies for MonsterDropVisualManager upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -53,6 +53,7 @@ namespace MysticJourney.Features.Monster
             DontDestroyOnLoad(gameObject);
         }
 
+        // Refresh visible state and subscribe the event handlers required while this component is active.
         private void OnEnable()
         {
             if (MonsterManager.Instance != null)
@@ -61,6 +62,7 @@ namespace MysticJourney.Features.Monster
             }
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDisable()
         {
             if (MonsterManager.Instance != null)
@@ -69,9 +71,10 @@ namespace MysticJourney.Features.Monster
             }
         }
 
+        // Performs startup initialization for MonsterDropVisualManager on the first active frame.
+        // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
         private void Start()
         {
-            // Đảm bảo đã subscribe sự kiện OnMonsterDefeated nếu MonsterManager khởi tạo sau
             if (MonsterManager.Instance != null)
             {
                 MonsterManager.Instance.OnMonsterDefeated -= HandleMonsterDefeated;
@@ -79,16 +82,14 @@ namespace MysticJourney.Features.Monster
             }
         }
 
-        /// <summary>
-        /// Được gọi bởi EnemyEntity ngay khi quái vừa chết để lưu lại vị trí không gian (Vector3).
-        /// </summary>
+        // Executes core business logic for register monster death position.
         public void RegisterMonsterDeathPosition(int monsterId, Vector3 deathPosition)
         {
             if (monsterId > 0)
             {
                 _recentDeathPositions[monsterId] = deathPosition;
             }
-            
+
             _fallbackPositions.Enqueue(deathPosition);
             if (_fallbackPositions.Count > 10)
             {
@@ -96,14 +97,11 @@ namespace MysticJourney.Features.Monster
             }
         }
 
-        /// <summary>
-        /// Xử lý dữ liệu trả về từ backend sau khi hạ quái.
-        /// </summary>
+        // Executes core business logic for handle monster defeated.
         private void HandleMonsterDefeated(MonsterDefeatResponse response)
         {
             if (response == null) return;
 
-            // Xác định vị trí quái vừa chết
             Vector3 spawnPosition = Vector3.zero;
             bool foundPos = false;
 
@@ -120,7 +118,6 @@ namespace MysticJourney.Features.Monster
             }
             else
             {
-                // Fallback: Tìm nhân vật người chơi gần nhất
                 var player = GameObject.FindWithTag("Player");
                 if (player != null)
                 {
@@ -141,15 +138,15 @@ namespace MysticJourney.Features.Monster
 
             if (!foundPos) return;
 
-            // Chạy Coroutine hiển thị lần lượt các hiệu ứng rớt đồ
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(SpawnLootSequence(spawnPosition, response));
         }
 
+        // Executes core business logic for spawn loot sequence.
         private IEnumerator SpawnLootSequence(Vector3 basePosition, MonsterDefeatResponse response)
         {
             int dropIndex = 0;
 
-            // 1. Phôi vật thể Vàng (Gold) rơi ra map - sử dụng Gold-Icon.png từ Resources/Item
             if (response.GoldEarned > 0)
             {
                 Sprite goldSprite = Resources.Load<Sprite>("Item/Gold-Icon") ?? Resources.Load<Sprite>("Item/Gold");
@@ -159,7 +156,6 @@ namespace MysticJourney.Features.Monster
                 yield return new WaitForSeconds(0.08f);
             }
 
-            // 2. Phôi vật thể Kinh nghiệm (EXP) rơi ra map - sử dụng Exp-icon.png từ Resources/Item
             if (response.ExperienceEarned > 0)
             {
                 Sprite expSprite = Resources.Load<Sprite>("Item/Exp-icon") ?? Resources.Load<Sprite>("Item/EXP");
@@ -169,7 +165,6 @@ namespace MysticJourney.Features.Monster
                 yield return new WaitForSeconds(0.08f);
             }
 
-            // 3. Phôi vật thể Vật phẩm & Đá nâng cấp (Skill Upgrade Stone) rơi ra map
             if (response.DroppedItems != null && response.DroppedItems.Length > 0)
             {
                 foreach (var item in response.DroppedItems)
@@ -177,6 +172,7 @@ namespace MysticJourney.Features.Monster
                     if (item == null) continue;
 
                     string itemName = item.ItemName ?? "";
+                    // Supported world-drop types: Gold, Exp, SkillUpgradeStone, or Item; the type selects pickup visuals and collection behavior.
                     DropPickupType type = DropPickupType.Item;
                     Color itemColorToUse = itemColor;
 
@@ -196,20 +192,19 @@ namespace MysticJourney.Features.Monster
             }
         }
 
+        // Executes core business logic for resolve item sprite.
+        // Logic details: validates required non-empty string arguments.
         private Sprite ResolveItemSprite(string itemName)
         {
             if (string.IsNullOrEmpty(itemName)) return null;
 
-            // 1. Try loading directly from Resources/Item/{itemName}
             Sprite spr = Resources.Load<Sprite>($"Item/{itemName}");
             if (spr != null) return spr;
 
-            // 2. Try loading clean name
             string cleanName = itemName.Trim();
             spr = Resources.Load<Sprite>($"Item/{cleanName}");
             if (spr != null) return spr;
 
-            // 3. Fallback for Skill Upgrade Stone
             if (itemName.Contains("Skill Upgrade Stone") || itemName.Contains("Upgrade Stone"))
             {
                 return Resources.Load<Sprite>("Item/Skill Upgrade Stone");
@@ -218,6 +213,7 @@ namespace MysticJourney.Features.Monster
             return null;
         }
 
+        // Executes core business logic for spawn physical drop.
         private void SpawnPhysicalDrop(Vector3 spawnPos, Vector3 landPos, DropPickupType type, string name, float qty, Sprite sprite, Color color)
         {
             GameObject dropGO = new GameObject($"[DropPickup]_{name}");
@@ -230,20 +226,18 @@ namespace MysticJourney.Features.Monster
         private Coroutine _rewardRefreshRoutine;
         private bool _pendingInventoryRefresh;
 
-        /// <summary>
-        /// Gộp các lần refresh UI của nhiều món rơi cùng lúc thành MỘT lần sau 0.25s.
-        /// Nhặt 5 món trước đây = 5 lần gọi API inventory + 10 lần FindFirstObjectByType.
-        /// </summary>
+        // Executes core business logic for request reward refresh.
         public void RequestRewardRefresh(bool inventoryAndSkill)
         {
             _pendingInventoryRefresh |= inventoryAndSkill;
 
-            // Debounce theo lần nhặt cuối: cả cụm drop cùng bay vào người chơi chỉ refresh 1 lần.
             if (_rewardRefreshRoutine != null)
                 StopCoroutine(_rewardRefreshRoutine);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             _rewardRefreshRoutine = StartCoroutine(FlushRewardRefresh());
         }
 
+        // Executes core business logic for flush reward refresh.
         private IEnumerator FlushRewardRefresh()
         {
             yield return new WaitForSeconds(0.25f);
@@ -268,11 +262,13 @@ namespace MysticJourney.Features.Monster
             _rewardRefreshRoutine = null;
         }
 
+        // Executes core business logic for spawn floating text direct.
         public void SpawnFloatingTextDirect(Vector3 position, string text, Color color)
         {
             SpawnFloatingText(position, text, color);
         }
 
+        // Executes core business logic for spawn floating text.
         private void SpawnFloatingText(Vector3 position, string text, Color color)
         {
             GameObject dropGO = null;
@@ -283,7 +279,6 @@ namespace MysticJourney.Features.Monster
             }
             else
             {
-                // Tạo Runtime World TextMeshPro nếu chưa gán Prefab trong Inspector
                 dropGO = new GameObject($"[DropText]_{text}");
                 dropGO.transform.position = position;
 
@@ -292,7 +287,6 @@ namespace MysticJourney.Features.Monster
                 tmp.fontSize = 4.5f;
                 tmp.sortingOrder = 50;
 
-                // Gán font Silver SDF nếu có
                 if (dropFont != null)
                 {
                     tmp.font = dropFont;

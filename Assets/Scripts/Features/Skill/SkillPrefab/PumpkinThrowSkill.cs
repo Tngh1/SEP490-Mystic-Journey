@@ -1,12 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Skill Quăng Quả Bí Vòng Cung (Pumpkin Throw Skill) dành cho Đấu sĩ (Knight).
-/// Quả bí sẽ bay theo quỹ đạo vòng cung (parabol). Khi lên đến đỉnh và bắt đầu rơi xuống,
-/// script sẽ tự động chuyển sang animation rơi (PumpkinFall).
-/// Khi chạm đất hoặc va chạm bất kỳ vật thể nào, quả bí sẽ nổ và chỉ gây sát thương lên Quái (`Monster`).
-/// </summary>
+// Executes mono behaviour operation.
 public class PumpkinThrowSkill : MonoBehaviour
 {
     [Header("Flight & Arc Settings")]
@@ -52,23 +47,22 @@ public class PumpkinThrowSkill : MonoBehaviour
     private bool _isExploding = false;
     private Animator _animator;
 
+    // Initializes internal component caches and dependencies for PumpkinThrowSkill upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _animator = GetComponent<Animator>();
     }
 
-    /// <summary>
-    /// Hàm khởi tạo mặc định khi ném theo hướng nhìn
-    /// </summary>
+    // Executes setup operation.
+    // Validates input parameters against null or empty values.
     public void Setup(float damage)
     {
         Vector3 target = transform.position + transform.right * throwDistance;
         Setup(damage, target);
     }
 
-    /// <summary>
-    /// Hàm khởi tạo có vị trí đích đến cụ thể (khi dùng chỉ báo vị trí con trỏ chuột/AoE target)
-    /// </summary>
+    // Executes setup operation.
     public void Setup(float damage, Vector3 targetPosition)
     {
         _damage = damage;
@@ -78,36 +72,34 @@ public class PumpkinThrowSkill : MonoBehaviour
         _isFalling = false;
         _isExploding = false;
 
-        // Phát âm thanh quăng
         if (throwSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(throwSound, soundVolume);
         }
 
-        // Chạy animation bay ban đầu
         if (_animator != null && !string.IsNullOrEmpty(flyAnimState))
         {
             _animator.Play(flyAnimState);
         }
     }
 
+    // Per-frame update loop for PumpkinThrowSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_isExploding) return;
 
         _elapsedTime += Time.deltaTime;
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         float progress = Mathf.Clamp01(_elapsedTime / flightDuration);
 
-        // Tính vị trí Lerp ngang
         Vector3 currentPos = Vector3.Lerp(_startPos, _targetPos, progress);
 
-        // Cộng độ cao vòng cung Parabol: Sin(progress * PI) sẽ bằng 0 ở 2 đầu và = 1 ở giữa (progress = 0.5)
         float heightOffset = Mathf.Sin(progress * Mathf.PI) * arcHeight;
         currentPos.y += heightOffset;
 
         transform.position = currentPos;
 
-        // Chuyển sang Animation rơi khi đã qua đỉnh vòng cung (progress > 0.5)
         if (!_isFalling && progress >= 0.5f)
         {
             _isFalling = true;
@@ -117,54 +109,51 @@ public class PumpkinThrowSkill : MonoBehaviour
             }
         }
 
-        // Nếu bay hết thời gian mà chưa chạm va chạm -> Tự phát nổ tại điểm đích
         if (progress >= 1f)
         {
             Explode();
         }
     }
 
+    // Executes on trigger enter2 d operation.
+    // Validates input parameters against null or empty values.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (_isExploding) return;
 
-        // Bỏ qua va chạm với Player (người chơi ném)
         if (collision.CompareTag("Player")) return;
 
-        // Chạm vào bất kỳ object nào (đất, tường, chướng ngại vật hoặc quái) đều phát nổ
         Explode();
     }
 
+    // Executes explode operation.
     public void Explode()
     {
         if (_isExploding) return;
         _isExploding = true;
 
-        // Phát âm thanh nổ
         if (explodeSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(explodeSound, soundVolume);
         }
 
-        // Chạy animation nổ chạm đất
         if (_animator != null && !string.IsNullOrEmpty(boomAnimState))
         {
             _animator.Play(boomAnimState);
         }
 
-        // Gây sát thương AoE xung quanh (chỉ gây sát thương cho quái vật Monster)
         DealAoEDamage();
 
-        // Xóa GameObject sau khi nổ xong
         Destroy(gameObject, explodeDuration);
     }
 
+    // Executes deal ao e damage operation.
     private void DealAoEDamage()
     {
         if (PlayerSkillVisualReplica.IsReplica(this)) return;
 
         LayerMask targetMask = (monsterLayer != 0) ? monsterLayer : LayerMask.GetMask("Monster");
-        if (targetMask == 0) targetMask = ~0; // Fallback
+        if (targetMask == 0) targetMask = ~0;
 
         Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius, targetMask);
         HashSet<EnemyEntity> damagedEnemies = new HashSet<EnemyEntity>();
@@ -178,14 +167,13 @@ public class PumpkinThrowSkill : MonoBehaviour
                 {
                     damagedEnemies.Add(enemy);
 
-                    // Logic Chí mạng (20% crit, x1.5 sát thương)
+                    // Randomize the eligible candidates before selecting this gameplay result.
                     bool isCrit = Random.Range(0f, 100f) <= 20f;
                     float finalDamage = isCrit ? _damage * 1.5f : _damage;
                     int damageInt = Mathf.RoundToInt(finalDamage);
 
                     enemy.TakeDamage(damageInt);
 
-                    // Hiển thị popup số sát thương
                     if (DamagePopupManager.Instance != null)
                     {
                         DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
@@ -195,9 +183,9 @@ public class PumpkinThrowSkill : MonoBehaviour
         }
     }
 
+    // Executes on draw gizmos selected operation.
     private void OnDrawGizmosSelected()
     {
-        // Vẽ bán kính nổ trong Scene view
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, explosionRadius);
     }

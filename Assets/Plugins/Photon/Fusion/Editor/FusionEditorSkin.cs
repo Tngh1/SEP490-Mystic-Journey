@@ -14,9 +14,10 @@ namespace Fusion.Editor {
     
     private static FusionEditorSkin s_Instance;
 
+    // Executes instance operation.
     public static FusionEditorSkin instance {
       get {
-        if (s_Instance == null) {
+        if (s_Instance == null) {  // Entity not found — short-circuit with appropriate error result
           s_Instance           = CreateInstance<FusionEditorSkin>();
           s_Instance.hideFlags = HideFlags.HideAndDontSave;
         }
@@ -27,19 +28,31 @@ namespace Fusion.Editor {
     
     public GUISkin Skin;
     
+    // Executes help button style operation.
     public static GUIStyle HelpButtonStyle              => instance.Skin.GetStyle(EditorGUIUtility.isProSkin ? "dark-help-button" : "light-help-button");
+    // Executes inline box full width style operation.
     public static GUIStyle InlineBoxFullWidthStyle      => instance.Skin.GetStyle("inline-box-full-width");
+    // Executes inline box full width scope style operation.
     public static GUIStyle InlineBoxFullWidthScopeStyle => instance.Skin.GetStyle("inline-box-full-width-scope");
+    // Executes script header background style operation.
     public static GUIStyle ScriptHeaderBackgroundStyle  => instance.Skin.GetStyle("script-header-bg");
+    // Executes script header icon style operation.
     public static GUIStyle ScriptHeaderIconStyle        => instance.Skin.GetStyle("script-header-icon");
+    // Executes script header label style operation.
     public static GUIStyle ScriptHeaderLabelStyle       => instance.Skin.GetStyle("script-header-label");
+    // Executes rich label style operation.
     public static GUIStyle RichLabelStyle               => instance.Skin.GetStyle(EditorGUIUtility.isProSkin ? "dark-rich-label" : "light-rich-label");
+    // Executes inline selector style operation.
     public static GUIStyle InlineSelectorStyle          => instance.Skin.GetStyle("inline-selector");
+    // Executes outline box style operation.
     public static GUIStyle OutlineBoxStyle              => instance.Skin.GetStyle("outline-box");
     
     
+    // Executes help inline box color operation.
     public static Color    HelpInlineBoxColor          => EditorGUIUtility.isProSkin ? new Color(0.317f, 0.337f, 0.352f, 1.000f) : new Color(0.686f, 0.776f, 0.859f);
+    // Executes warning inline box color operation.
     public static Color    WarningInlineBoxColor       => EditorGUIUtility.isProSkin ? new Color(0.36f, 0.33f, 0.22f, 1.00f) : new Color(0.98f, 0.94f, 0.80f, 0.90f);
+    // Executes error inline box color operation.
     public static Color    ErrorInlineBoxColor         => EditorGUIUtility.isProSkin ? new Color(0.40f, 0.15f, 0.10f, 1.00f) : new Color(0.9f, 0.70f, 0.70f, 1.00f);
     
     public static readonly LazyAsset<Texture2D> InfoIcon      = LazyAsset.Create(() => FindTextureOrThrow(EditorGUIUtility.isProSkin ? "d_console.infoicon.sml@2x" : "console.infoicon.sml@2x"));
@@ -59,6 +72,7 @@ namespace Fusion.Editor {
     public static readonly LazyGUIStyle RawDataStyle = LazyGUIStyle.Create(_ => new GUIStyle(EditorStyles.textArea) { wordWrap = true });
     public static readonly LazyGUIStyle DropDownListStyle = LazyGUIStyle.Create(_ => FindBuiltInStyleOrThrow("DropDownButton"));
 
+    // Executes find texture or throw operation.
     private static Texture2D FindTextureOrThrow(string id) {
       var texture = EditorGUIUtility.FindTexture(id);
       if (texture) {
@@ -73,10 +87,12 @@ namespace Fusion.Editor {
       throw new ArgumentOutOfRangeException($"Could not find texture with id {id}");
     }
 
+    // Executes find built in style or throw operation.
+    // Throws an exception if precondition validations fail.
     private static GUIStyle FindBuiltInStyleOrThrow(string styleName) {
       var style = GUI.skin.FindStyle(styleName) ?? EditorGUIUtility.GetBuiltinSkin(EditorSkin.Inspector).FindStyle(styleName);
 
-      if (style == null) {
+      if (style == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentOutOfRangeException("Missing built-in guistyle " + styleName);
       }
 
@@ -98,6 +114,7 @@ namespace Fusion.Editor {
       { ScriptHeaderBackColor.Violet, new Color(0.35f, 0.2f, 0.4f) },
     };
 
+    // Executes get script header color operation.
     public static Color GetScriptHeaderColor(ScriptHeaderBackColor settingsBackColor) {
       if (instance._scriptHeaderStyles.TryGetValue(settingsBackColor, out var color)) {
         return color;

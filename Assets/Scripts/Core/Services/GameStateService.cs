@@ -3,29 +3,38 @@ using MysticJourney.Core.Utilities;
 
 namespace MysticJourney.Core.Services
 {
+    // Initializes a new default instance of the GameStateService class.
     public class GameStateService
     {
+        // Executes core business logic for instance.
         public static GameStateService Instance { get; private set; } = new();
 
+        // Executes core business logic for has character.
         public bool HasCharacter { get; set; }
+        // Executes core business logic for player profile id.
         public int PlayerProfileId { get; set; }
+        // Executes core business logic for player level.
         public int PlayerLevel { get; set; } = 1;
+        // Executes core business logic for player name.
         public string PlayerName { get; set; }
+        // Executes core business logic for player class.
         public string PlayerClass { get; set; }
+        // Executes core business logic for equipped skin id.
         public int EquippedSkinId { get; set; }
 
-        /// <summary>
-        /// Resource name of the player's profile avatar (e.g. "avatar_3"), matching a
-        /// sprite under Resources/Avatars. Kept here — not only on the HUD — because
-        /// NetworkPlayer replicates it so party members can show each other's avatar.
-        /// </summary>
+        // Executes core business logic for avatar url.
         public string AvatarUrl { get; set; }
 
+        // Executes core business logic for current map name.
         public string CurrentMapName { get; set; }
+        // Executes core business logic for highest unlocked map id.
         public int HighestUnlockedMapId { get; set; } = MapProgressionRules.FirstMapId;
+        // Executes core business logic for last position.
         public Vector3 LastPosition { get; set; }
+        // Executes core business logic for corruption level.
         public float CorruptionLevel { get; set; }
 
+        // Executes core business logic for reset.
         public void Reset()
         {
             HasCharacter = false;
@@ -41,6 +50,7 @@ namespace MysticJourney.Core.Services
             CorruptionLevel = 0f;
         }
 
+        // Executes core business logic for load from player prefs.
         public void LoadFromPlayerPrefs()
         {
             PlayerProfileId = PlayerPrefs.GetInt("mj_player_profile_id", 0);
@@ -60,6 +70,7 @@ namespace MysticJourney.Core.Services
             );
         }
 
+        // Executes core business logic for save to player prefs.
         public void SaveToPlayerPrefs()
         {
             PlayerPrefs.SetInt("mj_player_profile_id", PlayerProfileId);

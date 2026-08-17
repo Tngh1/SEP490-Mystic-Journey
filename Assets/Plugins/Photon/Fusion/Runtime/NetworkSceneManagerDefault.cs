@@ -12,6 +12,7 @@ namespace Fusion {
   using UnityEngine.ResourceManagement.ResourceProviders;
 #endif
 
+  // Executes core business logic for i network scene manager.
   public class NetworkSceneManagerDefault : Fusion.Behaviour, INetworkSceneManager {
     /// <summary>
     /// If enabled and there is an already loaded scene that matches what the scene manager has intended to load,
@@ -74,22 +75,27 @@ namespace Fusion {
     /// </summary>
     public Transform MultiPeerDontDestroyOnLoadRoot { get; private set; }
 
+    // Executes core business logic for runner.
     public NetworkRunner Runner { get; private set; }
 
+    // Executes core business logic for is multiple peer.
     private bool IsMultiplePeer => Runner.Config.PeerMode == NetworkProjectConfig.PeerModes.Multiple;
     private bool _isLoading;
 
+    // Executes core business logic for clear statics.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ClearStatics() {
       _allOwnedScenes.Clear();
     }
 
+    // Initializes a new default instance of the NetworkSceneManagerDefault class.
     static NetworkSceneManagerDefault() {
-      SceneManager.sceneUnloaded += (s) => _allOwnedScenes.Remove(s);
+      SceneManager.sceneUnloaded += (s) => _allOwnedScenes.Remove(s);  // Mark entity for deletion in the next SaveChanges call
     }
 
     #region INetworkSceneManager
 
+    // Executes core business logic for initialize.
     public virtual void Initialize(NetworkRunner runner) {
       Log.TraceSceneManager(runner, $"Initialize with {runner}");
       
@@ -113,6 +119,7 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for shutdown.
     public virtual void Shutdown() {
       
       Log.TraceSceneManager(Runner, $"Shutdown with {Runner}");
@@ -121,12 +128,12 @@ namespace Fusion {
 
       // clear owned scenes in case this manager is reused
       var ownedScenes = _allOwnedScenes
-                       .Where(x => x.Value == this)
+                       .Where(x => x.Value == this)  // Filter records matching the predicate
                        .Select(x => x.Key)
                        .ToList();
       
       foreach (var ownedScene in ownedScenes) {
-        _allOwnedScenes.Remove(ownedScene);
+        _allOwnedScenes.Remove(ownedScene);  // Mark entity for deletion in the next SaveChanges call
       }
       
       _multiPeerSceneRoots.Clear();
@@ -145,6 +152,7 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for is busy.
     public virtual bool IsBusy {
       get {
         if (_isLoading) {
@@ -160,6 +168,7 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for main runner scene.
     public virtual Scene MainRunnerScene {
       get {
         if (IsMultiplePeer) {
@@ -170,6 +179,8 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for is runner scene.
+    // Returns a boolean indicating operation success.
     public virtual bool IsRunnerScene(Scene scene) {
       if (IsMultiplePeer) {
         return scene == MultiPeerScene;
@@ -178,6 +189,8 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for try get physics scene2 d.
+    // Returns a boolean indicating operation success.
     public virtual bool TryGetPhysicsScene2D(out PhysicsScene2D scene2D) {
       var mainScene = MainRunnerScene;
       if (mainScene.IsValid()) {
@@ -189,6 +202,8 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for try get physics scene3 d.
+    // Returns a boolean indicating operation success.
     public virtual bool TryGetPhysicsScene3D(out PhysicsScene scene3D) {
       var mainScene = MainRunnerScene;
       if (mainScene.IsValid()) {
@@ -200,6 +215,7 @@ namespace Fusion {
       }
     }
     
+    // Executes core business logic for make dont destroy on load.
     public virtual void MakeDontDestroyOnLoad(GameObject obj) {
       if (IsMultiplePeer) {
         Debug.Assert(obj.transform.parent == null || obj.transform.parent == MultiPeerDontDestroyOnLoadRoot);
@@ -209,6 +225,8 @@ namespace Fusion {
       }
     }
     
+    // Executes core business logic for move game object to scene.
+    // Returns a boolean indicating operation success.
     public bool MoveGameObjectToScene(GameObject gameObject, SceneRef sceneRef) {
       if (IsMultiplePeer) {
         // find the first matching scene ref
@@ -255,16 +273,19 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for load scene.
     public virtual NetworkSceneAsyncOp LoadScene(SceneRef sceneRef, NetworkLoadSceneParameters parameters) {
       Log.TraceSceneManager(Runner, $"Load scene {sceneRef} called with parameters: {parameters}");
       return NetworkSceneAsyncOp.FromCoroutine(sceneRef, StartTracedCoroutine(LoadSceneCoroutine(sceneRef, parameters)));
     }
     
+    // Executes core business logic for unload scene.
     public virtual NetworkSceneAsyncOp UnloadScene(SceneRef sceneRef) {
       Log.TraceSceneManager(Runner, $"Unload scene {sceneRef} called");
       return NetworkSceneAsyncOp.FromCoroutine(sceneRef, StartTracedCoroutine(UnloadSceneCoroutine(sceneRef)));
     }
 
+    // Executes core business logic for get scene ref.
     public virtual SceneRef GetSceneRef(string sceneNameOrPath) {
       int buildIndex = FusionUnitySceneManagerUtils.GetSceneBuildIndex(sceneNameOrPath);
       if (buildIndex >= 0) {
@@ -287,6 +308,7 @@ namespace Fusion {
       return SceneRef.None;
     }
 
+    // Executes core business logic for get scene ref.
     public SceneRef GetSceneRef(GameObject gameObject) {
       if (IsMultiplePeer) {
         if (gameObject.scene != MultiPeerScene) {
@@ -309,6 +331,9 @@ namespace Fusion {
       }
     }
     
+    // Executes core business logic for on scene info changed.
+    // Logic details: throws InvalidOperationException, ArgumentException on invalid state or rule violations.
+    // Returns a boolean indicating operation success.
     public bool OnSceneInfoChanged(NetworkSceneInfo sceneInfo, NetworkSceneInfoChangeSource changeSource) {
       // implement this method and return true if you want to handle scene info changes manually
       return false;
@@ -316,6 +341,8 @@ namespace Fusion {
 
     #endregion
 
+    // Executes core business logic for load scene coroutine.
+    // Logic details: throws InvalidOperationException, ArgumentException on invalid state or rule violations.
     protected virtual IEnumerator LoadSceneCoroutine(SceneRef sceneRef, NetworkLoadSceneParameters sceneParams) {
       Runner.InvokeSceneLoadStart(sceneRef);
 
@@ -377,7 +404,7 @@ namespace Fusion {
             Log.TraceSceneManager(Runner, $"Taking over {sceneRef}: {candidate.Dump()}");
 
             if (candidate.GetLocalPhysicsMode() != localPhysicsMode) {
-              throw new InvalidOperationException($"Tried to take over {candidate.Dump()} for {sceneRef}, but physics mode were different: {candidate.GetLocalPhysicsMode()} != {localPhysicsMode}");
+              throw new InvalidOperationException($"Tried to take over {candidate.Dump()} for {sceneRef}, but physics mode were different: {candidate.GetLocalPhysicsMode()} != {localPhysicsMode}");  // Unexpected runtime state — propagate to global error handler
             }
 
             scene = candidate;
@@ -409,8 +436,8 @@ namespace Fusion {
             Log.TraceSceneManager(Runner, $"Loading scene {sceneRef} with build index {sceneRef.AsIndex} with mode {loadSceneMode}");
             var op = SceneManager.LoadSceneAsync(sceneRef.AsIndex,
               new LoadSceneParameters(loadSceneMode, localPhysicsMode));
-            if (op == null) {
-              throw new InvalidOperationException($"Scene not found: {sceneRef.AsIndex}");
+            if (op == null) {  // Entity not found — short-circuit with appropriate error result
+              throw new InvalidOperationException($"Scene not found: {sceneRef.AsIndex}");  // Unexpected runtime state — propagate to global error handler
             }
 
             Debug.Assert(SceneManager.sceneCount > 0);
@@ -438,8 +465,8 @@ namespace Fusion {
               }
             }
             
-            if (sceneAddress == null) {
-              throw new InvalidOperationException($"Unable to find addressable scene path for {sceneRef}");
+            if (sceneAddress == null) {  // Entity not found — short-circuit with appropriate error result
+              throw new InvalidOperationException($"Unable to find addressable scene path for {sceneRef}");  // Unexpected runtime state — propagate to global error handler
             }
 
             Log.TraceSceneManager(Runner, $"Loading scene {sceneRef} from addressable: {sceneAddress}");
@@ -448,7 +475,7 @@ namespace Fusion {
             var loadSceneParameters = new LoadSceneParameters(loadSceneMode, localPhysicsMode);
 #else
             if (localPhysicsMode != LocalPhysicsMode.None) {
-              throw new InvalidOperationException($"{nameof(LocalPhysicsMode)} is not supported in this version of Addressables");
+              throw new InvalidOperationException($"{nameof(LocalPhysicsMode)} is not supported in this version of Addressables");  // Unexpected runtime state — propagate to global error handler
             }
             var loadSceneParameters = loadSceneMode;
 #endif
@@ -466,7 +493,7 @@ namespace Fusion {
 
             op.Destroyed += _ => {
               // this will happen in MP mode when scenes are merged or when a scene is loaded in a single mode
-              if (_addressableOperations.Remove(sceneRef)) {
+              if (_addressableOperations.Remove(sceneRef)) {  // Mark entity for deletion in the next SaveChanges call
                 Log.TraceSceneManager(Runner, $"Destroyed Addressables op for {sceneRef}");
               }
             };
@@ -479,15 +506,15 @@ namespace Fusion {
             }
 
             if (!op.IsValid()) {
-              throw new InvalidOperationException($"Loading operation for {sceneRef} has been destroyed");
+              throw new InvalidOperationException($"Loading operation for {sceneRef} has been destroyed");  // Unexpected runtime state — propagate to global error handler
             }
 
             if (op.Status == AsyncOperationStatus.Failed) {
               Addressables.Release(op);
-              throw new InvalidOperationException($"Failed to load scene from addressable: {sceneAddress}");
+              throw new InvalidOperationException($"Failed to load scene from addressable: {sceneAddress}");  // Unexpected runtime state — propagate to global error handler
             }
 #else
-            throw new InvalidOperationException($"SceneRef {sceneRef} points to an addressable scene, but FUSION_ENABLE_ADDRESSABLES is not defined");
+            throw new InvalidOperationException($"SceneRef {sceneRef} points to an addressable scene, but FUSION_ENABLE_ADDRESSABLES is not defined");  // Unexpected runtime state — propagate to global error handler
 #endif
           }
         }
@@ -496,6 +523,7 @@ namespace Fusion {
       yield return StartCoroutine(OnSceneLoaded(sceneRef, scene, sceneParams));
     }
 
+    // Executes core business logic for unload scene coroutine.
     protected virtual IEnumerator UnloadSceneCoroutine(SceneRef sceneRef) {
       Log.TraceSceneManager(Runner, $"UnloadSceneCoroutine called for {sceneRef}");
 
@@ -563,8 +591,8 @@ namespace Fusion {
           {
             Log.TraceSceneManager(Runner, $"Unloading {sceneToUnload.Dump()} for {sceneRef}");
             var op = SceneManager.UnloadSceneAsync(sceneToUnload);
-            if (op == null) {
-              throw new InvalidOperationException($"Failed to unload {sceneToUnload.Dump()}");
+            if (op == null) {  // Entity not found — short-circuit with appropriate error result
+              throw new InvalidOperationException($"Failed to unload {sceneToUnload.Dump()}");  // Unexpected runtime state — propagate to global error handler
             }
 
             yield return op;
@@ -575,6 +603,7 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for on scene loaded.
     protected virtual IEnumerator OnSceneLoaded(SceneRef sceneRef, Scene scene, NetworkLoadSceneParameters sceneParams) {
       Log.TraceSceneManager(Runner, $"Finished loading, starting processing {scene.Dump()} for {sceneRef}");
 
@@ -623,10 +652,12 @@ namespace Fusion {
       yield break;
     }
 
+    // Executes core business logic for on load scene progress.
     protected virtual void OnLoadSceneProgress(SceneRef sceneRef, float progress) {
       Log.TraceSceneManager(Runner, $"Loading scene progress {sceneRef} ({progress:P2})");
     }
 
+    // Executes core business logic for destroy all runtime spawned objects in scene.
     private void DestroyAllRuntimeSpawnedObjectsInScene(Scene scene, SceneRef sceneRef) {
       Log.TraceSceneManager(Runner, $"destroying runtime spawned NetworkObjects in scene {scene.Dump()} for {sceneRef}");
       foreach (var networkObject in Runner.GetAllNetworkObjects()) {
@@ -643,6 +674,7 @@ namespace Fusion {
       }
     }
     
+    // Executes core business logic for find scene to take over.
     private Scene FindSceneToTakeOver(SceneRef sceneRef) {
       for (int i = 0; i < SceneManager.sceneCount; ++i) {
         var candidate = SceneManager.GetSceneAt(i);
@@ -664,6 +696,7 @@ namespace Fusion {
       return default;
     }
 
+    // Executes core business logic for start traced coroutine.
     private ICoroutine StartTracedCoroutine(IEnumerator inner) {
       var coro = new FusionCoroutine(inner);
 
@@ -697,10 +730,12 @@ namespace Fusion {
       return coro;
     }
 
+    // Executes core business logic for make loading scope.
     protected LoadingScope MakeLoadingScope() {
       return new LoadingScope(this);
     }
 
+    // Executes core business logic for mark scene as owned.
     protected void MarkSceneAsOwned(SceneRef sceneRef, Scene scene) {
       if (_allOwnedScenes.TryGetValue(scene, out var manager)) {
         Log.Warn(Runner, $"Scene {scene.Dump()} (for {sceneRef}) already owned by {manager}");
@@ -709,6 +744,7 @@ namespace Fusion {
       }
     }
 
+    // Executes core business logic for fail op.
     private NetworkSceneAsyncOp FailOp(SceneRef sceneRef, Exception exception) {
       if (LogSceneLoadErrors) {
         Log.Error(Runner, $"Failed with: {exception}");
@@ -724,10 +760,13 @@ namespace Fusion {
     [InlineHelp]
     public string AddressableScenesLabel = "FusionScenes";
     
+    // Initializes a new default instance of the NetworkSceneManagerDefault class.
     public NetworkSceneManagerDefault() {
       _addressableScenesTask = new(() => GetAddressableScenes());
     }
     
+    // Executes core business logic for load addressable scene paths async.
+    // Completes asynchronously upon successful execution.
     public Task LoadAddressableScenePathsAsync() {
       return _addressableScenesTask.Value.Task;
     }
@@ -788,6 +827,8 @@ namespace Fusion {
       return TimeSpan.FromSeconds(10);
     }
     
+    // Executes core business logic for try get addressable scenes.
+    // Returns a boolean indicating operation success.
     private bool TryGetAddressableScenes(out string[] addressableScenes) {
       if (!_addressableScenesTask.IsValueCreated) {
         Log.Warn(Runner, $"Going to block the thread in wait for addressable scene paths being resolved, call and await {nameof(LoadAddressableScenePathsAsync)} to avoid this.");
@@ -807,9 +848,11 @@ namespace Fusion {
       return true;
     }
 
+    // Executes core business logic for get addressable scenes result.
     protected struct GetAddressableScenesResult {
       public Task<string[]> Task;
       public Action         BeforeWaitForCompletion;
+      // Executes core business logic for get addressable scenes result.
       public static implicit operator GetAddressableScenesResult(Task<string[]> task) {
         return new GetAddressableScenesResult {
           Task = task,
@@ -821,6 +864,7 @@ namespace Fusion {
     private Dictionary<SceneRef, AsyncOperationHandle<SceneInstance>> _addressableOperations = new();
 #endif
 
+    // Executes core business logic for mono behaviour.
     protected sealed class MultiPeerSceneRoot : MonoBehaviour {
       public SceneRef SceneRef;
       public string   ScenePath;
@@ -828,15 +872,18 @@ namespace Fusion {
       public Scene    Scene;
     }
 
+    // Executes core business logic for i disposable.
     protected struct LoadingScope : IDisposable {
       private readonly NetworkSceneManagerDefault _manager;
 
+      // Executes core business logic for loading scope.
       public LoadingScope(NetworkSceneManagerDefault manager) {
         _manager            = manager;
         _manager._isLoading = true;
         Log.TraceSceneManager(manager.Runner, "Loading scope started");
       }
 
+      // Executes core business logic for dispose.
       public void Dispose() {
         _manager._isLoading = false;
         Log.TraceSceneManager(_manager.Runner, "Loading scope ended");

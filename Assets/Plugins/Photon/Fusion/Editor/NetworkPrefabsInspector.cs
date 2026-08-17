@@ -13,10 +13,12 @@ namespace Fusion.Editor {
   using TreeView = UnityEditor.IMGUI.Controls.TreeView<int>;
 #endif
 
+  // Executes editor window operation.
   public class NetworkPrefabsInspector : EditorWindow {
 
     private Grid _grid = new Grid();
     
+    // Executes show window operation.
     [MenuItem("Tools/Fusion/Windows/Network Prefabs Inspector")]
     [MenuItem("Window/Fusion/Network Prefabs Inspector")]
     public static void ShowWindow() {
@@ -24,15 +26,19 @@ namespace Fusion.Editor {
       window.Show();
     }
     
+    // Callback invoked when NetworkPrefabsInspector becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     private void OnEnable() {
       _grid.PrefabTable = NetworkProjectConfig.Global.PrefabTable;
       _grid.OnEnable();
     }
 
+    // Executes on inspector update operation.
     private void OnInspectorUpdate() {
       _grid.OnInspectorUpdate();
     }
 
+    // Executes on gui operation.
     private void OnGUI() {
       using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar)) {
         _grid.DrawToolbarReloadButton();
@@ -53,6 +59,7 @@ namespace Fusion.Editor {
     }
     
 
+    // Executes load state operation.
     private enum LoadState {
       NotLoaded,
       Loading,
@@ -60,27 +67,34 @@ namespace Fusion.Editor {
       Loaded
     }
 
+    // Executes tree view state operation.
     [Serializable]
     private class InspectorTreeViewState : TreeViewState {
       public MultiColumnHeaderState HeaderState;
       public bool                   SyncSelection;
     }
 
+    // Executes fusion grid item operation.
     private class GridItem : FusionGridItem {
       private readonly NetworkPrefabId    _prefabId;
       private readonly NetworkPrefabTable _prefabTable;
 
+      // Executes grid item operation.
       public GridItem(NetworkPrefabTable prefabTable, NetworkPrefabId prefabId) {
         _prefabId = prefabId;
         _prefabTable = prefabTable;
       }
       
+      // Executes instance count operation.
       public int InstanceCount => _prefabTable.GetInstancesCount(_prefabId);
 
+      // Executes path operation.
       public string Path => AssetDatabase.GUIDToAssetPath(Guid);
 
+      // Executes guid operation.
       public string Guid => Source?.AssetGuid.ToUnityGuidString() ?? "Null";
 
+      // Executes target object operation.
       public override Object TargetObject {
         get {
           if (Source?.AssetGuid.IsValid == true) {
@@ -93,12 +107,15 @@ namespace Fusion.Editor {
         }
       }
 
+      // Executes source operation.
       public INetworkPrefabSource Source => _prefabTable.GetSource(_prefabId);
 
+      // Executes description operation.
       public string Description {
         get => Source?.Description ?? "Null";
       }
 
+      // Executes load state operation.
       public LoadState LoadState {
         get {
           if (!_prefabTable.IsAcquired(_prefabId)) {
@@ -117,6 +134,7 @@ namespace Fusion.Editor {
         }
       }
 
+      // Executes prefab id operation.
       public NetworkPrefabId PrefabId => _prefabId;
     }
 
@@ -128,10 +146,12 @@ namespace Fusion.Editor {
       [SerializeField]
       public bool OnlyLoaded;
 
+      // Executes get content hash operation.
       public override int GetContentHash() {
         return PrefabTable?.Version ?? 0;
       }
 
+      // Executes create columns operation.
       protected override IEnumerable<Column> CreateColumns() {
         yield return new() {
           headerContent = new GUIContent("State"),
@@ -196,8 +216,9 @@ namespace Fusion.Editor {
         });
       }
 
+      // Executes create rows operation.
       protected override IEnumerable<GridItem> CreateRows() {
-        if (PrefabTable == null) {
+        if (PrefabTable == null) {  // Entity not found — short-circuit with appropriate error result
           yield break;
         }
 
@@ -210,6 +231,7 @@ namespace Fusion.Editor {
         }
       }
 
+      // Executes create context menu operation.
       protected override GenericMenu CreateContextMenu(GridItem item, TreeView treeView) {
         
         var menu = new GenericMenu();
@@ -221,7 +243,7 @@ namespace Fusion.Editor {
         var anyLoaded = selection.Any(x => PrefabTable.IsAcquired(x));
         var anyNotLoaded = selection.Any(x => !PrefabTable.IsAcquired(x));
         var anyInstances = selection.Any(x => PrefabTable.GetInstancesCount(x) > 0);
-        var spawnerRunners = NetworkRunner.Instances.Where(x => x && x.IsRunning && x.CanSpawn).ToArray();
+        var spawnerRunners = NetworkRunner.Instances.Where(x => x && x.IsRunning && x.CanSpawn).ToArray();  // Filter records matching the predicate
         
         var loadContent = new GUIContent("Load");
         var loadAsyncContent = new GUIContent("Load (async)");
@@ -260,7 +282,7 @@ namespace Fusion.Editor {
           menu.AddItem(selectInstancesContent, false, () => {
             var lookup = new HashSet<NetworkObjectTypeId>(selection.Select(x => NetworkObjectTypeId.FromPrefabId(x)));
             Selection.objects = FindObjectsByType<NetworkObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-             .Where(x => x.NetworkTypeId.IsValid && lookup.Contains(x.NetworkTypeId))
+             .Where(x => x.NetworkTypeId.IsValid && lookup.Contains(x.NetworkTypeId))  // Filter records matching the predicate
              .Select(x => x.gameObject)
              .ToArray();
           });
@@ -272,7 +294,7 @@ namespace Fusion.Editor {
         
         if (spawnerRunners.Any()) {
           if (spawnerRunners.Length > 1) {
-            foreach (var runner in spawnerRunners.Where(x => x.CanSpawn)) {
+            foreach (var runner in spawnerRunners.Where(x => x.CanSpawn)) {  // Filter records matching the predicate
               AddSpawnItems($"/{runner.name}", runner);
             }
           } else {

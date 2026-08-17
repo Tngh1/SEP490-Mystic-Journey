@@ -2,15 +2,12 @@ using System;
 
 namespace MysticJourney.Core.Utilities
 {
-    /// <summary>
-    /// Stable map-order rules shared by world progression and party invitations.
-    /// Unknown maps stay unrestricted so a newly added dungeon is not accidentally
-    /// blocked until its progression mapping is configured here.
-    /// </summary>
+    // Initializes a new default instance of the MapProgressionRules class.
     public static class MapProgressionRules
     {
         public const int FirstMapId = 1;
 
+        // Executes get map id operation.
         public static int GetMapId(string mapName)
         {
             string normalized = QuestUtils.NormalizeMapName(mapName);
@@ -27,6 +24,7 @@ namespace MysticJourney.Core.Utilities
             return 0;
         }
 
+        // Executes get map unlocked by quest operation.
         public static int GetMapUnlockedByQuest(int claimedQuestId)
         {
             return claimedQuestId switch
@@ -38,11 +36,13 @@ namespace MysticJourney.Core.Utilities
             };
         }
 
+        // Executes can invite to map operation.
         public static bool CanInviteToMap(int requiredMapId, int highestUnlockedMapId)
         {
             return requiredMapId <= FirstMapId || highestUnlockedMapId >= requiredMapId;
         }
 
+        // Executes get display name operation.
         public static string GetDisplayName(int mapId)
         {
             return mapId switch
@@ -55,6 +55,7 @@ namespace MysticJourney.Core.Utilities
             };
         }
 
+        // Executes equals map operation.
         private static bool EqualsMap(string left, string right) =>
             string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     }

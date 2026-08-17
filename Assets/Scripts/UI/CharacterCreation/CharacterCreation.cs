@@ -8,6 +8,7 @@ using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Utilities;
 using System.Collections.Generic;
 
+// Executes mono behaviour operation.
 public class CharacterCreation : MonoBehaviour
 {
     [SerializeField]
@@ -33,17 +34,21 @@ public class CharacterCreation : MonoBehaviour
     private bool _isCreating;
     private List<ClassConfigDTO> classConfigs = new List<ClassConfigDTO>();
 
+    // Performs startup initialization for CharacterCreation on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         FindLights();
-        UpdateClassLights(); // Turn off all lights initially until a class is explicitly selected
-        
-        if (statPanel != null) 
+        UpdateClassLights();
+
+        if (statPanel != null)
             statPanel.SetActive(false);
 
         FetchClassStats();
     }
 
+    // Executes fetch class stats operation.
+    // Validates input parameters against null or empty values.
     private void FetchClassStats()
     {
         WikiApi.Instance.GetClasses(
@@ -62,6 +67,7 @@ public class CharacterCreation : MonoBehaviour
         );
     }
 
+    // Executes update stats ui operation.
     private void UpdateStatsUI()
     {
         if (classConfigs == null || classConfigs.Count == 0) return;
@@ -82,9 +88,9 @@ public class CharacterCreation : MonoBehaviour
         }
     }
 
+    // Executes find lights operation.
     private void FindLights()
     {
-        // Try finding active/inactive Light objects by name and parent area name to avoid inspector dependency
         var allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
         foreach (var t in allTransforms)
         {
@@ -101,6 +107,7 @@ public class CharacterCreation : MonoBehaviour
         }
     }
 
+    // Executes update class lights operation.
     private void UpdateClassLights()
     {
         if (knightLight != null) knightLight.SetActive(selectedClass == "Knight");
@@ -108,6 +115,7 @@ public class CharacterCreation : MonoBehaviour
         if (archerLight != null) archerLight.SetActive(selectedClass == "Archer");
     }
 
+    // Executes select knight operation.
     public void SelectKnight()
     {
         selectedClass = "Knight";
@@ -116,6 +124,7 @@ public class CharacterCreation : MonoBehaviour
         UpdateStatsUI();
     }
 
+    // Executes select mage operation.
     public void SelectMage()
     {
         selectedClass = "Mage";
@@ -124,6 +133,8 @@ public class CharacterCreation : MonoBehaviour
         UpdateStatsUI();
     }
 
+    // Executes select archer operation.
+    // Validates input parameters against null or empty values.
     public void SelectArcher()
     {
         selectedClass = "Archer";
@@ -132,6 +143,7 @@ public class CharacterCreation : MonoBehaviour
         UpdateStatsUI();
     }
 
+    // Execute character creation inside one transaction so profile, stats, starter skill, and default skin are committed together or rolled back together.
     public void CreateCharacter()
     {
         if (_isCreating) return;
@@ -163,20 +175,16 @@ public class CharacterCreation : MonoBehaviour
                 _isCreating = false;
                 Debug.Log($"[CharacterCreation] Character created successfully: {response.CharacterName}");
 
-                // Save basic stats to WorldState
                 WorldState.HasCharacter = true;
                 WorldState.PlayerProfileId = response.PlayerProfileId;
                 WorldState.PlayerName = response.CharacterName;
                 WorldState.PlayerClass = response.PlayerClass;
-                
-                // Set starting map name and coordinate
+
                 WorldState.CurrentMapName = GameConstants.Scenes.ElfForest;
                 WorldState.LastPosition = GameConstants.WorldDefaults.DefaultSpawnPosition;
 
-                // Persist locally
                 WorldState.SaveToPlayerPrefs();
 
-                // Go to the first map using GameBootstrap
                 SceneManager.LoadScene(GameConstants.Scenes.Bootstrap);
             },
             error =>

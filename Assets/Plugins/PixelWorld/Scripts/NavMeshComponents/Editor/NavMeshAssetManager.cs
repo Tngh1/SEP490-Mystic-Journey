@@ -9,6 +9,7 @@ namespace NavMeshPlus.Components.Editors
 {
     public class NavMeshAssetManager : ScriptableSingleton<NavMeshAssetManager>
     {
+        // Executes core business logic for async bake operation.
         internal struct AsyncBakeOperation
         {
             public NavMeshSurface surface;
@@ -17,6 +18,7 @@ namespace NavMeshPlus.Components.Editors
         }
 
         List<AsyncBakeOperation> m_BakeOperations = new List<AsyncBakeOperation>();
+        // Executes core business logic for get bake operations.
         internal List<AsyncBakeOperation> GetBakeOperations() { return m_BakeOperations; }
 
         struct SavedPrefabNavMeshData
@@ -27,6 +29,8 @@ namespace NavMeshPlus.Components.Editors
 
         List<SavedPrefabNavMeshData> m_PrefabNavMeshDataAssets = new List<SavedPrefabNavMeshData>();
 
+        // Executes core business logic for get and ensure target path.
+        // Logic details: validates required non-empty string arguments.
         static string GetAndEnsureTargetPath(NavMeshSurface surface)
         {
             // Create directory for the asset if it does not exist yet.
@@ -62,6 +66,7 @@ namespace NavMeshPlus.Components.Editors
             return targetPath;
         }
 
+        // Executes core business logic for create nav mesh asset.
         static void CreateNavMeshAsset(NavMeshSurface surface)
         {
             var targetPath = GetAndEnsureTargetPath(surface);
@@ -108,6 +113,7 @@ namespace NavMeshPlus.Components.Editors
                 AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(assetToDelete));
         }
 
+        // Executes core business logic for start baking surfaces.
         public void StartBakingSurfaces(UnityEngine.Object[] surfaces)
         {
             // Remove first to avoid double registration of the callback
@@ -128,6 +134,7 @@ namespace NavMeshPlus.Components.Editors
             }
         }
 
+        // Executes core business logic for initialize bake data.
         static NavMeshData InitializeBakeData(NavMeshSurface surface)
         {
             var emptySources = new List<NavMeshBuildSource>();
@@ -147,7 +154,7 @@ namespace NavMeshPlus.Components.Editors
                 {
                     var surface = oper.surface;
                     var delete = GetNavMeshAssetToDelete(surface);
-                    if (delete != null)
+                    if (delete != null)  // Entity exists — proceed with conditional branch
                         AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(delete));
 
                     surface.RemoveData();
@@ -164,9 +171,11 @@ namespace NavMeshPlus.Components.Editors
                 EditorApplication.update -= UpdateAsyncBuildOperations;
         }
 
+        // Executes core business logic for is surface baking.
+        // Returns a boolean indicating operation success.
         public bool IsSurfaceBaking(NavMeshSurface surface)
         {
-            if (surface == null)
+            if (surface == null)  // Entity not found — short-circuit with appropriate error result
                 return false;
 
             foreach (var oper in m_BakeOperations)
@@ -181,12 +190,14 @@ namespace NavMeshPlus.Components.Editors
             return false;
         }
 
+        // Executes core business logic for clear surfaces.
         public void ClearSurfaces(UnityEngine.Object[] surfaces)
         {
             foreach (NavMeshSurface s in surfaces)
                 ClearSurface(s);
         }
 
+        // Executes core business logic for set nav mesh data.
         static void SetNavMeshData(NavMeshSurface navSurface, NavMeshData navMeshData)
         {
             var so = new SerializedObject(navSurface);
@@ -227,7 +238,7 @@ namespace NavMeshPlus.Components.Editors
 
         bool IsCurrentPrefabNavMeshDataStored(NavMeshSurface surface)
         {
-            if (surface == null)
+            if (surface == null)  // Entity not found — short-circuit with appropriate error result
                 return false;
 
             foreach (var storedAssetInfo in m_PrefabNavMeshDataAssets)
@@ -278,7 +289,7 @@ namespace NavMeshPlus.Components.Editors
         {
             // Debug.Log("On prefab closing - forget about this object's surfaces and stop caring about prefab saving");
 
-            if (prefabStage == null)
+            if (prefabStage == null)  // Entity not found — short-circuit with appropriate error result
                 return;
 
             var allSurfacesInPrefab = prefabStage.prefabContentsRoot.GetComponentsInChildren<NavMeshSurface>(true);

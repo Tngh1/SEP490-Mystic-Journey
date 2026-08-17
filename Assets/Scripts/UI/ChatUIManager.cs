@@ -10,8 +10,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+// Executes core business logic for mono behaviour.
 public class ChatUIManager : MonoBehaviour
 {
+    // Executes core business logic for chat channel.
     private enum ChatChannel
     {
         World,
@@ -62,13 +64,6 @@ public class ChatUIManager : MonoBehaviour
     private readonly HashSet<int> pendingReportIds = new HashSet<int>();
     private readonly HashSet<string> displayedRealtimeKeys = new HashSet<string>();
 
-    // Party messages that arrived while another tab was open, replayed when the Party
-    // tab opens. World and Guild do NOT need this — both are persisted server-side and
-    // re-fetched on tab switch, so dropping a live copy only costs a few seconds of
-    // latency. ChatApi has no party endpoint at all (only World and Friend), so the RPC
-    // is the one and only copy: dropping it here loses the message permanently.
-    // ponytail: capped in-memory ring, cleared on scene reload. If party history needs to
-    // survive a relog, it needs a BE endpoint + LoadPartyHistory, not a bigger buffer.
     private const int MaxPendingPartyMessages = 50;
     private readonly Queue<PartyChatMessageResponse> pendingPartyMessages = new Queue<PartyChatMessageResponse>();
 
@@ -96,21 +91,23 @@ public class ChatUIManager : MonoBehaviour
 
     private float enableTime;
 
+    // Subscribes event handlers, initializes channel listeners, and loads chat history.
     private void OnEnable()
     {
-        enableTime = Time.unscaledTime;
-        PrepareRuntimeBindings();
-        SubscribeChannelRelays();
+        enableTime = Time.unscaledTime; // Cache enable timestamp
+        PrepareRuntimeBindings(); // Hook button listeners and input fields
+        SubscribeChannelRelays(); // Bind Photon realtime RPC events and party relays
 
         if (loadHistoryOnEnable)
         {
-            LoadCurrentChannelHistory();
+            LoadCurrentChannelHistory(); // Query previous messages for active channel tab
         }
 
         UpdateHistoryFallbackState();
         RefreshSendButtonState();
     }
 
+    // Performs startup initialization for ChatUIManager on the first active frame.
     private void Start()
     {
         PrepareRuntimeBindings();
@@ -119,26 +116,24 @@ public class ChatUIManager : MonoBehaviour
         RefreshSendButtonState();
     }
 
+    // Handles per-frame transport updates and click-outside window dismissal.
     private void Update()
     {
-        // Re-poll because both party transports appear asynchronously: PartyLobby is
-        // spawned by the host, and the dungeon one only exists once the migration lands.
-        // Checked independently — a single combined condition could leave the network
-        // event unbound forever once both PartyLobby references settled on null.
         if (currentChannel == ChatChannel.Party &&
             (!partyNetworkEventBound || subscribedParty != PartyLobby.Local))
         {
-            SubscribePartyTransport();
+            SubscribePartyTransport(); // Reconnect party network stream if local player switched parties
         }
 
         UpdateHistoryFallbackState();
-        CheckClickOutside();
+        CheckClickOutside(); // Dismiss chat overlay if user clicks elsewhere
     }
 
+    // Dismisses chat modal if the user clicks outside its UI bounds.
     private void CheckClickOutside()
     {
         if (Time.unscaledTime - enableTime < 0.15f)
-            return;
+            return; // Debounce immediate click on open frame
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -159,57 +154,61 @@ public class ChatUIManager : MonoBehaviour
                 {
                     RectTransform ctxRect = contextMenu.GetComponent<RectTransform>();
                     if (ctxRect != null && RectTransformUtility.RectangleContainsScreenPoint(ctxRect, mousePos, cam))
-                        return;
+                        return; // Ignore clicks inside active context menu popup
                 }
 
                 if (reportConfirmPopup != null && reportConfirmPopup.gameObject.activeInHierarchy)
                 {
                     RectTransform rptRect = reportConfirmPopup.GetComponent<RectTransform>();
                     if (rptRect != null && RectTransformUtility.RectangleContainsScreenPoint(rptRect, mousePos, cam))
-                        return;
+                        return; // Ignore clicks inside active report confirmation modal
                 }
 
-                // Close ONLY ChatPanel
-                gameObject.SetActive(false);
+                gameObject.SetActive(false); // Close chat UI
             }
         }
     }
 
+    // Unsubscribes events and stops background polling coroutines when chat is hidden.
     private void OnDisable()
     {
         CancelSendCooldown();
-        StopHistoryFallback();
-        StopGuildRefresh();
-        UnsubscribePhotonRelay();
+        StopHistoryFallback(); // Stop HTTP fallback polling
+        StopGuildRefresh(); // Stop guild chat polling
+        UnsubscribePhotonRelay(); // Unbind Photon RPC event
         UnsubscribePartyTransport();
         UnbindPartyStaticEvent();
     }
 
+    // Switches active tab to World Chat.
     public void ShowWorldChat()
     {
-        SwitchChannel(ChatChannel.World);
+        SwitchChannel(ChatChannel.World); // Activate world chat view
     }
 
+    // Switches active tab to Guild Chat.
     public void ShowGuildChat()
     {
-        SwitchChannel(ChatChannel.Guild);
+        SwitchChannel(ChatChannel.Guild); // Activate guild chat view
     }
 
+    // Switches active tab to Party Chat.
     public void ShowPartyChat()
     {
-        SwitchChannel(ChatChannel.Party);
+        SwitchChannel(ChatChannel.Party); // Activate party chat view
     }
 
+    // Submits typed message to active channel (World, Guild, Party) via REST or Photon RPC.
     public void OnSendClicked()
     {
         if (isSending || inputField == null)
         {
-            return;
+            return; // Ignore if already awaiting response
         }
 
         if (currentChannel == ChatChannel.World && isOnCooldown)
         {
-            AddSystemMessage("Please wait before sending another world message.");
+            AddSystemMessage("Please wait before sending another world message."); // Anti-spam warning
             FocusInput();
             return;
         }
@@ -234,6 +233,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for load world history.
     public void LoadWorldHistory()
     {
         if (isLoadingWorldHistory || !isActiveAndEnabled)
@@ -249,6 +249,7 @@ public class ChatUIManager : MonoBehaviour
         }
 
         isLoadingWorldHistory = true;
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         int safePageSize = Mathf.Clamp(historyPageSize, 1, 100);
         Debug.Log($"[ChatUIManager] LoadWorldHistory -> requesting page=1 pageSize={safePageSize}");
 
@@ -268,6 +269,8 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for add world message.
+    // Logic details: validates required non-empty string arguments.
     public void AddWorldMessage(WorldChatMessageResponse message)
     {
         if (message == null || string.IsNullOrWhiteSpace(message.Content) || message.IsHidden)
@@ -286,12 +289,14 @@ public class ChatUIManager : MonoBehaviour
         AddMessage(sender, message.Content, senderColor, message.ChatMessageId, message.SenderId, isMe, message.IsReported);
     }
 
+    // Executes core business logic for add message.
     public void AddMessage(string sender, string message, bool isMe)
     {
         Color senderColor = isMe ? myNameColor : otherNameColor;
         AddMessage(sender, message, senderColor, 0, 0, isMe, false);
     }
 
+    // Executes core business logic for prepare runtime bindings.
     private void PrepareRuntimeBindings()
     {
         AutoFindChannelTabs();
@@ -300,6 +305,7 @@ public class ChatUIManager : MonoBehaviour
         BindPartyStaticEvent();
     }
 
+    // Executes core business logic for bind send events.
     private void BindSendEvents()
     {
         if (sendEventsBound)
@@ -316,19 +322,19 @@ public class ChatUIManager : MonoBehaviour
 
         if (inputField != null)
         {
-            // Stop typing at the wire budget instead of letting ClampUtf8 cut the message
-            // silently — otherwise the sender sees their full text and everyone else sees it
-            // truncated. Set in code, not the Inspector, so it can't drift from the RPC limit.
             inputField.characterLimit = NetworkChatText.MaxContentChars;
             inputField.onSubmit.AddListener(HandleInputSubmitted);
         }
     }
 
+    // Executes core business logic for handle input submitted.
+    // Logic details: validates required non-empty string arguments.
     private void HandleInputSubmitted(string _)
     {
         OnSendClicked();
     }
 
+    // Executes core business logic for auto find channel tabs.
     private void AutoFindChannelTabs()
     {
         if (!autoFindChannelTabs)
@@ -361,6 +367,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for get button label.
     private static string GetButtonLabel(Button button)
     {
         if (button == null)
@@ -378,6 +385,7 @@ public class ChatUIManager : MonoBehaviour
         return legacyText != null ? legacyText.text : string.Empty;
     }
 
+    // Executes core business logic for bind channel tabs.
     private void BindChannelTabs()
     {
         if (worldTabButton != null && !worldTabBound)
@@ -399,6 +407,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for bind party static event.
     private void BindPartyStaticEvent()
     {
         if (partyStaticEventBound)
@@ -410,6 +419,7 @@ public class ChatUIManager : MonoBehaviour
         PartyLobby.OnLocalPartyChanged += HandleLocalPartyChanged;
     }
 
+    // Executes core business logic for unbind party static event.
     private void UnbindPartyStaticEvent()
     {
         if (!partyStaticEventBound)
@@ -421,6 +431,7 @@ public class ChatUIManager : MonoBehaviour
         PartyLobby.OnLocalPartyChanged -= HandleLocalPartyChanged;
     }
 
+    // Executes core business logic for switch channel.
     private void SwitchChannel(ChatChannel channel)
     {
         if (currentChannel == channel && contentParent != null && contentParent.childCount > 0)
@@ -439,6 +450,7 @@ public class ChatUIManager : MonoBehaviour
         FocusInput();
     }
 
+    // Executes core business logic for load current channel history.
     private void LoadCurrentChannelHistory()
     {
         switch (currentChannel)
@@ -461,6 +473,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for subscribe channel relays.
     private void SubscribeChannelRelays()
     {
         if (currentChannel == ChatChannel.World)
@@ -482,6 +495,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for send world message.
     private void SendWorldMessage(string msg)
     {
         if (!ApiClient.Instance.HasToken())
@@ -516,6 +530,7 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for send guild message.
     private void SendGuildMessage(string msg)
     {
         if (!ApiClient.Instance.HasToken())
@@ -557,6 +572,7 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for send party message.
     private void SendPartyMessage(string msg)
     {
         bool useDungeonTransport = IsDungeonPartyChat();
@@ -601,17 +617,13 @@ public class ChatUIManager : MonoBehaviour
         }
         else
         {
-            // Echo our own message locally instead of waiting for the RpcTargets.All
-            // round-trip to come back. Previously the sender saw nothing at all if the
-            // echo was dropped or the receive handler was not bound yet — and the input
-            // field had already been cleared, so the text was gone too. AddPartyMessage
-            // dedups on SenderId|SentAt|Content, so the incoming echo is a no-op.
             AddPartyMessage(message);
         }
 
         FocusInput();
     }
 
+    // Executes core business logic for load guild history with resolved guild.
     private void LoadGuildHistoryWithResolvedGuild()
     {
         if (!ApiClient.Instance.HasToken())
@@ -625,6 +637,7 @@ public class ChatUIManager : MonoBehaviour
             errorMessage => AddSystemMessage(errorMessage));
     }
 
+    // Executes core business logic for load guild history.
     private void LoadGuildHistory(int guildId)
     {
         if (isLoadingGuildHistory || !isActiveAndEnabled || currentChannel != ChatChannel.Guild)
@@ -655,6 +668,7 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for resolve guild id.
     private void ResolveGuildId(Action<int> onResolved, Action<string> onFailed)
     {
         if (currentGuildId > 0)
@@ -684,6 +698,8 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for add guild message.
+    // Logic details: validates required non-empty string arguments.
     private void AddGuildMessage(GuildMessageDTO message)
     {
         if (message == null || string.IsNullOrWhiteSpace(message.content))
@@ -702,6 +718,8 @@ public class ChatUIManager : MonoBehaviour
         AddMessage(sender, message.content, senderColor, message.messageId, message.senderId, isMe, false);
     }
 
+    // Executes core business logic for add party message.
+    // Logic details: validates required non-empty string arguments.
     private void AddPartyMessage(PartyChatMessageResponse message)
     {
         if (message == null || string.IsNullOrWhiteSpace(message.Content))
@@ -721,11 +739,13 @@ public class ChatUIManager : MonoBehaviour
         AddMessage(sender, message.Content, senderColor, 0, message.SenderId, isMe, false);
     }
 
+    // Executes core business logic for add system message.
     private void AddSystemMessage(string message)
     {
         AddMessage("System", message, systemNameColor);
     }
 
+    // Executes core business logic for add message.
     private void AddMessage(string sender, string message, Color senderColor, int chatMessageId = 0, int senderProfileId = 0, bool isMine = true, bool isReported = false)
     {
         if (chatMessagePrefab == null || contentParent == null)
@@ -741,9 +761,11 @@ public class ChatUIManager : MonoBehaviour
         newMsg.OnSenderClicked += HandleSenderNameClicked;
         newMsg.OnReportClicked += HandleWorldReportClicked;
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(ScrollToBottom());
     }
 
+    // Executes core business logic for clear messages.
     private void ClearMessages()
     {
         displayedMessageIds.Clear();
@@ -761,6 +783,8 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for handle sender name clicked.
+    // Logic details: validates numeric boundary constraints.
     private void HandleSenderNameClicked(string senderName, int senderProfileId, Vector3 clickPosition)
     {
         if (IsCurrentPlayer(senderProfileId) || senderProfileId <= 0)
@@ -778,6 +802,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for handle world report clicked.
     private void HandleWorldReportClicked(UIChatMessage item)
     {
         if (item == null || (item.ChatMessageId > 0 && pendingReportIds.Contains(item.ChatMessageId)))
@@ -804,6 +829,8 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for execute report.
+    // Logic details: validates numeric boundary constraints.
     private void ExecuteReport(UIChatMessage item)
     {
         if (item.ChatMessageId <= 0)
@@ -830,6 +857,7 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for populate world history.
     private void PopulateWorldHistory(PagedResultResponse<WorldChatMessageResponse> response)
     {
         if (response == null || response.Items == null)
@@ -845,8 +873,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
-    // The relay event is static (it fires for messages arriving on ANY player's presence),
-    // so subscribing does not depend on Photon being connected yet — no polling needed.
+    // Executes core business logic for subscribe photon relay.
     private void SubscribePhotonRelay()
     {
         if (worldRelayBound)
@@ -858,6 +885,7 @@ public class ChatUIManager : MonoBehaviour
         worldRelayBound = true;
     }
 
+    // Executes core business logic for unsubscribe photon relay.
     private void UnsubscribePhotonRelay()
     {
         if (!worldRelayBound)
@@ -869,68 +897,44 @@ public class ChatUIManager : MonoBehaviour
         worldRelayBound = false;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Party transport
-    //
-    // Party chat has TWO transports because the party outlives the room it was
-    // formed in:
-    //   • Social lobby → PartyLobby (a NetworkObject of MYSTIC_SOCIAL_LOBBY).
-    //   • Dungeon      → NetworkPlayer, because entering a dungeon tears the runner
-    //                    down (PhotonManager.MigrateToDungeonAsync) and despawns
-    //                    PartyLobby, nulling PartyLobby.Local for the whole run.
-    // The dungeon room is capped at PartyLobby.MaxMembers and holds exactly one
-    // party, so "everyone in the room" == "the party" there.
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>True while party chat should run over the dungeon room instead of PartyLobby.</summary>
+    // Executes core business logic for is dungeon party chat.
+    // Returns a boolean indicating operation success.
     private static bool IsDungeonPartyChat()
     {
         var photon = PhotonManager.Instance;
         return photon != null && photon.IsDungeonSession && NetworkPlayer.CanUsePartyChat;
     }
 
-    /// <summary>
-    /// True when there is no live transport but the player IS still in a party — the
-    /// migration window where the lobby runner is already down and the dungeon room is
-    /// not up yet. Telling the player they left their party here would be wrong.
-    /// </summary>
+    // Executes core business logic for is party transport migrating.
+    // Returns a boolean indicating operation success.
     private static bool IsPartyTransportMigrating()
     {
         return PartyManager.IsEnteringDungeon;
     }
 
-    /// <summary>True when the player genuinely has no party on either transport.</summary>
+    // Executes core business logic for has no party.
+    // Returns a boolean indicating operation success.
     private static bool HasNoParty()
     {
         return PartyLobby.Local == null && !IsDungeonPartyChat() && !IsPartyTransportMigrating();
     }
 
+    // Executes core business logic for subscribe party transport.
     private void SubscribePartyTransport()
     {
-        // Bind BOTH transports whenever the Party tab is open, instead of picking one
-        // based on IsDungeonPartyChat().
-        //
-        // Picking one was a receive-side trap: if IsDungeonPartyChat() was false at the
-        // moment the tab opened (phase not yet Dungeon, or the local avatar not spawned
-        // yet), this bound PartyLobby instead — and in a dungeon PartyLobby.Local is null
-        // forever, so subscribedParty and PartyLobby.Local were BOTH null and Update()'s
-        // re-poll condition `subscribedParty != PartyLobby.Local` stayed false. The network
-        // event then never got bound at all: that client could send (the send path re-checks
-        // live) but could never receive. Only the sender's own local echo showed up.
-        //
-        // Binding both is safe: the two transports never carry the same message (the lobby
-        // one is despawned in a dungeon), and AddPartyMessage dedups on
-        // SenderId|SentAt|Content anyway.
         BindPartyNetworkEvent();
         SubscribePartyLobby();
     }
 
+    // Executes core business logic for unsubscribe party transport.
     private void UnsubscribePartyTransport()
     {
         UnsubscribePartyLobby();
         UnbindPartyNetworkEvent();
     }
 
+    // Executes core business logic for bind party network event.
     private void BindPartyNetworkEvent()
     {
         if (partyNetworkEventBound)
@@ -942,6 +946,7 @@ public class ChatUIManager : MonoBehaviour
         partyNetworkEventBound = true;
     }
 
+    // Executes core business logic for unbind party network event.
     private void UnbindPartyNetworkEvent()
     {
         if (!partyNetworkEventBound)
@@ -953,6 +958,7 @@ public class ChatUIManager : MonoBehaviour
         partyNetworkEventBound = false;
     }
 
+    // Executes core business logic for subscribe party lobby.
     private void SubscribePartyLobby()
     {
         var party = PartyLobby.Local;
@@ -970,6 +976,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for unsubscribe party lobby.
     private void UnsubscribePartyLobby()
     {
         if (subscribedParty == null)
@@ -981,6 +988,7 @@ public class ChatUIManager : MonoBehaviour
         subscribedParty = null;
     }
 
+    // Executes core business logic for handle local party changed.
     private void HandleLocalPartyChanged()
     {
         if (currentChannel != ChatChannel.Party)
@@ -991,8 +999,6 @@ public class ChatUIManager : MonoBehaviour
         var previous = subscribedParty;
         SubscribePartyTransport();
 
-        // PartyLobby despawning is the NORMAL start of dungeon entry, not a party
-        // breakup — keep the history and stay quiet while the transport swaps over.
         if (previous != null && subscribedParty == null && !HasNoParty())
         {
             return;
@@ -1008,6 +1014,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for update history fallback state.
     private void UpdateHistoryFallbackState()
     {
         bool shouldRefresh = currentChannel == ChatChannel.World &&
@@ -1026,11 +1033,14 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for has ready photon relay.
+    // Returns a boolean indicating operation success.
     private static bool HasReadyPhotonRelay()
     {
         return PlayerPresence.WorldChatReady;
     }
 
+    // Executes core business logic for start history fallback.
     private void StartHistoryFallback()
     {
         if (fallbackHistoryCoroutine != null)
@@ -1038,9 +1048,11 @@ public class ChatUIManager : MonoBehaviour
             return;
         }
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         fallbackHistoryCoroutine = StartCoroutine(RefreshHistoryWithoutPhoton());
     }
 
+    // Executes core business logic for stop history fallback.
     private void StopHistoryFallback()
     {
         if (fallbackHistoryCoroutine == null)
@@ -1052,6 +1064,7 @@ public class ChatUIManager : MonoBehaviour
         fallbackHistoryCoroutine = null;
     }
 
+    // Executes core business logic for refresh history without photon.
     private IEnumerator RefreshHistoryWithoutPhoton()
     {
         var wait = new WaitForSeconds(Mathf.Max(2f, fallbackRefreshInterval));
@@ -1067,6 +1080,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for start guild refresh.
     private void StartGuildRefresh()
     {
         if (guildRefreshCoroutine != null)
@@ -1074,9 +1088,11 @@ public class ChatUIManager : MonoBehaviour
             return;
         }
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         guildRefreshCoroutine = StartCoroutine(RefreshGuildChat());
     }
 
+    // Executes core business logic for stop guild refresh.
     private void StopGuildRefresh()
     {
         if (guildRefreshCoroutine == null)
@@ -1088,6 +1104,7 @@ public class ChatUIManager : MonoBehaviour
         guildRefreshCoroutine = null;
     }
 
+    // Executes core business logic for refresh guild chat.
     private IEnumerator RefreshGuildChat()
     {
         var wait = new WaitForSeconds(Mathf.Max(2f, guildRefreshInterval));
@@ -1103,6 +1120,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for on photon world message received.
     private void OnPhotonWorldMessageReceived(WorldChatMessageResponse message)
     {
         if (currentChannel == ChatChannel.World)
@@ -1111,6 +1129,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for on party message received.
     private void OnPartyMessageReceived(PartyChatMessageResponse message)
     {
         if (currentChannel == ChatChannel.Party)
@@ -1119,8 +1138,6 @@ public class ChatUIManager : MonoBehaviour
             return;
         }
 
-        // Not on the Party tab: hold it instead of dropping it. There is no party history
-        // endpoint to re-fetch from, so a discard here is permanent data loss.
         if (message == null || string.IsNullOrWhiteSpace(message.Content)) return;
 
         if (pendingPartyMessages.Count >= MaxPendingPartyMessages)
@@ -1131,12 +1148,7 @@ public class ChatUIManager : MonoBehaviour
         pendingPartyMessages.Enqueue(message);
     }
 
-    /// <summary>
-    /// Replay party messages that arrived while another tab was open. Called on entering
-    /// the Party tab, AFTER ClearMessages() so the replay is not wiped by the same switch.
-    /// AddPartyMessage dedups on SenderId|SentAt|Content, so a message that also arrived
-    /// live is not doubled.
-    /// </summary>
+    // Executes core business logic for flush pending party messages.
     private void FlushPendingPartyMessages()
     {
         while (pendingPartyMessages.Count > 0)
@@ -1145,12 +1157,17 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for is current player.
+    // Logic details: validates numeric boundary constraints.
+    // Returns a boolean indicating operation success.
     private static bool IsCurrentPlayer(int senderId)
     {
         int currentPlayerId = GetCurrentPlayerProfileId();
         return currentPlayerId > 0 && senderId == currentPlayerId;
     }
 
+    // Executes core business logic for get current player profile id.
+    // Logic details: validates numeric boundary constraints.
     private static int GetCurrentPlayerProfileId()
     {
         int currentPlayerId = GameStateService.Instance != null
@@ -1170,6 +1187,8 @@ public class ChatUIManager : MonoBehaviour
         return currentPlayerId;
     }
 
+    // Executes core business logic for get current player name.
+    // Logic details: validates required non-empty string arguments.
     private static string GetCurrentPlayerName()
     {
         string playerName = GameStateService.Instance != null
@@ -1189,6 +1208,8 @@ public class ChatUIManager : MonoBehaviour
         return string.IsNullOrWhiteSpace(playerName) ? "You" : playerName;
     }
 
+    // Executes core business logic for resolve sender name.
+    // Logic details: validates required non-empty string arguments.
     private static string ResolveSenderName(int senderId, string senderName, bool isMe)
     {
         if (!string.IsNullOrWhiteSpace(senderName))
@@ -1204,6 +1225,7 @@ public class ChatUIManager : MonoBehaviour
         return senderId > 0 ? $"Player {senderId}" : "Player";
     }
 
+    // Executes core business logic for build error message.
     private static string BuildErrorMessage(ApiException error)
     {
         if (error == null)
@@ -1238,12 +1260,14 @@ public class ChatUIManager : MonoBehaviour
             : error.Message;
     }
 
+    // Executes core business logic for set sending.
     private void SetSending(bool sending)
     {
         isSending = sending;
         RefreshSendButtonState();
     }
 
+    // Executes core business logic for start send cooldown.
     private void StartSendCooldown()
     {
         if (sendCooldownCoroutine != null)
@@ -1251,9 +1275,11 @@ public class ChatUIManager : MonoBehaviour
             StopCoroutine(sendCooldownCoroutine);
         }
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         sendCooldownCoroutine = StartCoroutine(SendCooldownRoutine());
     }
 
+    // Executes core business logic for cancel send cooldown.
     private void CancelSendCooldown()
     {
         if (sendCooldownCoroutine != null)
@@ -1267,6 +1293,8 @@ public class ChatUIManager : MonoBehaviour
         RefreshSendButtonState();
     }
 
+    // Executes core business logic for send cooldown routine.
+    // Logic details: validates required non-empty string arguments.
     private IEnumerator SendCooldownRoutine()
     {
         isOnCooldown = true;
@@ -1310,11 +1338,15 @@ public class ChatUIManager : MonoBehaviour
         RefreshSendButtonState();
     }
 
+    // Executes core business logic for get send button label.
+    // Logic details: validates required non-empty string arguments.
     private TMP_Text GetSendButtonLabel()
     {
         return sendButton != null ? sendButton.GetComponentInChildren<TMP_Text>() : null;
     }
 
+    // Executes core business logic for restore send button label.
+    // Logic details: validates required non-empty string arguments.
     private void RestoreSendButtonLabel()
     {
         TMP_Text buttonLabel = GetSendButtonLabel();
@@ -1326,6 +1358,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for refresh send button state.
     private void RefreshSendButtonState()
     {
         if (sendButton == null)
@@ -1341,6 +1374,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for scroll to bottom.
     private IEnumerator ScrollToBottom()
     {
         yield return null;
@@ -1351,6 +1385,7 @@ public class ChatUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for focus input.
     private void FocusInput()
     {
         if (inputField == null)

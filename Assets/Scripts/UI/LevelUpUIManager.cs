@@ -5,6 +5,7 @@ using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Request;
 
+// Initializes a new default instance of the StatIconMapping class.
 [System.Serializable]
 public struct StatIconMapping
 {
@@ -14,6 +15,7 @@ public struct StatIconMapping
     public Sprite icon;
 }
 
+// Executes mono behaviour operation.
 public class LevelUpUIManager : MonoBehaviour
 {
     [Header("UI Component References")]
@@ -24,15 +26,17 @@ public class LevelUpUIManager : MonoBehaviour
     [SerializeField] private Button closeButton;
     [SerializeField] private GameObject loadingOverlay;
     [SerializeField] private TMP_Text remainingPointsText;
-    
+
     [Header("Gán Sprite Icon theo loại chỉ số")]
     [Tooltip("Danh sách Sprite icon tương ứng với từng tên chỉ số")]
     [SerializeField] private StatIconMapping[] statIconMappings;
     [Tooltip("Sprite icon mặc định nếu không tìm thấy trong danh sách")]
     [SerializeField] private Sprite defaultStatIcon;
-    
+
     private List<string> currentOptions;
-    
+
+    // Initializes internal component caches and dependencies for StatIconMapping upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (closeButton != null) closeButton.onClick.AddListener(ClosePanel);
@@ -48,6 +52,7 @@ public class LevelUpUIManager : MonoBehaviour
         SetupButtonFeedback();
     }
 
+    // Executes setup button feedback operation.
     private void SetupButtonFeedback()
     {
         AddButtonFeedback(closeButton);
@@ -56,25 +61,25 @@ public class LevelUpUIManager : MonoBehaviour
             AddButtonFeedback(button);
     }
 
+    // Executes add button feedback operation.
     private static void AddButtonFeedback(Button button)
     {
         if (button == null) return;
 
-        // Buttons created/configured in the scene can lose their target graphic
-        // when the panel is rebuilt. Restore a raycast target so clicks and
-        // pointer enter/exit events reach the button itself.
         if (button.targetGraphic == null)
             button.targetGraphic = button.GetComponent<Graphic>();
 
         if (button.GetComponent<UIHoverScaleEffect>() == null)
             button.gameObject.AddComponent<UIHoverScaleEffect>();
     }
-    
+
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         FetchOptions();
     }
 
+    // Executes auto detect stat icons operation.
     private void AutoDetectStatIcons()
     {
         if (statButtons == null) return;
@@ -88,8 +93,7 @@ public class LevelUpUIManager : MonoBehaviour
             if (statButtons[i] == null) continue;
             if (statIcons[i] != null) continue;
 
-            // 1. Check for child named "Icon", "StatIcon", or "Image"
-            var iconT = statButtons[i].transform.Find("Icon") 
+            var iconT = statButtons[i].transform.Find("Icon")
                      ?? statButtons[i].transform.Find("StatIcon")
                      ?? statButtons[i].transform.Find("Image");
 
@@ -99,7 +103,6 @@ public class LevelUpUIManager : MonoBehaviour
             }
             else
             {
-                // 2. Check for child Image separate from the button's background Image
                 var btnImg = statButtons[i].GetComponent<Image>();
                 var childImgs = statButtons[i].GetComponentsInChildren<Image>(true);
                 foreach (var ci in childImgs)
@@ -113,24 +116,25 @@ public class LevelUpUIManager : MonoBehaviour
             }
         }
     }
-    
+
+    // Queries remaining available stat points and 3 random card options from backend API.
     public void FetchOptions()
     {
-        SetLoading(true);
+        SetLoading(true); // Display loading spinner overlay
         PlayerApi.Instance.GetMyProfile(
             onSuccess: profile =>
             {
                 if (remainingPointsText != null)
                 {
-                    remainingPointsText.text = $"Remaining: {profile.AvailableStatPoints}";
+                    remainingPointsText.text = $"Remaining: {profile.AvailableStatPoints}"; // Display remaining unallocated attribute points
                 }
-                
+
                 CharacterApi.Instance.GetLevelUpOptions(
                     onSuccess: options =>
                     {
                         SetLoading(false);
-                        currentOptions = options;
-                        UpdateUI();
+                        currentOptions = options; // Cache list of offered stat choices (e.g. MaxHp, Atk, CritRate)
+                        UpdateUI(); // Render stat upgrade buttons
                     },
                     onError: error =>
                     {
@@ -138,7 +142,7 @@ public class LevelUpUIManager : MonoBehaviour
                         Debug.LogError("Failed to fetch level up options: " + error.Message);
                         if (error.ErrorCode == "NO_STAT_POINTS")
                         {
-                            ClosePanel();
+                            ClosePanel(); // Automatically dismiss dialog if no points remain
                         }
                     }
                 );
@@ -151,23 +155,24 @@ public class LevelUpUIManager : MonoBehaviour
             }
         );
     }
-    
+
+    // Binds option labels, icons, and click handlers to the UI cards.
     private void UpdateUI()
     {
         if (currentOptions == null || currentOptions.Count == 0) return;
-        
+
         AutoDetectStatIcons();
-        
+
         for (int i = 0; i < statButtons.Length; i++)
         {
             if (i < currentOptions.Count)
             {
                 string statKey = currentOptions[i];
-                statButtons[i].gameObject.SetActive(true);
+                statButtons[i].gameObject.SetActive(true); // Make active card visible
 
                 if (statTexts[i] != null)
                 {
-                    statTexts[i].text = GetStatDisplayName(statKey);
+                    statTexts[i].text = GetStatDisplayName(statKey); // Format stat name with color-coded bonus value
                 }
 
                 if (statIcons != null && i < statIcons.Length && statIcons[i] != null)
@@ -175,18 +180,19 @@ public class LevelUpUIManager : MonoBehaviour
                     Sprite icon = GetStatIcon(statKey);
                     if (icon != null)
                     {
-                        statIcons[i].sprite = icon;
+                        statIcons[i].sprite = icon; // Assign corresponding sprite icon
                         statIcons[i].gameObject.SetActive(true);
                     }
                 }
             }
             else
             {
-                statButtons[i].gameObject.SetActive(false);
+                statButtons[i].gameObject.SetActive(false); // Hide unused card slots
             }
         }
     }
 
+    // Resolves mapped sprite icon asset for the specified stat name.
     private Sprite GetStatIcon(string statName)
     {
         if (string.IsNullOrEmpty(statName)) return defaultStatIcon;
@@ -208,51 +214,50 @@ public class LevelUpUIManager : MonoBehaviour
 
                     if (mappingKey == key)
                     {
-                        if (mapping.icon != null) return mapping.icon;
+                        if (mapping.icon != null) return mapping.icon; // Return matching icon asset
                     }
                 }
             }
         }
-        return defaultStatIcon;
+        return defaultStatIcon; // Return fallback default icon
     }
-    
+
+    // Submits selected stat upgrade choice to backend API and updates local stats.
     private void OnStatButtonClicked(int index)
     {
         if (currentOptions == null || index >= currentOptions.Count) return;
-        
+
         string selectedStat = currentOptions[index];
         SetLoading(true);
-        
+
         var request = new AllocateStatRequestDto { StatName = selectedStat };
-        
+
         CharacterApi.Instance.AllocateStat(
             request,
             onSuccess: response =>
             {
                 SetLoading(false);
-                // Call GetMyProfile or update stats directly if needed
                 if (PlayerHUDUIManager.Instance != null)
                 {
-                    PlayerHUDUIManager.Instance.RefreshHUD();
+                    PlayerHUDUIManager.Instance.RefreshHUD(); // Refresh player level, EXP bar, and current health
                 }
-                
+
                 var inventory = FindFirstObjectByType<InventoryUIManager>();
                 if (inventory != null)
                 {
-                    inventory.LoadInventory(force: true, refreshStats: true);
+                    inventory.LoadInventory(force: true, refreshStats: true); // Force recalculation of effective attributes in UI
                 }
 
-                // If the player still has points, fetch new options. Otherwise close.
                 PlayerApi.Instance.GetMyProfile(
                     onSuccess: profile =>
                     {
                         if (profile.AvailableStatPoints > 0)
                         {
-                            FetchOptions();
+                            FetchOptions(); // If player leveled up multiple times, pull next set of 3 cards
                         }
                         else
                         {
-                            ClosePanel();
+                            ClosePanel(); // Dismiss level-up screen when all points allocated
                         }
                     },
                     onError: error =>
@@ -268,7 +273,8 @@ public class LevelUpUIManager : MonoBehaviour
             }
         );
     }
-    
+
+    // Executes set loading operation.
     private void SetLoading(bool isLoading)
     {
         if (loadingOverlay != null) loadingOverlay.SetActive(isLoading);
@@ -277,12 +283,14 @@ public class LevelUpUIManager : MonoBehaviour
             if (btn != null) btn.interactable = !isLoading;
         }
     }
-    
+
+    // Update visibility for panel; it updates active.
     private void ClosePanel()
     {
         gameObject.SetActive(false);
     }
-    
+
+    // Executes get stat display name operation.
     private string GetStatDisplayName(string statName)
     {
         switch (statName.ToLowerInvariant())

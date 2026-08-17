@@ -5,19 +5,10 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    /// <summary>
-    /// API service cho Character: tạo nhân vật, xem chỉ số, nâng cấp attribute.
-    /// Tất cả endpoint đều yêu cầu JWT (requiresAuth = true).
-    /// ApiClient tự động xử lý envelope { success, message, errorCode, data } từ BE.
-    /// </summary>
     public class CharacterApi : BaseApiService<CharacterApi>
     {
-        // ── POST /api/characters ──────────────────────────────────────────────
-        /// <summary>
-        /// Tạo nhân vật lần đầu sau khi đăng ký: đặt tên + chọn class.
-        /// Gọi sau khi LoginGame() thành công và chưa có PlayerStat.
-        /// Energy chưa bị trừ ở bước này.
-        /// </summary>
+        // ─── Player APIs ───────────────────────────────────────────────────────
+        // Execute character creation inside one transaction so profile, stats, starter skill, and default skin are committed together or rolled back together.
         public void CreateCharacter(
             CreateCharacterRequest body,
             Action<CharacterResponse> onSuccess,
@@ -40,11 +31,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── GET /api/characters/stats ─────────────────────────────────────────
-        /// <summary>
-        /// Lấy toàn bộ chỉ số nhân vật (HP, ATK, DEF, tốc độ, crit, skill points...).
-        /// Dùng để hiển thị màn hình Stat hoặc sync lên game object khi load scene.
-        /// </summary>
+        // Load my stats using on success and on error; it sends the GET API request and guards invalid or unavailable states.
         public void GetMyStats(
             Action<PlayerStatsResponse> onSuccess,
             Action<ApiException> onError)
@@ -54,7 +41,7 @@ namespace MysticJourney.API.Endpoints
                 ApiConfig.CharacterStats,
                 response =>
                 {
-                    if (response != null)
+                    if (response != null)  // Entity exists — proceed with conditional branch
                     {
                         SafeDebugLog($"GetMyStats OK | HP={response.MaxHp} | ATK={response.Atk} | SKP={response.SkillPoints} | ASPD={response.AttackSpeed}");
                         onSuccess?.Invoke(response);
@@ -68,10 +55,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── PUT /api/characters/hp ────────────────────────────────────────────
-        /// <summary>
-        /// Đồng bộ máu hiện tại về Backend
-        /// </summary>
+        // Update hp using current hp, on success, and on error; it sends the PUT API request.
         public void UpdateHp(
             int currentHp,
             Action<SimpleResponse> onSuccess,
@@ -92,10 +76,7 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
-        // ── POST /api/characters/buffs ───────────────────────────────────────
-        /// <summary>
-        /// Sync active buffs with the server.
-        /// </summary>
+        // Replace the player's persisted buff rows with the supplied active buffs, save the new set, and return the recalculated effective stats.
         public void SyncBuffs(
             UpdatePlayerBuffsRequest request,
             Action onSuccess,
@@ -118,7 +99,8 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void GetLevelUpOptions(
+    // Load level up options using on success and on error; it sends the GET API request.
+    public void GetLevelUpOptions(
             Action<System.Collections.Generic.List<string>> onSuccess,
             Action<ApiException> onError)
         {
@@ -138,7 +120,8 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        public void AllocateStat(
+    // Process allocate stat using request, on success, and on error; it sends the POST API request.
+    public void AllocateStat(
             AllocateStatRequestDto request,
             Action<PlayerStatsResponse> onSuccess,
             Action<ApiException> onError)

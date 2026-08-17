@@ -5,12 +5,14 @@ using System.Collections;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class TMP_FrameRateCounter : MonoBehaviour
     {
         public float UpdateInterval = 5.0f;
         private float m_LastInterval = 0;
         private int m_Frames = 0;
 
+        // Executes fps counter anchor positions operation.
         public enum FpsCounterAnchorPositions { TopLeft, BottomLeft, TopRight, BottomRight };
 
         public FpsCounterAnchorPositions AnchorPosition = FpsCounterAnchorPositions.TopRight;

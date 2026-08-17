@@ -6,6 +6,8 @@ using System;
 
 namespace MysticJourney.UI.Guild
 {
+    // Executes mono behaviour operation.
+    // Validates input parameters against null or empty values.
     public class UIGuildApplicationEntry : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI txtPlayerName;
@@ -23,6 +25,7 @@ namespace MysticJourney.UI.Guild
         private Action onApproveCallback;
         private Action onRejectCallback;
 
+        // Executes setup operation.
         public void Setup(GuildApplicationDTO application, int guildId, Action onApprove, Action onReject)
         {
             this.applicationId = application.guildApplicationId;
@@ -89,12 +92,14 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes on approve clicked operation.
         private void OnApproveClicked()
         {
             if (onApproveCallback != null)
                 onApproveCallback();
         }
 
+        // Executes on reject clicked operation.
         private void OnRejectClicked()
         {
             if (onRejectCallback != null)

@@ -8,8 +8,10 @@ using MysticJourney.API.Core;
 
 namespace MysticJourney.Screen.GameSetting
 {
+    // Executes core business logic for mono behaviour.
     public class GameSettingUIManager : MonoBehaviour
     {
+        // Executes core business logic for setting state.
         [System.Serializable]
         private class SettingState
         {
@@ -54,7 +56,6 @@ namespace MysticJourney.Screen.GameSetting
 
         private SettingState savedState;
 
-        // --- GRAPHICS DATA ---
         private static readonly Vector2Int[] SupportedResolutions =
         {
             new(1280, 720),
@@ -64,35 +65,33 @@ namespace MysticJourney.Screen.GameSetting
 
         private List<Resolution> filteredResolutions;
 
+        // Performs startup initialization for GameSettingUIManager on the first active frame.
+        // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
         private void Start()
         {
             ForceInitialize();
 
-            // Khởi tạo danh sách Dropdown cho Graphic TRƯỚC KHI load settings
             InitGraphicsDropdowns();
 
-            // Gán sự kiện cho các nút Main Panel
             if (saveChangeButton != null) saveChangeButton.onClick.AddListener(OnSaveChangeClicked);
             if (settingsExitButton != null) settingsExitButton.onClick.AddListener(OnSettingsExitClicked);
 
-            // Gán sự kiện cho các nút Popup
             if (popupOkButton != null) popupOkButton.onClick.AddListener(OnPopupOkClicked);
             if (popupCancelButton != null) popupCancelButton.onClick.AddListener(OnPopupCancelClicked);
 
-            // Gán sự kiện cho hệ thống Tabs chuyển trang
             if (mainTabButton != null) mainTabButton.onClick.AddListener(() => SwitchToPage(true));
             if (controllerTabButton != null) controllerTabButton.onClick.AddListener(() => SwitchToPage(false));
 
             LoadCurrentSettings();
 
-            // Subscribe event trùng phím từ ControlRebindManager
             if (controlRebindManager != null)
                 controlRebindManager.OnConflictDetected += ShowConflictPopup;
 
-            // Mặc định ban đầu luôn mở trang Audio & Graphic trước
             SwitchToPage(true);
         }
 
+        // Executes core business logic for force initialize.
+        // Logic details: validates required non-empty string arguments.
         public void ForceInitialize()
         {
             if (confirmPanel == null)
@@ -139,6 +138,7 @@ namespace MysticJourney.Screen.GameSetting
             }
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDestroy()
         {
             if (saveChangeButton != null) saveChangeButton.onClick.RemoveListener(OnSaveChangeClicked);
@@ -154,11 +154,10 @@ namespace MysticJourney.Screen.GameSetting
                 controlRebindManager.OnConflictDetected -= ShowConflictPopup;
         }
 
-        // --- GRAPHICS INITIALIZATION ---
 
+        // Executes core business logic for init graphics dropdowns.
         private void InitGraphicsDropdowns()
         {
-            // 1. Setup Display Mode
             if (displayModeDropdown != null)
             {
                 displayModeDropdown.ClearOptions();
@@ -170,7 +169,6 @@ namespace MysticJourney.Screen.GameSetting
                 });
             }
 
-            // 2. Setup Resolutions
             if (resolutionDropdown != null)
             {
                 filteredResolutions = new List<Resolution>();
@@ -183,8 +181,6 @@ namespace MysticJourney.Screen.GameSetting
                         filteredResolutions.Add(resolution);
                 }
 
-                // Some platforms do not expose Screen.resolutions. Unity can still apply
-                // these standard 16:9 window sizes, so keep the settings usable there.
                 if (filteredResolutions.Count == 0)
                 {
                     foreach (Vector2Int target in SupportedResolutions)
@@ -206,6 +202,7 @@ namespace MysticJourney.Screen.GameSetting
             }
         }
 
+        // Attempt get best supported resolution using available resolutions, target, and best match; it guards invalid or unavailable states and processes each matching entry.
         private static bool TryGetBestSupportedResolution(
             Resolution[] availableResolutions,
             Vector2Int target,
@@ -235,11 +232,12 @@ namespace MysticJourney.Screen.GameSetting
             return found;
         }
 
+        // Executes core business logic for apply graphics settings.
         private void ApplyGraphicsSettings(int resolutionIndex, int displayModeIndex)
         {
             if (filteredResolutions == null || filteredResolutions.Count == 0) return;
 
-            // Đảm bảo index an toàn
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             int safeResIndex = Mathf.Clamp(resolutionIndex, 0, filteredResolutions.Count - 1);
             Resolution res = filteredResolutions[safeResIndex];
 
@@ -251,12 +249,11 @@ namespace MysticJourney.Screen.GameSetting
                 case 2: mode = FullScreenMode.Windowed; break;
             }
 
-            // Áp dụng trực tiếp vào Unity Screen
             UnityEngine.Screen.SetResolution(res.width, res.height, mode);
             Debug.Log($"[Graphics] Applied: {res.width}x{res.height} - Mode: {mode}");
         }
 
-        // --- HÀM CHUYỂN ĐỔI TAB TRANG ---
+        // Executes core business logic for switch to page.
         private void SwitchToPage(bool isMainPage)
         {
             if (audioAndGraphicPage != null) audioAndGraphicPage.SetActive(isMainPage);
@@ -266,6 +263,7 @@ namespace MysticJourney.Screen.GameSetting
             if (controllerTabButton != null) controllerTabButton.interactable = isMainPage;
         }
 
+        // Executes core business logic for load current settings.
         private void LoadCurrentSettings()
         {
             var settings = SettingsService.Instance;
@@ -285,6 +283,7 @@ namespace MysticJourney.Screen.GameSetting
 
             if (displayModeDropdown != null)
             {
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 displayModeDropdown.value = Mathf.Clamp(
                     settings.DisplayModeIndex,
                     0,
@@ -294,6 +293,7 @@ namespace MysticJourney.Screen.GameSetting
 
             if (resolutionDropdown != null && filteredResolutions != null && filteredResolutions.Count > 0)
             {
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 int safeIndex = Mathf.Clamp(settings.ResolutionIndex, 0, filteredResolutions.Count - 1);
                 resolutionDropdown.value = safeIndex;
                 resolutionDropdown.RefreshShownValue();
@@ -307,6 +307,7 @@ namespace MysticJourney.Screen.GameSetting
                 controlRebindManager.LoadBindings();
         }
 
+        // Executes core business logic for find initial resolution index.
         private int FindInitialResolutionIndex()
         {
             if (filteredResolutions == null || filteredResolutions.Count == 0)
@@ -323,6 +324,7 @@ namespace MysticJourney.Screen.GameSetting
             return fullHdIndex >= 0 ? fullHdIndex : filteredResolutions.Count - 1;
         }
 
+        // Executes core business logic for get current display mode index.
         private static int GetCurrentDisplayModeIndex()
         {
             return UnityEngine.Screen.fullScreenMode switch
@@ -333,8 +335,8 @@ namespace MysticJourney.Screen.GameSetting
             };
         }
 
-        // --- SỰ KIỆN MAIN PANEL ---
 
+        // Executes core business logic for on save change clicked.
         public void OnSaveChangeClicked()
         {
             SaveSettings();
@@ -342,6 +344,7 @@ namespace MysticJourney.Screen.GameSetting
             Debug.Log("[GameSettingUIManager] Settings Saved.");
         }
 
+        // Executes core business logic for on logout clicked.
         public void OnLogoutClicked()
         {
             UIPopupBox.Show(
@@ -352,6 +355,7 @@ namespace MysticJourney.Screen.GameSetting
             );
         }
 
+        // Executes core business logic for on settings exit clicked.
         private void OnSettingsExitClicked()
         {
             if (HasUnsavedChanges())
@@ -363,8 +367,8 @@ namespace MysticJourney.Screen.GameSetting
             CloseSettingsPanel();
         }
 
-        // --- SỰ KIỆN POPUP ---
 
+        // Executes core business logic for on popup ok clicked.
         private void OnPopupOkClicked()
         {
             SaveSettings();
@@ -374,12 +378,14 @@ namespace MysticJourney.Screen.GameSetting
             CloseSettingsPanel();
         }
 
+        // Executes core business logic for on popup cancel clicked.
         private void OnPopupCancelClicked()
         {
             if (confirmPanel != null) confirmPanel.SetActive(false);
             Debug.Log("[GameSettingUIManager] Cancelled exit. Staying in settings.");
         }
 
+        // Executes core business logic for show conflict popup.
         private void ShowConflictPopup(string message)
         {
             if (confirmPanel == null) return;
@@ -389,10 +395,12 @@ namespace MysticJourney.Screen.GameSetting
             if (popupOkButton != null) popupOkButton.gameObject.SetActive(false);
 
             StopCoroutine(nameof(HideConflictPopupAfterDelay));
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(nameof(HideConflictPopupAfterDelay));
             confirmPanel.SetActive(true);
         }
 
+        // Executes core business logic for hide conflict popup after delay.
         private IEnumerator HideConflictPopupAfterDelay()
         {
             yield return new WaitForSecondsRealtime(2f);
@@ -402,6 +410,7 @@ namespace MysticJourney.Screen.GameSetting
             if (popupOkButton != null) popupOkButton.gameObject.SetActive(true);
         }
 
+        // Executes core business logic for show confirm popup.
         public void ShowConfirmPopup(string message)
         {
             if (confirmPanel != null)
@@ -418,8 +427,8 @@ namespace MysticJourney.Screen.GameSetting
             }
         }
 
-        // --- HÀM HỖ TRỢ ---
 
+        // Executes core business logic for save settings.
         private void SaveSettings()
         {
             var settings = SettingsService.Instance;
@@ -434,9 +443,8 @@ namespace MysticJourney.Screen.GameSetting
 
             if (damageNumbersToggle != null) settings.SetShowDamageNumbers(damageNumbersToggle.isOn);
 
-            settings.Save(); // Lưu data thông qua Service của bạn
+            settings.Save();
 
-            // THỰC SỰ ÁP DỤNG GRAPHICS VÀO GAME
             int resIndex = resolutionDropdown != null ? resolutionDropdown.value : 0;
             int displayIndex = displayModeDropdown != null ? displayModeDropdown.value : 0;
             ApplyGraphicsSettings(resIndex, displayIndex);
@@ -447,11 +455,13 @@ namespace MysticJourney.Screen.GameSetting
             }
         }
 
+        // Update visibility for settings panel; it updates active.
         private void CloseSettingsPanel()
         {
             gameObject.SetActive(false);
         }
 
+        // Executes core business logic for capture current state.
         private SettingState CaptureCurrentState()
         {
             return new SettingState
@@ -466,6 +476,8 @@ namespace MysticJourney.Screen.GameSetting
             };
         }
 
+        // Executes core business logic for has unsaved changes.
+        // Returns a boolean indicating operation success.
         private bool HasUnsavedChanges()
         {
             if (savedState == null) return false;

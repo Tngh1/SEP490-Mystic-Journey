@@ -8,10 +8,7 @@ using MysticJourney.Screen.Mail;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Keeps the HUD mail/chat notification dots in sync with unread content.
-/// Added by PlayerHUDUIManager at runtime so existing scene references stay valid.
-/// </summary>
+// Executes mono behaviour operation.
 public sealed class HUDNotificationController : MonoBehaviour
 {
     private const float MailRefreshIntervalSeconds = 20f;
@@ -32,6 +29,7 @@ public sealed class HUDNotificationController : MonoBehaviour
 
     private static Sprite _circleSprite;
 
+    // Executes configure operation.
     public void Configure(GameObject mailButtonObject, GameObject chatButtonObject)
     {
         if (_mailButtonObject == mailButtonObject &&
@@ -60,6 +58,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (_configured)
@@ -68,6 +67,8 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for HUDNotificationController.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (!_configured)
@@ -91,17 +92,20 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         StopListening();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         UnbindButtonEvents();
         StopListening();
     }
 
+    // Executes start listening operation.
     private void StartListening()
     {
         if (!_eventsBound)
@@ -116,10 +120,12 @@ public sealed class HUDNotificationController : MonoBehaviour
 
         if (_mailRefreshCoroutine == null)
         {
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             _mailRefreshCoroutine = StartCoroutine(RefreshMailboxLoop());
         }
     }
 
+    // Executes stop listening operation.
     private void StopListening()
     {
         if (_eventsBound)
@@ -143,6 +149,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Executes subscribe to local party operation.
     private void SubscribeToLocalParty()
     {
         if (_subscribedParty != null)
@@ -157,6 +164,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Update mailbox loop; it updates mailbox status.
     private IEnumerator RefreshMailboxLoop()
     {
         var wait = new WaitForSecondsRealtime(MailRefreshIntervalSeconds);
@@ -170,6 +178,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         _mailRefreshCoroutine = null;
     }
 
+    // Executes refresh mailbox status operation.
     private void RefreshMailboxStatus()
     {
         if (_mailRequestInFlight || !Application.isPlaying)
@@ -206,6 +215,7 @@ public sealed class HUDNotificationController : MonoBehaviour
             });
     }
 
+    // Executes handle world message received operation.
     private void HandleWorldMessageReceived(WorldChatMessageResponse message)
     {
         if (message == null || IsCurrentPlayer(message.SenderId) || IsChatOpen())
@@ -216,6 +226,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         SetBadgeVisible(_chatBadge, true);
     }
 
+    // Executes handle party message received operation.
     private void HandlePartyMessageReceived(PartyChatMessageResponse message)
     {
         if (message == null || IsCurrentPlayer(message.SenderId) || IsChatOpen())
@@ -226,11 +237,13 @@ public sealed class HUDNotificationController : MonoBehaviour
         SetBadgeVisible(_chatBadge, true);
     }
 
+    // Executes is chat open operation.
     private bool IsChatOpen()
     {
         return _chatPanel != null && _chatPanel.gameObject.activeInHierarchy;
     }
 
+    // Executes is current player operation.
     private static bool IsCurrentPlayer(int senderId)
     {
         int currentPlayerId = GameStateService.Instance != null
@@ -250,6 +263,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         return currentPlayerId > 0 && senderId == currentPlayerId;
     }
 
+    // Executes bind button events operation.
     private void BindButtonEvents()
     {
         if (_mailButton != null)
@@ -263,6 +277,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Executes unbind button events operation.
     private void UnbindButtonEvents()
     {
         if (_mailButton != null)
@@ -276,11 +291,13 @@ public sealed class HUDNotificationController : MonoBehaviour
         }
     }
 
+    // Executes clear chat notification operation.
     private void ClearChatNotification()
     {
         SetBadgeVisible(_chatBadge, false);
     }
 
+    // Executes ensure badge operation.
     private static GameObject EnsureBadge(GameObject buttonObject, string badgeName)
     {
         if (buttonObject == null)
@@ -330,6 +347,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         return badge;
     }
 
+    // Executes get circle sprite operation.
     private static Sprite GetCircleSprite()
     {
         if (_circleSprite != null)
@@ -355,6 +373,7 @@ public sealed class HUDNotificationController : MonoBehaviour
             for (int x = 0; x < size; x++)
             {
                 float distance = Vector2.Distance(new Vector2(x, y), center);
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 byte alpha = (byte)Mathf.RoundToInt(Mathf.Clamp01(radius + 1f - distance) * 255f);
                 pixels[y * size + x] = new Color32(255, 255, 255, alpha);
             }
@@ -373,6 +392,7 @@ public sealed class HUDNotificationController : MonoBehaviour
         return _circleSprite;
     }
 
+    // Executes set badge visible operation.
     private static void SetBadgeVisible(GameObject badge, bool visible)
     {
         if (badge != null && badge.activeSelf != visible)

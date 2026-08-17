@@ -2,6 +2,7 @@ using System;
 using MysticJourney.API.Core;
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class EnemyEntity : MonoBehaviour
 {
     private PolygonCollider2D polyColl;
@@ -16,23 +17,19 @@ public class EnemyEntity : MonoBehaviour
     [SerializeField] private bool useApiStats = true;
     private bool isDead = false;
 
-    // Def của quái từ Monster table. Trước đây bị bỏ hoàn toàn: ApplyApiStats chỉ đọc
-    // MaxHp/Atk/MoveSpeed, nên Def=300 của UnderKing hay Def=150 của Ghost không có tác
-    // dụng gì — mọi con quái đều nhận đúng 100% sát thương. Giữ cùng công thức với
-    // PlayerEntity.TakeDamage (giảm Def/5, chặn sàn ở 50%) để hai phía đọc như nhau.
     [SerializeField] private int def = 0;
 
+    // Executes def operation.
     public int Def => def;
 
+    // Executes monster id operation.
     public int MonsterId => monsterId;
+    // Executes current health operation.
     public int CurrentHealth => currentHealth;
+    // Executes max health operation.
     public int MaxHealth => maxHealth;
 
-    /// <summary>
-    /// Called by DungeonSpawner immediately after Instantiate to inject the
-    /// backend MonsterId and MonsterSpawnId into a dynamically spawned enemy.
-    /// Prefab-placed enemies use the serialized Inspector values instead.
-    /// </summary>
+    // Executes set spawn data operation.
     public void SetSpawnData(int id, int spawnId)
     {
         monsterId = id;
@@ -44,11 +41,15 @@ public class EnemyEntity : MonoBehaviour
     public event EventHandler OnDeath;
     public event Action<int, int> OnHealthChanged;
 
+    // Initializes internal component caches and dependencies for EnemyEntity upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         currentHealth = maxHealth;
     }
 
+    // Performs startup initialization for EnemyEntity on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         polyColl = GetComponent<PolygonCollider2D>();
@@ -71,7 +72,6 @@ public class EnemyEntity : MonoBehaviour
 
         Debug.Log($"[EnemyEntity] Start: {gameObject.name} | UseApi={useApiStats} | ID={monsterId} | ManagerNull?={MonsterManager.Instance == null}");
 
-        // Fallback to inspector stats initially
         currentHealth = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
@@ -98,6 +98,7 @@ public class EnemyEntity : MonoBehaviour
         }
     }
 
+    // Executes apply api stats operation.
     private void ApplyApiStats(int apiMaxHp, int apiAtk, int apiMoveSpeed, int apiDef, int apiCritRate, int apiCritDamage)
     {
         Debug.Log($"[EnemyEntity] {gameObject.name} ApplyApiStats: HP={apiMaxHp}, ATK={apiAtk}, SPD={apiMoveSpeed}, DEF={apiDef}, CRIT={apiCritRate}/{apiCritDamage}");
@@ -111,37 +112,19 @@ public class EnemyEntity : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Networking bridge
-    //
-    // When a Photon session is running, this enemy is spawned as a NetworkObject
-    // and NetworkEnemy binds itself here. Damage is then applied authoritatively
-    // on the state-authority client and the resulting HP / death replicates to
-    // every other client. Offline, _network stays null and everything runs
-    // locally exactly as before.
-    // ─────────────────────────────────────────────────────────────────────────
 
     private NetworkEnemy _network;
 
-    /// <summary>True once the enemy has died (drives the networked death mirror).</summary>
+    // Executes is dead operation.
     public bool IsDead => isDead;
 
-    /// <summary>Called by NetworkEnemy.Spawned to enable the networked damage route.</summary>
+    // Executes bind network operation.
     public void BindNetwork(NetworkEnemy network) => _network = network;
 
-    /// <summary>The bound NetworkEnemy when in a live session, else null. Lets callers
-    /// broadcast networked effects (e.g. melee damage popups) to every client.</summary>
+    // Executes network operation.
     public NetworkEnemy Network => (_network != null && _network.IsNetworkActive) ? _network : null;
 
-    /// <summary>
-    /// Public damage entry point. Projectiles / AoE / melee call this without
-    /// knowing whether we are online. When networked, the request is routed to
-    /// the enemy's state authority (applied once, replicated to all). Offline it
-    /// applies immediately.
-    /// </summary>
-    /// <summary>
-    /// Restores current HP by amount (up to maxHealth).
-    /// </summary>
+    // Executes heal operation.
     public void Heal(int amount)
     {
         if (isDead || amount <= 0) return;
@@ -149,17 +132,11 @@ public class EnemyEntity : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
-    /// <summary>
-    /// Public damage entry point. Projectiles / AoE / melee call this without
-    /// knowing whether we are online. When networked, the request is routed to
-    /// the enemy's state authority (applied once, replicated to all). Offline it
-    /// applies immediately.
-    /// </summary>
+    // Executes take damage operation.
     public void TakeDamage(int damage)
     {
         if (isDead) return;
 
-        // Block hit if Resurrection Cocoon Shield is active
         var cocoonShield = GetComponent<ResurrectionCocoonShield>();
         if (cocoonShield != null && cocoonShield.TryBlockHit())
         {
@@ -175,10 +152,7 @@ public class EnemyEntity : MonoBehaviour
         ApplyDamageAuthoritative(damage);
     }
 
-    /// <summary>
-    /// The real HP maths + death detection. Runs on the state authority (online)
-    /// or directly (offline). NEVER call this from a proxy — use TakeDamage.
-    /// </summary>
+    // Executes apply damage authoritative operation.
     public void ApplyDamageAuthoritative(int damage)
     {
         if (isDead) return;
@@ -189,12 +163,6 @@ public class EnemyEntity : MonoBehaviour
             return;
         }
 
-        // Def giảm sát thương nhận vào, cùng công thức với PlayerEntity.TakeDamage:
-        // trừ Def/5 điểm nhưng luôn ăn tối thiểu 50% đòn đánh. Đặt ở ĐÂY (không phải
-        // TakeDamage) vì đây là điểm duy nhất tính HP thật: online thì proxy gọi
-        // RequestDamage rồi authority mới vào hàm này, nên Def chỉ áp dụng đúng 1 lần.
-        // Sàn 50% là chủ ý: nếu trừ thẳng thì quái Def cao thành bất tử với người chơi
-        // sát thương thấp, còn boss Def=35 vẫn phải chết trong số nhát hữu hạn.
         int reduced = Mathf.RoundToInt(def / 5f);
         int finalDamage = Mathf.Max(Mathf.RoundToInt(damage * 0.5f), damage - reduced);
         if (finalDamage < 1) finalDamage = 1;
@@ -207,27 +175,20 @@ public class EnemyEntity : MonoBehaviour
         DetectDeath();
     }
 
-    /// <summary>
-    /// Proxy-side mirror: push the authority's replicated HP into this local copy
-    /// so the health bar and hit flash match. Does NOT report to the backend
-    /// (only the authority does that in DetectDeath).
-    /// </summary>
+    // Executes sync networked health operation.
     public void SyncNetworkedHealth(int networkedCurrent, int networkedMax)
     {
         if (networkedMax > 0) maxHealth = networkedMax;
 
         bool tookHit = networkedCurrent < currentHealth;
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         currentHealth = Mathf.Clamp(networkedCurrent, 0, maxHealth);
 
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
         if (tookHit) OnTakeHit?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>
-    /// Proxy-side mirror: replicated IsAlive went false. Play the local death
-    /// visuals (colliders off, death animation) WITHOUT the server report /
-    /// quest progress, which the authority already handled in DetectDeath.
-    /// </summary>
+    // Executes sync networked death operation.
     public void SyncNetworkedDeath()
     {
         if (isDead) return;
@@ -242,20 +203,24 @@ public class EnemyEntity : MonoBehaviour
         OnDeath?.Invoke(this, EventArgs.Empty);
     }
 
+    // Executes poly coll turn off operation.
     public void PolyCollTurnOff()
     {
-        // Đảm bảo quái không bị mất hoàn toàn collider va chạm với tường khi thực hiện animation đánh
         if (polyColl != null && (capsuleColl != null || boxColl != null))
         {
             polyColl.enabled = false;
         }
     }
+    // Executes poly coll turn on operation.
+    // Validates input parameters against null or empty values.
     public void PolyCollTurnOn()
     {
         if (polyColl != null) polyColl.enabled = true;
     }
 
 
+    // Executes detect death operation.
+    // Validates input parameters against null or empty values.
     private void DetectDeath()
     {
         if (currentHealth <= 0 && !isDead)
@@ -268,22 +233,18 @@ public class EnemyEntity : MonoBehaviour
             if (enemyBehaviour != null) enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");
 
-            // Lưu vị trí chết để hiển thị hiệu ứng rớt Vàng, EXP, Item
             if (MysticJourney.Features.Monster.MonsterDropVisualManager.Instance != null)
             {
                 MysticJourney.Features.Monster.MonsterDropVisualManager.Instance.RegisterMonsterDeathPosition(monsterId, transform.position);
             }
 
-            // Báo server khi hạ quái (XP, gold, drop random, khám phá bestiary)
             if (monsterId > 0 && MonsterManager.Instance != null && ApiClient.Instance.HasToken())
             {
                 MonsterManager.Instance.ReportDefeat(monsterId, monsterSpawnId > 0 ? monsterSpawnId : null);
             }
 
-            // Cộng dồn tiến độ cho Quest giết quái
             if (QuestUIManager.Instance != null)
             {
-                // Lọc bỏ "(Clone)" hoặc các số phía sau nếu quái được sinh ra từ prefab
                 string cleanName = gameObject.name.Replace("(Clone)", "").Trim();
                 int spaceIndex = cleanName.IndexOf(" (");
                 if (spaceIndex > 0) cleanName = cleanName.Substring(0, spaceIndex);
@@ -297,7 +258,6 @@ public class EnemyEntity : MonoBehaviour
                         !string.Equals(quest.ObjectiveType, "Defeat", StringComparison.OrdinalIgnoreCase)) continue;
                     if (string.IsNullOrWhiteSpace(quest.ObjectiveTarget)) continue;
 
-                    // ObjectiveTarget có thể liệt kê nhiều loại quái, phân tách bằng '/'
                     foreach (var target in quest.ObjectiveTarget.Split('/'))
                     {
                         string t = target.Trim();
@@ -307,7 +267,6 @@ public class EnemyEntity : MonoBehaviour
                                        normCleanName.IndexOf(normTarget, StringComparison.OrdinalIgnoreCase) >= 0 ||
                                        normTarget.IndexOf(normCleanName, StringComparison.OrdinalIgnoreCase) >= 0;
 
-                        // Fallback đặc biệt cho Quest 26 "[Chapter 3] The Sealed Guardians" (yêu cầu hạ 2 Boss: GolemBoss & IceFairy)
                         if (!isMatch && quest.QuestId == 26)
                         {
                             if (cleanName.IndexOf("Ice", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -329,10 +288,12 @@ public class EnemyEntity : MonoBehaviour
 
             OnDeath?.Invoke(this, EventArgs.Empty);
 
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(DespawnAfterDelay(2f));
         }
     }
 
+    // Executes despawn after delay operation.
     private System.Collections.IEnumerator DespawnAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);

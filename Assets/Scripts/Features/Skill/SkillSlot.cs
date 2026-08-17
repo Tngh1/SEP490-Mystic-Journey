@@ -6,6 +6,7 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.Core.Services;
 using MysticJourney.API.Models.Response;
 
+// Executes i pointer click handler operation.
 public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
 {
     public static event System.Action<int, SkillData, PlayerSkillResponse> OnSkillEquipped;
@@ -28,11 +29,9 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
     private float _cooldownTimer = 0f;
     private float _cooldownDuration = 1f;
 
-    // Nhãn nhỏ dưới đáy ô: "Lv 5" khi bị khóa theo level, "Empty" khi mở nhưng chưa
-    // trang bị gì. Tạo bằng code để không phải sửa prefab/scene, và tách khỏi
-    // cooldownText (nằm giữa ô, trùng vị trí ổ khóa).
     private TextMeshProUGUI hintLabel;
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         PlayerCombat.OnSkillCast += HandleSkillCast;
@@ -40,15 +39,16 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         RefreshLockState();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         PlayerCombat.OnSkillCast -= HandleSkillCast;
         OnSkillEquipped -= HandleSkillEquipped;
     }
 
+    // Executes refresh lock state operation.
     public void RefreshLockState()
     {
-        // Gán Level yêu cầu chuẩn theo slotIndex (0 = Lv 1, 1 = Lv 5, 2 = Lv 10)
         if (slotIndex == 0) requiredLevel = 1;
         else if (slotIndex == 1) requiredLevel = 5;
         else if (slotIndex == 2) requiredLevel = 10;
@@ -60,7 +60,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         {
             lockImage.SetActive(isLocked);
 
-            // Đảm bảo Image ổ khóa bật hiển thị rõ ràng trên UI
             var lockImgComp = lockImage.GetComponent<Image>();
             if (lockImgComp != null)
             {
@@ -73,17 +72,14 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         {
             if (equippedIcon != null)
             {
-                equippedIcon.color = new Color(1f, 1f, 1f, 0f); // Ẩn icon nếu slot bị khóa
+                equippedIcon.color = new Color(1f, 1f, 1f, 0f);
             }
         }
 
         RefreshHintLabel(isLocked);
     }
 
-    // Ô số 1 mở từ Lv 1 nên không có ổ khóa: người chơi mới (chưa có skill nào, quest
-    // "Equip Your First Skill" còn NotStarted) chỉ thấy một ô vuông trống cạnh hai ô
-    // khóa → không biết mình đã có skill chưa hay phải làm gì. Ghi thẳng trạng thái
-    // lên ô: "Lv 5" nếu khóa theo level, "Empty" nếu mở nhưng chưa trang bị.
+    // Executes refresh hint label operation.
     private void RefreshHintLabel(bool isLocked)
     {
         bool hasSkill = equippedIcon != null && equippedIcon.sprite != null;
@@ -118,6 +114,7 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         hintLabel.color = isLocked ? new Color(1f, 0.83f, 0.30f) : new Color(0.78f, 0.78f, 0.78f);
     }
 
+    // Executes handle skill equipped operation.
     private void HandleSkillEquipped(int equippedSlotIndex, SkillData vData, PlayerSkillResponse sData)
     {
         if (equippedSlotIndex != this.slotIndex) return;
@@ -133,8 +130,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                 equippedIcon.color = _isCooldown ? new Color(0.35f, 0.35f, 0.35f, 1f) : Color.white;
                 equippedIcon.gameObject.SetActive(true);
                 equippedIcon.enabled = true;
-                // RefreshLockState() ở trên chạy TRƯỚC khi có sprite nên vẫn coi ô này là
-                // "Empty"; gọi lại để tắt nhãn ngay sau khi icon vào ô.
                 RefreshHintLabel(false);
             }
         }
@@ -153,7 +148,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
             }
         }
 
-        // Skill không còn cooldown → khôi phục icon sáng và xóa overlay
         _isCooldown = false;
         _cooldownTimer = 0f;
         if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
@@ -171,7 +165,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         if (cooldownOverlay != null)
         {
             cooldownOverlay.fillAmount = 0f;
-            // Đặt màu lớp phủ đếm ngược thành màu đen mờ (75% alpha) để làm mờ icon phía sau khi hồi chiêu
             cooldownOverlay.color = new Color(0f, 0f, 0f, 0.75f);
         }
 
@@ -182,6 +175,8 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         }
     }
 
+    // Per-frame update loop for SkillSlot.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_isCooldown)
@@ -190,19 +185,17 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
 
             if (cooldownOverlay != null)
             {
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 cooldownOverlay.fillAmount = Mathf.Clamp01(_cooldownTimer / _cooldownDuration);
-                // Giữ màu xám mờ đậm đè lên icon kỹ năng
                 cooldownOverlay.color = new Color(0f, 0f, 0f, 0.75f);
             }
 
-            // Hiển thị số giây hồi chiêu bằng màu VÀNG KIM NỔI BẬT với kích thước lớn
             if (cooldownText != null)
             {
                 int remainingInt = Mathf.CeilToInt(_cooldownTimer);
                 cooldownText.text = $"<size=150%><color=#FFE042><b>{remainingInt}</b></color></size>";
             }
 
-            // Làm mờ icon kỹ năng phía dưới trong lúc chờ hồi chiêu
             if (equippedIcon != null)
             {
                 equippedIcon.color = new Color(0.35f, 0.35f, 0.35f, 1f);
@@ -214,7 +207,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                 if (cooldownOverlay != null) cooldownOverlay.fillAmount = 0f;
                 if (cooldownText != null) cooldownText.text = "";
 
-                // Trả lại độ sáng 100% cho icon kỹ năng khi hồi chiêu xong
                 if (equippedIcon != null)
                 {
                     equippedIcon.color = Color.white;
@@ -223,6 +215,7 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         }
     }
 
+    // Executes handle skill cast operation.
     private void HandleSkillCast(int castedSlotIndex, float cooldownTime)
     {
         if (this.slotIndex == castedSlotIndex)
@@ -231,12 +224,13 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         }
     }
 
+    // Executes start cooldown operation.
     public void StartCooldown(float cooldownTime)
     {
         _isCooldown = true;
         _cooldownDuration = cooldownTime;
         _cooldownTimer = cooldownTime;
-        
+
         if (cooldownOverlay != null)
         {
             cooldownOverlay.fillAmount = 1f;
@@ -255,6 +249,7 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         }
     }
 
+    // Executes on drop operation.
     public void OnDrop(PointerEventData eventData)
     {
         int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
@@ -277,8 +272,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                            eventData.pointerDrag.GetComponentInParent<SkillItem>();
         }
 
-        // A ScrollRect can retain a child/scroll object as pointerDrag after the
-        // gesture changes into a skill drag. Use the explicit payload as fallback.
         if (droppedSkill == null)
         {
             droppedSkill = SkillItem.CurrentDraggedItem;
@@ -291,7 +284,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         }
         if (droppedSkill != null && droppedSkill.serverData != null)
         {
-            // --- FIX: CHỐNG TRANG BỊ TRÙNG LẶP KỸ NĂNG ---
             var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var s in allSlots)
             {
@@ -300,10 +292,11 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                     if (s.equippedIcon.sprite == droppedSkill.visualData.skillIcon)
                     {
                         Debug.LogWarning("Kỹ năng này đã được trang bị ở ô khác!");
-                        return; // Chặn không cho trang bị trùng
+                        return;
                     }
                 }
             }
+            // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
             var playerClass = GameStateService.Instance?.PlayerClass ?? "";
             var requiredClass = droppedSkill.visualData != null ? droppedSkill.visualData.classRequirement : "";
 
@@ -331,7 +324,6 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
                     }
                     SkillSlot.BroadcastSkillEquipped(slotIndex, droppedSkill.visualData, response);
 
-                    // Auto-complete EquipSkill quest
                     var qm = FindFirstObjectByType<QuestUIManager>();
                     if (qm != null)
                     {
@@ -343,11 +335,13 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
         }
     }
 
+    // Executes broadcast skill equipped operation.
     public static void BroadcastSkillEquipped(int slotIndex, SkillData visualData, PlayerSkillResponse serverData)
     {
         OnSkillEquipped?.Invoke(slotIndex, visualData, serverData);
     }
 
+    // Executes on pointer click operation.
     public void OnPointerClick(PointerEventData eventData)
     {
         int currentLevel = GameStateService.Instance != null ? GameStateService.Instance.PlayerLevel : playerLevel;
@@ -357,11 +351,8 @@ public class SkillSlot : MonoBehaviour, IDropHandler, IPointerClickHandler
             return;
         }
 
-        // Cho phép click vào HUD để tung chiêu
         if (equippedIcon != null && equippedIcon.sprite != null)
         {
-            // In multiplayer PlayerEntity.Instance can briefly point at a proxy when
-            // another avatar spawns. HUD input must always target this client's avatar.
             var combat = NetworkPlayer.Local != null
                 ? NetworkPlayer.Local.GetComponent<PlayerCombat>()
                 : PlayerEntity.Instance?.GetComponent<PlayerCombat>();

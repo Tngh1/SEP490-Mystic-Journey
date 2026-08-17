@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace NavMeshPlus.Extensions
 {
+    // Initializes a new default instance of the INavMeshExtensionsProvider class.
     public interface INavMeshExtensionsProvider
     {
         int Count { get; }
@@ -14,10 +15,12 @@ namespace NavMeshPlus.Extensions
         void Add(NavMeshExtension extension, int order);
         void Remove(NavMeshExtension extension);
     }
+    // Executes nav mesh extension meta operation.
     internal class NavMeshExtensionMeta
     {
         public int order;
 
+        // Executes nav mesh extension meta operation.
         public NavMeshExtensionMeta(int order, NavMeshExtension extension)
         {
             this.order = order;
@@ -26,14 +29,17 @@ namespace NavMeshPlus.Extensions
 
         public NavMeshExtension extension;
     }
+    // Initializes a new default instance of the INavMeshExtensionsProvider class.
     internal class NavMeshExtensionsProvider : INavMeshExtensionsProvider
     {
         List<NavMeshExtensionMeta> _extensions = new List<NavMeshExtensionMeta>();
         static Comparer<NavMeshExtensionMeta> Comparer = Comparer<NavMeshExtensionMeta>.Create((x, y) => x.order > y.order ? 1 : x.order < y.order ? -1 : 0);
         public NavMeshExtension this[int index] => _extensions[index].extension;
 
+        // Executes count operation.
         public int Count => _extensions.Count;
 
+        // Executes add operation.
         public void Add(NavMeshExtension extension, int order)
         {
             var meta = new NavMeshExtensionMeta(order, extension);
@@ -49,6 +55,7 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes remove operation.
         public void Remove(NavMeshExtension extension)
         {
             _extensions.RemoveAll(x => x.extension = extension);

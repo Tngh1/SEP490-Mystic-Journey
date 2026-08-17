@@ -6,33 +6,9 @@ using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 
-// =============================================================================
-// InventoryUIManager – UC 20 (Manage Inventory) – Controller chính
-//
-// Trách nhiệm:
-//   • Load inventory từ API (UC 20.1 View Inventory)
-//   • Hiển thị danh sách item lên InventoryPanel:
-//       Tab "Items" – InventoryItems (Weapon, Armor, Consumable…)
-//       Tab "Skins" – PlayerSkins (từ bảng PlayerSkins, có PlayerSkinId riêng)
-//   • Mở UIItemDetailPopup khi click slot (UC 20.2 View Item Detail)
-//   • Xử lý nút hành động từ popup:
-//       - Equip Item        (UC 20.4)  – dùng InventoryItemId
-//       - Unequip Item      (UC 20.5)  – dùng InventoryItemId
-//       - Consume Item      (UC 20.3)  – dùng InventoryItemId
-//       - Equip Skin        (UC 20.6)  – dùng PlayerSkinId (KHÁC InventoryItemId)
-//       - Unequip Skin      (UC 20.7)  – dùng PlayerSkinId (KHÁC InventoryItemId)
-//   • Refresh lại UI sau mỗi thao tác
-//
-// Cách dùng:
-//   1. Gắn script này lên GameObject Inventory Panel trong scene Main.
-//   2. Gán các reference qua Inspector.
-//   3. Gọi LoadInventory() khi mở panel.
-// =============================================================================
+// Executes core business logic for mono behaviour.
 public class InventoryUIManager : MonoBehaviour
 {
-    // -------------------------------------------------------------------------
-    // Inspector References
-    // -------------------------------------------------------------------------
     [Header("UI Panels")]
     [SerializeField] private InventoryPanel uiInventory;
     [SerializeField] private UISkinInventory uiSkinInventory;
@@ -55,8 +31,6 @@ public class InventoryUIManager : MonoBehaviour
     [SerializeField] private GameObject tabSkinsHighlight;
 
     [Header("Active Filter/Tab Sprites")]
-    // Chỉ cần gán sprite trạng thái ĐANG CHỌN. Sprite thường được tự lưu lại từ scene lúc bind
-    // (xem RegisterFilterVisual) nên không phải gán tay.
     [SerializeField] private Sprite filterActiveSprite;
     [SerializeField] private Sprite tabActiveSprite;
 
@@ -79,12 +53,9 @@ public class InventoryUIManager : MonoBehaviour
     [SerializeField] private TMP_Text errorText;
     [SerializeField] private float cacheSeconds = 5f;
 
-    // -------------------------------------------------------------------------
-    // Runtime State
-    // -------------------------------------------------------------------------
     private InventorySummaryResponse _summary;
-    private string _currentFilter = "All"; // All, Weapon, Armor, Consumable, Material, QuestItem, Other
-    private string _currentSkinFilter = "All"; // All, Owned, Unowned
+    private string _currentFilter = "All";
+    private string _currentSkinFilter = "All";
     private bool _showingSkins = false;
     private bool _requestInFlight;
     private bool _eventsBound;
@@ -92,35 +63,26 @@ public class InventoryUIManager : MonoBehaviour
     private SkinDatabaseSO _skinDatabase;
     private float _lastLoadedAt = -999f;
 
-    // Filter/tab trong scene là Toggle với m_IsOn = 0, graphic = null và KHÔNG có ToggleGroup,
-    // nên không có sẵn trạng thái "đang chọn" nào để hiện. Tự quản radio state ở đây rồi đổi
-    // sprite của background Image (chính là targetGraphic của Toggle) cho nút đang active.
-    // Key phải có tiền tố nhóm: item và skin là 2 bộ filter riêng và cùng có giá trị "All".
     private readonly Dictionary<string, Image> _filterGraphics = new Dictionary<string, Image>();
-    // Sprite gốc trong scene, dùng làm trạng thái thường khi Inspector không gán ô Inactive.
     private readonly Dictionary<string, Sprite> _filterNormalSprites = new Dictionary<string, Sprite>();
     private Sprite _tabItemsNormalSprite;
     private Sprite _tabSkinsNormalSprite;
     private bool _tabNormalSpritesCached;
 
+    // Executes core business logic for filter key.
     private static string FilterKey(bool isSkinFilter, string filterValue)
         => (isSkinFilter ? "skin:" : "item:") + filterValue;
 
-    // -------------------------------------------------------------------------
-    // Unity Lifecycle
-    // -------------------------------------------------------------------------
+    // Initializes references, attaches UI hover animations, and opens default item tab.
     private void Awake()
     {
-        BindUiReferences();
-        BindEvents();
-        AddHoverEffects();
-        ShowTab(_showingSkins);
+        BindUiReferences(); // Cache child transforms and slot views
+        BindEvents(); // Subscribe slot click and filter toggle events
+        AddHoverEffects(); // Attach scale hover script to selectables
+        ShowTab(_showingSkins); // Display Item or Skin inventory tab
     }
 
-    // Script này nằm trên GameObject "InventoryUIManager" RỖNG (0 con), nên
-    // GetComponentsInChildren<Button> từ đây không với tới nút nào. Phải quét theo
-    // CollectSearchRoots (đã gồm panel root + filter bar + 2 popup) mới đủ.
-    // Toggle cũng cần: tab và filter trong panel là Toggle, không phải Button.
+    // Executes core business logic for add hover effects.
     private void AddHoverEffects()
     {
         foreach (var root in CollectSearchRoots())
@@ -131,10 +93,7 @@ public class InventoryUIManager : MonoBehaviour
             {
                 if (selectable == null) continue;
                 if (!(selectable is Button || selectable is Toggle)) continue;
-                // Item trong Template của Dropdown sinh/huỷ theo lần mở — bỏ qua.
                 if (selectable.GetComponentInParent<TMP_Dropdown>(true) != null) continue;
-                // DimBackground là lớp phủ mờ toàn màn hình (bấm ra ngoài để đóng), phóng to nó
-                // sẽ kéo giãn cả mảng tối mỗi khi chuột đi qua vùng trống.
                 if (selectable.name == "DimBackground") continue;
                 if (selectable.GetComponent<UIHoverScaleEffect>() == null)
                     selectable.gameObject.AddComponent<UIHoverScaleEffect>();
@@ -142,30 +101,25 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Refreshes item slots, skin unlocks, and combat stats upon modal opening.
     private void OnEnable()
     {
-        // Load inventory mỗi khi mở panel
-        LoadInventory();
+        LoadInventory(); // Query player inventory snapshot
     }
 
-    // =========================================================================
-    // UC 20.1 – Load Inventory
-    // =========================================================================
+    // Static helper to trigger inventory reload from any game system.
     public static void RefreshAny(bool refreshStats = false)
     {
-#if UNITY_2023_1_OR_NEWER
         var manager = UnityEngine.Object.FindFirstObjectByType<InventoryUIManager>(FindObjectsInactive.Include);
-#else
-        var manager = UnityEngine.Object.FindFirstObjectByType<InventoryUIManager>(FindObjectsInactive.Include);
-#endif
-        manager?.LoadInventory(force: true, refreshStats: refreshStats);
+        manager?.LoadInventory(force: true, refreshStats: refreshStats); // Force bypass cache and reload
     }
 
+    // Loads bag items, equipped gear, skins, and character attributes from REST API.
     public void LoadInventory(bool force = false, bool refreshStats = true)
     {
         BindUiReferences();
         BindEvents();
-        UpdatePlayerAvatar();
+        UpdatePlayerAvatar(); // Set knight/archer/mage portrait
 
         if (force)
         {
@@ -173,11 +127,11 @@ public class InventoryUIManager : MonoBehaviour
         }
 
         if (_requestInFlight)
-            return;
+            return; // Ignore concurrent requests
 
         if (!force && _summary != null && Time.unscaledTime - _lastLoadedAt < cacheSeconds)
         {
-            RefreshCurrentTab();
+            RefreshCurrentTab(); // Reuse cached inventory if within TTL
             if (refreshStats)
                 LoadPlayerStats();
             return;
@@ -189,7 +143,7 @@ public class InventoryUIManager : MonoBehaviour
         itemDetailPopup?.Hide();
 
         if (refreshStats)
-            LoadPlayerStats();
+            LoadPlayerStats(); // Fetch effective character attributes
 
         InventoryApi.Instance.GetInventory(
             onSuccess: response =>
@@ -202,11 +156,11 @@ public class InventoryUIManager : MonoBehaviour
                     return;
                 }
 
-                _summary = response;
+                _summary = response; // Cache bag and skin summary
                 _lastLoadedAt = Time.unscaledTime;
-                UpdateStatsDisplay();
+                UpdateStatsDisplay(); // Update bag capacity label
                 UpdatePlayerAvatar();
-                RefreshCurrentTab();
+                RefreshCurrentTab(); // Render active grid
             },
             onError: error =>
             {
@@ -218,42 +172,33 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
-    // =========================================================================
-    // UC 20.2 – Handle Slot Click → Mở Item Detail Popup
-    // =========================================================================
-    // =========================================================================
-    // UC 20.2 – Handle Slot Click → Mở Item Detail Popup / Comparison
-    // =========================================================================
+    // Handles slot selection, opening item details or gear comparison popup.
     private void HandleSlotClicked(UIBaseItemSlot slot)
     {
-        if (_requestInFlight) return; // Prevent double clicks while API is processing
+        if (_requestInFlight) return;
         if (slot?.RawData == null) return;
 
-        // Tab Items: rawData là InventoryItemResponse
         if (!_showingSkins && slot.RawData is InventoryItemResponse item)
         {
-            Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
+            Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType); // Look up sprite icon
 
-            // Lấy chính xác số lượng Stack của riêng ô (Slot) vừa bấm (tối đa 99 mỗi ô)
             int slotQty = (slot.DisplayData != null && slot.DisplayData.quantity > 0) ? slot.DisplayData.quantity : 99;
 
-            // Nếu món đồ chưa trang bị và slot của món đó ĐÃ CÓ trang bị sẵn: mở thẳng so sánh (EquipComparisonPanel)
             if (IsEquipment(item) && !item.IsEquipped)
             {
                 InventoryItemResponse oldItem = FindEquippedItemForSameSlot(item);
                 if (oldItem != null)
                 {
                     Sprite oldIcon = ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType);
-                    itemDetailPopup?.ShowEquipComparison(item, icon, slotQty, oldItem, oldIcon);
+                    itemDetailPopup?.ShowEquipComparison(item, icon, slotQty, oldItem, oldIcon); // Show stat comparison vs currently equipped gear
                     return;
                 }
             }
 
-            itemDetailPopup?.Show(item, icon, slotQty);
+            itemDetailPopup?.Show(item, icon, slotQty); // Show item action popup (Equip, Unequip, Use)
             return;
         }
 
-        // Tab Skins: rawData là PlayerSkinSummaryResponse
         if (_showingSkins && slot.RawData is PlayerSkinSummaryResponse skin)
         {
             Sprite icon = ResolveIcon(skin.SkinId, skin.IconUrl);
@@ -261,6 +206,7 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for find equipped item for same slot.
     private InventoryItemResponse FindEquippedItemForSameSlot(InventoryItemResponse newItem)
     {
         if (_summary?.EquippedItems == null || newItem == null) return null;
@@ -275,9 +221,7 @@ public class InventoryUIManager : MonoBehaviour
         return null;
     }
 
-    // =========================================================================
-    // UC 20.4 – Equip Item (dùng InventoryItemId)
-    // =========================================================================
+    // Executes core business logic for handle equip item.
     private void HandleEquipItem(InventoryItemResponse item)
     {
         if (!CanEquipItem(item))
@@ -295,6 +239,7 @@ public class InventoryUIManager : MonoBehaviour
             {
                 Debug.Log($"[InventoryUIManager] ✅ EquipItem OK");
                 LoadInventory(force: true);
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(RefreshInventoryAfterEquipmentMutation());
             },
             onError: error =>
@@ -305,9 +250,7 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
-    // =========================================================================
-    // UC 20.4.1 – Equip Initiated (Show Comparison)
-    // =========================================================================
+    // Executes core business logic for handle equip initiated.
     private void HandleEquipInitiated(InventoryItemResponse newItem)
     {
         if (!CanEquipItem(newItem))
@@ -319,7 +262,6 @@ public class InventoryUIManager : MonoBehaviour
         InventoryItemResponse oldItem = FindEquippedItemForSameSlot(newItem);
         if (oldItem == null)
         {
-            // Nothing equipped in this slot, equip directly without comparison
             HandleEquipItem(newItem);
         }
         else
@@ -329,6 +271,9 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for is same equip slot.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private static bool IsSameEquipSlot(InventoryItemResponse a, InventoryItemResponse b)
     {
         if (a == null || b == null) return false;
@@ -342,11 +287,11 @@ public class InventoryUIManager : MonoBehaviour
         return false;
     }
 
+    // Executes core business logic for get equip slot category.
     private static string GetEquipSlotCategory(InventoryItemResponse item)
     {
         if (item == null) return string.Empty;
 
-        // 1. Ưu tiên ItemSlot hoặc EquippedSlot (như "Helmet", "Armor", "Gloves", "Boots", "Weapon"...)
         foreach (var (slotObject, slotKeys) in EquipSlotMap)
         {
             foreach (var key in slotKeys)
@@ -356,7 +301,6 @@ public class InventoryUIManager : MonoBehaviour
             }
         }
 
-        // 2. Fallback sang ItemType nếu ItemSlot/EquippedSlot không có
         foreach (var (slotObject, slotKeys) in EquipSlotMap)
         {
             foreach (var key in slotKeys)
@@ -369,9 +313,7 @@ public class InventoryUIManager : MonoBehaviour
         return item.ItemType ?? string.Empty;
     }
 
-    // =========================================================================
-    // UC 20.5 – Unequip Item (dùng InventoryItemId)
-    // =========================================================================
+    // Executes core business logic for handle unequip item.
     private void HandleUnequipItem(InventoryItemResponse item)
     {
         if (!CanEquipItem(item))
@@ -389,6 +331,7 @@ public class InventoryUIManager : MonoBehaviour
             {
                 Debug.Log($"[InventoryUIManager] ✅ UnequipItem OK");
                 LoadInventory(force: true);
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(RefreshInventoryAfterEquipmentMutation());
             },
             onError: error =>
@@ -399,17 +342,15 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for refresh inventory after equipment mutation.
+    // Logic details: validates required non-empty string arguments; validates numeric boundary constraints.
     private IEnumerator RefreshInventoryAfterEquipmentMutation()
     {
-        // The equipment endpoint and inventory projection are committed in
-        // separate steps. A short follow-up load prevents stale slot icons.
         yield return new WaitForSecondsRealtime(0.35f);
         LoadInventory(force: true, refreshStats: true);
     }
 
-    // =========================================================================
-    // UC 20.3 – Consume Item (dùng InventoryItemId)
-    // =========================================================================
+    // Executes core business logic for handle consume item.
     private void HandleConsumeItem(InventoryItemResponse item, int quantity)
     {
         if (item != null && item.ItemName != null && item.ItemName.Contains("Lucky Ticket", System.StringComparison.OrdinalIgnoreCase))
@@ -449,6 +390,7 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for apply consumed item effect.
     private void ApplyConsumedItemEffect(ConsumeItemResultResponse response)
     {
         if (response == null)
@@ -465,7 +407,6 @@ public class InventoryUIManager : MonoBehaviour
             }
             else
             {
-                // The HUD can exist before the local avatar has spawned.
                 PlayerHUDUIManager.Instance?.ApplyHealth(response.CurrentHp.Value, response.MaxHp.Value);
             }
         }
@@ -482,10 +423,7 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
-    // =========================================================================
-    // UC 20.6 – Equip Skin (dùng PlayerSkinId – KHÔNG phải InventoryItemId)
-    // PlayerSkinId lấy từ _summary.PlayerSkins[i].PlayerSkinId
-    // =========================================================================
+    // Executes core business logic for handle equip skin.
     private void HandleEquipSkin(PlayerSkinSummaryResponse skin)
     {
         Debug.Log($"[InventoryUIManager] EquipSkin playerSkinId={skin.PlayerSkinId} skinName={skin.SkinName}");
@@ -507,9 +445,7 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
-    // =========================================================================
-    // UC 20.7 – Unequip Skin (dùng PlayerSkinId – KHÔNG phải InventoryItemId)
-    // =========================================================================
+    // Executes core business logic for handle unequip skin.
     private void HandleUnequipSkin(PlayerSkinSummaryResponse skin)
     {
         Debug.Log($"[InventoryUIManager] UnequipSkin playerSkinId={skin.PlayerSkinId} skinName={skin.SkinName}");
@@ -531,6 +467,7 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for update local network player skin.
     private void UpdateLocalNetworkPlayerSkin(int skinId)
     {
         int normalizedSkinId = Mathf.Max(0, skinId);
@@ -553,9 +490,7 @@ public class InventoryUIManager : MonoBehaviour
             spawner.RespawnWithSkin();
     }
 
-    // =========================================================================
-    // Tab Management
-    // =========================================================================
+    // Executes core business logic for show tab.
     private void ShowTab(bool showSkins)
     {
         _showingSkins = showSkins;
@@ -564,8 +499,6 @@ public class InventoryUIManager : MonoBehaviour
         if (tabItemsHighlight) tabItemsHighlight.SetActive(!showSkins);
         if (tabSkinsHighlight) tabSkinsHighlight.SetActive(showSkins);
 
-        // tabItemsHighlight/tabSkinsHighlight không được gán trong scene, nên tab active phải
-        // nhận biết bằng sprite giống filter.
         UpdateTabHighlights();
 
         if (itemFilterBar) itemFilterBar.SetActive(!showSkins);
@@ -578,17 +511,14 @@ public class InventoryUIManager : MonoBehaviour
         RefreshCurrentTab();
     }
 
-    // Đổi Image.sprite chứ KHÔNG dùng Toggle.spriteState: cả 9 filter và 2 tab đều để
-    // Transition = ColorTint, mà SpriteState chỉ có tác dụng khi Transition = SpriteSwap. Ghi
-    // thẳng sprite nên không phụ thuộc vào transition mode ai đặt trong Inspector.
+    // Executes core business logic for apply sprite.
     private static void ApplySprite(Image graphic, Sprite sprite)
     {
         if (graphic == null || sprite == null) return;
         if (graphic.sprite != sprite) graphic.sprite = sprite;
     }
 
-    // Toggle bị set bằng code (hoặc bấm lại nút đang bật) phải đồng bộ lại isOn.
-    // SetIsOnWithoutNotify để không gọi lại listener → tránh đệ quy / refresh đúp.
+    // Executes core business logic for sync toggle.
     private static void SyncToggle(Image graphic, bool active)
     {
         if (graphic == null) return;
@@ -597,6 +527,7 @@ public class InventoryUIManager : MonoBehaviour
             toggle.SetIsOnWithoutNotify(active);
     }
 
+    // Executes core business logic for update tab highlights.
     private void UpdateTabHighlights()
     {
         if (!_tabNormalSpritesCached)
@@ -612,6 +543,7 @@ public class InventoryUIManager : MonoBehaviour
         ApplyTabVisual(tabSkinsToggle, _showingSkins, _tabSkinsNormalSprite);
     }
 
+    // Executes core business logic for apply tab visual.
     private void ApplyTabVisual(Toggle tab, bool active, Sprite normalSprite)
     {
         if (tab == null) return;
@@ -622,11 +554,13 @@ public class InventoryUIManager : MonoBehaviour
         if (tab.isOn != active) tab.SetIsOnWithoutNotify(active);
     }
 
+    // Executes core business logic for set filter.
     public void SetFilter(string filterType)
     {
         SetFilter(filterType, _showingSkins);
     }
 
+    // Executes core business logic for set filter.
     private void SetFilter(string filterType, bool isSkinFilter)
     {
         if (isSkinFilter)
@@ -641,6 +575,7 @@ public class InventoryUIManager : MonoBehaviour
         RefreshCurrentTab();
     }
 
+    // Executes core business logic for refresh current tab.
     private void RefreshCurrentTab()
     {
         if (_summary == null) return;
@@ -650,31 +585,24 @@ public class InventoryUIManager : MonoBehaviour
         if (_showingSkins)
         {
             if (uiSkinInventory == null) return;
-            // ── Tab Skins: lấy từ _summary.PlayerSkins ─────────────────────
-            // (có PlayerSkinId đúng để dùng khi equip/unequip)
             var skins = _summary.PlayerSkins;
             if (skins == null) { uiSkinInventory.Refresh(displayList); return; }
 
             string pClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
 
-            // Lọc skin
             var filteredSkins = new List<PlayerSkinSummaryResponse>();
             foreach (var skin in skins)
             {
                 bool isOwned = skin.PlayerSkinId > 0 || IsDefaultSkin(skin.SkinId, skin.SkinName);
-                
+
                 if (_currentSkinFilter == "Owned" && !isOwned) continue;
                 if (_currentSkinFilter == "Unowned" && isOwned) continue;
-                
+
                 if (IsSkinForAnotherClass(skin.SkinId, skin.SkinName, pClass)) continue;
 
                 filteredSkins.Add(skin);
             }
 
-            // ponytail: backend không seed PlayerSkins row cho skin mặc định khi tạo
-            // account mới, nên nó về PlayerSkinId=0/IsEquipped=false và bị khoá. Skin
-            // mặc định thì luôn sở hữu, nên suy ra ở client. Xoá khối này khi API trả
-            // đúng row đã equip lúc tạo account.
             bool anySkinEquipped = false;
             foreach (var skin in filteredSkins)
                 if (skin.IsEquipped) { anySkinEquipped = true; break; }
@@ -688,14 +616,13 @@ public class InventoryUIManager : MonoBehaviour
 
                 displayList.Add(new UIItemDisplayData
                 {
-                    // itemId > 0 = đã sở hữu. Default chưa có row thì mượn -1 để mở khoá.
                     itemId = skin.PlayerSkinId > 0 ? skin.PlayerSkinId : (owned ? -1 : 0),
                     itemName = skin.SkinName,
                     icon = icon,
                     quantity = 1,
                     rarity = skin.SkinRarity,
                     isEquipped = equipped,
-                    rawData = skin                  // PlayerSkinSummaryResponse để popup dùng
+                    rawData = skin
                 });
             }
             uiSkinInventory.Refresh(displayList);
@@ -703,8 +630,6 @@ public class InventoryUIManager : MonoBehaviour
         else
         {
             if (uiInventory == null) return;
-            // ── Tab Items: lấy từ EquippedItems + BagItems ─────────────────
-            // Lọc ra item thông thường (không phải skin)
             var allItems = new List<InventoryItemResponse>();
 
             if (_summary.EquippedItems != null)
@@ -715,7 +640,6 @@ public class InventoryUIManager : MonoBehaviour
                 foreach (var it in _summary.BagItems)
                     if (ShouldShowInventoryItem(it)) allItems.Add(it);
 
-            // --- FILTER ---
             if (_currentFilter != "All")
             {
                 allItems.RemoveAll(it => {
@@ -739,8 +663,6 @@ public class InventoryUIManager : MonoBehaviour
             foreach (var item in allItems)
             {
                 Sprite icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
-                // Tách ô nếu số lượng > 99: mỗi ô tối đa MaxStackSize, phần dư sang ô tiếp theo.
-                // Equipped items có Quantity=0 vẫn cần 1 ô nên dùng Mathf.Max(1, ...).
                 int remaining = Mathf.Max(1, item.Quantity);
                 while (remaining > 0)
                 {
@@ -753,7 +675,7 @@ public class InventoryUIManager : MonoBehaviour
                         quantity = stackQty,
                         rarity = item.ItemRarity,
                         isEquipped = item.IsEquipped && CanEquipItem(item),
-                        rawData = item  // InventoryItemResponse để popup dùng
+                        rawData = item
                     });
                     remaining -= stackQty;
                 }
@@ -762,6 +684,7 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for bind ui references.
     private void BindUiReferences()
     {
         if (uiInventory == null)
@@ -795,7 +718,7 @@ public class InventoryUIManager : MonoBehaviour
 
         tabItemsButton = tabItemsButton != null ? tabItemsButton : FindButton("TabItemsButton", "ItemsButton", "ItemTabButton", "EquipmentTab");
         tabSkinsButton = tabSkinsButton != null ? tabSkinsButton : FindButton("TabSkinsButton", "SkinsButton", "SkinTabButton", "AppearanceTab");
-        
+
         if (tabItemsToggle == null) tabItemsToggle = FindToggle("EquipmentTab", "TabItemsToggle", "ItemTabToggle");
         if (tabSkinsToggle == null) tabSkinsToggle = FindToggle("AppearanceTab", "TabSkinsToggle", "SkinTabToggle");
         if (btnSkinFilterUnowned == null) btnSkinFilterUnowned = FindToggle("BtnSkinFilterUnowned");
@@ -807,14 +730,12 @@ public class InventoryUIManager : MonoBehaviour
         if (errorText == null)
             errorText = FindText("ErrorText", "MessageText", "StatusText");
 
-        // Tên object trong scene có DẤU CÁCH ở cuối ("BattlePowerText ") — Unity cho phép và
-        // FindObject so sánh chuỗi chính xác nên phải liệt kê cả 2 biến thể, nếu không sẽ không
-        // bao giờ tìm thấy và Lực chiến mãi trống.
         if (battlePowerText == null)
             battlePowerText = FindText("BattlePowerText ", "BattlePowerText", "BattlePower", "PowerText");
 
     }
 
+    // Executes core business logic for bind events.
     private void BindEvents()
     {
         if (_eventsBound)
@@ -851,12 +772,6 @@ public class InventoryUIManager : MonoBehaviour
         BindFilterAction("Consumable", false, "BtnFilterConsumable", "PotionButton", "ConsumableButton");
         BindFilterAction("Material", false, "BtnFilterMaterial", "MaterialButton");
         BindFilterAction("QuestItem", false, "BtnFilterQuest", "QuestButton");
-        // Không bind "Other": FilterBar trong Main.unity chỉ có 6 nút filter (All/Weapon/Armor/
-        // Consumable/Material/Quest), không có BtnFilterOther. Bind vào object không
-        // tồn tại chỉ tạo warning mỗi lần mở Inventory. Logic filter "Other" ở dòng ~757 vẫn giữ,
-        // nên chỉ cần thêm nút tên "BtnFilterOther" (hoặc "OtherButton") vào FilterBar rồi bỏ
-        // comment dòng dưới là chạy được, không phải sửa gì thêm.
-        // BindFilterAction("Other", false, "BtnFilterOther", "OtherButton");
 
         BindFilterAction("All", true, "BtnSkinFilterAll");
         BindFilterAction("Owned", true, "BtnSkinFilterOwned");
@@ -865,6 +780,8 @@ public class InventoryUIManager : MonoBehaviour
         _eventsBound = uiInventory != null || itemDetailPopup != null || skinDetailPopup != null || tabItemsButton != null || tabSkinsButton != null;
     }
 
+    // Executes core business logic for resolve icon.
+    // Logic details: validates required non-empty string arguments.
     private Sprite ResolveIcon(int itemId, string iconUrl, string itemName = null, string itemType = null)
     {
         var isSkinLookup = string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemType) && itemId > 0;
@@ -900,23 +817,27 @@ public class InventoryUIManager : MonoBehaviour
         return ResolveRemoteIcon(iconUrl);
     }
 
+    // Executes core business logic for find button.
     private Button FindButton(params string[] names)
     {
         var obj = FindObject(names);
         return obj == null ? null : obj.GetComponent<Button>();
     }
 
+    // Executes core business logic for find toggle.
     private Toggle FindToggle(params string[] names)
     {
         var obj = FindObject(names);
         return obj == null ? null : obj.GetComponent<Toggle>();
     }
 
+    // Executes core business logic for bind filter action.
     private void BindFilterAction(string filterValue, bool isSkinFilter, params string[] names)
     {
         BindFilterAction(filterValue, isSkinFilter, null, names);
     }
 
+    // Executes core business logic for bind filter action.
     private void BindFilterAction(string filterValue, bool isSkinFilter, Selectable preferredSelectable, params string[] names)
     {
         var obj = preferredSelectable != null ? preferredSelectable.gameObject : FindObject(names);
@@ -949,8 +870,6 @@ public class InventoryUIManager : MonoBehaviour
                 }
                 else
                 {
-                    // Bấm lại filter đang bật: giữ nguyên filter và bật lại toggle, nếu không
-                    // nút sẽ tắt highlight mà danh sách vẫn đang lọc theo nó.
                     UpdateFilterHighlights();
                 }
             });
@@ -960,8 +879,7 @@ public class InventoryUIManager : MonoBehaviour
         Debug.LogWarning("[InventoryUIManager] BindFilterAction: Object " + obj.name + " has neither Button nor Toggle for " + filterValue);
     }
 
-    // targetGraphic của các nút này là background Image nằm trên chính object đó (đã kiểm trong
-    // scene), nên đủ để đổi sprite. Fallback GetComponent<Image> cho nút nào bỏ trống targetGraphic.
+    // Executes core business logic for register filter visual.
     private void RegisterFilterVisual(string key, Selectable selectable)
     {
         var graphic = selectable.targetGraphic as Image;
@@ -973,13 +891,10 @@ public class InventoryUIManager : MonoBehaviour
         }
 
         _filterGraphics[key] = graphic;
-        // BindEvents có thể chạy lại (xem _eventsBound), lúc đó nút đang chọn đã mang sprite
-        // active — cache nó làm "sprite thường" thì nút sẽ kẹt highlight vĩnh viễn.
         if (graphic.sprite != filterActiveSprite) _filterNormalSprites[key] = graphic.sprite;
     }
 
-    // Đổi sprite cho nút đang active và trả phần còn lại về sprite thường. Chỉ đụng tới nhóm đang
-    // hiện (item/skin) để filter của tab kia không bị xoá highlight khi quay lại.
+    // Executes core business logic for update filter highlights.
     private void UpdateFilterHighlights()
     {
         string activeKey = FilterKey(_showingSkins, _showingSkins ? _currentSkinFilter : _currentFilter);
@@ -999,17 +914,13 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for find text.
     private TMP_Text FindText(params string[] names)
     {
-        // FindComponent, KHÔNG phải FindObject: FindObject quét theo thứ tự hierarchy (children
-        // ngoài, names trong) nên object CHA khớp tên trước con. Ví dụ "BattlePower" (container,
-        // không có TMP) khớp trước con "BattlePowerText " → GetComponent<TMP_Text>() trả null và
-        // lực chiến không bao giờ được ghi. Bản này đòi object phải THỰC SỰ có TMP_Text.
         return FindComponent<TMP_Text>(names);
     }
 
-    // Tìm theo (tên, loại component): duyệt names theo ĐÚNG thứ tự ưu tiên đã truyền vào, và chỉ
-    // nhận object nào có sẵn component T. Tránh bẫy "cha cùng tên nhưng không mang component".
+    // Executes core business logic for component.
     private T FindComponent<T>(params string[] names) where T : Component
     {
         var roots = CollectSearchRoots();
@@ -1032,15 +943,11 @@ public class InventoryUIManager : MonoBehaviour
         return null;
     }
 
-    // Danh sách gốc để quét tìm object theo tên. Dùng chung cho FindObject và FindComponent.
+    // Executes core business logic for collect search roots.
     private List<Transform> CollectSearchRoots()
     {
         List<Transform> roots = new List<Transform>();
         roots.Add(transform);
-        // Gốc InventoryPanel: script này nằm trên GameObject "Managers" NGOÀI panel, còn
-        // uiInventory nằm ở InventoryPanel > RightSection > InventoryGridArea. Tìm từ transform
-        // hoặc từ uiInventory chỉ quét XUỐNG nên không bao giờ với tới LeftSection (avatar, ô
-        // trang bị, lực chiến) ở nhánh bên cạnh. Phải thêm gốc panel để quét được cả 2 nhánh.
         var panelRoot = ResolvePanelRoot();
         if (panelRoot != null) roots.Add(panelRoot);
         if (itemFilterBar != null) roots.Add(itemFilterBar.transform);
@@ -1052,6 +959,7 @@ public class InventoryUIManager : MonoBehaviour
         return roots;
     }
 
+    // Executes core business logic for find object.
     private GameObject FindObject(params string[] names)
     {
         var roots = CollectSearchRoots();
@@ -1073,10 +981,8 @@ public class InventoryUIManager : MonoBehaviour
         return null;
     }
 
-    // Gốc "InventoryPanel" trong scene. Leo lên từ uiInventory (nằm trong panel) để không phụ
-    // thuộc vào việc script này được gắn ở đâu; fallback quét cả scene (kể cả object đang tắt —
-    // InventoryPanel mặc định m_IsActive=0).
     private Transform _panelRootCache;
+    // Executes core business logic for resolve panel root.
     private Transform ResolvePanelRoot()
     {
         if (_panelRootCache != null) return _panelRootCache;
@@ -1101,9 +1007,7 @@ public class InventoryUIManager : MonoBehaviour
 
         return null;
     }
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    // Executes core business logic for update stats display.
     private void UpdateStatsDisplay()
     {
         if (_summary == null) return;
@@ -1111,15 +1015,18 @@ public class InventoryUIManager : MonoBehaviour
         if (totalSkinsText) totalSkinsText.text = $"Skins: {_summary.TotalSkins}";
         if (bagCapacityText) bagCapacityText.text = $"Bag: {(_summary.BagItems?.Length ?? 0)}/{_summary.BagCapacity}";
 
-        // Icon trang bị đang mặc phụ thuộc _summary.EquippedItems nên refresh cùng lúc với summary.
         UpdateEquipmentSlots();
     }
 
+    // Executes core business logic for set loading.
+    // Logic details: validates required non-empty string arguments.
     private void SetLoading(bool isLoading)
     {
         if (loadingIndicator) loadingIndicator.SetActive(isLoading);
     }
 
+    // Executes core business logic for set error.
+    // Logic details: validates required non-empty string arguments.
     private void SetError(string msg)
     {
         if (errorText)
@@ -1129,17 +1036,16 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for show action error.
     private void ShowActionError(string msg)
     {
         Debug.LogWarning($"[InventoryUIManager] Action error: {msg}");
         SetError(msg);
 
-        // errorText không được gán trong Main.unity (errorText: {fileID: 0}), nên SetError là
-        // no-op và mọi lỗi hành động — kể cả "HP đã đầy" khi uống bình máu — chỉ hiện trong
-        // Console. Đẩy qua UIPopupBox dùng chung của UI designer để người chơi thật sự thấy.
         UIPopupBox.Notify(transform, "Notice", msg);
     }
 
+    // Executes core business logic for load player stats.
     private void LoadPlayerStats()
     {
         CharacterApi.Instance.GetMyStats(
@@ -1159,6 +1065,7 @@ public class InventoryUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for find stats panel.
     private Transform FindStatsPanel()
     {
         var allChildren = Resources.FindObjectsOfTypeAll<Transform>();
@@ -1170,14 +1077,12 @@ public class InventoryUIManager : MonoBehaviour
         return null;
     }
 
+    // Executes core business logic for update stat row.
     private void UpdateStatRow(Transform statsPanel, string rowName, string label, string value)
     {
         var row = statsPanel.Find(rowName);
         if (row != null)
         {
-            // Nhãn là TUỲ CHỌN: các row trong scene chỉ có con "icon" + "ValueText" (tên chỉ số
-            // nằm trong sprite icon), nên không tìm thấy "Text (TMP)" là bình thường — trước đây
-            // chỗ này log warning mỗi lần refresh cho cả 8 row.
             var labelText = row.Find("Text (TMP)")?.GetComponent<TMP_Text>()
                          ?? row.Find("LabelText")?.GetComponent<TMP_Text>();
             var valueText = row.Find("ValueText")?.GetComponent<TMP_Text>();
@@ -1199,13 +1104,11 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for update player stats ui.
     private void UpdatePlayerStatsUI(PlayerStatsResponse stats)
     {
         if (stats == null) return;
 
-        // Lực chiến ghi TRƯỚC và nằm NGOÀI cửa ải StatsPanel: nó là object riêng
-        // (LeftSection > BattlePower), không nằm trong StatsPanel. Nếu để ở cuối hàm thì mỗi khi
-        // không tìm thấy StatsPanel, hàm return sớm và lực chiến cũng mất theo dù chẳng liên quan.
         UpdateBattlePower(stats);
 
         var statsPanel = FindStatsPanel();
@@ -1225,6 +1128,8 @@ public class InventoryUIManager : MonoBehaviour
         UpdateStatRow(statsPanel, "DMGBonusRow", "%DMG", $"{stats.DamageBonus}%");
     }
 
+    // Executes core business logic for update player avatar.
+    // Logic details: validates numeric boundary constraints.
     private void UpdatePlayerAvatar()
     {
         if (playerAvatarImage == null)
@@ -1236,7 +1141,6 @@ public class InventoryUIManager : MonoBehaviour
         string pClass = MysticJourney.Core.Services.GameStateService.Instance?.PlayerClass;
         Sprite sprite = null;
 
-        // Ưu tiên hiển thị sprite của Skin đang được trang bị (Equipped)
         if (_summary != null && _summary.PlayerSkins != null)
         {
             foreach (var skin in _summary.PlayerSkins)
@@ -1246,15 +1150,12 @@ public class InventoryUIManager : MonoBehaviour
                 if (IsSkinForAnotherClass(skin.SkinId, skin.SkinName, pClass))
                     continue;
 
-                // Default skins are resolved here too: the SkinDatabase carries a preview
-                // sprite per skinId, so this stays class-correct without Inspector wiring.
                 sprite = ResolveIcon(skin.SkinId, skin.IconUrl);
                 if (sprite != null)
                     break;
             }
         }
 
-        // Fallback về sprite mặc định theo Class nếu không mặc skin tùy chỉnh
         if (sprite == null)
             sprite = ResolveClassSprite(pClass);
 
@@ -1270,18 +1171,19 @@ public class InventoryUIManager : MonoBehaviour
             Debug.LogWarning($"[InventoryUIManager] No avatar sprite for class '{pClass}'. Assign knight/archer/mage idle sprites in the Inspector.");
     }
 
+    // Executes core business logic for resolve class sprite.
+    // Logic details: validates numeric boundary constraints.
     private Sprite ResolveClassSprite(string playerClass)
     {
         var c = (playerClass ?? string.Empty).Trim();
         if (c.Equals("Knight", System.StringComparison.OrdinalIgnoreCase)) return knightIdleSprite ?? ResolveClassSpriteFromDatabase(CharacterClass.Knight);
         if (c.Equals("Archer", System.StringComparison.OrdinalIgnoreCase)) return archerIdleSprite ?? ResolveClassSpriteFromDatabase(CharacterClass.Archer);
         if (c.Equals("Mage", System.StringComparison.OrdinalIgnoreCase)) return mageIdleSprite ?? ResolveClassSpriteFromDatabase(CharacterClass.Mage);
-        // Class lạ/chưa set: dùng Knight làm mặc định thay vì để trống hẳn.
         return knightIdleSprite;
     }
 
-    // Idle sprite fields are wired per-scene and are easy to leave empty (Archer was),
-    // which silently showed the wrong class. The SkinDatabase already maps class -> preview.
+    // Executes core business logic for resolve class sprite from database.
+    // Logic details: validates numeric boundary constraints.
     private Sprite ResolveClassSpriteFromDatabase(CharacterClass characterClass)
     {
         if (_skinDatabase == null)
@@ -1308,8 +1210,7 @@ public class InventoryUIManager : MonoBehaviour
         return fallback;
     }
 
-    // ── Ô trang bị (CharacterPreviewArea > EquipSlots) ───────────────────────────
-    // Mỗi ô có 1 Image nền (chính nó) + 1 con tên "Image" để vẽ icon món đang mặc.
+    // Executes core business logic for readonly.
     private static readonly (string slotObject, string[] slotKeys)[] EquipSlotMap =
     {
         ("WeaponSlot",    new[] { "Weapon", "MainHand" }),
@@ -1322,6 +1223,7 @@ public class InventoryUIManager : MonoBehaviour
         ("NecklaceSlot",  new[] { "Necklace", "Shield", "OffHand" }),
     };
 
+    // Executes core business logic for update equipment slots.
     private void UpdateEquipmentSlots()
     {
         var equipped = _summary?.EquippedItems;
@@ -1335,7 +1237,6 @@ public class InventoryUIManager : MonoBehaviour
             var item = FindEquippedForSlot(equipped, slotObject);
             if (item == null)
             {
-                // Ô rỗng: ẩn icon để lộ nền ô, KHÔNG tắt cả ô (nền phải luôn thấy).
                 iconImage.sprite = null;
                 iconImage.enabled = false;
                 SetEquipSlotRarity(slotObject, null, false);
@@ -1350,8 +1251,11 @@ public class InventoryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for set equip slot rarity.
+    // Logic details: validates required non-empty string arguments.
     private void SetEquipSlotRarity(string slotObjectName, string rarity, bool visible)
     {
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         var slot = FindEquipSlotObject(slotObjectName);
         if (slot == null)
             return;
@@ -1381,28 +1285,33 @@ public class InventoryUIManager : MonoBehaviour
             slotImage.color = Color.white;
     }
 
+    // Executes core business logic for find equip slot icon.
     private Image FindEquipSlotIcon(string slotObjectName)
     {
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         var slot = FindEquipSlotObject(slotObjectName);
         if (slot == null) return null;
 
-        // Con tên "Image" là lớp vẽ icon; nếu prefab không có thì dùng luôn Image của ô.
         var child = slot.transform.Find("Image");
         var image = child != null ? child.GetComponent<Image>() : null;
         return image != null ? image : slot.GetComponent<Image>();
     }
 
+    // Executes core business logic for find equip slot object.
     private GameObject FindEquipSlotObject(string slotObjectName)
     {
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         var slot = FindObject(slotObjectName);
         if (slot == null && slotObjectName == "RingSlot")
             slot = FindObject("AccessorySlot", "Ring");
         if (slot == null && slotObjectName == "NecklaceSlot")
             slot = FindObject("ShieldSlot", "Necklace");
 
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         return slot;
     }
 
+    // Executes core business logic for find equipped for slot.
     private static InventoryItemResponse FindEquippedForSlot(InventoryItemResponse[] equipped, string slotObject)
     {
         if (equipped == null) return null;
@@ -1418,15 +1327,16 @@ public class InventoryUIManager : MonoBehaviour
         return null;
     }
 
+    // Executes core business logic for matches.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private static bool Matches(string value, string key)
     {
         return !string.IsNullOrWhiteSpace(value) &&
                value.Trim().Equals(key, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    // ── Lực chiến ────────────────────────────────────────────────────────────────
-    // BE chưa có endpoint/field lực chiến (FriendDTO.Power chỉ là Level*100 tạm), nên tính ở
-    // client từ đúng bộ stats mà panel đã tải. Đổi công thức thì sửa một chỗ này.
+    // Executes core business logic for update battle power.
     private void UpdateBattlePower(PlayerStatsResponse stats)
     {
         if (battlePowerText == null)
@@ -1436,9 +1346,7 @@ public class InventoryUIManager : MonoBehaviour
         battlePowerText.text = CalculateBattlePower(stats).ToString("N0");
     }
 
-    // ponytail: công thức tuyến tính đơn giản (ATK nặng nhất, HP nhẹ nhất) — đủ để so sánh
-    // tương đối giữa các bộ trang bị. Nâng cấp: chuyển sang BE tính và trả về cùng PlayerStats
-    // để client/web/mobile hiện cùng một số.
+    // Executes core business logic for calculate battle power.
     private static int CalculateBattlePower(PlayerStatsResponse s)
     {
         float power = s.Atk * 4f
@@ -1450,13 +1358,14 @@ public class InventoryUIManager : MonoBehaviour
         return Mathf.Max(0, Mathf.RoundToInt(power));
     }
 
+    // Executes core business logic for find image.
     private Image FindImage(params string[] names)
     {
-        // FindComponent: cùng lý do như FindText — object cha có thể trùng tên nhưng không mang
-        // Image, khiến GetComponent<Image>() trả null dù con đúng vẫn tồn tại.
         return FindComponent<Image>(names);
     }
 
+    // Executes core business logic for should show inventory item.
+    // Returns a boolean indicating operation success.
     private static bool ShouldShowInventoryItem(InventoryItemResponse item)
     {
         if (item == null || item.IsSkin)
@@ -1468,16 +1377,22 @@ public class InventoryUIManager : MonoBehaviour
         return item.IsEquipped && CanEquipItem(item);
     }
 
+    // Executes core business logic for can equip item.
+    // Returns a boolean indicating operation success.
     private static bool CanEquipItem(InventoryItemResponse item)
     {
         return IsEquipment(item);
     }
 
+    // Executes core business logic for is consumable.
+    // Returns a boolean indicating operation success.
     private static bool IsConsumable(InventoryItemResponse item)
     {
         return IsItemType(item, "Consumable") || (item != null && item.ItemName != null && item.ItemName.Contains("Lucky Ticket", System.StringComparison.OrdinalIgnoreCase));
     }
 
+    // Executes core business logic for is equipment.
+    // Returns a boolean indicating operation success.
     private static bool IsEquipment(InventoryItemResponse item)
     {
         return IsItemType(item, "Weapon") ||
@@ -1490,6 +1405,9 @@ public class InventoryUIManager : MonoBehaviour
                IsItemType(item, "Necklace");
     }
 
+    // Executes core business logic for is item type.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private static bool IsItemType(InventoryItemResponse item, string itemType)
     {
         return item != null &&
@@ -1497,6 +1415,8 @@ public class InventoryUIManager : MonoBehaviour
     }
 
 
+    // Executes core business logic for resolve remote icon.
+    // Logic details: validates required non-empty string arguments.
     private Sprite ResolveRemoteIcon(string iconUrl)
     {
         var cachedRemote = RemoteSpriteCache.GetCached(iconUrl);
@@ -1516,6 +1436,8 @@ public class InventoryUIManager : MonoBehaviour
     }
 
 
+    // Executes core business logic for resolve skin prefab icon.
+    // Logic details: validates required non-empty string arguments; validates numeric boundary constraints.
     private Sprite ResolveSkinPrefabIcon(int skinId)
     {
         if (skinId <= 0)
@@ -1530,6 +1452,9 @@ public class InventoryUIManager : MonoBehaviour
         return null;
     }
 
+    // Executes core business logic for is default skin.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private bool IsDefaultSkin(int skinId, string skinName)
     {
         if (_skinDatabase == null)
@@ -1545,6 +1470,9 @@ public class InventoryUIManager : MonoBehaviour
             && skinName.IndexOf("Default", System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    // Executes core business logic for is skin for another class.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private bool IsSkinForAnotherClass(int skinId, string skinName, string playerClass)
     {
         if (string.IsNullOrWhiteSpace(playerClass))

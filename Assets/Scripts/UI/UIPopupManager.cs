@@ -5,16 +5,17 @@ using TMPro;
 
 namespace MysticJourney.UI
 {
+    // Executes core business logic for mono behaviour.
     public class UIPopupManager : MonoBehaviour
     {
         private static UIPopupManager _instance;
-        public static UIPopupManager Instance 
-        { 
+        // Executes core business logic for instance.
+        public static UIPopupManager Instance
+        {
             get
             {
                 if (_instance == null)
                 {
-                    // Tìm kiếm cả object đang bị tắt (inactive)
                     _instance = FindFirstObjectByType<UIPopupManager>(FindObjectsInactive.Include);
                     if (_instance != null && !_instance.gameObject.activeInHierarchy)
                     {
@@ -35,19 +36,23 @@ namespace MysticJourney.UI
         [Header("Buttons")]
         [SerializeField] private Button btnConfirm;
         [SerializeField] private TextMeshProUGUI txtConfirmLabel;
-        
+
         [SerializeField] private Button btnCancel;
         [SerializeField] private TextMeshProUGUI txtCancelLabel;
 
         [Header("Background Blocker")]
         [SerializeField] private Button btnBackgroundBlocker;
 
+        // Executes core business logic for popup container.
         public GameObject PopupContainer => popupContainer;
+        // Executes core business logic for btn confirm.
         public Button BtnConfirm => btnConfirm;
 
         private Action onConfirmAction;
         private Action onCancelAction;
 
+        // Initializes internal component caches and dependencies for UIPopupManager upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -57,34 +62,23 @@ namespace MysticJourney.UI
             }
             _instance = this;
 
-            // Bind events
             if (btnConfirm != null) btnConfirm.onClick.AddListener(OnConfirmClicked);
             if (btnCancel != null) btnCancel.onClick.AddListener(OnCancelClicked);
-            if (btnBackgroundBlocker != null) btnBackgroundBlocker.onClick.AddListener(OnCancelClicked); // Click ra ngoài cũng tính là Cancel
+            if (btnBackgroundBlocker != null) btnBackgroundBlocker.onClick.AddListener(OnCancelClicked);
 
-            // Reset cả hai về ẩn. Trong scene BackgroundBlocker được serialize là active=true,
-            // nên nếu không tắt ở đây thì chỉ cần một chỗ *đọc* UIPopupManager.Instance (getter
-            // tự SetActive(true) lên GameObject này) đúng lúc PopupLayer đang bật là màn hình có
-            // ngay một Button trong suốt phủ kín, không popup nào để bấm OK => treo cả UI.
-            // Kiểu null-check `if (UIPopupManager.Instance != null)` đó nằm rải rác ở
-            // FriendUIManager, GuildUIManager...
             if (btnBackgroundBlocker != null) btnBackgroundBlocker.gameObject.SetActive(false);
 
             if (popupContainer != null) popupContainer.SetActive(false);
         }
 
-        /// <summary>
-        /// Hiện bảng thông báo (chỉ có nút OK). 
-        /// </summary>
+        // Executes core business logic for show alert.
         public void ShowAlert(string title, string message, Action onOk = null, string okText = "OK", bool autoClose = true)
         {
             _autoClose = autoClose;
             SetupPopup(title, message, okText, "", onOk, null, showCancelButton: false);
         }
 
-        /// <summary>
-        /// Hiện bảng xác nhận (có nút Yes/No).
-        /// </summary>
+        // Executes core business logic for show confirm.
         public void ShowConfirm(string title, string message, Action onConfirm, Action onCancel = null, string confirmText = "Yes", string cancelText = "No", bool autoClose = true)
         {
             _autoClose = autoClose;
@@ -93,6 +87,7 @@ namespace MysticJourney.UI
 
         private bool _autoClose = true;
 
+        // Executes core business logic for setup popup.
         private void SetupPopup(string title, string message, string confirmText, string cancelText, Action onConfirm, Action onCancel, bool showCancelButton)
         {
             onConfirmAction = onConfirm;
@@ -109,13 +104,6 @@ namespace MysticJourney.UI
                 btnCancel.gameObject.SetActive(showCancelButton);
             }
 
-            // Bật lại mọi cấp cha đang tắt. PopupLayer là container DÙNG CHUNG cho 14 popup và bị
-            // code khác tắt/bật (MainQuestPanelRuntime tắt nó sau khi chạy hết queue PaperPopup),
-            // nên không được coi là luôn bật.
-            // PHẢI walk TRƯỚC khi bật popupContainer/blocker: trong scene cả PopupLayer lẫn
-            // GameObject này đều đang tắt, nên Awake() chưa hề chạy — Unity chỉ chạy nó đúng vào
-            // lúc SetActive(true) ở vòng lặp dưới. Awake() kết thúc bằng việc tắt cả container lẫn
-            // blocker, nên nếu bật chúng trước thì Awake() tắt lại ngay và popup không bao giờ hiện.
             Transform current = transform;
             while (current != null)
             {
@@ -126,7 +114,6 @@ namespace MysticJourney.UI
                 current = current.parent;
             }
 
-            // Ép Canvas của UIPopupManager đè lên tầng cao nhất (SortingOrder = 9999)
             Canvas managerCanvas = GetComponentInParent<Canvas>();
             if (managerCanvas == null) managerCanvas = gameObject.AddComponent<Canvas>();
             if (managerCanvas != null)
@@ -152,6 +139,7 @@ namespace MysticJourney.UI
             }
         }
 
+        // Executes core business logic for hide popup.
         public void HidePopup()
         {
             if (popupContainer != null) popupContainer.SetActive(false);
@@ -160,6 +148,7 @@ namespace MysticJourney.UI
             onCancelAction = null;
         }
 
+        // Executes core business logic for on confirm clicked.
         private void OnConfirmClicked()
         {
             if (_autoClose)
@@ -170,6 +159,7 @@ namespace MysticJourney.UI
             onConfirmAction?.Invoke();
         }
 
+        // Executes core business logic for on cancel clicked.
         private void OnCancelClicked()
         {
             if (_autoClose)

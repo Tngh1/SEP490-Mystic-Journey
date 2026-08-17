@@ -5,8 +5,10 @@ using System.Collections;
 namespace TMPro.Examples
 {
     
+    // Executes mono behaviour operation.
     public class CameraController : MonoBehaviour
     {
+        // Executes camera modes operation.
         public enum CameraModes { Follow, Isometric, Free }
 
         private Transform cameraTransform;

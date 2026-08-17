@@ -29,8 +29,10 @@ namespace NavMeshPlus.Extensions
         protected IEnumerable<GameObject> _root;
         private bool _disposed;
 
+        // Executes root operation.
         public IEnumerable<GameObject> Root => _root ?? GetRoot();
 
+        // Initializes a new default instance of the NavMeshBuilder2dState class.
         public NavMeshBuilder2dState()
         {
             spriteMeshMap = new Dictionary<Sprite, Mesh>();
@@ -38,6 +40,7 @@ namespace NavMeshPlus.Extensions
             _root = null;
         }
 
+        // Executes get mesh operation.
         public Mesh GetMesh(Sprite sprite)
         {
             Mesh mesh;
@@ -54,6 +57,7 @@ namespace NavMeshPlus.Extensions
             return mesh;
         }
 
+        // Executes get mesh operation.
         public Mesh GetMesh(Collider2D collider)
         {
 #if UNITY_2019_3_OR_NEWER
@@ -70,13 +74,15 @@ namespace NavMeshPlus.Extensions
             }
             return mesh;
 #else
-            throw new InvalidOperationException("PhysicsColliders supported in Unity 2019.3 and higher.");
+            throw new InvalidOperationException("PhysicsColliders supported in Unity 2019.3 and higher.");  // Unexpected runtime state — propagate to global error handler
 #endif
         }
+        // Executes set root operation.
         public void SetRoot(IEnumerable<GameObject> root)
         {
             _root = root;
         }
+        // Executes get root operation.
         public IEnumerable<GameObject> GetRoot()
         {
             switch (CollectObjects)
@@ -100,6 +106,7 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes dispose operation.
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
@@ -136,6 +143,7 @@ namespace NavMeshPlus.Extensions
             _disposed = true;
         }
 
+        // Executes dispose operation.
         public void Dispose()
         {
             // Dispose of unmanaged resources.
@@ -147,6 +155,7 @@ namespace NavMeshPlus.Extensions
 
     class NavMeshBuilder2d
     {
+        // Executes collect sources operation.
         public static void CollectSources(List<NavMeshBuildSource> sources, NavMeshBuilder2dState builder)
         {
             foreach (var it in builder.Root)
@@ -156,6 +165,7 @@ namespace NavMeshPlus.Extensions
             if (!builder.hideEditorLogs) Debug.Log("Sources " + sources.Count);
         }
 
+        // Executes collect sources operation.
         public static void CollectSources(GameObject root, List<NavMeshBuildSource> sources, NavMeshBuilder2dState builder)
         {
             foreach (var modifier in root.GetComponentsInChildren<NavMeshModifier>())
@@ -186,12 +196,13 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes collect sources operation.
         public static void CollectSources(List<NavMeshBuildSource> sources, NavMeshBuilder2dState builder, NavMeshModifier modifier, int area)
         {
             if (builder.CollectGeometry == NavMeshCollectGeometry.PhysicsColliders)
             {
                 var collider = modifier.GetComponent<Collider2D>();
-                if (collider != null)
+                if (collider != null)  // Entity exists — proceed with conditional branch
                 {
                     CollectSources(sources, collider, area, builder);
                 }
@@ -199,22 +210,23 @@ namespace NavMeshPlus.Extensions
             else
             {
                 var tilemap = modifier.GetComponent<Tilemap>();
-                if (tilemap != null)
+                if (tilemap != null)  // Entity exists — proceed with conditional branch
                 {
                     CollectTileSources(sources, tilemap, area, builder);
                 }
                 var sprite = modifier.GetComponent<SpriteRenderer>();
-                if (sprite != null)
+                if (sprite != null)  // Entity exists — proceed with conditional branch
                 {
                     CollectSources(sources, sprite, area, builder);
                 }
             }
         }
 
+        // Executes add default walkable tilemap operation.
         private static void AddDefaultWalkableTilemap(List<NavMeshBuildSource> sources, NavMeshBuilder2dState builder, NavMeshModifier modifier)
         {
             var tilemap = modifier.GetComponent<Tilemap>();
-            if (tilemap != null)
+            if (tilemap != null)  // Entity exists — proceed with conditional branch
             {
                 if (builder.compressBounds)
                 {
@@ -228,6 +240,7 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes collect sources operation.
         public static void CollectSources(List<NavMeshBuildSource> sources, SpriteRenderer spriteRenderer, int area, NavMeshBuilder2dState builder)
         {
             if (spriteRenderer == null || spriteRenderer.sprite == null)
@@ -236,7 +249,7 @@ namespace NavMeshPlus.Extensions
             }
             Mesh mesh;
             mesh = builder.GetMesh(spriteRenderer.sprite);
-            if (mesh == null)
+            if (mesh == null)  // Entity not found — short-circuit with appropriate error result
             {
                 if (!builder.hideEditorLogs) Debug.Log($"{spriteRenderer.name} mesh is null");
                 return;
@@ -252,6 +265,7 @@ namespace NavMeshPlus.Extensions
             builder.lookupCallback?.Invoke(spriteRenderer.gameObject, src);
         }
 
+        // Executes collect sources operation.
         public static void CollectSources(List<NavMeshBuildSource> sources, Collider2D collider, int area, NavMeshBuilder2dState builder)
         { 
             if (collider.usedByComposite)
@@ -261,7 +275,7 @@ namespace NavMeshPlus.Extensions
 
             Mesh mesh;
             mesh = builder.GetMesh(collider);
-            if (mesh == null)
+            if (mesh == null)  // Entity not found — short-circuit with appropriate error result
             {
                 if (!builder.hideEditorLogs) Debug.Log($"{collider.name} mesh is null");
                 return;
@@ -286,6 +300,7 @@ namespace NavMeshPlus.Extensions
             builder.lookupCallback?.Invoke(collider.gameObject, src);
         }
 
+        // Executes collect tile sources operation.
         public static void CollectTileSources(List<NavMeshBuildSource> sources, Tilemap tilemap, int area, NavMeshBuilder2dState builder)
         {
             var bound = tilemap.cellBounds;
@@ -335,12 +350,13 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes collect tile operation.
         private static void CollectTile(Tilemap tilemap, NavMeshBuilder2dState builder, Vector3Int vec3int, Vector3 size, Mesh sharedMesh, Quaternion rot, ref NavMeshBuildSource src)
         {
             if (!builder.overrideByGrid && tilemap.GetColliderType(vec3int) == Tile.ColliderType.Sprite)
             {
                 var sprite = tilemap.GetSprite(vec3int);
-                if (sprite != null)
+                if (sprite != null)  // Entity exists — proceed with conditional branch
                 {
                     Mesh mesh = builder.GetMesh(sprite);
                     src.component = tilemap;
@@ -363,11 +379,13 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes get cell transform matrix operation.
         public static Matrix4x4 GetCellTransformMatrix(Tilemap tilemap, Vector3 scale, Vector3Int vec3int)
         {
             return Matrix4x4.TRS(Vector3.Scale(tilemap.GetCellCenterWorld(vec3int), scale) - tilemap.layoutGrid.cellGap, tilemap.transform.rotation, tilemap.transform.lossyScale) * tilemap.orientationMatrix * tilemap.GetTransformMatrix(vec3int);
         }
 
+        // Executes sprite2mesh operation.
         internal static void sprite2mesh(Sprite sprite, Mesh mesh)
         {
             Vector3[] vert = new Vector3[sprite.vertices.Length];
@@ -385,6 +403,7 @@ namespace NavMeshPlus.Extensions
             mesh.triangles = tri;
         }
 
+        // Executes box bound source operation.
         static private NavMeshBuildSource BoxBoundSource(Bounds localBounds)
         {
             var src = new NavMeshBuildSource();

@@ -5,6 +5,7 @@ using TMPro;
 
 namespace MysticJourney.Features.Monster
 {
+    // Executes drop pickup type operation.
     public enum DropPickupType
     {
         Gold,
@@ -13,11 +14,7 @@ namespace MysticJourney.Features.Monster
         Item
     }
 
-    /// <summary>
-    /// Prefab/GameObject rơi ra môi trường thế giới (World Map) khi đánh bại quái vật.
-    /// Có hiệu ứng nảy (pop/bounce), xoay/bay bổng (floating), hút về phía người chơi (magnet),
-    /// và khi chạm vào người chơi mới thu thập và hiển thị số lượng.
-    /// </summary>
+    // Executes mono behaviour operation.
     public class WorldDropPickup : MonoBehaviour
     {
         [Header("Drop Info")]
@@ -27,17 +24,18 @@ namespace MysticJourney.Features.Monster
         public Color glowColor = Color.yellow;
 
         [Header("Settings")]
-        [SerializeField] private float collectDistance = 0.5f; // Khoảng cách thực sự nhặt vật phẩm
-        [SerializeField] private float magnetSpeed = 12.0f;    // Tốc độ bay mượt về người chơi
+        [SerializeField] private float collectDistance = 0.5f;
+        [SerializeField] private float magnetSpeed = 12.0f;
 
         private SpriteRenderer _spriteRenderer;
         private Vector3 _landPosition;
         private bool _isSpawning = true;
         private bool _isBeingMagnetized = false;
-        private float magnetDelayTimer = 0.5f; // Chờ 0.5s trên mặt đất trước khi tự động hút
+        private float magnetDelayTimer = 0.5f;
         private float _bobTimer = 0f;
         private Transform _playerTransform;
 
+        // Executes setup operation.
         public void Setup(DropPickupType type, string name, float qty, Sprite customSprite, Color color, Vector3 targetLandPos)
         {
             dropType = type;
@@ -48,7 +46,6 @@ namespace MysticJourney.Features.Monster
             _isBeingMagnetized = false;
             magnetDelayTimer = 0.5f;
 
-            // Scale vật phẩm rõ ràng trên bản đồ (0.5 world units)
             transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
             EnsureComponents();
@@ -65,22 +62,22 @@ namespace MysticJourney.Features.Monster
                 }
 
                 _spriteRenderer.color = Color.white;
-                
-                // Đảm bảo nổi hoàn toàn lên trên các lớp Tilemap / đất / cỏ
+
                 try
                 {
                     _spriteRenderer.sortingLayerName = "Units";
                 }
                 catch
                 {
-                    // Fallback nếu layer Units chưa khai báo
                 }
                 _spriteRenderer.sortingOrder = 100;
             }
 
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(PopAnimationSequence(targetLandPos));
         }
 
+        // Executes ensure components operation.
         private void EnsureComponents()
         {
             _spriteRenderer = GetComponent<SpriteRenderer>();
@@ -89,12 +86,9 @@ namespace MysticJourney.Features.Monster
                 _spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
             }
 
-            // Không thêm Collider2D: việc nhặt xét bằng khoảng cách (collectDistance), không có
-            // OnTriggerEnter2D nào ở đây. Collider tĩnh mà di chuyển mỗi frame buộc physics
-            // rebuild broadphase, và còn lọt vào các OverlapCircleAll không dùng layer mask
-            // của skill (LightsaberSkill, ProtectiveShieldSkill...) thành hit rác.
         }
 
+        // Executes pop animation sequence operation.
         private IEnumerator PopAnimationSequence(Vector3 landPos)
         {
             _isSpawning = true;
@@ -119,11 +113,12 @@ namespace MysticJourney.Features.Monster
 
         private bool _isCollected = false;
 
+        // Per-frame update loop for WorldDropPickup.
+        // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
         private void Update()
         {
             if (_isSpawning || _isCollected) return;
 
-            // 1. Giai đoạn chờ trên mặt đất (0.5s): Vật phẩm bồng bềnh nhẹ để mắt người chơi nhận biết
             if (magnetDelayTimer > 0f)
             {
                 magnetDelayTimer -= Time.deltaTime;
@@ -133,19 +128,15 @@ namespace MysticJourney.Features.Monster
                 return;
             }
 
-            // 2. Giai đoạn tự động hút về phía người chơi
             FindPlayer();
 
             if (_playerTransform != null)
             {
                 _isBeingMagnetized = true;
 
-                // Bay mượt về phía người chơi
                 Vector3 targetPos = _playerTransform.position + Vector3.up * 0.5f;
                 transform.position = Vector3.MoveTowards(transform.position, targetPos, magnetSpeed * Time.deltaTime);
 
-                // Khi đến gần người chơi -> Nhặt thành công!
-                // So sánh bình phương để tránh sqrt cho từng drop ở mỗi frame.
                 if ((transform.position - targetPos).sqrMagnitude <= collectDistance * collectDistance)
                 {
                     CollectItem();
@@ -153,7 +144,6 @@ namespace MysticJourney.Features.Monster
                 }
             }
 
-            // Hiệu ứng nhấp nhô bồng bềnh nhẹ trên mặt đất khi chưa bị hút
             if (!_isBeingMagnetized)
             {
                 _bobTimer += Time.deltaTime * 3f;
@@ -162,11 +152,10 @@ namespace MysticJourney.Features.Monster
             }
         }
 
-        // Player được share giữa mọi drop: ưu tiên NetworkPlayer.Local (nguồn local-player
-        // chuẩn); FindWithTag chỉ còn fallback có throttle khi player chưa spawn xong.
         private static Transform _sharedPlayer;
         private static int _nextPlayerSearchFrame;
 
+        // Executes find player operation.
         private void FindPlayer()
         {
             if (_playerTransform != null && _playerTransform.gameObject.activeInHierarchy) return;
@@ -177,8 +166,6 @@ namespace MysticJourney.Features.Monster
                 return;
             }
 
-            // NetworkPlayer.Local là nguồn local-player chuẩn; FindWithTag chỉ là fallback khi
-            // player đang được spawn. Giới hạn fallback còn 4 lần/giây thay vì mỗi frame.
             if (NetworkPlayer.Local != null && NetworkPlayer.Local.gameObject.activeInHierarchy)
             {
                 _sharedPlayer = NetworkPlayer.Local.transform;
@@ -186,11 +173,6 @@ namespace MysticJourney.Features.Monster
                 return;
             }
 
-            // The visual player can be spawned before NetworkPlayer.Local is
-            // published (and some offline/test sessions have no network player
-            // at all). PlayerEntity is the stable local-player anchor in both
-            // paths, so drops must use it as a fallback instead of remaining on
-            // the ground forever.
             if (PlayerEntity.Instance != null && PlayerEntity.Instance.gameObject.activeInHierarchy)
             {
                 _sharedPlayer = PlayerEntity.Instance.transform;
@@ -217,17 +199,16 @@ namespace MysticJourney.Features.Monster
             }
         }
 
+        // Executes collect item operation.
         private void CollectItem()
         {
             if (_isCollected) return;
             _isCollected = true;
 
-            // Disable visuals and collider immediately on pickup so it disappears visually
             if (_spriteRenderer != null) _spriteRenderer.enabled = false;
             var col = GetComponent<Collider2D>();
             if (col != null) col.enabled = false;
 
-            // Hiển thị text cộng điểm/vàng/đá trên đầu người chơi khi vừa nhặt xong
             string text = "";
             switch (dropType)
             {
@@ -245,30 +226,21 @@ namespace MysticJourney.Features.Monster
                     break;
             }
 
-            // Gọi MonsterDropVisualManager để hiển thị floating text số tiền/đá vừa thu thập
             if (MonsterDropVisualManager.Instance != null)
             {
                 MonsterDropVisualManager.Instance.SpawnFloatingTextDirect(transform.position, text, glowColor);
             }
 
-            // Server đã cộng vàng/exp/vật phẩm trong transaction của /monsters/{id}/defeat.
-            // Ở đây chỉ đọc lại số liệu để UI khớp — không gửi gì lên nữa, vì client không có
-            // thẩm quyền quyết định phần thưởng.
-            //
-            // Một con quái rơi nhiều món và cả loạt được hút về người chơi trong vài frame, nên
-            // refresh ngay tại đây = N lần gọi API + N lần rebuild UI dồn vào một chỗ (đo được
-            // ~1.6ms chỉ riêng 2 FindFirstObjectByType mỗi món). Gộp về 1 lần qua manager.
             MonsterDropVisualManager.Instance.RequestRewardRefresh(
                 inventoryAndSkill: dropType != DropPickupType.Gold && dropType != DropPickupType.Exp);
 
             Destroy(gameObject);
         }
 
-        // Sprite dự phòng khi không tìm được icon: cache theo type vì Destroy(gameObject) KHÔNG
-        // giải phóng Texture2D tạo bằng new — mỗi drop trước đây rò rỉ một texture 32x32.
         private static readonly Dictionary<DropPickupType, Sprite> _proceduralCache =
             new Dictionary<DropPickupType, Sprite>();
 
+        // Executes get procedural sprite operation.
         private Sprite GetProceduralSprite(DropPickupType type)
         {
             if (_proceduralCache.TryGetValue(type, out var cached) && cached != null)
@@ -279,6 +251,7 @@ namespace MysticJourney.Features.Monster
             return sprite;
         }
 
+        // Executes create procedural sprite operation.
         private Sprite CreateProceduralSprite(DropPickupType type)
         {
             int res = 32;
@@ -295,6 +268,7 @@ namespace MysticJourney.Features.Monster
                     float dist = Vector2.Distance(new Vector2(x, y), center);
                     if (dist <= radius)
                     {
+                        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                         float alpha = Mathf.Clamp01(1f - (dist / radius) * 0.4f);
                         colors[y * res + x] = new Color(baseCol.r, baseCol.g, baseCol.b, alpha);
                     }

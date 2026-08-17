@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
+// Executes mono behaviour operation.
 public class PlayerSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject knightPrefab;
@@ -17,70 +18,76 @@ public class PlayerSpawner : MonoBehaviour
     [SerializeField] private SkinDatabaseSO skinDatabase;
 
     [SerializeField] private Transform spawnPoint;
+    // Executes spawn point operation.
     public Transform SpawnPoint => spawnPoint;
 
     private bool _loggedMissingSkinDatabase;
 
+    // Performs startup initialization for PlayerSpawner on the first active frame.
     private IEnumerator Start()
     {
-        yield return HydrateWorldStateBeforeSpawn();
-        // The social presence spawns while this hydration is still in flight, so it can
-        // hold a boot-time profile id (often 0 → unreachable for invites) and a stale
-        // class. Re-publish now that WorldState is authoritative.
-        PlayerPresence.RefreshLocal();
-        SpawnPlayer();
+        yield return HydrateWorldStateBeforeSpawn(); // Query latest profile, position, and skin from backend before spawning
+        PlayerPresence.RefreshLocal(); // Notify presence manager of avatar spawn
+        SpawnPlayer(); // Instantiate local player avatar prefab
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (PhotonManager.Instance != null)
         {
-            PhotonManager.Instance.OnDisconnected += HandleDisconnected;
+            PhotonManager.Instance.OnDisconnected += HandleDisconnected; // Subscribe network disconnect event
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (PhotonManager.Instance != null)
         {
-            PhotonManager.Instance.OnDisconnected -= HandleDisconnected;
+            PhotonManager.Instance.OnDisconnected -= HandleDisconnected; // Unsubscribe disconnect event
         }
     }
 
+    // Handles Photon disconnect by triggering local offline avatar respawn.
     private void HandleDisconnected()
     {
         Debug.Log("[PlayerSpawner] Photon disconnected - respawning local fallback player.");
-        StartCoroutine(RespawnNextFrame());
+        StartCoroutine(RespawnNextFrame()); // Respawn local non-networked avatar in the next frame
     }
 
+    // Yields one frame to allow teardown before re-instantiating the avatar.
     private IEnumerator RespawnNextFrame()
     {
-        yield return null;
-        SpawnPlayer();
+        yield return null; // Wait one frame for old objects to destroy
+        SpawnPlayer(); // Respawn player
     }
 
+    // Coordinates asynchronous API calls to load profile, map coordinates, and equipped skin.
     private IEnumerator HydrateWorldStateBeforeSpawn()
     {
         if (!ApiClient.Instance.HasToken())
-            yield break;
+            yield break; // Skip network sync if running offline/unauthenticated
 
         var profileDone = false;
         var positionDone = false;
         var skinDone = false;
 
-        StartCoroutine(RunAndSignal(HydrateCharacterProfileBeforeSpawn(), () => profileDone = true));
-        StartCoroutine(RunAndSignal(HydrateWorldPositionBeforeSpawn(), () => positionDone = true));
-        StartCoroutine(RunAndSignal(HydrateEquippedSkinBeforeSpawn(), () => skinDone = true));
+        StartCoroutine(RunAndSignal(HydrateCharacterProfileBeforeSpawn(), () => profileDone = true)); // Load class and profile
+        StartCoroutine(RunAndSignal(HydrateWorldPositionBeforeSpawn(), () => positionDone = true)); // Load last saved world position
+        StartCoroutine(RunAndSignal(HydrateEquippedSkinBeforeSpawn(), () => skinDone = true)); // Load equipped skin ID
 
-        yield return new WaitUntil(() => profileDone && positionDone && skinDone);
+        yield return new WaitUntil(() => profileDone && positionDone && skinDone); // Wait until all 3 fetch tasks finish
     }
 
+    // Helper coroutine that awaits a task and signals completion via callback.
     private static IEnumerator RunAndSignal(IEnumerator routine, Action onComplete)
     {
         yield return routine;
         onComplete?.Invoke();
     }
 
+    // Queries player class and persists it in WorldState.
     private IEnumerator HydrateCharacterProfileBeforeSpawn()
     {
         var done = false;
@@ -89,7 +96,7 @@ public class PlayerSpawner : MonoBehaviour
             {
                 if (profile != null && !string.IsNullOrWhiteSpace(profile.PlayerClass))
                 {
-                    WorldState.PlayerClass = profile.PlayerClass;
+                    WorldState.PlayerClass = profile.PlayerClass; // Cache active class (Knight/Archer/Mage)
                     WorldState.SaveToPlayerPrefs();
                 }
                 done = true;
@@ -103,6 +110,7 @@ public class PlayerSpawner : MonoBehaviour
         yield return new WaitUntil(() => done);
     }
 
+    // Queries player's last recorded world position and map name from the server.
     private IEnumerator HydrateWorldPositionBeforeSpawn()
     {
         var done = false;
@@ -113,13 +121,13 @@ public class PlayerSpawner : MonoBehaviour
                 {
                     if (!string.IsNullOrWhiteSpace(position.MapName))
                     {
-                        WorldState.CurrentMapName = position.MapName;
+                        WorldState.CurrentMapName = position.MapName; // Update current map name
                     }
 
                     Vector3 dbPos = new Vector3((float)position.PositionX, (float)position.PositionY, 0f);
                     if (ShouldUseSavedPosition(dbPos))
                     {
-                        WorldState.LastPosition = dbPos;
+                        WorldState.LastPosition = dbPos; // Apply saved world coordinates
                         MapPositionCache.Save(WorldState.CurrentMapName, dbPos);
                     }
                 }
@@ -135,6 +143,7 @@ public class PlayerSpawner : MonoBehaviour
         yield return new WaitUntil(() => done);
     }
 
+    // Queries equipped skin ID from player inventory.
     private IEnumerator HydrateEquippedSkinBeforeSpawn()
     {
         var done = false;
@@ -142,9 +151,6 @@ public class PlayerSpawner : MonoBehaviour
         InventoryApi.Instance.GetInventory(
             response =>
             {
-                // Keep the locally persisted skin while the API request is unavailable.
-                // A successful inventory response is authoritative and may replace it
-                // with 0 when the default skin is equipped.
                 var equippedSkinId = WorldState.EquippedSkinId;
                 if (response != null && response.PlayerSkins != null)
                 {
@@ -153,17 +159,15 @@ public class PlayerSpawner : MonoBehaviour
                     {
                         if (skin != null && skin.IsEquipped)
                         {
-                            equippedSkinId = skin.SkinId;
+                            equippedSkinId = skin.SkinId; // Find equipped skin in inventory response
                             break;
                         }
                     }
                 }
 
-                // Do not let a stale boot-time response overwrite a skin equipped
-                // while this request was in flight.
                 if (WorldState.EquippedSkinId == skinAtRequestStart)
                 {
-                    WorldState.EquippedSkinId = equippedSkinId;
+                    WorldState.EquippedSkinId = equippedSkinId; // Persist equipped skin ID
                     WorldState.SaveToPlayerPrefs();
                 }
                 else
@@ -182,18 +186,17 @@ public class PlayerSpawner : MonoBehaviour
         yield return new WaitUntil(() => done);
     }
 
+    // Instantiates character prefab based on player class, binds camera, and applies skins.
     private void SpawnPlayer()
     {
         if (PhotonManager.Instance != null && PhotonManager.Instance.IsDungeonSession)
         {
             Debug.Log("[PlayerSpawner] Dungeon session active - skipping local spawn; NetworkPlayer will own the avatar.");
-            return;
+            return; // In networked multiplayer sessions, NetworkPlayer manages avatar lifecycle
         }
 
-        // Both components identify the local gameplay root; checking both also
-        // protects against a partially initialized player during scene loading.
         if (FindFirstObjectByType<PlayerMovement>() != null || FindFirstObjectByType<PlayerEntity>() != null)
-            return;
+            return; // Prevent duplicate player instantiation
 
         var playerClass = string.IsNullOrWhiteSpace(WorldState.PlayerClass)
             ? "Knight"
@@ -218,7 +221,6 @@ public class PlayerSpawner : MonoBehaviour
 
         GameObject player = Instantiate(prefab, spawnPosition, Quaternion.identity);
 
-        // Safeguard: Fallback Animator Controller nếu Controller của Skin rỗng (0 parameters)
         var mainScene = SceneManager.GetSceneByName("Main");
         if (mainScene.isLoaded)
         {
@@ -238,6 +240,7 @@ public class PlayerSpawner : MonoBehaviour
         Debug.Log($"[PlayerSpawner] Spawned {playerClass} at {spawnPosition} | SkinId={WorldState.EquippedSkinId} | Scene={gameObject.scene.name}.");
     }
 
+    // Executes respawn with skin operation.
     public void RespawnWithSkin()
     {
         var existingPlayer = FindOfflinePlayerRoot();
@@ -248,14 +251,13 @@ public class PlayerSpawner : MonoBehaviour
             Debug.Log("[PlayerSpawner] Destroyed old local player for Skin Respawn.");
         }
 
-        // Clean up visual-only skin instances created by older builds. They have
-        // the Player tag but no gameplay component, so they otherwise survive the
-        // respawn and appear as a frozen duplicate.
         CleanupLegacyVisualOnlyPlayers();
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(RespawnNextFrame());
     }
 
+    // Executes find offline player root operation.
     private static GameObject FindOfflinePlayerRoot()
     {
         var entity = FindFirstObjectByType<PlayerEntity>();
@@ -269,6 +271,7 @@ public class PlayerSpawner : MonoBehaviour
         return null;
     }
 
+    // Executes cleanup legacy visual only players operation.
     private static void CleanupLegacyVisualOnlyPlayers()
     {
         var taggedPlayers = GameObject.FindGameObjectsWithTag("Player");
@@ -287,6 +290,7 @@ public class PlayerSpawner : MonoBehaviour
         }
     }
 
+    // Executes resolve base prefab operation.
     private GameObject ResolveBasePrefab(string playerClass)
     {
         if (string.Equals(playerClass, "Mage", StringComparison.OrdinalIgnoreCase))
@@ -296,6 +300,7 @@ public class PlayerSpawner : MonoBehaviour
         return knightPrefab;
     }
 
+    // Executes resolve skin prefab operation.
     private GameObject ResolveSkinPrefab(GameObject fallbackPrefab)
     {
         int skinId = WorldState.EquippedSkinId;
@@ -321,6 +326,7 @@ public class PlayerSpawner : MonoBehaviour
         return skinData.prefab;
     }
 
+    // Executes ensure skin database operation.
     private SkinDatabaseSO EnsureSkinDatabase()
     {
         if (skinDatabase == null)
@@ -335,6 +341,7 @@ public class PlayerSpawner : MonoBehaviour
         return skinDatabase;
     }
 
+    // Executes follow player with scene camera operation.
     private void FollowPlayerWithSceneCamera(Transform player)
     {
         var cam = FindSceneComponent<CinemachineCamera>(gameObject.scene) ?? FindFirstObjectByType<CinemachineCamera>();
@@ -351,6 +358,7 @@ public class PlayerSpawner : MonoBehaviour
             Debug.LogWarning("[PlayerSpawner] CinemachineCamera not found for player follow.");
     }
 
+    // Executes initialize minimap operation.
     private static void InitializeMinimap(Transform player)
     {
         var minimapCam = FindFirstObjectByType<MinimapCameraController>();
@@ -358,6 +366,7 @@ public class PlayerSpawner : MonoBehaviour
             minimapCam.InitializeMinimap(player);
     }
 
+    // Executes component operation.
     private static T FindSceneComponent<T>(Scene scene) where T : Component
     {
         var components = Resources.FindObjectsOfTypeAll<T>();
@@ -370,6 +379,7 @@ public class PlayerSpawner : MonoBehaviour
         return null;
     }
 
+    // Executes activate player input operation.
     private static void ActivatePlayerInput(GameObject player)
     {
         if (player == null)
@@ -386,18 +396,21 @@ public class PlayerSpawner : MonoBehaviour
             playerInput.SwitchCurrentActionMap("Player");
     }
 
+    // Executes ensure position sync operation.
     private static void EnsurePositionSync(GameObject player)
     {
         if (player != null && player.GetComponent<PlayerWorldPositionSync>() == null)
             player.AddComponent<PlayerWorldPositionSync>();
     }
 
+    // Executes ensure world interactor operation.
     private static void EnsureWorldInteractor(GameObject player)
     {
         if (player != null && player.GetComponent<PlayerWorldInteractor>() == null)
             player.AddComponent<PlayerWorldInteractor>();
     }
 
+    // Executes should use saved position operation.
     private static bool ShouldUseSavedPosition(Vector3 position)
     {
         if (position == Vector3.zero)
@@ -406,6 +419,7 @@ public class PlayerSpawner : MonoBehaviour
         return IsFinite(position.x) && IsFinite(position.y) && IsFinite(position.z);
     }
 
+    // Executes is finite operation.
     private static bool IsFinite(float value)
     {
         return !float.IsNaN(value) && !float.IsInfinity(value);

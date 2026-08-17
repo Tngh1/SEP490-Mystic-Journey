@@ -5,13 +5,10 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 using UnityEngine;
 
-/// <summary>
-/// Detects achievements completed during the current play session and routes them through
-/// the shared PaperPopup queue. The first successful response is a baseline, so achievements
-/// completed before this runtime started are never replayed on login.
-/// </summary>
+// Executes mono behaviour operation.
 public class AchievementPopupRuntime : MonoBehaviour
 {
+    // Executes instance operation.
     public static AchievementPopupRuntime Instance { get; private set; }
 
     [SerializeField, Min(5f)] private float pollIntervalSeconds = 15f;
@@ -24,28 +21,31 @@ public class AchievementPopupRuntime : MonoBehaviour
     private int baselinePlayerProfileId;
     private Coroutine pollRoutine;
 
+    // Initializes component singleton cache on GameObject creation.
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(this);
+            Destroy(this); // Prevent duplicate achievement popups
             return;
         }
 
         Instance = this;
     }
 
+    // Subscribes gameplay runtime progression events and starts background achievement polling.
     private void OnEnable()
     {
-        WorldRuntimeEvents.QuestsChanged += RefreshAchievements;
-        WorldRuntimeEvents.CurrencyChanged += RefreshAchievements;
-        WorldRuntimeEvents.LevelChanged += RefreshAchievements;
+        WorldRuntimeEvents.QuestsChanged += RefreshAchievements; // Check achievements on quest completion
+        WorldRuntimeEvents.CurrencyChanged += RefreshAchievements; // Check achievements on wallet mutation
+        WorldRuntimeEvents.LevelChanged += RefreshAchievements; // Check achievements on level up
         WorldRuntimeEvents.MapChanged += OnMapChanged;
 
         if (pollRoutine == null)
-            pollRoutine = StartCoroutine(PollAchievements());
+            pollRoutine = StartCoroutine(PollAchievements()); // Start 15s periodic achievement status polling
     }
 
+    // Unsubscribes event listeners and stops polling coroutines.
     private void OnDisable()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshAchievements;
@@ -60,36 +60,35 @@ public class AchievementPopupRuntime : MonoBehaviour
         }
     }
 
+    // Cleans up singleton instance on GameObject destruction.
     private void OnDestroy()
     {
         if (Instance == this)
             Instance = null;
     }
 
-    /// <summary>
-    /// Handles an explicit successful unlock response immediately. Recording the id before
-    /// showing it prevents the next poll from enqueueing the same achievement again.
-    /// </summary>
+    // Displays celebratory popup banner when a new achievement milestone unlocks.
     public void NotifyAchievementUnlocked(PlayerAchievementResponse achievement)
     {
         if (achievement == null || achievement.AchievementId <= 0)
             return;
 
         if (!completedAchievementIds.Add(achievement.AchievementId))
-            return;
+            return; // Avoid duplicate popups for already unlocked achievements
 
-        ShowAchievementPopup(achievement);
+        ShowAchievementPopup(achievement); // Trigger banner slide-in animation and chime
     }
 
+    // Queries backend for completed milestones and auto-claims eligible rewards.
     public void RefreshAchievements()
     {
         if (ApiClient.Instance == null || !ApiClient.Instance.HasToken())
-            return;
+            return; // Skip if offline
 
         if (requestInFlight)
         {
             refreshQueued = true;
-            return;
+            return; // Queue request if already in flight
         }
 
         requestInFlight = true;
@@ -100,7 +99,7 @@ public class AchievementPopupRuntime : MonoBehaviour
                     return;
 
                 requestInFlight = false;
-                ProcessResponse(response);
+                ProcessResponse(response); // Evaluate milestone completions and trigger unlock popups
 
                 if (refreshQueued)
                 {
@@ -119,6 +118,7 @@ public class AchievementPopupRuntime : MonoBehaviour
             });
     }
 
+    // Periodic coroutine that queries achievements every 15 seconds.
     private IEnumerator PollAchievements()
     {
         yield return null;
@@ -126,16 +126,18 @@ public class AchievementPopupRuntime : MonoBehaviour
 
         while (true)
         {
-            yield return new WaitForSecondsRealtime(Mathf.Max(5f, pollIntervalSeconds));
+            yield return new WaitForSecondsRealtime(Mathf.Max(5f, pollIntervalSeconds)); // Wait 15s real-time
             RefreshAchievements();
         }
     }
 
+    // Triggers achievement check upon changing map scene.
     private void OnMapChanged(string mapName)
     {
-        RefreshAchievements();
+        RefreshAchievements(); // Check exploration achievements
     }
 
+    // Executes process response operation.
     private void ProcessResponse(PlayerMeAchievementsResponse response)
     {
         if (response == null)
@@ -191,6 +193,7 @@ public class AchievementPopupRuntime : MonoBehaviour
         }
     }
 
+    // Executes begin unlock operation.
     private void BeginUnlock(int playerAchievementId)
     {
         if (!unlockRequestsInFlight.Add(playerAchievementId))
@@ -217,6 +220,8 @@ public class AchievementPopupRuntime : MonoBehaviour
             });
     }
 
+    // Executes is completed operation.
+    // Validates input parameters against null or empty values.
     private static bool IsCompleted(PlayerAchievementResponse achievement)
     {
         return achievement != null &&
@@ -224,6 +229,7 @@ public class AchievementPopupRuntime : MonoBehaviour
                achievement.IsCompleted;
     }
 
+    // Executes show achievement popup operation.
     private static void ShowAchievementPopup(PlayerAchievementResponse achievement)
     {
         var popup = MainQuestPanelRuntime.Instance;

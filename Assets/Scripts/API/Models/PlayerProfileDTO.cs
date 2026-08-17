@@ -1,6 +1,5 @@
 namespace MysticJourney.API.Models.Request
 {
-    // PUT /api/playerprofiles/{id}
     [System.Serializable]
     public class UpdatePlayerProfileRequest
     {
@@ -22,11 +21,16 @@ namespace MysticJourney.API.Models.Request
     {
         public string NewName { get; set; }
     }
+
+    [System.Serializable]
+    public class AllocateStatRequestDto
+    {
+        public string StatName { get; set; }
+    }
 }
 
 namespace MysticJourney.API.Models.Response
 {
-    // Response: GET /api/playerprofiles/{id}
     [System.Serializable]
     public class PlayerProfileResponse
     {
@@ -55,7 +59,6 @@ namespace MysticJourney.API.Models.Response
         public bool HasChangedName { get; set; }
     }
 
-    // Response mở rộng kèm Stats
     [System.Serializable]
     public class PlayerStatsResponse
     {
@@ -74,14 +77,5 @@ namespace MysticJourney.API.Models.Response
         public int TotalKills { get; set; }
         public int TotalDeaths { get; set; }
         public System.Collections.Generic.List<PlayerBuffDTO> ActiveBuffs { get; set; }
-    }
-}
-
-namespace MysticJourney.API.Models.Request
-{
-    [System.Serializable]
-    public class AllocateStatRequestDto
-    {
-        public string StatName { get; set; }
     }
 }

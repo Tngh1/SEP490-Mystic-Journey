@@ -2,6 +2,7 @@ using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class PlayerWorldPositionSync : MonoBehaviour
 {
     [SerializeField] private float saveInterval = 2f;
@@ -12,13 +13,16 @@ public class PlayerWorldPositionSync : MonoBehaviour
     private bool saving;
     private bool mapTransitionInProgress;
 
+    // Executes has pending save operation.
     public bool HasPendingSave => saving;
 
+    // Executes begin map transition operation.
     public void BeginMapTransition()
     {
         mapTransitionInProgress = true;
     }
 
+    // Executes complete map transition operation.
     public void CompleteMapTransition(Vector3 authoritativePosition)
     {
         lastSavedPosition = authoritativePosition;
@@ -27,6 +31,8 @@ public class PlayerWorldPositionSync : MonoBehaviour
         CacheLocalPosition(authoritativePosition, saveToPrefs: true);
     }
 
+    // Performs startup initialization for PlayerWorldPositionSync on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
@@ -36,13 +42,13 @@ public class PlayerWorldPositionSync : MonoBehaviour
         CacheLocalPosition(transform.position, saveToPrefs: false);
     }
 
+    // Per-frame update loop for PlayerWorldPositionSync.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
             return;
 
-        // MapSceneController owns the authoritative save while travelling. This prevents a
-        // delayed save from the previous map from overwriting LastMapName after arrival.
         if (mapTransitionInProgress)
             return;
 
@@ -82,6 +88,7 @@ public class PlayerWorldPositionSync : MonoBehaviour
         );
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
@@ -90,6 +97,8 @@ public class PlayerWorldPositionSync : MonoBehaviour
         CacheLocalPosition(transform.position, saveToPrefs: true);
     }
 
+    // Executes cache local position operation.
+    // Validates input parameters against null or empty values.
     private static void CacheLocalPosition(Vector3 position, bool saveToPrefs)
     {
         if (string.IsNullOrWhiteSpace(WorldState.CurrentMapName))
@@ -100,8 +109,6 @@ public class PlayerWorldPositionSync : MonoBehaviour
         if (!saveToPrefs)
             return;
 
-        // Lưu per-map cache cùng lúc với PlayerPrefs (đã được throttle bởi saveInterval + saveDistance)
-        // → không gọi mỗi frame, chỉ khi đã di chuyển đủ xa và đủ thời gian
         MapPositionCache.Save(WorldState.CurrentMapName, WorldState.LastPosition);
 
         PlayerPrefs.SetString(ApiConfig.LastMapNameKey, WorldState.CurrentMapName);

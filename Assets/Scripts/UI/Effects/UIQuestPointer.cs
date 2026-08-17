@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace MysticJourney.UI.Effects
 {
+    // Executes mono behaviour operation.
     public class UIQuestPointer : MonoBehaviour
     {
         public float speed = 5f;
@@ -10,11 +11,14 @@ namespace MysticJourney.UI.Effects
         private RectTransform rectTransform;
         private bool isInitialized;
 
+        // Initializes internal component caches and dependencies for UIQuestPointer upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             Initialize();
         }
 
+        // Executes initialize operation.
         private void Initialize()
         {
             if (isInitialized) return;
@@ -26,11 +30,14 @@ namespace MysticJourney.UI.Effects
             isInitialized = true;
         }
 
+        // Refresh visible state and subscribe the event handlers required while this component is active.
         private void OnEnable()
         {
             Initialize();
         }
 
+        // Per-frame update loop for UIQuestPointer.
+        // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
         private void Update()
         {
             float t = Mathf.Sin(Time.unscaledTime * speed);
@@ -42,6 +49,7 @@ namespace MysticJourney.UI.Effects
                 transform.localPosition = originalPosition + offset;
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDisable()
         {
             if (isInitialized)

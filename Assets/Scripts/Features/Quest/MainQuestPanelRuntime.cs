@@ -10,8 +10,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using QuestUtils = MysticJourney.Core.Utilities.QuestUtils;
 
+// Executes mono behaviour operation.
 public class MainQuestPanelRuntime : MonoBehaviour
 {
+    // Executes instance operation.
     public static MainQuestPanelRuntime Instance { get; private set; }
 
     [Header("Scene UI")]
@@ -71,6 +73,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private bool didWarnMissingListTemplate;
     private bool didBind;
 
+    // Initializes internal component caches and dependencies for MainQuestPanelRuntime upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -87,6 +91,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
     private Coroutine waitForQuestDataRoutine;
 
+    // Performs startup initialization for MainQuestPanelRuntime on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private IEnumerator Start()
     {
         yield return null;
@@ -105,15 +111,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
             QuestUIManager.Instance.OnQuestsLoaded += OnQuestsLoadedHandler;
         }
 
-        // Nếu sau BindUi + Refresh mà vẫn không có quest (QuestUIManager chưa load xong API),
-        // bắt đầu retry để đảm bảo tracker cập nhật ngay khi dữ liệu sẵn sàng.
         if (quests.Count == 0)
         {
             if (waitForQuestDataRoutine != null) StopCoroutine(waitForQuestDataRoutine);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             waitForQuestDataRoutine = StartCoroutine(WaitForQuestData());
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshWorldAndQuests;
@@ -129,25 +135,21 @@ public class MainQuestPanelRuntime : MonoBehaviour
             Instance = null;
     }
 
+    // Executes on quest progress changed handler operation.
     private void OnQuestProgressChangedHandler(int questId)
     {
         RefreshWorldAndQuests();
     }
 
-    /// <summary>
-    /// Gọi khi QuestUIManager load xong quest từ server (HandleLoadedQuestResponses).
-    /// Đảm bảo tracker cập nhật ngay mà không cần chờ QuestsChanged event.
-    /// </summary>
+    // Executes on quests loaded handler operation.
     private void OnQuestsLoadedHandler()
     {
-        // Hủy retry nếu đang chạy — quest đã sẵn sàng.
         if (waitForQuestDataRoutine != null)
         {
             StopCoroutine(waitForQuestDataRoutine);
             waitForQuestDataRoutine = null;
         }
 
-        // Đăng ký lại QuestUIManager events phòng trường hợp QuestUIManager bị tạo lại.
         if (QuestUIManager.Instance != null)
         {
             QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
@@ -159,11 +161,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         RefreshWorldAndQuests();
     }
 
-    /// <summary>
-    /// Retry coroutine: nếu QuestUIManager chưa sẵn sàng hoặc chưa load xong quest từ API,
-    /// thử lại mỗi 0.5s tối đa 10 lần (5 giây). Cover trường hợp QuestUIManager được tạo
-    /// SAU MainQuestPanelRuntime và OnQuestsLoaded không được đăng ký kịp.
-    /// </summary>
+    // Executes wait for quest data operation.
     private IEnumerator WaitForQuestData()
     {
         var wait = new WaitForSeconds(0.5f);
@@ -171,7 +169,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
         {
             yield return wait;
 
-            // QuestUIManager có thể xuất hiện muộn (UIManager.EnsureQuestManager) → đăng ký lại.
             if (QuestUIManager.Instance != null)
             {
                 QuestUIManager.Instance.OnQuestProgressChanged -= OnQuestProgressChangedHandler;
@@ -189,6 +186,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         waitForQuestDataRoutine = null;
     }
 
+    // Executes open quest panel operation.
     public void OpenQuestPanel()
     {
         BindUi();
@@ -204,12 +202,14 @@ public class MainQuestPanelRuntime : MonoBehaviour
         RefreshWorldAndQuests();
     }
 
+    // Executes open quest panel for quest operation.
     public void OpenQuestPanelForQuest(int questId)
     {
         pendingSelectedQuestId = questId;
         OpenQuestPanel();
     }
 
+    // Executes open quest panel for reward operation.
     public void OpenQuestPanelForReward(int questId)
     {
         pendingSelectedQuestId = questId;
@@ -217,6 +217,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         OpenQuestPanel();
     }
 
+    // Executes close quest panel operation.
     public void CloseQuestPanel()
     {
         if (questPanel == null)
@@ -231,14 +232,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
             questPanel.SetActive(false);
     }
 
+    // Executes on map changed operation.
     private void OnMapChanged(string mapName)
     {
-        // Không gọi LoadMyQuests() ở đây: lúc MapChanged bắn ra, LastMapName trên server vẫn là
-        // map cũ nên response sẽ thiếu quest của map mới. MapSceneController nạp lại quest ngay
-        // sau khi UpdatePosition thành công, rồi QuestsChanged sẽ kéo panel về đúng dữ liệu.
         RefreshWorldAndQuests();
     }
 
+    // Executes refresh world and quests operation.
     public void RefreshWorldAndQuests()
     {
         BindUi();
@@ -253,8 +253,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return;
         }
 
-        // Render immediately from QuestUIManager local cache (no API call) so UI is always in sync
-        // with the latest known server state (e.g. after TurnInQuestItem / AcceptQuest etc.)
         var cached = manager.GetMainQuests();
         if (cached.Count > 0)
         {
@@ -262,7 +260,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             quests.AddRange(cached);
             selectedQuest = PickSelectedQuest(null);
             RenderAll();
-            return; // Dừng tại đây khi đã có dữ liệu local, không phát sinh HTTP Request dư thừa
+            return;
         }
 
         manager.LoadMainQuests(
@@ -282,6 +280,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     }
 
 
+    // Executes bind ui operation.
     private void BindUi()
     {
         questTracker = questTracker != null ? questTracker : (gameObject.name == "QuestTracker" ? gameObject : FindSceneObject("QuestTracker"));
@@ -343,8 +342,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
             descriptionText = descriptionText.IsValid ? descriptionText : FindTextSlot(questPanel.transform, "DescriptionText", "Description");
         }
 
-        // ProgressText là object riêng tách khỏi ObjectiveText, chỉ hiện với quest có đếm
-        // (targetAmount > 1). Không nằm trong QuestPanel nên bind theo tên.
         if (detailProgressObj == null)
         {
             detailProgressObj = FindDescendant(questPanel.transform, "ProgressText");
@@ -380,11 +377,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         didBind = true;
     }
 
-    // UIHoverScaleEffect (Assets/Scripts/UI/UIHoverScaleEffect.cs) là hover dùng chung.
-    // UIManager.EnsureButtonHoverEffects đã quét sẵn toàn scene lúc Awake, nên vòng này chỉ
-    // còn cần cho các dòng quest Instantiate lúc runtime. Phải quét 3 root riêng: tracker và
-    // PaperPopup không phải con của QuestPanel nên một lần quét từ panel sẽ bỏ sót.
-    // Gọi sau BindTrackButton để bắt cả Button mà BindButton vừa AddComponent.
+    // Create hover effects; it creates hover in.
     private void AddHoverEffects()
     {
         AddHoverIn(questPanel);
@@ -392,21 +385,18 @@ public class MainQuestPanelRuntime : MonoBehaviour
         AddHoverIn(paperPopup);
     }
 
-    // Quét Selectable chứ không phải Button: filter trong TopBar là Toggle (xem BindFilterButton).
+    // Executes add hover in operation.
     private static void AddHoverIn(GameObject root)
     {
         if (root == null)
             return;
 
-        // true: nút trong popup đang tắt vẫn phải được gắn, nếu không popup mở ra là mất hover.
         foreach (var selectable in root.GetComponentsInChildren<Selectable>(true))
         {
             if (selectable == null)
                 continue;
             if (!(selectable is Button || selectable is Toggle))
                 continue;
-            // DimBackground là lớp phủ mờ toàn màn hình (bấm ra ngoài để đóng); phóng to nó
-            // sẽ kéo giãn cả mảng tối mỗi khi chuột đi qua vùng trống.
             if (selectable.name == "DimBackground")
                 continue;
             if (selectable.GetComponent<UIHoverScaleEffect>() == null)
@@ -414,6 +404,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 
+    // Executes bind track button operation.
     private void BindTrackButton()
     {
         GameObject btnObj = null;
@@ -431,13 +422,13 @@ public class MainQuestPanelRuntime : MonoBehaviour
         UpdateTrackButton();
     }
 
+    // Executes on track button clicked operation.
     private void OnTrackButtonClicked()
     {
         bool wasEnabled = MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled;
         MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = !wasEnabled;
         UpdateTrackButton();
 
-        // Khi bật track, trigger mũi tên ngay lập tức thay vì chờ 2s routine
         if (MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled &&
             MysticJourney.Features.Quest.QuestWaypointManager.Instance != null)
         {
@@ -445,12 +436,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 
+    // Executes update track button operation.
     private void UpdateTrackButton()
     {
         if (trackButton != null)
         {
-            // Chỉ hiện nút Track khi quest đang InProgress
-            // (NotStarted chưa accept, Completed/Claimed không cần dẫn đường)
             bool trackable = selectedQuest != null
                 && QuestUtils.IsStatus(selectedQuest, "InProgress");
             if (trackButton.gameObject.activeSelf != trackable)
@@ -472,6 +462,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
             trackButtonText.Set(enabled ? "Tracking" : "Track");
     }
 
+    // Executes set filter operation.
+    // Validates input parameters against null or empty values.
     private void SetFilter(string nextFilter)
     {
         filter = string.IsNullOrWhiteSpace(nextFilter) ? "All" : nextFilter;
@@ -479,6 +471,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         RenderQuestList();
     }
 
+    // Executes pick selected quest operation.
     private PlayerQuestResponse PickSelectedQuest(PlayerQuestResponse activeFromWorld)
     {
         if (pendingSelectedQuestId > 0)
@@ -499,6 +492,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return sameActive ?? QuestUtils.PickPreferredQuest(quests);
     }
 
+    // Executes render all operation.
     private void RenderAll()
     {
         RenderTracker();
@@ -507,6 +501,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         UpdateTrackButton();
     }
 
+    // Executes render tracker operation.
     private void RenderTracker()
     {
         var active = QuestUtils.PickPreferredQuest(quests);
@@ -523,22 +518,20 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         if (QuestUtils.IsStatus(active, "Completed"))
         {
-            // Completed nhưng chưa Claimed: phần thưởng vẫn đang chờ. Nói rõ bước kế tiếp
-            // thay vì chỉ dán nhãn "Completed" — nếu không player không biết phải làm gì.
             SetText(trackerStatus, "<color=#55FF55>Come back to claim your reward.</color>");
         }
         else if (QuestUtils.IsStatus(active, "NotStarted"))
         {
-            // Quest chưa nhận: KHÔNG hiện objective (Defeat/Collect...) vì người chơi chưa
-            // được giao mục tiêu đó — bước thật sự là đi gặp NPC. Waypoint cũng đang chỉ vào NPC.
             SetText(trackerStatus, $"<color=#FFD34D>{AcceptPromptLine(active)}</color>");
         }
         else
         {
             var targetName = Safe(active.ObjectiveTarget, "target");
+            // Supported quest objectives: Explore, Defeat, Collect, Talk, OpenChest, Interact, EquipSkill, or Kill; the value selects progress-tracking behavior.
             var objectiveType = Safe(active.ObjectiveType, "Objective");
             if (active.TargetAmount > 1)
             {
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 var current = Mathf.Clamp(active.Progress, 0, active.TargetAmount);
                 SetText(trackerStatus, $"{objectiveType}: {targetName} ({current}/{active.TargetAmount})");
             }
@@ -549,6 +542,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 
+    // Executes render quest list operation.
     private void RenderQuestList()
     {
         if (questListContent == null || questSlotPrefab == null)
@@ -564,6 +558,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         var visible = quests.Where(MatchesFilter).ToList();
         for (var i = 0; i < visible.Count; i++)
         {
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = GetOrCreateQuestSlot(i);
             if (slot == null)
                 continue;
@@ -578,6 +573,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             questSlots[i].gameObject.SetActive(false);
     }
 
+    // Executes on quest selected operation.
     private void OnQuestSelected(PlayerQuestResponse quest)
     {
         selectedQuest = quest;
@@ -586,6 +582,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         UpdateTrackButton();
     }
 
+    // Executes render quest detail operation.
     private void RenderQuestDetail()
     {
         if (selectedQuest == null)
@@ -605,7 +602,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
         SetText(descriptionText, Safe(selectedQuest.QuestDescription, "No description."));
         RenderProgress(selectedQuest);
 
-        // Chỉ đóng dấu hoàn thành khi đã nhận thưởng (Claimed), giống UIQuestListItem.
         if (detailCompleteIcon != null)
             detailCompleteIcon.SetActive(QuestUtils.IsStatus(selectedQuest, "Claimed"));
 
@@ -613,29 +609,30 @@ public class MainQuestPanelRuntime : MonoBehaviour
         RenderRewardItems(selectedQuest);
     }
 
-    // Progress hiển thị ở ProgressText riêng, chỉ với quest có đếm (targetAmount > 1).
-    // Quest như Talk/Explore một lần (target <= 1) thì ẩn hẳn ô số.
+    // Executes render progress operation.
     private void RenderProgress(PlayerQuestResponse quest)
     {
         if (detailProgressObj == null)
             return;
 
-        // Quest chưa nhận thì chưa có tiến trình để đếm — ẩn ô số thay vì hiện 0/8.
         bool hasCount = quest != null && quest.TargetAmount > 1 && !QuestUtils.IsStatus(quest, "NotStarted");
         if (detailProgressObj.activeSelf != hasCount)
             detailProgressObj.SetActive(hasCount);
 
         if (hasCount && detailProgress.IsValid)
         {
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             var current = Mathf.Clamp(quest.Progress, 0, quest.TargetAmount);
             detailProgress.Set($"{current}/{quest.TargetAmount}");
         }
     }
 
+    // Executes apply detail type icon operation.
     private void ApplyDetailTypeIcon(string objectiveType)
     {
         if (detailTypeImage == null) return;
 
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         var slot = UIQuestListItem.MapObjectiveType(objectiveType);
         Sprite sprite = slot switch
         {
@@ -653,6 +650,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         detailTypeImage.gameObject.SetActive(hasSprite);
     }
 
+    // Executes render reward items operation.
     private void RenderRewardItems(PlayerQuestResponse quest)
     {
         if (rewardItemsContainer == null)
@@ -680,6 +678,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 continue;
             }
 
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = GetOrCreateRewardSlot(itemRewardIndex);
             if (slot == null)
                 continue;
@@ -696,6 +695,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         RenderSkillReward(skillReward, itemRewardIndex);
     }
 
+    // Executes build rewards operation.
     private List<RewardViewData> BuildRewards(PlayerQuestResponse quest)
     {
         var rewards = new List<RewardViewData>();
@@ -763,8 +763,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return rewards;
     }
 
-    // Overload cũ: message tự do (AnnounceText), kind suy từ nội dung. Dùng cho các chỗ
-    // không gắn với 1 quest cụ thể (vd MapTeleportPortal "Explored: ...").
+    // Executes popup data operation.
     private struct PopupData
     {
         public string announce;
@@ -777,22 +776,26 @@ public class MainQuestPanelRuntime : MonoBehaviour
     private string lastPopupKey = string.Empty;
     private float lastPopupTime;
 
+    // Executes show paper popup operation.
     public void ShowPaperPopup(string message)
     {
         ShowPopup(message, UIPaperPopupView.PaperPopupKind.None, inferKind: true);
     }
 
+    // Executes show paper popup operation.
+    // Validates input parameters against null or empty values.
     public void ShowPaperPopup(string questTitle, UIPaperPopupView.PaperPopupKind kind)
     {
         ShowPopup(questTitle, kind, inferKind: false);
     }
 
+    // Executes show popup operation.
+    // Validates input parameters against null or empty values.
     private void ShowPopup(string announce, UIPaperPopupView.PaperPopupKind kind, bool inferKind)
     {
         if (string.IsNullOrWhiteSpace(announce))
             return;
 
-        // Anti-duplicate: nếu popup cùng nội dung + kind vừa hiện trong vòng 2.5 giây -> bỏ qua tránh trùng
         string key = $"{announce}_{kind}_{inferKind}";
         if (key == lastPopupKey && Time.time - lastPopupTime < 2.5f)
             return;
@@ -802,37 +805,36 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         popupQueue.Enqueue(new PopupData { announce = announce, kind = kind, inferKind = inferKind });
 
-        // QuestVideoManager tắt cả QuestTracker (GameObject chứa script này) trong lúc chiếu video,
-        // nên không thể StartCoroutine ở đây. Cứ để popup nằm trong queue — OnEnable sẽ chạy tiếp
-        // khi QuestTracker được bật lại sau video.
         if (!isProcessingPopupQueue && gameObject.activeInHierarchy)
         {
             if (popupRoutine != null) StopCoroutine(popupRoutine);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             popupRoutine = StartCoroutine(ProcessPopupQueue());
         }
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (!isProcessingPopupQueue && popupQueue.Count > 0)
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             popupRoutine = StartCoroutine(ProcessPopupQueue());
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
-        // Unity giết coroutine khi GameObject bị tắt, nhưng cờ vẫn đang bật -> OnEnable sẽ
-        // không chạy lại và MỌI popup sau đó im lặng. Reset để lần bật lại xử lý tiếp queue.
         isProcessingPopupQueue = false;
         popupRoutine = null;
     }
 
+    // Executes process popup queue operation.
     private IEnumerator ProcessPopupQueue()
     {
         isProcessingPopupQueue = true;
 
         while (popupQueue.Count > 0)
         {
-            // Nếu video đang chiếu -> tạm dừng chờ video chiếu xong mới hiện popup hoàn thành!
             while (MysticJourney.Features.Quest.QuestVideoManager.IsVideoPlaying)
             {
                 yield return new WaitForSeconds(0.2f);
@@ -868,7 +870,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
             }
         }
 
-        // Đã hiện hết queue -> đóng popup
         if (paperPopupView != null)
             paperPopupView.Hide();
         else if (paperPopup != null)
@@ -876,10 +877,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         if (popupLayer != null && popupLayerActivatedByPaperPopup)
         {
-            // PopupLayer là container DÙNG CHUNG cho 14 popup (MapPopup, NPCPanel, ChestPanel...).
-            // Tắt cả layer vì popup quest đã xong sẽ kéo theo mọi popup khác đang mở — người chơi
-            // mở popup dịch chuyển map, ăn một popup quest, rồi popup map biến mất không lý do.
-            // Chỉ tắt khi KHÔNG còn popup nào khác đang mở.
             if (!HasOtherActivePopup())
                 popupLayer.SetActive(false);
 
@@ -890,12 +887,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         popupRoutine = null;
     }
 
-    /// <summary>
-    /// True nếu trong PopupLayer còn popup nào khác (không phải PaperPopup) đang bật.
-    /// Xét activeSelf của con trực tiếp: mọi popup ở đây đều là sibling và tự bật/tắt chính nó,
-    /// nên đó đúng là "đang mở" — không dùng activeInHierarchy vì lúc gọi hàm này layer có thể
-    /// vẫn đang bật và ta cần biết trạng thái riêng của từng popup.
-    /// </summary>
+    // Executes has other active popup operation.
+    // Evaluates conditions and returns a boolean result.
     private bool HasOtherActivePopup()
     {
         if (popupLayer == null) return false;
@@ -919,6 +912,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
     }
 
 
+    // Executes matches filter operation.
     private bool MatchesFilter(PlayerQuestResponse quest)
     {
         if (string.Equals(filter, "InProgress", StringComparison.OrdinalIgnoreCase))
@@ -929,6 +923,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return true;
     }
 
+    // Executes get or create quest slot operation.
     private UIQuestListItem GetOrCreateQuestSlot(int index)
     {
         if (index < questSlots.Count)
@@ -941,6 +936,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         slotObj.transform.localScale = Vector3.one;
         slotObj.name = $"QuestSlot_{index + 1}";
 
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         var slot = slotObj.GetComponent<UIQuestListItem>();
         if (slot == null)
         {
@@ -948,15 +944,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return null;
         }
 
-        // Slot sinh sau BindUi nên AddHoverEffects không với tới; gắn ngay lúc tạo.
-        // UIQuestListItem.Bind sẽ tự AddComponent<Button> làm raycast target cho hover.
         if (slotObj.GetComponent<UIHoverScaleEffect>() == null)
             slotObj.AddComponent<UIHoverScaleEffect>();
 
         questSlots.Add(slot);
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         return slot;
     }
 
+    // Executes get or create reward slot operation.
     private UIBaseItemSlot GetOrCreateRewardSlot(int index)
     {
         if (index < rewardSlots.Count)
@@ -969,6 +965,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         slotObj.transform.localScale = Vector3.one;
         slotObj.name = $"Reward_{index + 1}";
 
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         var slot = slotObj.GetComponent<UIBaseItemSlot>();
         if (slot == null)
         {
@@ -977,9 +974,11 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
 
         rewardSlots.Add(slot);
+        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
         return slot;
     }
 
+    // Executes bind skill reward assets operation.
     private void BindSkillRewardAssets()
     {
         if (skillPanelManager == null)
@@ -989,6 +988,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             skillRewardSlotPrefab = skillPanelManager.skillItemPrefab;
     }
 
+    // Executes render skill reward operation.
     private void RenderSkillReward(RewardViewData? reward, int siblingIndex)
     {
         if (!reward.HasValue)
@@ -1043,6 +1043,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             button.interactable = false;
     }
 
+    // Executes find reward skill data operation.
     private SkillData FindRewardSkillData(int? skillId, string skillName)
     {
         BindSkillRewardAssets();
@@ -1061,6 +1062,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             skill != null && string.Equals(skill.name, skillName, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Executes ensure reward content layout operation.
     private void EnsureRewardContentLayout()
     {
         if (rewardItemsContainer == null)
@@ -1080,6 +1082,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         layout.childForceExpandHeight = false;
     }
 
+    // Executes ensure quest list content layout operation.
     private void EnsureQuestListContentLayout()
     {
         if (questListContent == null)
@@ -1105,6 +1108,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
 
+    // Executes get reward skill sprite operation.
     private Sprite GetRewardSkillSprite(PlayerQuestResponse quest, string skillName)
     {
         if (quest == null)
@@ -1121,6 +1125,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             "RewardSkill");
     }
 
+    // Executes get cached quest definition operation.
     private QuestResponse GetCachedQuestDefinition(int questId)
     {
         if (questId <= 0)
@@ -1133,6 +1138,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes ensure quest definition loaded operation.
     private void EnsureQuestDefinitionLoaded(int questId)
     {
         if (questId <= 0 || questDefinitionCache.ContainsKey(questId) || pendingQuestDefinitionRequests.Contains(questId))
@@ -1157,6 +1163,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             });
     }
 
+    // Executes resolve icon sprite operation.
     private Sprite ResolveIconSprite(string remoteUrl, bool remoteFirst, params string[] localKeys)
     {
         if (remoteFirst)
@@ -1180,6 +1187,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes get local sprite operation.
+    // Validates input parameters against null or empty values.
     private Sprite GetLocalSprite(params string[] ids)
     {
         if (ids == null || ItemIconDatabase.Instance == null)
@@ -1198,6 +1207,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes get remote sprite operation.
+    // Validates input parameters against null or empty values.
     private Sprite GetRemoteSprite(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -1216,6 +1227,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes first non empty operation.
+    // Validates input parameters against null or empty values.
     private static string FirstNonEmpty(params string[] values)
     {
         if (values == null)
@@ -1230,6 +1243,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes get quest manager operation.
+    // Validates input parameters against null or empty values.
     private static QuestUIManager GetQuestManager()
     {
         if (QuestUIManager.Instance != null)
@@ -1246,6 +1261,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes bind filter button operation.
+    // Validates input parameters against null or empty values.
     private void BindFilterButton(string objectName, string filterValue, string label)
     {
         if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
@@ -1257,16 +1274,9 @@ public class MainQuestPanelRuntime : MonoBehaviour
 
         SetText(FindButtonLabel(target), label);
 
-        // Filter buttons trong TopBar là Toggle (có selectedSprite = FilterActive), không phải
-        // Button. Toggle nuốt pointer click nên onClick không bao giờ chạy — phải listen
-        // onValueChanged và chỉ đổi filter khi toggle bật.
         var toggle = target.GetComponent<Toggle>();
         if (toggle != null)
         {
-            // KHÔNG dùng ToggleGroup: 3 toggle trong scene đều lưu m_IsOn = 0, còn
-            // UpdateFilterHighlights đồng bộ bằng SetIsOnWithoutNotify (không báo cho group)
-            // → group với allowSwitchOff = false rơi vào trạng thái "không có toggle nào bật"
-            // và ăn luôn click tiếp theo. Trạng thái radio tự quản qua filterToggles là đủ.
             toggle.group = null;
 
             filterToggles[filterValue] = toggle;
@@ -1278,7 +1288,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 if (isOn)
                     SetFilter(filterValue);
                 else
-                    UpdateFilterHighlights(); // click lại tab đang bật → giữ nguyên filter, bật lại toggle
+                    UpdateFilterHighlights();
             });
         }
         else
@@ -1291,6 +1301,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             filterHighlights[filterValue] = highlight;
     }
 
+    // Executes update filter highlights operation.
     private void UpdateFilterHighlights()
     {
         foreach (var pair in filterHighlights)
@@ -1303,8 +1314,6 @@ public class MainQuestPanelRuntime : MonoBehaviour
                 pair.Value.SetActive(active);
         }
 
-        // Đồng bộ toggle khi filter đổi bằng code (vd OpenQuestPanelForReward set "Completed").
-        // SetIsOnWithoutNotify để không trigger lại listener → tránh vòng lặp / filter đúp.
         foreach (var pair in filterToggles)
         {
             if (pair.Value == null)
@@ -1316,6 +1325,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         }
     }
 
+    // Executes bind panel button operation.
+    // Validates input parameters against null or empty values.
     private void BindPanelButton(string objectName, UnityEngine.Events.UnityAction action, string label = null)
     {
         if (questPanel == null || string.IsNullOrWhiteSpace(objectName))
@@ -1327,6 +1338,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             SetText(FindButtonLabel(target), label);
     }
 
+    // Executes bind button operation.
     private static Button BindButton(GameObject target, UnityEngine.Events.UnityAction action)
     {
         if (target == null)
@@ -1347,19 +1359,16 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return button;
     }
 
-    // Quest NotStarted: bước hiện tại là đi gặp NPC, chưa phải mục tiêu Collect/Defeat.
-    // Tracker và panel chi tiết dùng chung câu này để không nói hai điều khác nhau về cùng một quest.
+    // Executes accept prompt line operation.
     private static string AcceptPromptLine(PlayerQuestResponse quest)
     {
-        // Quest kế tiếp có thể ở map khác (claim 20 ở AutumnPumpkin → 21 ở FrozenMountain).
-        // Nói "Talk to Roselyn Aurora Queen" khi bà ở map khác là chỉ sai đường: việc cần làm
-        // trước là ra Thuyền/cổng để sang map đó — đúng thứ mũi tên đang chỉ vào.
         if (QuestUtils.IsQuestOnDifferentMap(quest))
             return $"Travel to {Safe(quest?.MapName, "the next area")}";
 
         return $"Talk to {Safe(quest?.QuestGiverName, "Quest Giver")}";
     }
 
+    // Executes objective text line operation.
     private static string ObjectiveTextLine(PlayerQuestResponse quest)
     {
         if (quest == null)
@@ -1374,6 +1383,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return $"{objective}: {targetName} at {location}";
     }
 
+    // Executes reward skill label operation.
+    // Validates input parameters against null or empty values.
     private static string RewardSkillLabel(PlayerQuestResponse quest)
     {
         if (quest == null)
@@ -1384,11 +1395,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
             : quest.RewardSkillId.HasValue ? $"Skill #{quest.RewardSkillId.Value}" : string.Empty;
     }
 
+    // Executes safe operation.
+    // Validates input parameters against null or empty values.
     private static string Safe(string value, string fallback)
     {
         return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 
+    // Executes find scene object operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindSceneObject(string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -1402,6 +1417,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes find descendant operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindDescendant(Transform root, string objectName)
     {
         if (root == null || string.IsNullOrWhiteSpace(objectName))
@@ -1417,6 +1434,8 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return null;
     }
 
+    // Executes find text slot operation.
+    // Validates input parameters against null or empty values.
     private static TextSlot FindTextSlot(Transform root, string name1, string name2 = null, string name3 = null, string name4 = null)
     {
         if (root == null)
@@ -1426,14 +1445,17 @@ public class MainQuestPanelRuntime : MonoBehaviour
         for (var i = 0; i < names.Length; i++)
         {
             var child = FindDescendant(root, names[i]);
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = TextSlot.From(child);
             if (slot.IsValid)
+                // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                 return slot;
         }
 
         return default;
     }
 
+    // Executes find button label operation.
     private static TextSlot FindButtonLabel(GameObject buttonObject)
     {
         if (buttonObject == null)
@@ -1442,13 +1464,16 @@ public class MainQuestPanelRuntime : MonoBehaviour
         return FindTextSlot(buttonObject.transform, "Text (TMP)", "Text", "Label", "TitleText");
     }
 
+    // Executes set text operation.
     private static void SetText(TextSlot slot, string value)
     {
         slot.Set(value);
     }
 
+    // Executes reward view data operation.
     private readonly struct RewardViewData
     {
+        // Executes reward view data operation.
         public RewardViewData(string name, string amount, Sprite sprite, bool isSkill = false, int? skillId = null)
         {
             Name = name;
@@ -1458,10 +1483,15 @@ public class MainQuestPanelRuntime : MonoBehaviour
             SkillId = skillId;
         }
 
+        // Executes name operation.
         public string Name { get; }
+        // Executes amount operation.
         public string Amount { get; }
+        // Executes sprite operation.
         public Sprite Sprite { get; }
+        // Executes is skill operation.
         public bool IsSkill { get; }
+        // Executes skill id operation.
         public int? SkillId { get; }
     }
 
@@ -1470,14 +1500,17 @@ public class MainQuestPanelRuntime : MonoBehaviour
         private readonly TMP_Text tmp;
         private readonly Text text;
 
+        // Executes text slot operation.
         public TextSlot(TMP_Text tmp, Text text)
         {
             this.tmp = tmp;
             this.text = text;
         }
 
+        // Executes is valid operation.
         public bool IsValid => tmp != null || text != null;
 
+        // Executes from operation.
         public static TextSlot From(GameObject target)
         {
             if (target == null)
@@ -1486,6 +1519,7 @@ public class MainQuestPanelRuntime : MonoBehaviour
             return new TextSlot(target.GetComponent<TMP_Text>(), target.GetComponent<Text>());
         }
 
+        // Executes set operation.
         public void Set(string value)
         {
             if (tmp != null)
@@ -1506,16 +1540,19 @@ public class MainQuestPanelRuntime : MonoBehaviour
             }
         }
 
+        // Executes equals operation.
         public bool Equals(TextSlot other)
         {
             return tmp == other.tmp && text == other.text;
         }
 
+        // Executes equals operation.
         public override bool Equals(object obj)
         {
             return obj is TextSlot other && Equals(other);
         }
 
+        // Executes get hash code operation.
         public override int GetHashCode()
         {
             unchecked

@@ -2,12 +2,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+// Executes mono behaviour operation.
 public class MonsterHealthUI : MonoBehaviour
 {
     [SerializeField] private EnemyEntity enemyEntity;
     [SerializeField] private Image hpFillImage;
     [SerializeField] private TextMeshProUGUI hpText;
 
+    // Initializes internal component caches and dependencies for MonsterHealthUI upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (enemyEntity == null)
@@ -20,6 +23,8 @@ public class MonsterHealthUI : MonoBehaviour
         }
     }
 
+    // Performs startup initialization for MonsterHealthUI on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (enemyEntity != null)
@@ -28,32 +33,33 @@ public class MonsterHealthUI : MonoBehaviour
         }
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (enemyEntity != null)
         {
             enemyEntity.OnHealthChanged += UpdateHealthUI;
-            // Đăng ký thêm sự kiện khi chết
             enemyEntity.OnDeath += HideUI;
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (enemyEntity != null)
         {
             enemyEntity.OnHealthChanged -= UpdateHealthUI;
-            // Hủy đăng ký sự kiện khi chết
             enemyEntity.OnDeath -= HideUI;
         }
     }
 
+    // Executes late update operation.
     private void LateUpdate()
     {
-        // Giữ thanh máu luôn xoay đúng hướng, không bị lật khi quái quay đầu (quay Y 180 độ)
         transform.rotation = Quaternion.identity;
     }
 
+    // Executes update health ui operation.
     private void UpdateHealthUI(int currentHp, int maxHp)
     {
         if (hpFillImage != null)
@@ -67,7 +73,7 @@ public class MonsterHealthUI : MonoBehaviour
         }
     }
 
-    // Hàm mới: Ẩn nguyên cái Canvas khi quái ngỏm
+    // Executes hide ui operation.
     private void HideUI(object sender, System.EventArgs e)
     {
         gameObject.SetActive(false);

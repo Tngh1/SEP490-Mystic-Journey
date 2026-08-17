@@ -1,9 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Component điều khiển chiêu/đạn đánh thường bay ra từ quái đánh xa.
-/// Gây sát thương khi trúng Player và tự nổ/huỷ khi đâm vào tường hoặc vật cản môi trường.
-/// </summary>
+// Executes mono behaviour operation.
 public class EnemyNormalAttackProjectile : MonoBehaviour
 {
     [Tooltip("Hiệu ứng nổ/va chạm khi đạn chạm người chơi hoặc tường vật cản (nếu có)")]
@@ -17,6 +14,7 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
     private float _lifeTime = 3.5f;
     private bool _initialized = false;
 
+    // Executes setup operation.
     public void Setup(Vector3 direction, float speed, int damage, bool isCrit, float critMultiplier)
     {
         _direction = direction.sqrMagnitude > 0.001f ? direction.normalized : Vector3.right;
@@ -32,30 +30,33 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
         transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
     }
 
+    // Per-frame update loop for EnemyNormalAttackProjectile.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (!_initialized) return;
         transform.position += _direction * (_speed * Time.deltaTime);
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision == null) return;
         HandleHit(collision.gameObject, collision.isTrigger);
     }
 
+    // Executes on collision enter2 d operation.
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision == null) return;
         HandleHit(collision.gameObject, false);
     }
 
+    // Executes handle hit operation.
     private void HandleHit(GameObject hitObj, bool isTrigger)
     {
-        // 1. Bỏ qua va chạm với quái/kẻ địch/spawner
         if (hitObj.GetComponent<EnemyEntity>() != null || hitObj.GetComponent<EnemyBehaviour>() != null || hitObj.layer == LayerMask.NameToLayer("Ignore Raycast")) return;
 
-        // 2. Nếu là Player -> Gây sát thương, tạo hiệu ứng va chạm và huỷ đạn
         if (hitObj.CompareTag("Player"))
         {
             SpawnImpactEffect();
@@ -64,7 +65,6 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
             return;
         }
 
-        // 3. Nếu chạm phải vật thể cản cứng (Tường, Đá, Cây, Tilemap, Object môi trường...) không phải Trigger
         if (!isTrigger)
         {
             SpawnImpactEffect();
@@ -72,6 +72,7 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
         }
     }
 
+    // Executes spawn impact effect operation.
     private void SpawnImpactEffect()
     {
         if (impactEffectPrefab != null)
@@ -80,6 +81,7 @@ public class EnemyNormalAttackProjectile : MonoBehaviour
         }
     }
 
+    // Executes deal damage operation.
     private void DealDamage(GameObject playerObj)
     {
         if (EnemySkillVisualReplica.IsReplica(this)) return;

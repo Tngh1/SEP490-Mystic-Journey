@@ -7,6 +7,8 @@ namespace MysticJourney.API.Endpoints
 {
     public class WikiApi : BaseApiService<WikiApi>
     {
+        // ─── Guest APIs ───────────────────────────────────────────────────────
+        // Load classes using on success and on error; it sends the GET API request and guards invalid or unavailable states.
         public void GetClasses(
             Action<List<ClassConfigDTO>> onSuccess,
             Action<ApiException> onError)
@@ -16,7 +18,7 @@ namespace MysticJourney.API.Endpoints
                 ApiConfig.WikiClasses,
                 response =>
                 {
-                    if (response != null)
+                    if (response != null)  // Entity exists — proceed with conditional branch
                     {
                         SafeDebugLog($"GetClasses OK | Count={response.Count}");
                         onSuccess?.Invoke(response);

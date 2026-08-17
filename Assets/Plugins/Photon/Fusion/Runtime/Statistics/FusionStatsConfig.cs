@@ -5,8 +5,10 @@ namespace Fusion.Statistics {
   using UnityEngine.Serialization;
   using UnityEngine.UI;
 
+  // Executes mono behaviour operation.
   public class FusionStatsConfig : MonoBehaviour {
     
+    // Executes is world anchored operation.
     public bool IsWorldAnchored => _worldTransformAnchor != null;
 
     [SerializeField] private Button _worldAnchorButtonPrefab;
@@ -23,25 +25,29 @@ namespace Fusion.Statistics {
     private static List<Transform> _worldAnchorCandidates = new List<Transform>();
     private static event Action _onWorldAnchorCandidatesUpdate;
 
+    // Executes set world anchor candidate operation.
     internal static void SetWorldAnchorCandidate(Transform candidate, bool register) {
       if (register) {
         if (_worldAnchorCandidates.Contains(candidate) == false)
           _worldAnchorCandidates.Add(candidate);
       } else {
-        _worldAnchorCandidates.Remove(candidate);
+        _worldAnchorCandidates.Remove(candidate);  // Mark entity for deletion in the next SaveChanges call
       }
       
       _onWorldAnchorCandidatesUpdate?.Invoke();
     }
 
+    // Executes setup statistic reference operation.
     internal void SetupStatisticReference(FusionStatistics fusionStatistics) {
       _fusionStatistics = fusionStatistics;
     }
 
+    // Executes toggle config panel operation.
     public void ToggleConfigPanel() {
       _configPanel.SetActive(!_configPanel.activeSelf);
     }
 
+    // Executes toggle use world anchor operation.
     public void ToggleUseWorldAnchor(bool value) {
       // If true, the buttons will trigger the re-parenting logic.
       if (value == false) {
@@ -49,6 +55,7 @@ namespace Fusion.Statistics {
       }
     }
     
+    // Executes set world anchor operation.
     internal void SetWorldAnchor(Transform worldTransformAnchor) {
       _canvas.renderMode = RenderMode.WorldSpace;
       _renderPanelRectTransform.localScale = Vector3.one * _worldCanvasScale;
@@ -61,10 +68,12 @@ namespace Fusion.Statistics {
       _renderPanelRectTransform.localPosition = Vector3.zero;
     }
 
+    // Executes set world canvas scale operation.
     public void SetWorldCanvasScale(float value) {
       _worldCanvasScale = value;
     }
 
+    // Executes reset to canvas anchor operation.
     internal void ResetToCanvasAnchor() {
       // Was called from editor destroy
       if (!_fusionStatistics)
@@ -81,6 +90,7 @@ namespace Fusion.Statistics {
       _worldTransformAnchor = default;
     }
 
+    // Executes update world anchor buttons operation.
     private void UpdateWorldAnchorButtons() {
       // Clear all old buttons, ok because it should not be frequent
       for (int i = _worldAnchorListContainer.childCount-1; i >= 0 ; i--) {
@@ -94,12 +104,16 @@ namespace Fusion.Statistics {
       }
     }
 
+    // Callback invoked when FusionStatsConfig becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     private void OnEnable() {
       _onWorldAnchorCandidatesUpdate -= UpdateWorldAnchorButtons;
       _onWorldAnchorCandidatesUpdate += UpdateWorldAnchorButtons;
       UpdateWorldAnchorButtons();
     }
 
+    // Cleanup callback executed when FusionStatsConfig is destroyed.
+    // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
     private void OnDestroy() {
       _onWorldAnchorCandidatesUpdate -= UpdateWorldAnchorButtons;
     }

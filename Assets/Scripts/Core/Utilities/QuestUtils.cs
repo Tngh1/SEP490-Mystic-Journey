@@ -5,8 +5,11 @@ using UnityEngine;
 
 namespace MysticJourney.Core.Utilities
 {
+    // Initializes a new default instance of the QuestUtils class.
     public static class QuestUtils
     {
+        // Executes normalize main quests operation.
+        // Validates input parameters against null or empty values.
         public static List<PlayerQuestResponse> NormalizeMainQuests(IEnumerable<PlayerQuestResponse> source)
         {
             string currentMap = WorldState.CurrentMapName ?? string.Empty;
@@ -27,6 +30,8 @@ namespace MysticJourney.Core.Utilities
                 .ToList();
         }
 
+        // Executes pick preferred quest operation.
+        // Validates input parameters against null or empty values.
         public static PlayerQuestResponse PickPreferredQuest(IEnumerable<PlayerQuestResponse> source)
         {
             var quests = source?.Where(q => q != null && !IsStatus(q, "Claimed")).ToList() ?? new List<PlayerQuestResponse>();
@@ -41,24 +46,18 @@ namespace MysticJourney.Core.Utilities
                 return IsSameMap(q.MapName, currentMap);
             }
 
-            // Ưu tiên theo thứ tự tiến trình nghiêm ngặt (ưu tiên QuestId nhỏ nhất của Main Quest):
-            // 1. Quần thể InProgress trên map hiện tại (QuestId nhỏ nhất)
             var inProgressCurrent = quests.Where(q => IsStatus(q, "InProgress") && IsOnCurrentMap(q)).OrderBy(q => q.QuestId).FirstOrDefault();
             if (inProgressCurrent != null) return inProgressCurrent;
 
-            // 2. Completed (chờ trả) trên map hiện tại (QuestId nhỏ nhất)
             var completedCurrent = quests.Where(q => IsStatus(q, "Completed") && IsOnCurrentMap(q)).OrderBy(q => q.QuestId).FirstOrDefault();
             if (completedCurrent != null) return completedCurrent;
 
-            // 3. InProgress trên bất kỳ map nào (QuestId nhỏ nhất)
             var inProgressAny = quests.Where(q => IsStatus(q, "InProgress")).OrderBy(q => q.QuestId).FirstOrDefault();
             if (inProgressAny != null) return inProgressAny;
 
-            // 4. Completed trên bất kỳ map nào (QuestId nhỏ nhất)
             var completedAny = quests.Where(q => IsStatus(q, "Completed")).OrderBy(q => q.QuestId).FirstOrDefault();
             if (completedAny != null) return completedAny;
 
-            // 5. NotStarted (chưa nhận) - luôn chọn QuestId nhỏ nhất của map hiện tại
             var notStartedCurrent = quests.Where(q => IsOnCurrentMap(q)).OrderBy(q => q.QuestId).FirstOrDefault();
             if (notStartedCurrent != null) return notStartedCurrent;
 
@@ -66,15 +65,15 @@ namespace MysticJourney.Core.Utilities
         }
 
 
+        // Executes find same quest operation.
+        // Validates input parameters against null or empty values.
         public static PlayerQuestResponse FindSameQuest(IEnumerable<PlayerQuestResponse> source, PlayerQuestResponse target)
         {
             if (target == null) return null;
             return source?.FirstOrDefault(q => q != null && q.QuestId == target.QuestId);
         }
 
-        // Tên map tồn tại ở 2 định dạng: BE Quest.MapName / WorldState.CurrentMapName là tên scene
-        // liền ("FrozenMountain"), còn MapData.mapName có dấu cách ("Frozen Mountain"). So thô luôn
-        // trượt, nên bỏ dấu cách/gạch trước khi so.
+        // Normalizes world map names and maps aliases (such as ElfForest) to canonical map identifiers.
         public static string NormalizeMapName(string name)
         {
             return string.IsNullOrWhiteSpace(name)
@@ -82,6 +81,8 @@ namespace MysticJourney.Core.Utilities
                 : name.Replace(" ", string.Empty).Replace("_", string.Empty).Replace("-", string.Empty);
         }
 
+        // Executes is same map operation.
+        // Validates input parameters against null or empty values.
         public static bool IsSameMap(string a, string b)
         {
             string na = NormalizeMapName(a), nb = NormalizeMapName(b);
@@ -90,7 +91,9 @@ namespace MysticJourney.Core.Utilities
                    nb.IndexOf(na, System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        // true nếu quest thuộc map KHÁC map người chơi đang đứng (phải đi sang map khác mới làm được).
+        // Executes is quest on different map operation.
+        // Validates input parameters against null or empty values.
+        // Evaluates conditions and returns a boolean result.
         public static bool IsQuestOnDifferentMap(PlayerQuestResponse quest)
         {
             if (quest == null || string.IsNullOrWhiteSpace(quest.MapName)) return false;
@@ -99,6 +102,9 @@ namespace MysticJourney.Core.Utilities
             return !IsSameMap(quest.MapName, currentMap);
         }
 
+        // Executes is main quest operation.
+        // Validates input parameters against null or empty values.
+        // Evaluates conditions and returns a boolean result.
         public static bool IsMainQuest(PlayerQuestResponse quest)
         {
             if (quest == null) return false;
@@ -113,11 +119,13 @@ namespace MysticJourney.Core.Utilities
                    normalized.IndexOf("Main", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        // Executes is status operation.
         public static bool IsStatus(PlayerQuestResponse quest, string status)
         {
             return quest != null && string.Equals(quest.Status, status, System.StringComparison.OrdinalIgnoreCase);
         }
 
+        // Executes quest status priority operation.
         public static int QuestStatusPriority(PlayerQuestResponse quest)
         {
             if (IsStatus(quest, "InProgress")) return 0;
@@ -127,6 +135,7 @@ namespace MysticJourney.Core.Utilities
             return 4;
         }
 
+        // Executes is auto complete quest operation.
         public static bool IsAutoCompleteQuest(string objectiveType)
         {
             var t = objectiveType ?? "";
@@ -139,6 +148,7 @@ namespace MysticJourney.Core.Utilities
                    string.Equals(t, "EquipSkill",System.StringComparison.OrdinalIgnoreCase);
         }
 
+        // Executes status label operation.
         public static string StatusLabel(PlayerQuestResponse quest)
         {
             if (quest == null) return "Unknown";
@@ -152,22 +162,9 @@ namespace MysticJourney.Core.Utilities
             };
         }
 
-        // ─── Nhận diện mục tiêu nhiệm vụ (dùng chung) ────────────────────────────────
-        // BE chỉ mô tả mục tiêu bằng CHUỖI: PlayerQuestResponse có ObjectiveType /
-        // ObjectiveTarget / ObjectiveLocation và KHÔNG có ObjectiveTargetId. Vì vậy client
-        // buộc phải tự suy ra "object nào là của nhiệm vụ", và mỗi nơi tự viết luật so tên
-        // riêng thì mũi tên (QuestWaypointManager) có thể chỉ vào vật mà cổng tương tác
-        // (PlayerWorldInteractor) từ chối. Ba hàm dưới là bộ so khớp duy nhất cho cả hai.
-        //
-        // ponytail: so theo tên vẫn chỉ là phỏng đoán — hai vật cùng tên thì không cách nào
-        // phân biệt. Cách dứt điểm là BE trả thêm ObjectiveTargetId (hoặc ObjectKey) trong
-        // PlayerQuestResponse; khi có field đó thì so id ở đây và xoá hẳn nhánh so tên.
 
-        /// <summary>
-        /// Bỏ mọi ký tự không phải chữ/số rồi hạ chữ thường. ObjectiveTarget là văn xuôi
-        /// ("Natalie's Memory") còn ObjectKey bị nén ("AbandonedCastle.Natalie'sMemory"),
-        /// nên so thô trượt ngay ở dấu cách/dấu nháy.
-        /// </summary>
+        // Executes normalize identity operation.
+        // Validates input parameters against null or empty values.
         public static string NormalizeIdentity(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return string.Empty;
@@ -182,11 +179,8 @@ namespace MysticJourney.Core.Utilities
             return builder.ToString();
         }
 
-        /// <summary>
-        /// Chỉ những ObjectiveType mà một vật thể trong thế giới có thể hoàn thành.
-        /// Talk/Defeat/Explore có target là tên NPC / tên quái / tên map, so tên với chúng
-        /// sẽ khớp bừa vào đồ trang trí.
-        /// </summary>
+        // Executes is world objective operation.
+        // Evaluates conditions and returns a boolean result.
         public static bool IsWorldObjective(PlayerQuestResponse quest)
         {
             if (quest == null) return false;
@@ -197,10 +191,8 @@ namespace MysticJourney.Core.Utilities
                    string.Equals(quest.ObjectiveType, "Fetch", System.StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Vật thể này có mang đúng tên mục tiêu không. Ngưỡng 4 ký tự là bắt buộc: mục tiêu
-        /// ngắn hơn thế khớp với nửa scene.
-        /// </summary>
+        // Executes target matches operation.
+        // Evaluates conditions and returns a boolean result.
         public static bool TargetMatches(string objectiveTarget, string objectKey, string displayName)
         {
             var target = NormalizeIdentity(objectiveTarget);
@@ -209,9 +201,8 @@ namespace MysticJourney.Core.Utilities
             return Contains(NormalizeIdentity(objectKey), target) ||
                    Contains(NormalizeIdentity(displayName), target);
 
-            // Chiều ngược (mục tiêu chứa tên vật) là nguồn khớp bừa chính: tên vật ngắn như
-            // "tree", "box", "cay" nằm trong hàng chục mục tiêu khác nhau. Chỉ cho phép
-            // containment khi cả hai phía đủ dài; ngắn hơn thì buộc phải trùng khít.
+            // Executes contains operation.
+            // Evaluates conditions and returns a boolean result.
             static bool Contains(string candidate, string target)
             {
                 if (candidate.Length == 0) return false;
@@ -220,10 +211,12 @@ namespace MysticJourney.Core.Utilities
             }
         }
 
+        // Executes objective line operation.
         public static string ObjectiveLine(PlayerQuestResponse quest)
         {
             if (quest == null) return string.Empty;
 
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             int current = Mathf.Clamp(quest.Progress, 0, Mathf.Max(1, quest.TargetAmount));
             int target = Mathf.Max(1, quest.TargetAmount);
             var objective = quest.ObjectiveType ?? "Explore";
@@ -232,6 +225,7 @@ namespace MysticJourney.Core.Utilities
             return $"{objective}: {targetName} at {location}  {current}/{target}";
         }
 
+        // Executes reward line operation.
         public static string RewardLine(PlayerQuestResponse quest)
         {
             if (quest == null) return string.Empty;

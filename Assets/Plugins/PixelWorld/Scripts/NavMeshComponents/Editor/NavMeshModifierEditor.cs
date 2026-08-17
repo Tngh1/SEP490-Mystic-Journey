@@ -23,6 +23,7 @@ namespace NavMeshPlus.Components.Editors
 
 
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();

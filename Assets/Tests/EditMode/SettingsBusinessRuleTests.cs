@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace MysticJourney.Tests.EditMode
 {
+    // Initializes a new default instance of the SettingsBusinessRuleTests class.
     public sealed class SettingsBusinessRuleTests
     {
         private const string MasterVolumeKey = "mj_setting_master_vol";
@@ -12,6 +13,7 @@ namespace MysticJourney.Tests.EditMode
         private const string ResolutionKey = "mj_setting_resolution";
 
         [TearDown]
+        // Executes tear down operation.
         public void TearDown()
         {
             PlayerPrefs.DeleteKey(MasterVolumeKey);
@@ -21,6 +23,7 @@ namespace MysticJourney.Tests.EditMode
         }
 
         [Test]
+        // Executes br057_persistent settings load from local player prefs operation.
         public void BR057_PersistentSettingsLoadFromLocalPlayerPrefs()
         {
             PlayerPrefs.SetFloat(MasterVolumeKey, 0.35f);
@@ -41,6 +44,7 @@ namespace MysticJourney.Tests.EditMode
         }
 
         [Test]
+        // Executes br057_graphics settings are not saved to player prefs operation.
         public void BR057_GraphicsSettingsAreNotSavedToPlayerPrefs()
         {
             var service = GetSettingsService();
@@ -55,6 +59,7 @@ namespace MysticJourney.Tests.EditMode
         }
 
         [Test]
+        // Executes br057_volume loaded from local storage is not server gameplay state operation.
         public void BR057_VolumeLoadedFromLocalStorageIsNotServerGameplayState()
         {
             PlayerPrefs.SetFloat(MasterVolumeKey, 1.5f);
@@ -68,18 +73,22 @@ namespace MysticJourney.Tests.EditMode
                 Has.None.Matches<FieldInfo>(field => field.FieldType.Name.Contains("Api", StringComparison.OrdinalIgnoreCase)));
         }
 
+        // Executes get settings service operation.
         private static object GetSettingsService()
         {
             var type = Type.GetType("SettingsService, Assembly-CSharp", throwOnError: true);
             return type.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);
         }
 
+        // Executes invoke operation.
         private static void Invoke(object target, string methodName)
             => target.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance).Invoke(target, null);
 
+        // Executes invoke operation.
         private static void Invoke(object target, string methodName, object argument)
             => target.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance).Invoke(target, new[] { argument });
 
+        // Process the supplied values: maps the input discriminator to the corresponding domain value and fallback.
         private static T GetProperty<T>(object target, string propertyName)
             => (T)target.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance).GetValue(target);
     }

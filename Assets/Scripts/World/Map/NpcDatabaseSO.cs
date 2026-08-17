@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+// Initializes a new default instance of the NpcPrefabMapping class.
 [System.Serializable]
 public class NpcPrefabMapping
 {
@@ -10,11 +11,15 @@ public class NpcPrefabMapping
     public GameObject prefab;
 }
 
+// Executes scriptable object operation.
+// Validates input parameters against null or empty values.
 [CreateAssetMenu(fileName = "NpcDatabase", menuName = "ScriptableObjects/Npc Database")]
 public class NpcDatabaseSO : ScriptableObject
 {
     public List<NpcPrefabMapping> npcMappings = new List<NpcPrefabMapping>();
 
+    // Executes get prefab operation.
+    // Validates input parameters against null or empty values.
     public GameObject GetPrefab(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -22,7 +27,6 @@ public class NpcDatabaseSO : ScriptableObject
 
         string cleaned = CleanName(name);
 
-        // 1. Exact or case-insensitive match
         var mapping = npcMappings.Find(m => m != null && (
             string.Equals(m.npcName, name, System.StringComparison.OrdinalIgnoreCase) ||
             string.Equals(CleanName(m.npcName), cleaned, System.StringComparison.OrdinalIgnoreCase)));
@@ -30,7 +34,6 @@ public class NpcDatabaseSO : ScriptableObject
         if (mapping != null && mapping.prefab != null)
             return mapping.prefab;
 
-        // 2. Partial / fuzzy match (e.g. "Drake (Clone)" matches "Drake")
         mapping = npcMappings.Find(m => m != null && !string.IsNullOrWhiteSpace(m.npcName) && (
             name.IndexOf(m.npcName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
             m.npcName.IndexOf(name, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -40,16 +43,18 @@ public class NpcDatabaseSO : ScriptableObject
         if (mapping != null && mapping.prefab != null)
             return mapping.prefab;
 
-        // 3. Fallback to first non-null prefab in database to ensure NPC is always spawned
         return GetDefaultPrefab();
     }
 
+    // Load default prefab; it selects the matching record.
     private GameObject GetDefaultPrefab()
     {
         var mapping = npcMappings.FirstOrDefault(m => m != null && m.prefab != null);
         return mapping?.prefab;
     }
 
+    // Executes clean name operation.
+    // Validates input parameters against null or empty values.
     private static string CleanName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "";

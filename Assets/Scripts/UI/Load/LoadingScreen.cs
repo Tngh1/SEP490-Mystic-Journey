@@ -2,20 +2,11 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Bật/tắt scene "Loading" cho các lần đổi scene lúc đang chơi (qua cổng map, vào/ra dungeon).
-/// Dùng lại đúng scene + <see cref="BootstrapLoadingUI"/> mà GameBootstrap đã dùng, nên không có
-/// UI riêng phải bảo trì; ở đây chỉ load additive rồi unload.
-/// </summary>
+// Initializes a new default instance of the LoadingScreen class.
 public static class LoadingScreen
 {
-    /// <summary>
-    /// Public để các vòng lặp "unload mọi scene lạ" (DungeonManager) biết mà chừa scene này ra —
-    /// nếu không nó unload luôn màn hình loading đang che, lộ scene trống.
-    /// </summary>
     public const string SceneName = "Loading";
 
-    /// <summary>Scene nội bộ có thể load xong trong 1-2 frame; giữ tối thiểu để không bị nháy.</summary>
     private const float MinSeconds = 0.35f;
 
     private static float _shownAt;
@@ -23,14 +14,13 @@ public static class LoadingScreen
     private static AsyncOperation _unloadOperation;
 
 
+    // Executes show operation.
     public static IEnumerator Show(string status = "Loading map...")
     {
         LoadingProgress.Reset();
         LoadingProgress.Report(0.05f, status);
         _shownAt = Time.unscaledTime;
 
-        // A new transition may start while the previous caller is still unloading the
-        // shared loading scene. Wait before trying to load it again.
         if (_unloadOperation != null)
         {
             var pendingUnload = _unloadOperation;
@@ -43,8 +33,6 @@ public static class LoadingScreen
         if (scene.IsValid() && scene.isLoaded)
             yield break;
 
-        // BoatVoyageSequence and MapSceneController can request the overlay in the
-        // same frame. Share one AsyncOperation instead of loading the additive scene twice.
         if (_loadOperation == null)
             _loadOperation = SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Additive);
 
@@ -56,11 +44,11 @@ public static class LoadingScreen
             _loadOperation = null;
     }
 
+    // Executes hide operation.
     public static IEnumerator Hide()
     {
         LoadingProgress.Report(1f, "Ready");
 
-        // Hide may be requested while a Show coroutine is still loading the scene.
         if (_loadOperation != null)
         {
             var pendingLoad = _loadOperation;
@@ -73,7 +61,6 @@ public static class LoadingScreen
         if (elapsed < MinSeconds)
             yield return new WaitForSecondsRealtime(MinSeconds - elapsed);
 
-        // Multiple callers must share one unload operation as well.
         if (_unloadOperation != null)
         {
             var pendingUnload = _unloadOperation;

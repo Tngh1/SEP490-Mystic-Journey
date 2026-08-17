@@ -4,11 +4,14 @@ namespace Fusion.Statistics {
   using UnityEngine;
   using UnityEngine.UI;
 
+  // Executes fusion stats graph base operation.
   public class FusionStatsGraphDefault : FusionStatsGraphBase {
+    // Executes stat operation.
     internal RenderSimStats Stat => _selectedStats;
     private RenderSimStats _selectedStats;
     [SerializeField] private Text _descriptionText;
 
+    // Executes initialize operation.
     protected override void Initialize(int accumulateTimeMs) {
       base.Initialize(accumulateTimeMs);
       _descriptionText.text = _selectedStats.ToString();
@@ -23,12 +26,14 @@ namespace Fusion.Statistics {
       AddValueToBuffer(value, ref now);
     }
 
+    // Executes apply custom stats config operation.
     public virtual void ApplyCustomStatsConfig(FusionStatistics.FusionStatisticsStatCustomConfig config) {
       SetThresholds(config.Threshold1, config.Threshold2, config.Threshold3);
       SetIgnoreZeroValues(config.IgnoreZeroOnAverageCalculation, config.IgnoreZeroOnBuffer);
       SetAccumulateTime(config.AccumulateTimeMs);
     }
 
+    // Executes setup default graph operation.
     internal void SetupDefaultGraph(RenderSimStats stat) {
       _selectedStats = stat;
 

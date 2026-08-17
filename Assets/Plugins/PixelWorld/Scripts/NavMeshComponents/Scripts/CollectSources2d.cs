@@ -6,26 +6,32 @@ using UnityEngine.Tilemaps;
 
 namespace NavMeshPlus.Extensions
 {
+    // Executes nav mesh extension operation.
     [ExecuteAlways]
     [AddComponentMenu("Navigation/Navigation CollectSources2d", 30)]
     public class CollectSources2d: NavMeshExtension
     {
         [SerializeField]
         bool m_OverrideByGrid;
+        // Executes override by grid operation.
         public bool overrideByGrid { get { return m_OverrideByGrid; } set { m_OverrideByGrid = value; } }
 
         [SerializeField]
         GameObject m_UseMeshPrefab;
+        // Executes use mesh prefab operation.
         public GameObject useMeshPrefab { get { return m_UseMeshPrefab; } set { m_UseMeshPrefab = value; } }
 
         [SerializeField]
         bool m_CompressBounds;
+        // Executes compress bounds operation.
         public bool compressBounds { get { return m_CompressBounds; } set { m_CompressBounds = value; } }
 
         [SerializeField]
         Vector3 m_OverrideVector = Vector3.one;
+        // Executes override vector operation.
         public Vector3 overrideVector { get { return m_OverrideVector; } set { m_OverrideVector = value; } }
 
+        // Executes calculate world bounds operation.
         public override void CalculateWorldBounds(NavMeshSurface surface, List<NavMeshBuildSource> sources, NavMeshBuilderState navNeshState)
         {
             if (surface.collectObjects != CollectObjects.Volume)
@@ -34,6 +40,7 @@ namespace NavMeshPlus.Extensions
             }
         }
 
+        // Executes calculate grid world bounds operation.
         private static Bounds CalculateGridWorldBounds(NavMeshSurface surface, Matrix4x4 worldToLocal, Bounds bounds)
         {
             var grid = FindObjectOfType<Grid>();
@@ -55,6 +62,7 @@ namespace NavMeshPlus.Extensions
             return bounds;
         }
 
+        // Executes collect sources operation.
         public override void CollectSources(NavMeshSurface surface, List<NavMeshBuildSource> sources, NavMeshBuilderState navNeshState)
         {
             if (!surface.hideEditorLogs)

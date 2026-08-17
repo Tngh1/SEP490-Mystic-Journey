@@ -2,13 +2,7 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-/// <summary>
-/// Networked version of <see cref="SkillAoE"/>. Spawned via Runner.Spawn so every
-/// client sees the AoE effect at the same world position. The effect stays put
-/// (position replicated once at spawn); lifetime + hit detection run only on the
-/// StateAuthority. Each enemy is damaged once; the damage number is broadcast to
-/// all clients so everyone sees it.
-/// </summary>
+// Executes network behaviour operation.
 public class NetworkSkillAoE : NetworkBehaviour
 {
     [SerializeField] private float duration = 3f;
@@ -20,9 +14,11 @@ public class NetworkSkillAoE : NetworkBehaviour
 
     private readonly HashSet<Collider2D> _damaged = new HashSet<Collider2D>();
 
-    /// <summary>Set by the caster right after Runner.Spawn (onBeforeSpawned).</summary>
+    // Executes configure operation.
     public void Configure(float damage) => Damage = damage;
 
+    // Fusion lifecycle callback invoked when this NetworkSkillAoE NetworkObject is spawned into the network session.
+    // Configures input/state authority handlers, sets singleton references if local player, and applies initial visuals.
     public override void Spawned()
     {
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
@@ -30,8 +26,6 @@ public class NetworkSkillAoE : NetworkBehaviour
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // The prefab also carries the legacy SkillAoE for offline play. Online,
-        // THIS component owns lifetime + damage, so silence the legacy one.
         var legacy = GetComponent<SkillAoE>();
         if (legacy != null) legacy.enabled = false;
 
@@ -39,6 +33,8 @@ public class NetworkSkillAoE : NetworkBehaviour
             Life = TickTimer.CreateFromSeconds(Runner, duration);
     }
 
+    // Networked fixed-step simulation tick callback executed by Photon Fusion.
+    // Processes synchronized player input, applies physics velocities, and updates authoritative gameplay mechanics.
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
@@ -47,11 +43,9 @@ public class NetworkSkillAoE : NetworkBehaviour
             Runner.Despawn(Object);
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Offline this component rides along on an Instantiate'd (never Spawned)
-        // prefab where the legacy SkillAoE owns the hit — Object is null, so bail
-        // before touching any networked state.
         if (Object == null || !Object.IsValid) return;
         if (!HasStateAuthority) return;
         if (_damaged.Contains(collision)) return;
@@ -63,6 +57,7 @@ public class NetworkSkillAoE : NetworkBehaviour
 
         _damaged.Add(collision);
 
+        // Randomize the eligible candidates before selecting this gameplay result.
         bool isCrit = Random.Range(0f, 100f) <= 20f;
         int dmg = Mathf.RoundToInt(isCrit ? Damage * 1.5f : Damage);
 
@@ -71,6 +66,7 @@ public class NetworkSkillAoE : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_show popup operation.
     private void RPC_ShowPopup(Vector3 worldPos, int amount, bool isCrit)
     {
         if (DamagePopupManager.Instance != null)

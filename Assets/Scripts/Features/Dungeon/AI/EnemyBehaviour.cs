@@ -4,6 +4,7 @@ using EnemyPatrol.Utilites;
 using System;
 using System.Collections;
 
+// Executes mono behaviour operation.
 public class EnemyBehaviour : MonoBehaviour
 {
     [SerializeField] private State startingState;
@@ -12,11 +13,8 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float roamingTimeMax = 2f;
     [SerializeField] private bool isChasingEnemy = false;
     [SerializeField] private bool isAttackingEnemy = false;
-    // Thêm biến này lên đầu class
     [SerializeField] private int attackDamage = 10;
 
-    // Crit của quái, nhận từ Monster table qua UpdateStatsFromAPI.
-    // 0 = không bao giờ crit (giữ nguyên hành vi cũ cho prefab chưa gắn MonsterId).
     [SerializeField] private int critRate = 0;
     [SerializeField] private float critDamageMultiplier = 1.5f;
     private NavMeshAgent navMeshAgent;
@@ -28,8 +26,8 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float chasingSpeedMultiplier = 2f;
     [SerializeField] private float attackDistance = 2f;
     [SerializeField] private float attackRate = 2f;
-    [SerializeField] private float leashDistance = 15f; // Quãng đường tối đa đi xa khỏi nhà
-    private bool isReturning = false; // Trạng thái đang quay về
+    [SerializeField] private float leashDistance = 15f;
+    private bool isReturning = false;
 
     [Header("Aggro & Range Settings")]
     [Tooltip("Nếu tích chọn, quái có tầm đánh xa. Nếu không tích chọn, quái cận chiến có tầm đánh rất gần (~1.4m).")]
@@ -58,7 +56,7 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private bool canCastSkill = false;
     [SerializeField] private GameObject skillPrefab;
     [SerializeField] private float skillCooldown = 7f;
-    [SerializeField] private float skillSpawnDelay = 0.5f; // Thời gian chờ để khớp với animation
+    [SerializeField] private float skillSpawnDelay = 0.5f;
     [SerializeField] private Transform skillSpawnPoint;
     private float nextSkillTime = 0f;
 
@@ -85,9 +83,9 @@ public class EnemyBehaviour : MonoBehaviour
     private float checkDirectionDuration = 0.1f;
     private Vector3 lastPosition;
 
-    // Resolve một lần mỗi frame trong Update, dùng chung cho mọi bước xử lý của frame đó.
     private Transform currentTarget;
 
+    // Executes state operation.
     private enum State
     {
         Idle,
@@ -97,18 +95,17 @@ public class EnemyBehaviour : MonoBehaviour
         Death
     }
 
+    // Performs startup initialization for EnemyBehaviour on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         startingPosition = transform.position;
         nextSkillTime = Time.time + skillCooldown;
         nextSkill2Time = Time.time + skill2Cooldown;
 
-        // Bật mặc định cơ chế tự động đuổi và đánh người chơi
         isChasingEnemy = true;
         isAttackingEnemy = true;
 
-        // CHỈ các quái trong ảnh chụp (SkeletonArcher, BlueDragonFrost, Dragon, GreenDragonForest, Ice_Dragon)
-        // hoặc khi dev cố tình tích chọn isRanged / useProjectileAttack / gán attackProjectilePrefab trên Inspector mới là quái đánh xa.
         bool rangedMonster = IsSpecificRangedMonster();
 
         if (rangedMonster)
@@ -117,20 +114,20 @@ public class EnemyBehaviour : MonoBehaviour
             useProjectileAttack = true;
             if (attackDistance <= 2.2f)
             {
-                attackDistance = 6.0f; // Gán tầm đánh xa 6m cho đúng quái đánh xa
+                attackDistance = 6.0f;
             }
         }
         else
         {
-            // Tất cả các quái khác (Golem, Slime, Demon, Ghost, Imp, Orc, SkeletonMelee, v.v.) ĐỀU LÀ CẬN CHIẾN
             isRanged = false;
             useProjectileAttack = false;
-            attackDistance = 1.4f; // Tầm đánh rất gần cho quái cận chiến
+            attackDistance = 1.4f;
         }
 
         CreateAggroIcon();
     }
 
+    // Executes is specific ranged monster operation.
     private bool IsSpecificRangedMonster()
     {
         if (isRanged || useProjectileAttack || attackProjectilePrefab != null)
@@ -138,7 +135,6 @@ public class EnemyBehaviour : MonoBehaviour
 
         string nameClean = gameObject.name.Replace("(Clone)", "").Replace(" ", "").Trim();
 
-        // Danh sách chính xác các quái đánh xa theo ảnh người dùng cung cấp:
         if (nameClean.Equals("SkeletonArcher", StringComparison.OrdinalIgnoreCase) ||
             nameClean.Equals("BlueDragonFrost", StringComparison.OrdinalIgnoreCase) ||
             nameClean.Equals("Dragon", StringComparison.OrdinalIgnoreCase) ||
@@ -153,6 +149,8 @@ public class EnemyBehaviour : MonoBehaviour
         return false;
     }
 
+    // Initializes internal component caches and dependencies for EnemyBehaviour upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
@@ -176,6 +174,7 @@ public class EnemyBehaviour : MonoBehaviour
         chasingSpeed = navMeshAgent.speed * chasingSpeedMultiplier;
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (_enemyEntity != null)
@@ -185,6 +184,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (_enemyEntity != null)
@@ -193,6 +193,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (_enemyEntity != null)
@@ -201,9 +202,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Xử lý khi quái bị người chơi/kẻ địch tấn công -> Tự động quay sang truy đuổi người tấn công
-    /// </summary>
+    // Executes handle take hit operation.
     private void HandleTakeHit(object sender, EventArgs e)
     {
         if (currentState == State.Death) return;
@@ -234,6 +233,7 @@ public class EnemyBehaviour : MonoBehaviour
         UpdateAggroIcon();
     }
 
+    // Executes create aggro icon operation.
     private void CreateAggroIcon()
     {
         if (aggroIcon != null) return;
@@ -249,17 +249,18 @@ public class EnemyBehaviour : MonoBehaviour
         aggroTextMesh.fontStyle = FontStyle.Bold;
         aggroTextMesh.alignment = TextAlignment.Center;
         aggroTextMesh.anchor = TextAnchor.MiddleCenter;
-        aggroTextMesh.color = new Color(1.0f, 0.15f, 0.15f); // Đỏ rực
+        aggroTextMesh.color = new Color(1.0f, 0.15f, 0.15f);
 
         MeshRenderer mr = aggroIcon.GetComponent<MeshRenderer>();
         if (mr != null)
         {
-            mr.sortingOrder = 30000; // Đảm bảo luôn hiển thị trên cùng (đè lên sprite quái)
+            mr.sortingOrder = 30000;
         }
 
         aggroIcon.SetActive(false);
     }
 
+    // Executes update aggro icon operation.
     private void UpdateAggroIcon()
     {
         if (aggroIcon == null) CreateAggroIcon();
@@ -268,7 +269,6 @@ public class EnemyBehaviour : MonoBehaviour
         if (currentState != State.Death && currentTarget != null)
         {
             float distanceToPlayer = Vector3.Distance(transform.position, currentTarget.position);
-            // Hiện dấu ! khi người chơi tiến vào vùng đuổi / tấn công hoặc quái đang ở trạng thái Chasing / Attack
             bool inRange = distanceToPlayer <= chasingDistance || distanceToPlayer <= attackDistance;
             bool inCombatState = currentState == State.Chasing || currentState == State.Attack;
             showIcon = inRange || inCombatState;
@@ -280,10 +280,12 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes update stats from api operation.
     public void UpdateStatsFromAPI(int apiAttack, float apiMoveSpeed, int apiCritRate = 0, int apiCritDamage = 0)
     {
         attackDamage = apiAttack;
 
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         critRate = Mathf.Clamp(apiCritRate, 0, 100);
         critDamageMultiplier = Mathf.Max(100, apiCritDamage) / 100f;
 
@@ -296,6 +298,8 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for EnemyBehaviour.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         currentTarget = FindNearestPlayer();
@@ -307,6 +311,7 @@ public class EnemyBehaviour : MonoBehaviour
         RegenerateHealthOutOfCombat();
     }
 
+    // Executes regenerate health out of combat operation.
     private void RegenerateHealthOutOfCombat()
     {
         if (_enemyEntity == null || _enemyEntity.IsDead || currentState == State.Death)
@@ -315,14 +320,12 @@ public class EnemyBehaviour : MonoBehaviour
             return;
         }
 
-        // Nếu quái đã đầy máu thì không cần hồi
         if (_enemyEntity.CurrentHealth >= _enemyEntity.MaxHealth)
         {
             regenAccumulator = 0f;
             return;
         }
 
-        // Quái thoát giao tranh khi: đang đi về (isReturning), không có player, hoặc player nằm ngoài bán kính đuổi (chasingDistance)
         bool isOutOfCombat = isReturning || currentTarget == null;
         if (!isOutOfCombat && currentTarget != null)
         {
@@ -347,6 +350,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes set death state operation.
     public void SetDeathState()
     {
         if (CanUseNavMeshAgent())
@@ -356,6 +360,7 @@ public class EnemyBehaviour : MonoBehaviour
         if (aggroIcon != null) aggroIcon.SetActive(false);
     }
 
+    // Executes state controller operation.
     private void StateController()
     {
         switch (currentState)
@@ -386,6 +391,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes chasing target operation.
     private void ChasingTarget()
     {
         if (currentTarget == null || !CanUseNavMeshAgent())
@@ -394,6 +400,7 @@ public class EnemyBehaviour : MonoBehaviour
         navMeshAgent.SetDestination(currentTarget.position);
     }
 
+    // Executes get roaming animation speed operation.
     public float GetRoamingAnimationSpeed()
     {
         if (roamingSpeed <= 0f || navMeshAgent == null)
@@ -402,33 +409,30 @@ public class EnemyBehaviour : MonoBehaviour
         return navMeshAgent.speed / roamingSpeed;
     }
 
+    // Executes check current state operation.
     private void CheckCurrentState()
     {
-        // 1. KIỂM TRA PHẠM VI (LEASH)
         float distanceFromStart = Vector3.Distance(transform.position, startingPosition);
 
         if (isReturning)
         {
-            // Nếu đã về tới gần điểm xuất phát -> Hủy trạng thái đi về, sinh hoạt bình thường
             if (distanceFromStart <= roamingDistanceMax + 1f)
             {
                 isReturning = false;
             }
             else
             {
-                // Bắt buộc ở trạng thái Roaming để đi về nhà
                 if (currentState != State.Roaming)
                 {
                     currentState = State.Roaming;
-                    roamingTime = 0f; // Kích hoạt đi dạo ngay lập tức để tìm đường về
+                    roamingTime = 0f;
                     if (CanUseNavMeshAgent()) navMeshAgent.speed = roamingSpeed;
                 }
-                return; // Ngăn chặn code đuổi theo người chơi bên dưới
+                return;
             }
         }
         else if (leashDistance > 0 && distanceFromStart > leashDistance)
         {
-            // Đi quá xa -> Bật trạng thái quay về
             isReturning = true;
             if (currentState != State.Roaming)
             {
@@ -439,7 +443,6 @@ public class EnemyBehaviour : MonoBehaviour
             return;
         }
 
-        // 2. CHECK ĐUỔI VÀ ĐÁNH (Như cũ)
         if (currentTarget == null)
             return;
 
@@ -493,41 +496,40 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes is running operation.
     public bool IsRunning
     {
         get
         {
             if (navMeshAgent == null) return false;
-            
+
             bool isMoving = navMeshAgent.velocity.magnitude > 0.05f;
             bool hasPath = (navMeshAgent.hasPath && navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance) || navMeshAgent.pathPending;
-            
+
             return isMoving || hasPath;
         }
     }
 
+    // Executes attacking target operation.
     private void AttackingTarget()
     {
         if (Time.time > nextAttackTime)
         {
-            // Báo hiệu quái đang tấn công (để bật Animation)
             OnEnemyAttack?.Invoke(this, EventArgs.Empty);
             GetComponent<NetworkEnemy>()?.NotifyAttackAnimation();
 
+            // Randomize the eligible candidates before selecting this gameplay result.
             bool isCrit = critRate > 0 && UnityEngine.Random.Range(0f, 100f) <= critRate;
 
-            // Chỉ bắn chiêu đạn bay nếu là quái thuộc danh sách đánh xa (SkeletonArcher, Dragon, v.v.)
             bool shouldShoot = isRanged && useProjectileAttack;
 
             if (shouldShoot && currentTarget != null)
             {
-                // Quái đánh xa -> Sinh ra chiêu đạn bay về phía người chơi.
-                // Sát thương KHÔNG gây ra ngay lập tức trên quái, mà tính khi chiêu đạn chạm vào người chơi!
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(SpawnAttackProjectileRoutine(currentTarget, isCrit));
             }
             else
             {
-                // Quái cận chiến -> Gây sát thương trực tiếp khi áp sát
                 DirectMeleeDamage(isCrit);
             }
 
@@ -535,6 +537,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes spawn attack projectile routine operation.
     private IEnumerator SpawnAttackProjectileRoutine(Transform target, bool isCrit)
     {
         if (attackDelay > 0f)
@@ -568,7 +571,6 @@ public class EnemyBehaviour : MonoBehaviour
         }
         else
         {
-            // Tự tạo hiệu ứng đạn bay nếu chưa gán prefab riêng trên Inspector
             projObj = new GameObject($"{gameObject.name}_Projectile");
             projObj.transform.position = spawnPos;
 
@@ -588,6 +590,7 @@ public class EnemyBehaviour : MonoBehaviour
         projLogic.Setup(dir, projectileSpeed, attackDamage, isCrit, critDamageMultiplier);
     }
 
+    // Executes direct melee damage operation.
     private void DirectMeleeDamage(bool isCrit)
     {
         if (currentTarget != null)
@@ -617,6 +620,7 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes movement direction operation.
     private void MovementDirection()
     {
         if (Time.time > nextCheckDirectionTime)
@@ -635,9 +639,9 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes check skill casting operation.
     private void CheckSkillCasting()
     {
-        // Chỉ thi triển skill khi Quái/Boss đang ở trạng thái Chasing (truy đuổi) hoặc Attack (tấn công)
         if (currentState != State.Chasing && currentState != State.Attack) return;
         if (currentTarget == null) return;
 
@@ -645,15 +649,13 @@ public class EnemyBehaviour : MonoBehaviour
 
         if (distanceToPlayer <= chasingDistance)
         {
-            // Kiểm tra Skill 2 trước (ưu tiên)
             if (canCastSkill2 && skill2Prefab != null && Time.time >= nextSkill2Time)
             {
                 CastSkill(currentTarget, skill2Prefab, skill2SpawnDelay);
                 nextSkill2Time = Time.time + skill2Cooldown;
-                return; // Cast xong skill 2 thì dừng, không cast skill 1 cùng lúc
+                return;
             }
 
-            // Nếu không dùng skill 2, kiểm tra skill 1
             if (canCastSkill && skillPrefab != null && Time.time >= nextSkillTime)
             {
                 CastSkill(currentTarget, skillPrefab, skillSpawnDelay);
@@ -662,14 +664,17 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    // Executes cast skill operation.
     private void CastSkill(Transform target, GameObject prefabToCast, float delay)
     {
         OnEnemyCastSkill?.Invoke(this, EventArgs.Empty);
         GetComponent<NetworkEnemy>()?.NotifySkillAnimation();
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(SpawnSkillWithDelay(target, prefabToCast, delay));
     }
 
+    // Executes spawn skill with delay operation.
     private IEnumerator SpawnSkillWithDelay(Transform target, GameObject prefabToCast, float delay)
     {
         if (delay > 0)
@@ -677,7 +682,6 @@ public class EnemyBehaviour : MonoBehaviour
             yield return new WaitForSeconds(delay);
         }
 
-        // Cần check lại xem target có bị null hoặc boss có bị tiêu diệt trong lúc delay không
         if (target == null || currentState == State.Death) yield break;
 
         Vector3 spawnPosition = target.position;
@@ -693,6 +697,7 @@ public class EnemyBehaviour : MonoBehaviour
             Instantiate(prefabToCast, spawnPosition, Quaternion.identity);
     }
 
+    // Executes roaming operation.
     private void Roaming()
     {
         if (!CanUseNavMeshAgent())
@@ -702,11 +707,14 @@ public class EnemyBehaviour : MonoBehaviour
         navMeshAgent.SetDestination(roamPosition);
     }
 
+    // Executes get roaming position operation.
     private Vector3 GetRoamingPosition()
     {
+        // Randomize the eligible candidates before selecting this gameplay result.
         return startingPosition + Utilites.GetRandomDir() * UnityEngine.Random.Range(roamingDistanceMin, roamingDistanceMax);
     }
 
+    // Executes change face dir operation.
     private void ChangeFaceDir(Vector3 sourcePosition, Vector3 targetPosition)
     {
         if (sourcePosition.x > targetPosition.x)
@@ -719,14 +727,10 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
-    // Shared by every enemy in the scene. FindGameObjectsWithTag allocates a fresh
-    // array on each call, and Update() ran it once per enemy per frame — so cost
-    // scaled with enemy count, and a multiplayer dungeon carries both the locally
-    // spawned and the replicated enemy set. Resolving once per frame and sharing the
-    // result keeps the scan count at 1 regardless of how many enemies are alive.
     private static GameObject[] _playersThisFrame = Array.Empty<GameObject>();
     private static int _playersFrame = -1;
 
+    // Executes get players cached operation.
     private static GameObject[] GetPlayersCached()
     {
         if (_playersFrame != Time.frameCount)
@@ -737,6 +741,7 @@ public class EnemyBehaviour : MonoBehaviour
         return _playersThisFrame;
     }
 
+    // Executes find nearest player operation.
     private Transform FindNearestPlayer()
     {
         GameObject[] players = GetPlayersCached();
@@ -756,11 +761,11 @@ public class EnemyBehaviour : MonoBehaviour
         Vector3 from = transform.position;
         Transform best = null;
         float bestSqr = float.MaxValue;
-        
+
         foreach (var p in players)
         {
             if (p == null || !p.activeInHierarchy) continue;
-            
+
             var networkPlayer = p.GetComponent<NetworkPlayer>();
             if (networkPlayer != null)
             {
@@ -778,6 +783,7 @@ public class EnemyBehaviour : MonoBehaviour
         return best;
     }
 
+    // Executes can use nav mesh agent operation.
     private bool CanUseNavMeshAgent()
     {
         return navMeshAgent != null &&

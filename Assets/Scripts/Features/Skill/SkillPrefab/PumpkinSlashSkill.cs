@@ -1,26 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Skill Nhát Chém Bí Ngô (Pumpkin Slash) dành cho Đấu sĩ (Knight).
-/// Logic tương tự BloodySlash: Nhát chém cận chiến bám theo người chơi,
-/// chém xuyên tất cả quái vật trong vùng chém (mỗi quái nhận sát thương 1 lần)
-/// và tự biến mất sau thời gian duration.
-/// </summary>
+// Executes skill projectile operation.
 public class PumpkinSlashSkill : SkillProjectile
 {
-    [SerializeField] private float duration = 0.5f; // Thời gian tồn tại của nhát chém
-    
-    // Danh sách quái đã nhận sát thương từ nhát chém này
+    [SerializeField] private float duration = 0.5f;
+
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
 
     private Transform _casterTransform;
     private Vector3 _offsetFromCaster;
 
+    // Executes setup operation.
     public override void Setup(float damage)
     {
         base.Setup(damage);
-        // Nhát chém tự hủy sau thời gian duration
         Destroy(gameObject, duration);
 
         Transform replicaOwner = PlayerSkillVisualReplica.GetOwner(this);
@@ -34,15 +28,17 @@ public class PumpkinSlashSkill : SkillProjectile
         }
     }
 
+    // Per-frame update loop for PumpkinSlashSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     protected override void Update()
     {
-        // Nhát chém bám theo vị trí người chơi
         if (_casterTransform != null)
         {
             transform.position = _casterTransform.position + _offsetFromCaster;
         }
     }
 
+    // Executes on trigger enter2 d operation.
     protected override void OnTriggerEnter2D(Collider2D collision)
     {
         if (PlayerSkillVisualReplica.IsReplica(this)) return;
@@ -54,6 +50,7 @@ public class PumpkinSlashSkill : SkillProjectile
             {
                 if (enemy != null)
                 {
+                    // Randomize the eligible candidates before selecting this gameplay result.
                     bool isCrit = Random.Range(0f, 100f) <= 20f;
                     float finalDamage = isCrit ? _damage * 1.5f : _damage;
                     int damageInt = Mathf.RoundToInt(finalDamage);

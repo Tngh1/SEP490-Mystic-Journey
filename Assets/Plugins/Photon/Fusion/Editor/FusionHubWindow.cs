@@ -7,6 +7,7 @@ namespace Fusion.Editor {
   using UnityEngine;
   using EditorUtility = UnityEditor.EditorUtility;
 
+  // Executes editor window operation.
   public partial class FusionHubWindow : EditorWindow {
     private const int NavWidth = 256 + 2;
 
@@ -17,6 +18,7 @@ namespace Fusion.Editor {
 
     private int _currentSection;
 
+    // Executes open operation.
     [MenuItem("Tools/Fusion/Fusion Hub &f", false, 0)]
     public static void Open() {
       if (Application.isPlaying) {
@@ -28,6 +30,7 @@ namespace Fusion.Editor {
       window.Show();
     }
 
+    // Executes re open operation.
     private static void ReOpen() {
       if (_ready.HasValue && _ready.Value == false) {
         Open();
@@ -36,6 +39,8 @@ namespace Fusion.Editor {
       EditorApplication.update -= ReOpen;
     }
 
+    // Callback invoked when FusionHubWindow becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     private void OnEnable() {
       _ready = false;
       _windowSize = new Vector2(800, 540);
@@ -47,10 +52,13 @@ namespace Fusion.Editor {
       wantsMouseMove = true;
     }
 
+    // Cleanup callback executed when FusionHubWindow is destroyed.
+    // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
     private void OnDestroy() {
       _ready = false;
     }
 
+    // Executes on gui operation.
     private void OnGUI() {
       // skip until ready
       if (InitContent() == false) { return; }
@@ -87,6 +95,7 @@ namespace Fusion.Editor {
     private double _nextForceRepaint;
     private Vector2 _scrollRect;
 
+    // Executes draw content operation.
     private void DrawContent() {
       var section = _sections[_currentSection];
       GUILayout.Label(section.Description, headerTextStyle);
@@ -99,6 +108,7 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes draw welcome section operation.
     private void DrawWelcomeSection() {
       // Top Welcome content box
       GUILayout.Label(Constants.WelcomeText);
@@ -107,6 +117,7 @@ namespace Fusion.Editor {
       DrawSetupAppIdBox();
     }
 
+    // Executes draw setup section operation.
     private void DrawSetupSection() {
       DrawSetupAppIdBox();
       DrawButtonAction(Icon.FusionIcon, "Fusion Network Project Settings", "Network settings specific to Fusion.",
@@ -118,21 +129,25 @@ namespace Fusion.Editor {
         });
     }
 
+    // Executes draw documentation section operation.
     private void DrawDocumentationSection() {
       DrawButtonAction(Icon.Documentation, "Fusion Introduction", "The Fusion Introduction web page.", callback: OpenURL(Constants.UrlFusionIntro));
       DrawButtonAction(Icon.Documentation, "SDK and Release Notes", "Link to the latest Fusion version SDK.", callback: OpenURL(Constants.UrlFusionSDK));
       DrawButtonAction(Icon.Documentation, "API Reference", "The API library reference documentation.", callback: OpenURL(Constants.UrlFusionDocApi));
     }
 
+    // Executes draw samples section operation.
     private void DrawSamplesSection() {
       GUILayout.Label("Tutorials", headerLabelStyle);
       DrawButtonAction(Icon.Samples, "Fusion 100 Tutorial", "Fusion Fundamentals Tutorial", callback: OpenURL(Constants.UrlFusion100));
     }
 
+    // Executes draw fusion release section operation.
     private void DrawFusionReleaseSection() {
       GUILayout.Label(fusionReleaseHistory, releaseNotesStyle);
     }
 
+    // Executes draw release history item operation.
     private void DrawReleaseHistoryItem(string label, List<string> items) {
       if (items != null && items.Count > 0) {
         GUILayout.BeginVertical();
@@ -147,6 +162,7 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes draw support section operation.
     private void DrawSupportSection() {
       GUILayout.BeginVertical();
       GUILayout.Space(5);
@@ -159,6 +175,7 @@ namespace Fusion.Editor {
       DrawButtonAction(Icon.Documentation, Constants.DocumentationHeader, Constants.DocumentationText, callback: OpenURL(Constants.UrlFusionDocsOnline));
     }
 
+    // Executes draw setup app id box operation.
     private void DrawSetupAppIdBox() {
       var realtimeSettings = Photon.Realtime.PhotonAppSettings.Global;
       var realtimeAppId = realtimeSettings.AppSettings.AppIdFusion;
@@ -187,6 +204,7 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes draw left nav menu operation.
     private void DrawLeftNavMenu() {
       for (var i = 0; i < _sections.Length; ++i) {
         var section = _sections[i];
@@ -196,10 +214,12 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes draw header operation.
     private void DrawHeader() {
       GUILayout.Label(GetIcon(Icon.ProductLogo), _navbarHeaderGraphicStyle);
     }
 
+    // Executes draw footer operation.
     private void DrawFooter() {
       GUILayout.BeginHorizontal(FusionHubSkin.window);
       {
@@ -208,6 +228,7 @@ namespace Fusion.Editor {
       GUILayout.EndHorizontal();
     }
 
+    // Executes draw nav button operation.
     private bool DrawNavButton(Section section, bool currentSection) {
       var content = new GUIContent() { text = "  " + section.Title, image = GetIcon(section.Icon), };
 
@@ -215,10 +236,12 @@ namespace Fusion.Editor {
       return GUILayout.Button(content, renderStyle);
     }
 
+    // Executes draw button action operation.
     private void DrawButtonAction(Icon icon, string header, string description = null, bool? active = null, Action callback = null, int? width = null) {
       DrawButtonAction(GetIcon(icon), header, description, active, callback, width);
     }
 
+    // Executes draw button action operation.
     private static void DrawButtonAction(Texture2D icon, string header, string description = null, bool? active = null, Action callback = null, int? width = null) {
       var padding = GUI.skin.button.padding.top + GUI.skin.button.padding.bottom;
       var height = icon.height + padding;
@@ -238,6 +261,7 @@ namespace Fusion.Editor {
     /// Unity handling for post asset processing callback. Checks existence of settings assets every time assets change.
     /// </summary>
     private class FusionHubPostProcessor : AssetPostprocessor {
+      // Executes on postprocess all assets operation.
       private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
         EnsureAssetExists();
       }

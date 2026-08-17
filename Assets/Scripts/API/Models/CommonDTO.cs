@@ -1,7 +1,5 @@
 namespace MysticJourney.API.Models.Response
 {
-    // Wrapper chung cho pagination 
-    // Dùng cho: DailyLoginRewardsController (PagedResultDto<T>)
     [System.Serializable]
     public class PagedResultResponse<T>
     {
@@ -9,8 +7,6 @@ namespace MysticJourney.API.Models.Response
         public T[] Items { get; set; }
     }
 
-    // Dùng cho: DungeonsController, QuestsController, AchievementsController,
-    //           GachaBannersController, ShopItemsController (PaginatedResponseDto<T>)
     [System.Serializable]
     public class PaginatedResponse<T>
     {

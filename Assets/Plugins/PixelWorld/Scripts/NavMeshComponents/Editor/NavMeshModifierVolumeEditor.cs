@@ -37,6 +37,7 @@ namespace NavMeshPlus.Components.Editors
             return new Bounds(navModifier.transform.position, navModifier.size);
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -54,6 +55,7 @@ namespace NavMeshPlus.Components.Editors
         }
 
 
+        // Executes render box gizmo operation.
         [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.Active)]
         static void RenderBoxGizmo(NavMeshModifierVolume navModifier, GizmoType gizmoType)
         {
@@ -77,6 +79,7 @@ namespace NavMeshPlus.Components.Editors
             Gizmos.DrawIcon(navModifier.transform.position, "NavMeshModifierVolume Icon", true);
         }
 
+        // Executes render box gizmo not selected operation.
         [DrawGizmo(GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void RenderBoxGizmoNotSelected(NavMeshModifierVolume navModifier, GizmoType gizmoType)
         {
@@ -123,6 +126,7 @@ namespace NavMeshPlus.Components.Editors
             }
         }
 
+        // Executes create nav mesh modifier volume operation.
         [MenuItem("GameObject/Navigation/NavMesh Modifier Volume", false, 2001)]
         static public void CreateNavMeshModifierVolume(MenuCommand menuCommand)
         {
@@ -130,7 +134,7 @@ namespace NavMeshPlus.Components.Editors
             var go = NavMeshComponentsGUIUtility.CreateAndSelectGameObject("NavMesh Modifier Volume", parent);
             go.AddComponent<NavMeshModifierVolume>();
             var view = SceneView.lastActiveSceneView;
-            if (view != null)
+            if (view != null)  // Entity exists — proceed with conditional branch
                 view.MoveToView(go.transform);
         }
     }

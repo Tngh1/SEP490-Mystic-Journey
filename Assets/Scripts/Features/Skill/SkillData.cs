@@ -1,15 +1,17 @@
 using UnityEngine;
 
+// Executes scriptable object operation.
 [CreateAssetMenu(fileName = "New Skill", menuName = "Skill System/Skill")]
 public class SkillData : ScriptableObject
 {
     [Header("Database Mapping")]
-    public int skillId; // BẮT BUỘC TRÙNG VỚI SkillId TRONG POSTGRESQL
+    public int skillId;
 
     [Header("Visual & Client Assets")]
     public Sprite skillIcon;
-    public Sprite customBackground; // (Tùy chọn) Background riêng nếu muốn
-    public GameObject skillPrefab; // Hiệu ứng tung chiêu
+    public Sprite customBackground;
+    public GameObject skillPrefab;
     [Header("Gameplay")]
-    public string classRequirement = ""; // "Knight", "Archer", "Mage" - use empty or "All" for any class
+    // Supported class requirements: Knight, Archer, Mage, or All; All allows every player class to use the skill or reward.
+    public string classRequirement = "";
 }

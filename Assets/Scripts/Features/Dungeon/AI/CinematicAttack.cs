@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+// Executes mono behaviour operation.
 public class CinematicAttack : MonoBehaviour
 {
     [SerializeField] private Transform target;
@@ -15,6 +16,8 @@ public class CinematicAttack : MonoBehaviour
 
     private const string ATTACK = "EnemyAttack";
 
+    // Initializes internal component caches and dependencies for CinematicAttack upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
@@ -22,6 +25,8 @@ public class CinematicAttack : MonoBehaviour
         anim = GetComponentInChildren<Animator>();
     }
 
+    // Per-frame update loop for CinematicAttack.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (target == null) return;
@@ -46,6 +51,7 @@ public class CinematicAttack : MonoBehaviour
         }
     }
 
+    // Executes start cinematic attack operation.
     private void StartCinematicAttack()
     {
         isAttacking = true;

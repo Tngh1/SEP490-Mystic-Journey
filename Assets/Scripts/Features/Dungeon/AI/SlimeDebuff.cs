@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class SlimeDebuff : MonoBehaviour
 {
     private float slowMultiplier;
@@ -14,6 +15,7 @@ public class SlimeDebuff : MonoBehaviour
 
     private float originalSpeed;
 
+    // Executes initialize operation.
     public void Initialize(float slowMult, int dmg, float tickRate, float dur)
     {
         var combat = GetComponent<PlayerCombat>();
@@ -49,7 +51,6 @@ public class SlimeDebuff : MonoBehaviour
             {
                 originalSpeed = playerMovement.CurrentMoveSpeed;
                 float slowedSpeed = originalSpeed * slowMultiplier;
-                // Áp dụng tốc độ bị làm chậm
                 playerMovement.SetMoveSpeedOverride(slowedSpeed);
             }
         }
@@ -57,6 +58,7 @@ public class SlimeDebuff : MonoBehaviour
         if (buffMgr != null) buffMgr.AddBuff("Slime Sludge", "slime_debuff_icon", duration, true);
     }
 
+    // Executes refresh operation.
     public void Refresh(float newDuration)
     {
         var combat = GetComponent<PlayerCombat>();
@@ -71,7 +73,6 @@ public class SlimeDebuff : MonoBehaviour
             return;
         }
 
-        // Khi bị trúng lại cọc slime, thời gian debuff sẽ được làm mới
         timer = 0f;
         if (newDuration > duration)
         {
@@ -86,6 +87,8 @@ public class SlimeDebuff : MonoBehaviour
         if (buffMgr != null) buffMgr.AddBuff("Slime Sludge", "slime_debuff_icon", duration, true);
     }
 
+    // Per-frame update loop for SlimeDebuff.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         var combat = playerEntity != null ? playerEntity.GetComponent<PlayerCombat>() : GetComponent<PlayerCombat>();
@@ -100,7 +103,6 @@ public class SlimeDebuff : MonoBehaviour
         timer += Time.deltaTime;
         tickTimer += Time.deltaTime;
 
-        // Trừ máu theo thời gian (Damage over Time)
         if (tickTimer >= tickInterval)
         {
             tickTimer = 0f;
@@ -110,36 +112,33 @@ public class SlimeDebuff : MonoBehaviour
             }
         }
 
-        // Hết thời gian debuff
         if (timer >= duration)
         {
             RemoveDebuff();
         }
     }
 
+    // Executes remove debuff operation.
     private void RemoveDebuff()
     {
         if (playerMovement != null)
         {
-            // Truyền vào 0f để PlayerMovement tự động trả về tốc độ gốc (baseMoveSpeed)
             playerMovement.SetMoveSpeedOverride(0f);
         }
-        
-        Destroy(this); // Xoá script này khỏi người chơi
+
+        Destroy(this);
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
-        // Đảm bảo an toàn: Nếu script bị huỷ đột ngột (ví dụ khi chuyển scene), phải trả lại tốc độ cho người chơi
         if (playerMovement != null)
         {
             playerMovement.SetMoveSpeedOverride(0f);
         }
     }
 
-    /// <summary>
-    /// Gọi hàm này để áp dụng hoặc làm mới hiệu ứng Slime lên mục tiêu.
-    /// </summary>
+    // Executes apply to operation.
     public static void ApplyTo(GameObject target, float slowMult, int dmg, float tickRate, float dur)
     {
         var combat = target.GetComponent<PlayerCombat>();

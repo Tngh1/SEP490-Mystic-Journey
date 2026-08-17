@@ -2,20 +2,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Displays the HP, name and avatar of one party member in the dungeon.
-/// Automatically polls the assigned NetworkPlayer for updates.
-///
-/// Everything is polled rather than read once in <see cref="Init"/>: this row is built for
-/// a REMOTE player, i.e. a Fusion proxy, and a proxy's [Networked] properties are not
-/// guaranteed to hold their real values on the frame the object appears. Reading Level /
-/// PlayerName / AvatarUrl only at Init produced rows reading "Lv.0" with no name and a
-/// default avatar, which then never corrected themselves.
-/// </summary>
+// Executes mono behaviour operation.
 public class UIDungeonPartyMember : MonoBehaviour
 {
     [SerializeField] private TMP_Text nameText;
-    [SerializeField] private TMP_Text levelText;   // "LevelText" child — level badge below the avatar
+    [SerializeField] private TMP_Text levelText;
     [SerializeField] private Image avatarImage;
     [SerializeField] private Image hpFill;
     [SerializeField] private TMP_Text hpText;
@@ -29,12 +20,11 @@ public class UIDungeonPartyMember : MonoBehaviour
     private string _lastAvatarUrl;
     private bool _buffPanelBound;
 
+    // Executes init operation.
     public void Init(NetworkPlayer target)
     {
         _targetPlayer = target;
 
-        // Reset caches so RefreshIdentity() always fires on the first poll — even
-        // when the proxy's initial replicated value equals the C# default (0 / "").
         _lastLevel     = -1;
         _lastName      = null;
         _lastAvatarUrl = null;
@@ -42,8 +32,6 @@ public class UIDungeonPartyMember : MonoBehaviour
         _lastMaxHp     = -1;
         _buffPanelBound = false;
 
-        // Blank the text immediately so stale content from a previous target is not
-        // visible on the frame before the first RefreshIdentity() runs.
         if (nameText  != null) nameText.text  = "...";
         if (levelText != null) levelText.text = "-";
 
@@ -55,11 +43,12 @@ public class UIDungeonPartyMember : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for UIDungeonPartyMember.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_targetPlayer == null || _targetPlayer.Object == null || !_targetPlayer.Object.IsValid)
         {
-            // Player disconnected or left
             Destroy(gameObject);
             return;
         }
@@ -69,10 +58,8 @@ public class UIDungeonPartyMember : MonoBehaviour
         UpdateHpUI(false);
     }
 
-    /// <summary>
-    /// Re-read the replicated identity (level, name, avatar) and repaint only on change,
-    /// so this stays cheap despite running every frame.
-    /// </summary>
+    // Executes refresh identity operation.
+    // Validates input parameters against null or empty values.
     private void RefreshIdentity()
     {
         if (_targetPlayer == null) return;
@@ -80,16 +67,14 @@ public class UIDungeonPartyMember : MonoBehaviour
         int level = _targetPlayer.Level;
         string playerName = _targetPlayer.PlayerName.ToString();
 
-        // Name text — player name only; level is shown in the separate LevelText badge.
         if (nameText != null && playerName != _lastName)
         {
             _lastName = playerName;
             nameText.text = string.IsNullOrWhiteSpace(playerName)
-                ? "..."        // identity has not replicated yet
+                ? "..."
                 : playerName;
         }
 
-        // Level badge — update independently so a late-arriving Level value still shows.
         if (level != _lastLevel)
         {
             _lastLevel = level;
@@ -106,10 +91,7 @@ public class UIDungeonPartyMember : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Bind the buff panel once the member's BuffManager exists. It can be added a frame
-    /// after the NetworkObject spawns, so a single attempt at Init could miss it.
-    /// </summary>
+    // Executes try bind buff panel operation.
     private void TryBindBuffPanel()
     {
         if (_buffPanelBound || buffPanel == null || _targetPlayer == null) return;
@@ -121,6 +103,7 @@ public class UIDungeonPartyMember : MonoBehaviour
         _buffPanelBound = true;
     }
 
+    // Executes update hp ui operation.
     private void UpdateHpUI(bool force)
     {
         if (_targetPlayer == null) return;
@@ -128,15 +111,13 @@ public class UIDungeonPartyMember : MonoBehaviour
         int currentHp = _targetPlayer.CurrentHp;
         int maxHp = _targetPlayer.MaxHp;
 
-        // MaxHp is part of the condition because it replicates independently of CurrentHp:
-        // when a proxy showed up with 0/0, a later MaxHp-only update left the row stuck on
-        // "0/0" forever because CurrentHp had not changed.
         if (force || currentHp != _lastHp || maxHp != _lastMaxHp)
         {
             _lastHp = currentHp;
             _lastMaxHp = maxHp;
 
             float ratio = maxHp > 0 ? (float)currentHp / maxHp : 0f;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             if (hpFill != null) hpFill.fillAmount = Mathf.Clamp01(ratio);
             if (hpText != null) hpText.text = $"{currentHp}/{maxHp}";
         }

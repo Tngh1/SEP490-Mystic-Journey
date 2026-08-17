@@ -2,14 +2,14 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIPaperPopupView : MonoBehaviour
 {
+    // Executes paper popup kind operation.
     public enum PaperPopupKind { None, Accepted, Completed, Claimed, AchievementUnlocked }
 
     [Header("Texts")]
-    // TileText = dòng trạng thái động của quest hoặc achievement.
     [SerializeField] private TMP_Text titleTMP;
-    // AnnounceText = tên quest/achievement hoặc nội dung thông báo.
     [SerializeField] private TMP_Text messageTMP;
     [SerializeField] private Text messageText;
 
@@ -18,21 +18,26 @@ public class UIPaperPopupView : MonoBehaviour
     [SerializeField] private GameObject questCompletedIcon;
     [SerializeField] private Animator stampAnimator;
 
+    // Initializes internal component caches and dependencies for UIPaperPopupView upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         Bind();
     }
 
+    // Executes on validate operation.
     private void OnValidate()
     {
         Bind();
     }
 
+    // Executes show operation.
     public void Show(string message)
     {
         Show(message, InferKind(message));
     }
 
+    // Executes show operation.
     public void Show(string message, PaperPopupKind kind)
     {
         SetMessage(message);
@@ -41,6 +46,7 @@ public class UIPaperPopupView : MonoBehaviour
         transform.SetAsLastSibling();
     }
 
+    // Executes apply kind operation.
     private void ApplyKind(PaperPopupKind kind)
     {
         Bind();
@@ -82,6 +88,8 @@ public class UIPaperPopupView : MonoBehaviour
         }
     }
 
+    // Executes infer kind operation.
+    // Validates input parameters against null or empty values.
     private static PaperPopupKind InferKind(string message)
     {
         if (string.IsNullOrWhiteSpace(message)) return PaperPopupKind.None;
@@ -94,6 +102,7 @@ public class UIPaperPopupView : MonoBehaviour
     }
 
 
+    // Executes hide operation.
     public void Hide()
     {
         if (claimedIcon != null) claimedIcon.SetActive(false);
@@ -101,6 +110,7 @@ public class UIPaperPopupView : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    // Executes set message operation.
     public void SetMessage(string message)
     {
         Bind();
@@ -115,16 +125,15 @@ public class UIPaperPopupView : MonoBehaviour
             messageText.text = message ?? string.Empty;
     }
 
+    // Executes bind operation.
     private void Bind()
     {
-        // TileText = dòng trạng thái (title). Bind trước để fallback của messageTMP không chộp nhầm nó.
         if (titleTMP == null)
             titleTMP = FindTextMesh("TileText") ?? FindTextMesh("TitleText");
 
         if (messageTMP == null)
         {
             messageTMP = FindTextMesh("AnnounceText") ?? FindTextMesh("PopupText") ?? FindTextMesh("MessageText");
-            // Fallback cuối: TMP con bất kỳ NHƯNG không phải TileText (tránh gộp title vào message).
             if (messageTMP == null)
             {
                 foreach (var tmp in GetComponentsInChildren<TMP_Text>(true))
@@ -149,18 +158,23 @@ public class UIPaperPopupView : MonoBehaviour
             questCompletedIcon = FindDescendant(transform, "QuestCompleted");
     }
 
+    // Executes find text mesh operation.
     private TMP_Text FindTextMesh(string objectName)
     {
         var child = FindDescendant(transform, objectName);
         return child == null ? null : child.GetComponent<TMP_Text>();
     }
 
+    // Executes find text operation.
+    // Validates input parameters against null or empty values.
     private Text FindText(string objectName)
     {
         var child = FindDescendant(transform, objectName);
         return child == null ? null : child.GetComponent<Text>();
     }
 
+    // Executes find descendant operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindDescendant(Transform root, string objectName)
     {
         if (root == null || string.IsNullOrWhiteSpace(objectName))

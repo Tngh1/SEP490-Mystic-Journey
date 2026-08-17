@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
+// Executes i pointer exit handler operation.
+// Validates input parameters against null or empty values.
 public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] private Image iconImage;
@@ -10,6 +12,7 @@ public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     private ActiveBuff _buff;
     private bool _isHovering;
 
+    // Executes setup operation.
     public void Setup(ActiveBuff buff)
     {
         _buff = buff;
@@ -29,6 +32,8 @@ public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         }
     }
 
+    // Per-frame update loop for UIBuffIcon.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_isHovering && UISimpleTooltip.Instance != null && _buff != null)
@@ -40,11 +45,13 @@ public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         }
     }
 
+    // Executes on pointer enter operation.
     public void OnPointerEnter(PointerEventData eventData)
     {
         _isHovering = true;
     }
 
+    // Executes on pointer exit operation.
     public void OnPointerExit(PointerEventData eventData)
     {
         _isHovering = false;
@@ -54,6 +61,7 @@ public class UIBuffIcon : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (_isHovering && UISimpleTooltip.Instance != null)

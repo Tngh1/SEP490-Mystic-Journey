@@ -7,16 +7,10 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // PLAYER QUEST API - Nhiệm vụ người chơi
-    // ═══════════════════════════════════════════════════════════════
     public class PlayerQuestApi : BaseApiService<PlayerQuestApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách quest của mình ───────────────
+        // Executes get my quests operation.
         public void GetMyQuests(Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
             ApiClient.Instance.Get<List<PlayerQuestResponse>>(
@@ -34,7 +28,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy chi tiết quest ────────────────────────
+        // Executes get quest detail operation.
         public void GetQuestDetail(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.PlayerQuestDetail, questId);
@@ -53,7 +47,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nhận quest ────────────────────────────────
+        // Executes accept quest operation.
         public void AcceptQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new AcceptQuestRequest { QuestId = questId };
@@ -72,7 +66,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Cập nhật tiến độ nhiều quest ────────────
+        // Executes batch update progress operation.
         public void BatchUpdateProgress(List<QuestProgressItem> updates, Action<List<PlayerQuestResponse>> onSuccess, Action<ApiException> onError)
         {
             if (updates == null || updates.Count == 0) { onSuccess?.Invoke(new List<PlayerQuestResponse>()); return; }
@@ -92,7 +86,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Hoàn thành quest ─────────────────────────
+        // Executes complete quest operation.
         public void CompleteQuest(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new CompleteQuestRequest { QuestId = questId };
@@ -111,7 +105,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nhận thưởng quest ────────────────────────
+        // Executes claim reward operation.
         public void ClaimReward(int questId, Action<PlayerQuestResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new ClaimQuestRequest { QuestId = questId };

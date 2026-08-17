@@ -3,10 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using TMPro;
 
-/// <summary>
-/// Displays dungeon progress including elapsed time and monster kill count.
-/// Automatically updates its UI by polling DungeonManager.
-/// </summary>
+// Executes i pointer exit handler operation.
 public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] private TMP_Text timeText;
@@ -16,7 +13,7 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
     [Header("Hover Slide")]
     [SerializeField, Min(0f)] private float collapsedVisibleWidth = 10f;
     [SerializeField, Min(0.01f)] private float slideDuration = 0.25f;
-    
+
     private float _elapsedTime;
     private bool _isRunning;
     private RectTransform _panelRect;
@@ -24,6 +21,8 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
     private float _targetX;
     private float _slideVelocity;
 
+    // Initializes internal component caches and dependencies for UIDungeonProgressPanel upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _panelRect = transform as RectTransform;
@@ -33,6 +32,7 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
         _targetX = GetCollapsedX();
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         ResetProgress();
@@ -47,30 +47,28 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
         }
     }
 
-    /// <summary>
-    /// Restart the timer and un-latch the "Cleared!" state. The panel lives in the always
-    /// loaded Main HUD, so a dungeon restart never re-enables it — without this it stayed
-    /// frozen on the finished run's time and "Cleared!" for the whole second run.
-    /// </summary>
+    // Executes reset progress operation.
     public void ResetProgress()
     {
         _elapsedTime = 0f;
         _isRunning = true;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         _isRunning = false;
         _slideVelocity = 0f;
     }
 
+    // Per-frame update loop for UIDungeonProgressPanel.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         UpdateSlidePosition();
 
         if (!_isRunning || DungeonManager.Instance == null) return;
 
-        // Update Time
         _elapsedTime += Time.deltaTime;
         if (timeText != null)
         {
@@ -78,12 +76,11 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
             timeText.text = $"Time: {time.Minutes:D2}:{time.Seconds:D2}";
         }
 
-        // Update Progress
         if (progressText != null)
         {
             int killed = DungeonManager.Instance.EnemiesKilledCount;
             int total = DungeonManager.Instance.TotalNormalEnemies;
-            
+
             if (total == 0)
             {
                 progressText.text = "Loading...";
@@ -100,10 +97,6 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
             }
             else if (DungeonManager.Instance.IsDungeonCleared)
             {
-                // Only the boss actually dying clears the dungeon. BossCount == 0 is NOT a
-                // clear signal — it is also true during the ~1.2s shake before the boss
-                // object exists, and latching _isRunning=false there froze the panel on
-                // "Cleared!" with the boss still at full HP.
                 progressText.text = "Cleared!";
                 _isRunning = false;
             }
@@ -113,11 +106,8 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
             }
         }
 
-        // Auto-resize background based on text heights
         if (backgroundRect != null && timeText != null && progressText != null)
         {
-            // 1. Ensure Background pivot is at the Top (Y = 1) so it grows downwards.
-            // We adjust localPosition simultaneously so it doesn't visually jump when pivot changes.
             if (backgroundRect.pivot.y != 1f)
             {
                 Vector2 size = backgroundRect.rect.size;
@@ -126,31 +116,29 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
                 backgroundRect.localPosition += new Vector3(0, deltaY * size.y, 0);
             }
 
-            // 2. Calculate required height
-            // We need to account for: Top border, "DUNGEON PROGRESS" title height, 
-            // the manual gaps between the texts, and the bottom border.
-            // The previous 65f was too small to cover the manual gaps.
-            float basePaddingAndGaps = 100f; 
+            float basePaddingAndGaps = 100f;
             float timeHeight = timeText.preferredHeight;
             float monstersHeight = progressText.preferredHeight;
-            
+
             float totalHeight = basePaddingAndGaps + timeHeight + monstersHeight;
-            
-            // 3. Apply height using SetSizeWithCurrentAnchors to avoid anchor conflicts
+
             backgroundRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, totalHeight);
         }
     }
 
+    // Executes on pointer enter operation.
     public void OnPointerEnter(PointerEventData eventData)
     {
         _targetX = _expandedPosition.x;
     }
 
+    // Executes on pointer exit operation.
     public void OnPointerExit(PointerEventData eventData)
     {
         _targetX = GetCollapsedX();
     }
 
+    // Executes get collapsed x operation.
     private float GetCollapsedX()
     {
         if (_panelRect == null) return _expandedPosition.x;
@@ -159,6 +147,7 @@ public class UIDungeonProgressPanel : MonoBehaviour, IPointerEnterHandler, IPoin
         return _expandedPosition.x + hiddenWidth;
     }
 
+    // Executes update slide position operation.
     private void UpdateSlidePosition()
     {
         if (_panelRect == null) return;

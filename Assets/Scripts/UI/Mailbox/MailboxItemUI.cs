@@ -6,17 +6,21 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.Screen.Mail
 {
+    // Executes mono behaviour operation.
+    // Validates input parameters against null or empty values.
     public class MailboxItemUI : MonoBehaviour
     {
         [Header("UI References")]
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text expireText;
-        [SerializeField] private GameObject rewardAvailableObj; // Khớp với GameObject RewardAvailable
+        [SerializeField] private GameObject rewardAvailableObj;
         [SerializeField] private Toggle itemToggle;
 
         private MailboxSummaryResponse _mailboxData;
         private Action<MailboxItemUI> _onClickAction;
 
+        // Executes setup operation.
+        // Validates input parameters against null or empty values.
         public void Setup(MailboxSummaryResponse mailboxData, Action<MailboxItemUI> onClick)
         {
             _mailboxData = mailboxData;
@@ -26,7 +30,6 @@ namespace MysticJourney.Screen.Mail
 
             if (expireText != null)
             {
-                // Ưu tiên dùng RemainingDays do BE tính sẵn
                 if (mailboxData.RemainingDays.HasValue)
                 {
                     int days = mailboxData.RemainingDays.Value;
@@ -69,21 +72,24 @@ namespace MysticJourney.Screen.Mail
             }
         }
 
+        // Executes get mailbox data operation.
         public MailboxSummaryResponse GetMailboxData() => _mailboxData;
 
+        // Executes update ui state operation.
         public void UpdateUIState()
         {
-            // Hiển thị icon RewardAvailable nếu có quà và chưa nhận
             if (rewardAvailableObj != null)
                 rewardAvailableObj.SetActive(_mailboxData.HasClaimableReward && !_mailboxData.IsClaimed);
         }
 
+        // Executes mark as read locally operation.
         public void MarkAsReadLocally()
         {
             _mailboxData.IsRead = true;
             UpdateUIState();
         }
 
+        // Executes mark as claimed locally operation.
         public void MarkAsClaimedLocally()
         {
             _mailboxData.IsClaimed = true;

@@ -1,13 +1,16 @@
-﻿using System.Collections;
+using System.Collections;
 using MysticJourney.API.Core;
 using MysticJourney.API.Endpoints;
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class MapTest : MonoBehaviour
 {
     [Header("Player Reference")]
     [SerializeField] private Transform player;
 
+    // Performs startup initialization for MapTest on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private IEnumerator Start()
     {
         yield return null;
@@ -23,11 +26,13 @@ public class MapTest : MonoBehaviour
             Debug.LogWarning("[MapTest] Scene does not match WorldState, skip teleport.");
     }
 
+    // Executes is correct map operation.
     private bool IsCorrectMap()
     {
         return WorldState.CurrentMapName == gameObject.scene.name;
     }
 
+    // Executes try teleport player operation.
     private void TryTeleportPlayer()
     {
         if (player == null)
@@ -52,6 +57,7 @@ public class MapTest : MonoBehaviour
             Debug.LogWarning("[MapTest] MinimapCameraController not found.");
     }
 
+    // Executes force teleport operation.
     public void ForceTeleport()
     {
         Debug.Log("[MapTest] Force Teleport Called");
@@ -62,6 +68,8 @@ public class MapTest : MonoBehaviour
             Debug.LogWarning("[MapTest] ForceTeleport called on the wrong scene.");
     }
 
+    // Per-frame update loop for MapTest.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.F1))
@@ -71,6 +79,7 @@ public class MapTest : MonoBehaviour
             SaveState();
     }
 
+    // Executes print debug info operation.
     private void PrintDebugInfo()
     {
         Debug.Log("===== DEBUG INFO =====");
@@ -82,6 +91,7 @@ public class MapTest : MonoBehaviour
             Debug.Log($"Player Pos: {player.position}");
     }
 
+    // Executes save state operation.
     private void SaveState()
     {
         if (player == null)

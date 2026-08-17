@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIQuestRewardSlot : MonoBehaviour
 {
     [SerializeField] private Image rewardIcon;
@@ -9,11 +10,14 @@ public class UIQuestRewardSlot : MonoBehaviour
     [SerializeField] private TMP_Text quantityText;
     [SerializeField] private GameObject claimOverlay;
 
+    // Initializes internal component caches and dependencies for UIQuestRewardSlot upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         Bind();
     }
 
+    // Executes bind operation.
     private void Bind()
     {
         if (rewardIcon == null)
@@ -34,7 +38,7 @@ public class UIQuestRewardSlot : MonoBehaviour
             claimOverlay = FindChild("OverlayClaim", "OverlayReward", "ClaimOverlay", "RewardOverlay")?.gameObject;
     }
 
-    // KHỚP với MainQuestPanelRuntime
+    // Executes setup operation.
     public void Setup(string rewardName, string amount, Sprite sprite = null)
     {
         Bind();
@@ -59,6 +63,7 @@ public class UIQuestRewardSlot : MonoBehaviour
             quantityText.text = amount;
     }
 
+    // Executes set claimed operation.
     public void SetClaimed(bool claimed)
     {
         Bind();
@@ -67,6 +72,7 @@ public class UIQuestRewardSlot : MonoBehaviour
             claimOverlay.SetActive(claimed);
     }
 
+    // Executes find child operation.
     private Transform FindChild(params string[] names)
     {
         if (names == null || names.Length == 0)

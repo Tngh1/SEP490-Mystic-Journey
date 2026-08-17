@@ -2,14 +2,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using MysticJourney.API.Models.Response;
 
+// Executes core business logic for mono behaviour.
 public class HUDSkillManager : MonoBehaviour
 {
     [Header("Gắn 3 cái Image (Icon) của HUD ngoài màn hình vào đây")]
-    public Image[] hudSkillIcons; // Mảng chứa 3 ô (Slot_1, Slot_2, Slot_3)
+    public Image[] hudSkillIcons;
 
     [Header("Master Data")]
-    public SkillData[] allSkillsInGame; // Kéo file SkillData vào đây y như SkillUIManager
+    public SkillData[] allSkillsInGame;
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         SkillSlot.OnSkillEquipped += UpdateHUDIcon;
@@ -17,26 +19,28 @@ public class HUDSkillManager : MonoBehaviour
         RefreshHUDSkills();
     }
 
+    // Performs startup initialization for HUDSkillManager on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         EnsureMasterData();
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(AutoRefreshRoutine());
     }
 
+    // Executes core business logic for auto refresh routine.
     private System.Collections.IEnumerator AutoRefreshRoutine()
     {
-        // 1. Tải ngay lần đầu
         RefreshHUDSkills();
 
-        // 2. Chờ 0.5s tải lại phòng trường hợp Auth/API chưa nạp kịp
         yield return new WaitForSeconds(0.5f);
         RefreshHUDSkills();
 
-        // 3. Chờ 1.5s tải lại lần nữa để đảm bảo 100% khi vào game skill tự hiện lên HUD mà không cần mở SkillPanel
         yield return new WaitForSeconds(1.5f);
         RefreshHUDSkills();
     }
 
+    // Executes core business logic for ensure master data.
     private void EnsureMasterData()
     {
         if (allSkillsInGame == null || allSkillsInGame.Length == 0)
@@ -45,6 +49,7 @@ public class HUDSkillManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for ensure slot indices.
     private void EnsureSlotIndices()
     {
         var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -69,11 +74,11 @@ public class HUDSkillManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for refresh hud skills.
     public void RefreshHUDSkills()
     {
         EnsureMasterData();
 
-        // 1. Tự động tìm tất cả ô SkillSlot thuộc HUD (nằm ngoài SkillPanel)
         var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         var hudSlots = new System.Collections.Generic.List<SkillSlot>();
         var skillPanelManager = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);
@@ -83,15 +88,13 @@ public class HUDSkillManager : MonoBehaviour
             if (s != null)
             {
                 if (skillPanelManager != null && s.transform.IsChildOf(skillPanelManager.transform))
-                    continue; // Bỏ qua slot bên trong Panel
+                    continue;
                 hudSlots.Add(s);
             }
         }
 
-        // Sắp xếp các ô HUD từ trái sang phải
         hudSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
 
-        // Gán slotIndex chuẩn (0, 1, 2) và cập nhật lock state
         for (int i = 0; i < hudSlots.Count && i < 3; i++)
         {
             if (hudSlots[i] != null)
@@ -103,13 +106,12 @@ public class HUDSkillManager : MonoBehaviour
 
         Debug.Log("[HUDSkillManager] Start fetching skills...");
 
-        // 2. Tự động tải danh sách skill đang trang bị để hiển thị lên HUD
         MysticJourney.API.Endpoints.SkillApi.Instance.GetMySkills(
             onSuccess: (response) =>
             {
                 Debug.Log($"[HUDSkillManager] Fetch success. Total skills: {(response.Skills != null ? response.Skills.Count : 0)}");
                 if (response.Skills == null || allSkillsInGame == null) return;
-                
+
                 foreach (var ps in response.Skills)
                 {
                     if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < hudSlots.Count)
@@ -117,6 +119,7 @@ public class HUDSkillManager : MonoBehaviour
                         var visual = System.Array.Find(allSkillsInGame, d => d != null && d.skillId == ps.SkillId);
                         if (visual != null && visual.skillIcon != null)
                         {
+                            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                             var slot = hudSlots[ps.EquippedSlot.Value];
                             if (slot != null)
                             {
@@ -129,29 +132,29 @@ public class HUDSkillManager : MonoBehaviour
                                     slot.equippedIcon.color = Color.white;
                                 }
 
-                                // Broadcast to PlayerCombat and HUD SkillSlots immediately on game load
                                 SkillSlot.BroadcastSkillEquipped(ps.EquippedSlot.Value, visual, ps);
                             }
                         }
                     }
                 }
             },
-            onError: (error) => 
+            onError: (error) =>
             {
                 Debug.LogError($"[HUDSkillManager] Failed to fetch skills: {error.Message}");
             }
         );
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         SkillSlot.OnSkillEquipped -= UpdateHUDIcon;
     }
 
+    // Executes core business logic for update hud icon.
     private void UpdateHUDIcon(int slotIndex, SkillData vData, PlayerSkillResponse sData)
     {
         Debug.Log($"[HUDSkillManager] UpdateHUDIcon called with slotIndex: {slotIndex}");
-        // Kiểm tra xem ô đó có hợp lệ trong mảng HUD không
         if (slotIndex >= 0 && slotIndex < hudSkillIcons.Length)
         {
             if (hudSkillIcons[slotIndex] != null && vData != null && vData.skillIcon != null)
@@ -160,7 +163,7 @@ public class HUDSkillManager : MonoBehaviour
                 hudSkillIcons[slotIndex].gameObject.SetActive(true);
                 hudSkillIcons[slotIndex].enabled = true;
                 hudSkillIcons[slotIndex].sprite = vData.skillIcon;
-                hudSkillIcons[slotIndex].color = Color.white; // Hiện rõ ảnh lên
+                hudSkillIcons[slotIndex].color = Color.white;
             }
             else
             {

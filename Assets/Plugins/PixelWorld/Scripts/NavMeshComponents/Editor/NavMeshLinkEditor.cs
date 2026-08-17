@@ -41,6 +41,7 @@ namespace NavMeshPlus.Components.Editors
 
 
 
+        // Executes unscaled local to world matrix operation.
         static Matrix4x4 UnscaledLocalToWorldMatrix(Transform t)
         {
             return Matrix4x4.TRS(t.position, t.rotation, Vector3.one);
@@ -68,6 +69,7 @@ namespace NavMeshPlus.Components.Editors
             navLink.endPoint = transform.InverseTransformPoint(worldEndPt);
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -114,12 +116,14 @@ namespace NavMeshPlus.Components.Editors
             EditorGUILayout.Space();
         }
 
+        // Executes calc link right operation.
         static Vector3 CalcLinkRight(NavMeshLink navLink)
         {
             var dir = navLink.endPoint - navLink.startPoint;
             return (new Vector3(-dir.z, 0.0f, dir.x)).normalized;
         }
 
+        // Executes draw link operation.
         static void DrawLink(NavMeshLink navLink)
         {
             var right = CalcLinkRight(navLink);
@@ -134,6 +138,7 @@ namespace NavMeshPlus.Components.Editors
 
         [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.Active | GizmoType.Pickable)]
 
+        // Executes render box gizmo operation.
         static void RenderBoxGizmo(NavMeshLink navLink, GizmoType gizmoType)
         {
             if (!EditorApplication.isPlaying && navLink.isActiveAndEnabled)
@@ -157,6 +162,7 @@ namespace NavMeshPlus.Components.Editors
             Gizmos.DrawIcon(navLink.transform.position, "NavMeshLink Icon", true);
         }
 
+        // Executes render box gizmo not selected operation.
         [DrawGizmo(GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void RenderBoxGizmoNotSelected(NavMeshLink navLink, GizmoType gizmoType)
         {
@@ -183,6 +189,7 @@ namespace NavMeshPlus.Components.Editors
             Gizmos.DrawIcon(navLink.transform.position, "NavMeshLink Icon", true);
         }
 
+        // Executes on scene gui operation.
         public void OnSceneGUI()
         {
             var navLink = (NavMeshLink)target;
@@ -265,6 +272,7 @@ namespace NavMeshPlus.Components.Editors
             Handles.color = oldColor;
         }
 
+        // Executes create nav mesh link operation.
         [MenuItem("GameObject/Navigation/NavMesh Link", false, 2002)]
         public static void CreateNavMeshLink(MenuCommand menuCommand)
         {
@@ -272,7 +280,7 @@ namespace NavMeshPlus.Components.Editors
             GameObject go = NavMeshComponentsGUIUtility.CreateAndSelectGameObject("NavMesh Link", parent);
             go.AddComponent<NavMeshLink>();
             var view = SceneView.lastActiveSceneView;
-            if (view != null)
+            if (view != null)  // Entity exists — proceed with conditional branch
                 view.MoveToView(go.transform);
         }
     }

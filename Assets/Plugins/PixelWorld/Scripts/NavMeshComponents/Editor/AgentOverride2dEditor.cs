@@ -2,6 +2,7 @@
 
 namespace NavMeshPlus.Extensions.Editors
 {
+    // Executes editor operation.
     [CanEditMultipleObjects]
     [CustomEditor(typeof(AgentOverride2d))]
     internal class AgentOverride2dEditor : Editor
@@ -18,6 +19,7 @@ namespace NavMeshPlus.Extensions.Editors
             //m_OverrideVector = serializedObject.FindProperty("m_OverrideVector");
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();

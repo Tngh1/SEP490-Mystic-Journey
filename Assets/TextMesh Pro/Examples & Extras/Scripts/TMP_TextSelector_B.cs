@@ -10,6 +10,7 @@ using System.Collections.Generic;
 namespace TMPro.Examples
 {
 
+    // Executes i pointer up handler operation.
     public class TMP_TextSelector_B : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler, IPointerUpHandler
     {
         public RectTransform TextPopup_Prefab_01;
@@ -290,6 +291,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes on pointer enter operation.
         public void OnPointerEnter(PointerEventData eventData)
         {
             //Debug.Log("OnPointerEnter()");
@@ -297,6 +299,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes on pointer exit operation.
         public void OnPointerExit(PointerEventData eventData)
         {
             //Debug.Log("OnPointerExit()");
@@ -304,6 +307,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes on pointer click operation.
         public void OnPointerClick(PointerEventData eventData)
         {
             //Debug.Log("Click at POS: " + eventData.position + "  World POS: " + eventData.worldPosition);
@@ -447,6 +451,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes on pointer up operation.
         public void OnPointerUp(PointerEventData eventData)
         {
             //Debug.Log("OnPointerUp()");

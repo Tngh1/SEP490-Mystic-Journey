@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIPlayerContextMenu : MonoBehaviour
 {
     [Header("UI References")]
@@ -31,12 +32,15 @@ public class UIPlayerContextMenu : MonoBehaviour
     private RectTransform menuRect;
     private Canvas parentCanvas;
 
+    // Initializes internal component caches and dependencies for UIPlayerContextMenu upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         menuRect = transform as RectTransform;
         parentCanvas = GetComponentInParent<Canvas>();
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         AutoFindButtons();
@@ -45,6 +49,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         EnsureHoverEffects();
     }
 
+    // Executes auto find buttons operation.
     private void AutoFindButtons()
     {
         foreach (var btn in GetComponentsInChildren<Button>(true))
@@ -71,6 +76,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         Debug.Log($"[ContextMenu] AutoFind -> viewProfile={viewProfileButton != null}, addFriend={addFriendButton != null}, report={reportButton != null}");
     }
 
+    // Executes bind buttons operation.
     private void BindButtons()
     {
         if (viewProfileButton != null)
@@ -104,6 +110,8 @@ public class UIPlayerContextMenu : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for UIPlayerContextMenu.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (Time.unscaledTime - menuOpenTime < ClickCooldown)
@@ -118,45 +126,49 @@ public class UIPlayerContextMenu : MonoBehaviour
         CloseMenu();
     }
 
+    // Positions context menu modal next to clicked player avatar/message and checks friend status.
     public void ShowMenu(string playerName, int playerProfileId, Vector3 position)
     {
-        currentPlayerName = playerName;
-        currentPlayerProfileId = playerProfileId;
+        currentPlayerName = playerName; // Cache target player username
+        currentPlayerProfileId = playerProfileId; // Cache target profile ID
         menuOpenTime = Time.unscaledTime;
 
         if (playerNameText != null)
-            playerNameText.text = playerName;
+            playerNameText.text = playerName; // Display target player name on header
 
-        transform.SetAsLastSibling();
-        gameObject.SetActive(true);
+        transform.SetAsLastSibling(); // Bring menu to front
+        gameObject.SetActive(true); // Open modal
         AutoFindButtons();
         BindButtons();
         EnsureButtonRaycasts();
         EnsureHoverEffects();
         if (HasCachedPendingRequest(currentPlayerProfileId))
         {
-            SetAddFriendSent();
+            SetAddFriendSent(); // Update button label to "Pending"
         }
         else
         {
-            SetAddFriendChecking();
+            SetAddFriendChecking(); // Set loading spinner while querying friendship relation
         }
-        RefreshAddFriendVisibility();
+        RefreshAddFriendVisibility(); // Query FriendApi to check if already friends
 
         Debug.Log($"[ContextMenu] ShowMenu -> name={playerName} profileId={playerProfileId} addButton={DescribeButton(addFriendButton)}");
     }
 
+    // Dismisses player context menu popup.
     public void CloseMenu()
     {
-        gameObject.SetActive(false);
+        gameObject.SetActive(false); // Hide menu
     }
 
+    // Opens player profile inspect card.
     private void OnViewProfileClicked()
     {
         Debug.Log($"[ContextMenu] ViewProfile clicked -> name={currentPlayerName} profileId={currentPlayerProfileId}");
-        CloseMenu();
+        CloseMenu(); // Dismiss menu and route to profile inspector
     }
 
+    // Sends outgoing friend request to target player profile.
     private void OnAddFriendClicked()
     {
         Debug.Log($"[ContextMenu] AddFriend clicked -> profileId={currentPlayerProfileId}");
@@ -165,7 +177,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         {
             Debug.LogWarning("[ContextMenu] profileId=0, cannot send friend request!");
             CloseMenu();
-            return;
+            return; // Guard against invalid profile ID
         }
 
         if (addFriendButton == null || !addFriendButton.gameObject.activeSelf || !addFriendButton.interactable)
@@ -176,17 +188,17 @@ public class UIPlayerContextMenu : MonoBehaviour
         int targetProfileId = currentPlayerProfileId;
         string targetPlayerName = currentPlayerName;
         friendStatusRequestVersion++;
-        SetAddFriendLoading(true);
+        SetAddFriendLoading(true); // Disable button and show spinner
 
         FriendApi.SendFriendRequest(
             targetProfileId,
             _ =>
             {
-                CachePendingRequest(targetProfileId);
+                CachePendingRequest(targetProfileId); // Remember outgoing request locally
                 Debug.Log($"[ContextMenu] Friend request sent -> {targetPlayerName} (id={targetProfileId})");
                 if (currentPlayerProfileId == targetProfileId)
                 {
-                    SetAddFriendSent();
+                    SetAddFriendSent(); // Update button to "Sent" state
                 }
             },
             err =>
@@ -214,11 +226,13 @@ public class UIPlayerContextMenu : MonoBehaviour
             });
     }
 
+    // Executes on report clicked operation.
     private void OnReportClicked()
     {
         CloseMenu();
     }
 
+    // Executes is pointer over this menu operation.
     private bool IsPointerOverThisMenu()
     {
         if (EventSystem.current != null)
@@ -249,6 +263,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         return menuRect != null && RectTransformUtility.RectangleContainsScreenPoint(menuRect, Input.mousePosition, cam);
     }
 
+    // Executes ensure button raycasts operation.
     private void EnsureButtonRaycasts()
     {
         EnsureButtonRaycast(viewProfileButton);
@@ -256,6 +271,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         EnsureButtonRaycast(reportButton);
     }
 
+    // Executes ensure button raycast operation.
     private static void EnsureButtonRaycast(Button button)
     {
         if (button == null)
@@ -277,15 +293,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gắn hiệu ứng phóng to khi rê chuột, dùng đúng component UIHoverScaleEffect mà HUD
-    /// đang dùng (nó sống trong PartyPanel.cs — không có helper dùng chung, mỗi panel tự
-    /// opt-in bằng đúng 2 dòng này).
-    ///
-    /// CHỈ gắn cho 3 nút trong MenuBox, KHÔNG quét GetComponentsInChildren&lt;Button&gt;():
-    /// BackgroundBlocker (nút chặn click phủ toàn màn hình, anh em của MenuBox) cũng là một
-    /// Button, nên quét cả cây sẽ phóng to lớp chặn vô hình đó theo con trỏ.
-    /// </summary>
+    // Executes ensure hover effects operation.
     private void EnsureHoverEffects()
     {
         EnsureHoverEffect(viewProfileButton);
@@ -293,6 +301,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         EnsureHoverEffect(reportButton);
     }
 
+    // Executes ensure hover effect operation.
     private static void EnsureHoverEffect(Button button)
     {
         if (button == null) return;
@@ -302,6 +311,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         }
     }
 
+    // Executes refresh add friend visibility operation.
     private void RefreshAddFriendVisibility()
     {
         if (addFriendButton == null)
@@ -346,6 +356,7 @@ public class UIPlayerContextMenu : MonoBehaviour
             });
     }
 
+    // Executes apply friend relationship state operation.
     private void ApplyFriendRelationshipState(List<FriendSearchDto> players)
     {
         FriendSearchDto target = null;
@@ -391,12 +402,14 @@ public class UIPlayerContextMenu : MonoBehaviour
         }
     }
 
+    // Executes is already friend error operation.
     private static bool IsAlreadyFriendError(ApiException error)
     {
         string message = error?.Message ?? string.Empty;
         return message.IndexOf("already friends", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    // Executes is pending friend request error operation.
     private static bool IsPendingFriendRequestError(ApiException error)
     {
         string message = error?.Message ?? string.Empty;
@@ -404,11 +417,13 @@ public class UIPlayerContextMenu : MonoBehaviour
             || message.IndexOf("pending friend request", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    // Executes is current player operation.
     private static bool IsCurrentPlayer(int profileId)
     {
         return GetCurrentPlayerId() > 0 && profileId == GetCurrentPlayerId();
     }
 
+    // Executes get current player id operation.
     private static int GetCurrentPlayerId()
     {
         int currentPlayerId = GameStateService.Instance != null
@@ -423,26 +438,31 @@ public class UIPlayerContextMenu : MonoBehaviour
         return currentPlayerId;
     }
 
+    // Executes get request key operation.
     private static long GetRequestKey(int targetProfileId)
     {
         return ((long)GetCurrentPlayerId() << 32) | (uint)targetProfileId;
     }
 
+    // Executes has cached pending request operation.
     private static bool HasCachedPendingRequest(int targetProfileId)
     {
         return PendingOutgoingRequests.Contains(GetRequestKey(targetProfileId));
     }
 
+    // Executes cache pending request operation.
     private static void CachePendingRequest(int targetProfileId)
     {
         PendingOutgoingRequests.Add(GetRequestKey(targetProfileId));
     }
 
+    // Executes remove cached pending request operation.
     private static void RemoveCachedPendingRequest(int targetProfileId)
     {
         PendingOutgoingRequests.Remove(GetRequestKey(targetProfileId));
     }
 
+    // Executes hide add friend button operation.
     private void HideAddFriendButton()
     {
         if (addFriendButton == null)
@@ -452,6 +472,7 @@ public class UIPlayerContextMenu : MonoBehaviour
 
         addFriendButton.gameObject.SetActive(false);
     }
+    // Executes set add friend loading operation.
     private void SetAddFriendLoading(bool loading)
     {
         if (addFriendButton == null) return;
@@ -460,11 +481,13 @@ public class UIPlayerContextMenu : MonoBehaviour
         SetLabel(addFriendButton, loading ? "Sending..." : "Add Friend");
     }
 
+    // Update add friend checking; it updates add friend unavailable.
     private void SetAddFriendChecking()
     {
         SetAddFriendUnavailable("Checking...");
     }
 
+    // Executes set add friend unavailable operation.
     private void SetAddFriendUnavailable(string label = "Unavailable")
     {
         if (addFriendButton == null) return;
@@ -473,6 +496,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         SetLabel(addFriendButton, label);
     }
 
+    // Executes set add friend sent operation.
     private void SetAddFriendSent()
     {
         if (addFriendButton == null) return;
@@ -481,6 +505,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         SetLabel(addFriendButton, "Request Sent");
     }
 
+    // Executes reset add friend button operation.
     private void ResetAddFriendButton()
     {
         if (addFriendButton == null) return;
@@ -489,12 +514,14 @@ public class UIPlayerContextMenu : MonoBehaviour
         SetLabel(addFriendButton, "Add Friend");
     }
 
+    // Executes set label operation.
     private static void SetLabel(Button btn, string text)
     {
         var lbl = btn.GetComponentInChildren<TMP_Text>(true);
         if (lbl != null) lbl.text = text;
     }
 
+    // Executes describe button operation.
     private static string DescribeButton(Button button)
     {
         if (button == null)

@@ -10,14 +10,12 @@ using UnityEngine.Networking;
 
 namespace MysticJourney.API.Core
 {
-    // Singleton MonoBehaviour - trái tim của hệ thống API.
-    // Chạy Coroutine để gọi HTTP, quản lý JWT token trong PlayerPrefs.
-    // Không cần attach vào GameObject; tự tạo khi gọi ApiClient.Instance.
+    // Executes mono behaviour operation.
     public class ApiClient : MonoBehaviour
     {
         private static ApiClient _instance;
 
-        // Trả về instance duy nhất; tự tạo nếu chưa tồn tại.
+        // Executes instance operation.
         public static ApiClient Instance
         {
             get
@@ -25,7 +23,7 @@ namespace MysticJourney.API.Core
                 if (!Application.isPlaying)
                     return null;
 
-                if (_instance == null)
+                if (_instance == null)  // Entity not found — short-circuit with appropriate error result
                 {
                     _instance = ApiRuntimeHost.GetOrAdd<ApiClient>();
                 }
@@ -33,9 +31,10 @@ namespace MysticJourney.API.Core
             }
         }
 
+        // Initializes internal component caches and dependencies for ApiClient upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
-            // Đảm bảo chỉ tồn tại đúng 1 instance khi load scene mới
             if (_instance != null && _instance != this)
             {
                 Destroy(this);
@@ -45,9 +44,10 @@ namespace MysticJourney.API.Core
             PreserveAcrossScenes(gameObject);
         }
 
+        // Executes preserve across scenes operation.
         private static void PreserveAcrossScenes(GameObject go)
         {
-            if (go == null) return;
+            if (go == null) return;  // Entity not found — short-circuit with appropriate error result
 
             if (go.transform.parent != null)
                 go.transform.SetParent(null);
@@ -56,12 +56,12 @@ namespace MysticJourney.API.Core
                 DontDestroyOnLoad(go);
         }
 
-        // ── Token Management ──────────────────────────────────────
 
         private string _cachedToken = null;
         private string _cachedRefreshToken = null;
-        private bool _isRefreshing = false; // Tránh nhiều request refresh cùng lúc
+        private bool _isRefreshing = false;
 
+        // Executes pending get request operation.
         private sealed class PendingGetRequest
         {
             public Type ResponseType;
@@ -69,11 +69,9 @@ namespace MysticJourney.API.Core
             public readonly List<Action<ApiException>> ErrorCallbacks = new();
         }
 
-        // Nhiều controller được bật cùng frame lúc vào Main scene. Gộp GET cùng endpoint
-        // đang chạy để không gửi profile/inventory/currency trùng qua mạng production.
         private readonly Dictionary<string, PendingGetRequest> _pendingGets = new();
 
-        // Lưu JWT access token vào PlayerPrefs sau khi login thành công
+        // Executes save token operation.
         public void SaveToken(string token)
         {
             _cachedToken = token;
@@ -82,7 +80,8 @@ namespace MysticJourney.API.Core
             Debug.Log("[ApiClient] Token saved.");
         }
 
-        // Lưu Refresh Token vào PlayerPrefs
+        // Executes save refresh token operation.
+        // Validates input parameters against null or empty values.
         public void SaveRefreshToken(string refreshToken)
         {
             _cachedRefreshToken = refreshToken;
@@ -90,7 +89,7 @@ namespace MysticJourney.API.Core
             PlayerPrefs.Save();
         }
 
-        // Lấy Refresh Token
+        // Return the cached refresh token when available; otherwise load it from PlayerPrefs and cache the value.
         public string GetRefreshToken()
         {
             if (!string.IsNullOrEmpty(_cachedRefreshToken)) return _cachedRefreshToken;
@@ -98,7 +97,7 @@ namespace MysticJourney.API.Core
             return _cachedRefreshToken;
         }
 
-        // Lấy token hiện tại từ PlayerPrefs (trống nếu chưa login)
+        // Return the cached access token when available; otherwise load it from PlayerPrefs and cache the value.
         public string GetToken()
         {
             if (!string.IsNullOrEmpty(_cachedToken)) return _cachedToken;
@@ -106,7 +105,8 @@ namespace MysticJourney.API.Core
             return _cachedToken;
         }
 
-        // Xóa token và toàn bộ dữ liệu phiên khi logout
+        // Executes clear token operation.
+        // Validates input parameters against null or empty values.
         public void ClearToken()
         {
             _cachedToken = null;
@@ -125,21 +125,15 @@ namespace MysticJourney.API.Core
             Debug.Log("[ApiClient] Token cleared.");
         }
 
-        // Kiểm tra người dùng có đang đăng nhập không
+        // Executes has token operation.
+        // Validates input parameters against null or empty values.
         public bool HasToken()
         {
             return !string.IsNullOrEmpty(GetToken());
         }
 
-        // ── HTTP Methods ──────────────────────────────────────────
-        //
-        // requiresAuth mặc định TRUE cho mọi verb. Trước đây Get/Post/PostEmpty
-        // mặc định false, nên quên tham số là gửi request KHÔNG có header
-        // Authorization — và vì luồng refresh token trong SendCoroutine chỉ chạy
-        // khi requiresAuth=true, những call đó gặp 401 là chết luôn, không
-        // refresh. Chỉ endpoint thật sự công khai (LoginGame) mới truyền false.
 
-        // Gửi GET request và parse response thành kiểu T
+        // Send a GET request with optional query parameters, unwrap the API envelope, and return the typed response payload.
         public void Get<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
             string key = (requiresAuth ? "auth:" : "anonymous:") + endpoint;
@@ -152,7 +146,7 @@ namespace MysticJourney.API.Core
                     return;
                 }
 
-                // Cùng URL nhưng contract khác nhau: giữ semantics cũ thay vì cast sai DTO.
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(SendCoroutine("GET", endpoint, null, onSuccess, onError, requiresAuth));
                 return;
             }
@@ -162,6 +156,7 @@ namespace MysticJourney.API.Core
             pending.ErrorCallbacks.Add(error => onError?.Invoke(error));
             _pendingGets[key] = pending;
 
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(SendCoroutine<T>(
                 "GET",
                 endpoint,
@@ -171,9 +166,10 @@ namespace MysticJourney.API.Core
                 requiresAuth));
         }
 
+        // Remove the completed GET entry from the pending map, invoke every success callback with the response, and log callback exceptions without breaking the remaining callbacks.
         private void CompletePendingGet<T>(string key, T response)
         {
-            if (!_pendingGets.Remove(key, out var pending)) return;
+            if (!_pendingGets.Remove(key, out var pending)) return;  // Mark entity for deletion in the next SaveChanges call
 
             foreach (var callback in pending.SuccessCallbacks)
             {
@@ -182,9 +178,10 @@ namespace MysticJourney.API.Core
             }
         }
 
+        // Remove the failed GET entry from the pending map, invoke every error callback with the API exception, and log callback exceptions without breaking the remaining callbacks.
         private void FailPendingGet(string key, ApiException error)
         {
-            if (!_pendingGets.Remove(key, out var pending)) return;
+            if (!_pendingGets.Remove(key, out var pending)) return;  // Mark entity for deletion in the next SaveChanges call
 
             foreach (var callback in pending.ErrorCallbacks)
             {
@@ -193,68 +190,71 @@ namespace MysticJourney.API.Core
             }
         }
 
-        // Gửi POST request với JSON body và parse response thành kiểu T
+        // Send a POST request with the supplied payload, unwrap the API envelope, and return the typed response payload.
         public void Post<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(SendCoroutine("POST", endpoint, Serialize(body), onSuccess, onError, requiresAuth));
         }
 
-        // Gửi POST không có body (dùng cho logout, mark-as-read, claim reward...)
+        // Send an authenticated or anonymous POST request with an empty JSON object through the coroutine transport.
         public void PostEmpty<TResponse>(string endpoint, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(SendCoroutine("POST", endpoint, "{}", onSuccess, onError, requiresAuth));
         }
 
-        // Gửi PUT request với JSON body và parse response thành kiểu T
+        // Send a PUT request with the supplied payload, unwrap the API envelope, and return the typed response payload.
         public void Put<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(SendCoroutine("PUT", endpoint, Serialize(body), onSuccess, onError, requiresAuth));
         }
 
-        // Gửi DELETE request và parse response thành kiểu T
+        // Delete through the endpoint and return the completed API result.
         public void Delete<T>(string endpoint, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth = true)
         {
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(SendCoroutine("DELETE", endpoint, null, onSuccess, onError, requiresAuth));
         }
 
+        // Serialize a non-null request body to JSON and use an empty JSON object when no body was supplied.
         private static string Serialize<T>(T body)
         {
             return body != null ? JsonConvert.SerializeObject(body) : "{}";
         }
 
-        // Một coroutine dùng chung cho mọi verb; jsonBody == null nghĩa là không gửi body
-        // Tự động retry 1 lần sau khi refresh access token nếu server trả 401.
+        // Build the UnityWebRequest, attach JSON and authentication headers, await the network result, refresh tokens when required, deserialize successful data, and route failures to the error callback.
         private IEnumerator SendCoroutine<T>(string method, string endpoint, string jsonBody, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
         {
             string url = ApiConfig.BaseUrl + endpoint;
             Debug.Log($"[ApiClient] {method} {url}");
 
-            // Lần 1: gửi request bình thường
             using (var request = new UnityWebRequest(url, method))
             {
-                if (jsonBody != null)
+                if (jsonBody != null)  // Entity exists — proceed with conditional branch
                     request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.timeout = ApiConfig.Timeout;
                 SetCommonHeaders(request, requiresAuth);
                 yield return request.SendWebRequest();
 
-                // Nếu 401 và có refresh token → thử refresh rồi retry
                 if (requiresAuth && request.responseCode == 401)
                 {
                     string rt = GetRefreshToken();
                     if (!string.IsNullOrEmpty(rt))
                     {
-                        // Một request khác đang refresh → chờ nó xong rồi retry, đừng logout.
                         if (_isRefreshing)
                         {
                             while (_isRefreshing) yield return null;
+                            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                             yield return StartCoroutine(SendOnce(method, url, jsonBody, onSuccess, onError, requiresAuth));
                             yield break;
                         }
 
                         var outcome = RefreshOutcome.Rejected;
                         string rejectMessage = null;
+                        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                         yield return StartCoroutine(RefreshAccessTokenCoroutine(rt, (r, msg) =>
                         {
                             outcome = r;
@@ -264,13 +264,13 @@ namespace MysticJourney.API.Core
                         if (outcome == RefreshOutcome.Success)
                         {
                             Debug.Log($"[ApiClient] Token refreshed. Retrying {method} {url}");
+                            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                             yield return StartCoroutine(SendOnce(method, url, jsonBody, onSuccess, onError, requiresAuth));
                             yield break;
                         }
 
                         if (outcome == RefreshOutcome.NetworkError)
                         {
-                            // Không gọi được server để refresh → giữ session, người chơi thử lại khi có mạng.
                             Debug.LogWarning("[ApiClient] Refresh unreachable (network error). Keeping session.");
                             onError?.Invoke(new ApiException
                             {
@@ -281,14 +281,12 @@ namespace MysticJourney.API.Core
                             yield break;
                         }
 
-                        // Rejected: server từ chối refresh token (hết hạn, session bị đè, hoặc
-                        // tài khoản vừa bị ban). Giữ message của server để lý do ban tới được người chơi.
                         Debug.LogWarning("[ApiClient] Refresh token rejected. Session expired, overridden, or account banned.");
                         ClearToken();
                         var logoutReason = !string.IsNullOrEmpty(rejectMessage)
                             ? rejectMessage
                             : "Your session has ended. Please log in again.";
-                        
+
                         if (logoutReason.ToLower().Contains("invalid refresh token"))
                         {
                             logoutReason = "Your account has been logged in on another device.";
@@ -309,12 +307,12 @@ namespace MysticJourney.API.Core
             }
         }
 
-        // Gửi đúng 1 lần, không refresh/retry. Dùng cho lần retry sau khi đã có token mới.
+        // Process once using method, url, json body, and on success; it loads bytes, updates common headers, and sends web request and guards invalid or unavailable states.
         private IEnumerator SendOnce<T>(string method, string url, string jsonBody, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
         {
             using (var request = new UnityWebRequest(url, method))
             {
-                if (jsonBody != null)
+                if (jsonBody != null)  // Entity exists — proceed with conditional branch
                     request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.timeout = ApiConfig.Timeout;
@@ -324,18 +322,16 @@ namespace MysticJourney.API.Core
             }
         }
 
-        // Kết quả của một lần refresh token. Phân biệt "server từ chối" với "không gọi được server".
+        // Executes refresh outcome operation.
+        // Validates input parameters against null or empty values.
         private enum RefreshOutcome
         {
             Success,
-            Rejected,     // Server trả 4xx → refresh token hết hạn hoặc session bị đè
-            NetworkError  // Không kết nối được → session vẫn có thể còn hợp lệ
+            Rejected,
+            NetworkError
         }
 
-        // Coroutine gọi /api/auth/refresh-token.
-        // Trả về NetworkError nếu không gọi được server (giữ session), Rejected nếu server từ chối.
-        // rejectMessage mang message của server khi bị từ chối — tài khoản bị ban giữa phiên
-        // sẽ bị chặn ở đây, và lý do ban nằm trong message đó nên không được bỏ đi.
+        // Executes refresh access token coroutine operation.
         private IEnumerator RefreshAccessTokenCoroutine(string refreshToken, Action<RefreshOutcome, string> onDone)
         {
             _isRefreshing = true;
@@ -356,7 +352,6 @@ namespace MysticJourney.API.Core
                 if (req.result == UnityWebRequest.Result.ConnectionError ||
                     req.result == UnityWebRequest.Result.DataProcessingError)
                 {
-                    // Mất mạng / timeout → chưa biết session còn hợp lệ hay không, đừng logout.
                     Debug.LogWarning($"[ApiClient] Token refresh unreachable: {req.error}");
                     outcome = RefreshOutcome.NetworkError;
                 }
@@ -397,7 +392,6 @@ namespace MysticJourney.API.Core
                     }
                     catch
                     {
-                        // Body không phải JSON → để null, caller dùng message mặc định.
                     }
                 }
             }
@@ -406,9 +400,9 @@ namespace MysticJourney.API.Core
             onDone?.Invoke(outcome, rejectMessage);
         }
 
-        // ── Internal Helpers ──────────────────────────────────────
 
-        // Gán Content-Type, Accept và Bearer token vào header của request
+        // Executes set common headers operation.
+        // Validates input parameters against null or empty values.
         private void SetCommonHeaders(UnityWebRequest request, bool requiresAuth)
         {
             request.SetRequestHeader("Content-Type", ApiConfig.ContentType);
@@ -419,23 +413,20 @@ namespace MysticJourney.API.Core
                 string token = GetToken();
                 if (!string.IsNullOrEmpty(token))
                 {
-                    // Gắn JWT token theo chuẩn Bearer Authentication
                     request.SetRequestHeader("Authorization", "Bearer " + token);
                 }
                 else
                 {
-                    // Không có token → cảnh báo, request sẽ bị 401 từ server
                     Debug.LogWarning("[ApiClient] requiresAuth=true nhưng không có token! Gọi AuthApi.LoginGame() trước.");
                 }
             }
         }
 
-        // Xử lý response: kiểm tra lỗi → parse JSON → gọi callback
+        // Process the supplied values: normalizes or validates the text before returning the derived result and converts the payload between the runtime object and its JSON representation.
         private void HandleResponse<T>(UnityWebRequest request, Action<T> onSuccess, Action<ApiException> onError, bool requiresAuth)
         {
             string rawBody = request.downloadHandler?.text ?? string.Empty;
 
-            // Lỗi mạng / không kết nối được server
             if (request.result == UnityWebRequest.Result.ConnectionError ||
                 request.result == UnityWebRequest.Result.DataProcessingError)
             {
@@ -451,17 +442,15 @@ namespace MysticJourney.API.Core
                 return;
             }
 
-            // Lỗi HTTP (4xx, 5xx) từ server
             if (request.result == UnityWebRequest.Result.ProtocolError || request.responseCode >= 400)
             {
                 string errorMsg = rawBody;
                 string errorCode = "HTTP_ERROR";
 
-                // Parse envelope lỗi để lấy message + errorCode chuẩn
                 try
                 {
                     var errObj = JsonConvert.DeserializeObject<ErrorBodyResponse>(rawBody);
-                    if (errObj != null)
+                    if (errObj != null)  // Entity exists — proceed with conditional branch
                     {
                         errorMsg = errObj.message ?? rawBody;
                         errorCode = errObj.errorCode ?? errObj.error ?? errorCode;
@@ -469,27 +458,23 @@ namespace MysticJourney.API.Core
                 }
                 catch
                 {
-                    // Body không phải JSON → dùng raw text
                 }
 
                 Debug.LogError($"[ApiClient] ❌ HTTP {request.responseCode} on {request.url} | ErrorCode={errorCode} | Message={errorMsg}");
                 Debug.LogError($"[ApiClient] Raw body: {rawBody}");
 
-                // Chỉ logout khi request CÓ mang token mà vẫn bị từ chối. Login/register dùng
-                // requiresAuth=false: sai mật khẩu cũng trả 401, logout ở đó là reload
-                // MainMenuScene ngay dưới form đăng nhập.
                 if (requiresAuth &&
                     (request.responseCode == 401 || string.Equals(errorCode, "SESSION_OVERRIDDEN", StringComparison.OrdinalIgnoreCase)))
                 {
                     Debug.LogWarning("[ApiClient] Session overridden or unauthorized. Clearing token and logging out to MainMenu.");
                     ClearToken();
-                    
+
                     string logoutReason = errorMsg;
-                    if (string.IsNullOrEmpty(logoutReason) || logoutReason.ToLower().Contains("invalid refresh token"))
+                    if (string.IsNullOrEmpty(logoutReason) || logoutReason.ToLower().Contains("invalid refresh token"))  // Mandatory string argument is null or empty — fail fast
                     {
                         logoutReason = "Your account has been logged in on another device.";
                     }
-                    
+
                     MysticJourney.Core.Services.SessionService.Logout(logoutReason);
                 }
 
@@ -503,8 +488,6 @@ namespace MysticJourney.API.Core
                 return;
             }
 
-            // Thành công HTTP nhưng BE có thể trả về { success: false } trong body.
-            // Parse JSON đúng 1 lần rồi dùng chung cho cả việc check success và unwrap data.
             T result = default;
             try
             {
@@ -513,7 +496,6 @@ namespace MysticJourney.API.Core
                 var successToken = envelope?.Property("success", StringComparison.OrdinalIgnoreCase)?.Value;
                 bool isEnvelope = successToken != null && successToken.Type == JTokenType.Boolean;
 
-                // BE trả về envelope với success: false → gọi onError
                 if (isEnvelope && !successToken.Value<bool>())
                 {
                     string errCode = ReadString(envelope, "errorCode") ?? "BUSINESS_ERROR";
@@ -535,7 +517,6 @@ namespace MysticJourney.API.Core
             }
             catch (Exception ex)
             {
-                // Parse thất bại → thường do DTO không khớp JSON response
                 Debug.LogError($"[ApiClient] ❌ Parse Error | type={typeof(T).Name} | exception={ex.Message}");
                 Debug.LogError($"[ApiClient] Raw body: {rawBody}");
 
@@ -546,32 +527,29 @@ namespace MysticJourney.API.Core
                     Message = $"Failed to parse JSON into {typeof(T).Name}: {ex.Message}",
                     RawBody = rawBody
                 });
-                return; // Stop execution if parsing fails
+                return;
             }
 
-            // Report network success if we were reconnecting
             MysticJourney.Networking.NetworkReconnectManager.Instance?.ReportNetworkSuccess();
 
-            // Gọi onSuccess BÊN NGOÀI try-catch để lỗi của Callback không bị nhầm thành lỗi Parse JSON
             onSuccess?.Invoke(result);
         }
 
+        // Executes read string operation.
         private static string ReadString(JObject obj, string name)
         {
             var value = obj?.Property(name, StringComparison.OrdinalIgnoreCase)?.Value;
             return value == null || value.Type == JTokenType.Null ? null : value.ToString();
         }
 
-        // Unwrap envelope ApiResponse<T> { success, message, errorCode, data }
-        // Trả về .data nếu là envelope, ngược lại parse trực tiếp từ JSON đã parse sẵn
+        // Process unwrap envelope using json, envelope, and is envelope; it loads generic type definition and guards invalid or unavailable states.
         private static T UnwrapEnvelope<T>(JToken json, JObject envelope, bool isEnvelope)
         {
-            if (json == null)
+            if (json == null)  // Entity not found — short-circuit with appropriate error result
                 return default;
 
             var targetType = typeof(T);
 
-            // Nếu T là ApiResponse<> hoặc SimpleResponse → map trực tiếp cả envelope
             if ((targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ApiResponse<>)) ||
                 targetType == typeof(SimpleResponse))
             {

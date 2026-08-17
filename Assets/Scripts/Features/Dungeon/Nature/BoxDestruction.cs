@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class Box3 : MonoBehaviour
 {
     private BoxCollider2D boxCollider3;
@@ -15,7 +16,6 @@ public class Box3 : MonoBehaviour
 
 
 
-    // Start is called before the first frame update
     void Start()
     {
         boxCollider3 = GetComponent<BoxCollider2D>();
@@ -24,6 +24,7 @@ public class Box3 : MonoBehaviour
         boxDestruction3.OnDestruction += boxDestruction3_OnDestruction;
     }
 
+    // Executes take damage box operation.
     public void TakeDamageBox(int boxdamage)
     {
         currentBoxHealth -= boxdamage;
@@ -37,20 +38,24 @@ public class Box3 : MonoBehaviour
         }
     }
 
+    // Executes detect death operation.
     private void DetectDeath()
     {
         if (currentBoxHealth <= 0)
         {
             OnDestruction?.Invoke(this, EventArgs.Empty);
             boxCollider3.enabled = false;
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(Wait());
         }
     }
+    // Executes box destruction3_on destruction operation.
     private void boxDestruction3_OnDestruction(object sender, EventArgs e)
     {
         anim.SetTrigger(DESTRUCTION);
     }
 
+    // Executes wait operation.
     private IEnumerator Wait()
     {
         yield return new WaitForSeconds(0.4f);

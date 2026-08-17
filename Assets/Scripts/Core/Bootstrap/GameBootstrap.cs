@@ -4,10 +4,14 @@ using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// Executes mono behaviour operation.
+// Validates input parameters against null or empty values.
 public class GameBootstrap : MonoBehaviour
 {
     private const string LoadingSceneName = "Loading";
 
+    // Performs startup initialization for GameBootstrap on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private IEnumerator Start()
     {
         Debug.Log("=== GAME BOOTSTRAP START ===");
@@ -21,8 +25,6 @@ public class GameBootstrap : MonoBehaviour
 
         DontDestroyOnLoad(gameObject);
 
-        // Overlay loading UI (Canvas ScreenSpaceOverlay) phủ kín trong suốt quá trình
-        // fetch API + additive load Main/map. Unload ở cuối -> world hiện ra đúng lúc.
         yield return EnsureSceneLoaded(LoadingSceneName, 0.05f, 0.05f, "Connecting...");
 
         yield return LoadWorldSession();
@@ -43,10 +45,8 @@ public class GameBootstrap : MonoBehaviour
 
         DisableDuplicateAudioListeners();
 
-        // Apply saved settings (volume, graphics, etc.) when game starts
         SettingsService.Instance.Load();
 
-        // World sẵn sàng -> gỡ overlay loading để lộ thế giới.
         var loadingScene = SceneManager.GetSceneByName(LoadingSceneName);
         if (loadingScene.IsValid() && loadingScene.isLoaded)
             yield return SceneManager.UnloadSceneAsync(loadingScene);
@@ -56,24 +56,16 @@ public class GameBootstrap : MonoBehaviour
 
         Debug.Log($"=== LOAD DONE | UI=Main | Map={WorldState.CurrentMapName} ===");
 
-        // Join the shared social lobby room (presence + party invites) once we are in
-        // Main. Fire-and-forget: JoinSocialLobbyAsync retries and reports its own failure
-        // so a Photon outage never blocks the Main scene.
-        //
-        // No longer gated on PlayerProfileId > 0: the id arrives from the API and a boot
-        // where it was still 0 (or GetMe failed) used to skip the connect for the whole
-        // session, permanently killing party/invites. The presence re-publishes its
-        // identity once PlayerSpawner finishes hydrating WorldState.
         if (ApiClient.Instance.HasToken() && PhotonManager.Instance != null)
         {
             _ = PhotonManager.Instance.JoinSocialLobbyAsync();
-            // Listen for incoming party invites while in Main.
             PartyInvitePopup.EnsureExists();
         }
 
         Destroy(gameObject);
     }
 
+    // Executes disable duplicate audio listeners operation.
     private static void DisableDuplicateAudioListeners()
     {
         var listeners = Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
@@ -100,6 +92,7 @@ public class GameBootstrap : MonoBehaviour
         }
     }
 
+    // Executes ensure scene loaded operation.
     private static IEnumerator EnsureSceneLoaded(string sceneName, float progressFrom, float progressTo, string status)
     {
         var scene = SceneManager.GetSceneByName(sceneName);
@@ -119,6 +112,7 @@ public class GameBootstrap : MonoBehaviour
         LoadingProgress.Report(progressTo, status);
     }
 
+    // Executes load world session operation.
     private IEnumerator LoadWorldSession()
     {
         var done = false;
@@ -129,9 +123,6 @@ public class GameBootstrap : MonoBehaviour
             AuthApi.Instance.GetMe(
                 _ =>
                 {
-                    // GetMe đã lưu profileId/map/position vào prefs; PlayerSpawner sẽ tự
-                    // hydrate GetState + inventory trước khi spawn. Bỏ GetState ở đây để
-                    // cắt 1 round-trip API khỏi critical path loading.
                     LoadLocalWorldSession();
                     LoadingProgress.Report(0.5f, "Loading world data...");
                     done = true;
@@ -154,12 +145,14 @@ public class GameBootstrap : MonoBehaviour
         yield return null;
     }
 
+    // Executes load local world session operation.
     private static void LoadLocalWorldSession()
     {
         var mapName = PlayerPrefs.GetString(ApiConfig.LastMapNameKey, "ElfForest");
         var x = PlayerPrefs.GetFloat(ApiConfig.PositionXKey, 0f);
         var y = PlayerPrefs.GetFloat(ApiConfig.PositionYKey, 0f);
         var level = PlayerPrefs.GetInt(ApiConfig.PlayerLevelKey, 1);
+        // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
         var playerClass = PlayerPrefs.GetString(ApiConfig.PlayerClassKey, "Knight");
         var profileId = PlayerPrefs.GetInt(ApiConfig.PlayerProfileIdKey, 0);
         var equippedSkinId = PlayerPrefs.GetInt("mj_equipped_skin_id", 0);

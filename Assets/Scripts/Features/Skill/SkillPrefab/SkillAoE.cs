@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// Executes mono behaviour operation.
 public class SkillAoE : MonoBehaviour
 {
     [SerializeField] private float duration = 3f;
@@ -10,6 +11,7 @@ public class SkillAoE : MonoBehaviour
 
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
 
+    // Executes setup operation.
     public void Setup(float damage)
     {
         _damage = damage;
@@ -21,6 +23,7 @@ public class SkillAoE : MonoBehaviour
         }
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (PlayerSkillVisualReplica.IsReplica(this)) return;
@@ -32,7 +35,7 @@ public class SkillAoE : MonoBehaviour
             {
                 if (enemy != null)
                 {
-                    // 👇 Thêm logic Chí mạng cho Vòng Phép
+                    // Randomize the eligible candidates before selecting this gameplay result.
                     bool isCrit = Random.Range(0f, 100f) <= 20f;
                     float finalDamage = isCrit ? _damage * 1.5f : _damage;
                     int damageInt = Mathf.RoundToInt(finalDamage);
@@ -40,7 +43,6 @@ public class SkillAoE : MonoBehaviour
                     enemy.TakeDamage(damageInt);
                     _damagedEnemies.Add(collision);
 
-                    // 👇 Hiện số sát thương bay lên
                     if (DamagePopupManager.Instance != null)
                     {
                         DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);

@@ -9,6 +9,7 @@ using UnityEngine.Tilemaps;
 //***********************************************************************************
 namespace NavMeshPlus.Components
 {
+    // Executes mono behaviour operation.
     [AddComponentMenu("Navigation/Navigation Modifier Tilemap", 33)]
     [HelpURL("https://github.com/Unity-Technologies/NavMeshComponents#documentation-draft")]
     [RequireComponent(typeof(Tilemap))]
@@ -17,6 +18,7 @@ namespace NavMeshPlus.Components
     [ExecuteInEditMode]
     public class NavMeshModifierTilemap : MonoBehaviour
     {
+        // Executes tile modifier operation.
         [System.Serializable]
         public struct TileModifier
         {
@@ -28,7 +30,9 @@ namespace NavMeshPlus.Components
         private class MatchingTileComparator : IEqualityComparer<TileModifier>
         {
             public static readonly IEqualityComparer<TileModifier> Instance = new MatchingTileComparator();
+            // Executes equals operation.
             public bool Equals(TileModifier a, TileModifier b) => a.tile == b.tile;
+            // Executes get hash code operation.
             public int GetHashCode(TileModifier tileModifier) => tileModifier.GetHashCode();
         }
 
@@ -42,25 +46,29 @@ namespace NavMeshPlus.Components
 
         private Dictionary<TileBase, TileModifier> m_ModifierMap;
 
-        public Dictionary<TileBase, TileModifier> GetModifierMap() => m_TileModifiers.Where(mod => mod.tile != null).Distinct(MatchingTileComparator.Instance).ToDictionary(mod => mod.tile);
+        // Executes get modifier map operation.
+        public Dictionary<TileBase, TileModifier> GetModifierMap() => m_TileModifiers.Where(mod => mod.tile != null).Distinct(MatchingTileComparator.Instance).ToDictionary(mod => mod.tile);  // Filter records matching the predicate
 
         void OnEnable()
         {
             CacheModifiers();
         }
 
+        // Executes cache modifiers operation.
         public void CacheModifiers()
         {
             m_ModifierMap = GetModifierMap();
         }
 
 #if UNITY_EDITOR
+        // Executes has duplicate tile modifiers operation.
         public bool HasDuplicateTileModifiers()
         {
             return m_TileModifiers.Count != m_TileModifiers.Distinct(MatchingTileComparator.Instance).Count();
         }
 #endif // UNITY_EDITOR
 
+        // Executes try get tile modifier operation.
         public virtual bool TryGetTileModifier(Vector3Int coords, Tilemap tilemap, out TileModifier modifier)
         {
             if (tilemap.GetTile(coords) is TileBase tileBase)
@@ -71,6 +79,7 @@ namespace NavMeshPlus.Components
             return false;
         }
 
+        // Executes affects agent type operation.
         public bool AffectsAgentType(int agentTypeID)
         {
             if (m_AffectedAgents.Count == 0)

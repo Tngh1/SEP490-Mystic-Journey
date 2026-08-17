@@ -3,17 +3,7 @@ using UnityEngine;
 
 namespace MysticJourney.Core.Services
 {
-    /// <summary>
-    /// Trung tâm quản lý âm thanh: nhạc nền (BGM) + hiệu ứng (SFX).
-    /// Singleton bền vững qua các scene (DontDestroyOnLoad), tự tạo khi truy cập lần đầu.
-    ///
-    /// Âm lượng thực tế = Master * (Music|SFX), và bị chặn về 0 khi IsMuted.
-    /// Mọi âm thanh nên đi qua đây để slider trong Game Setting điều khiển được:
-    ///   - Nhạc nền:  AudioManager.Instance.PlayMusic(clip)
-    ///   - Hiệu ứng:  AudioManager.Instance.PlaySfx(clip)
-    ///
-    /// Khi thay đổi volume trong Settings, gọi AudioManager.Instance.ApplyVolumesFromSettings().
-    /// </summary>
+    // Executes core business logic for mono behaviour.
     [DefaultExecutionOrder(-50)]
     public class AudioManager : MonoBehaviour
     {
@@ -21,12 +11,14 @@ namespace MysticJourney.Core.Services
         private static bool _isQuitting = false;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        // Executes core business logic for init.
         private static void Init()
         {
             _instance = null;
             _isQuitting = false;
         }
 
+        // Executes core business logic for instance.
         public static AudioManager Instance
         {
             get
@@ -45,14 +37,13 @@ namespace MysticJourney.Core.Services
         [Tooltip("Tiếng phát khi mở panel UI. Kéo clip OpenPanel vào đây.")]
         [SerializeField] private AudioClip openPanelSfx;
 
-        // Nguồn phát nhạc nền (loop). Một bài tại một thời điểm.
         private AudioSource _musicSource;
-        // Nguồn phát SFX (one-shot). Dùng PlayOneShot nên 1 source là đủ cho phần lớn nhu cầu.
         private AudioSource _sfxSource;
 
-        // Clip nhạc đang phát — tránh phát lại chính nó khi đổi map trùng nhạc.
         private AudioClip _currentMusicClip;
 
+        // Initializes internal component caches and dependencies for AudioManager upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (_instance != null && _instance != this)
@@ -65,11 +56,11 @@ namespace MysticJourney.Core.Services
             if (Application.isPlaying) DontDestroyOnLoad(gameObject);
             EnsureSources();
 
-            // Áp volume đã lưu ngay khi khởi tạo.
             SettingsService.Instance.Load();
             ApplyVolumesFromSettings();
         }
 
+        // Executes core business logic for ensure sources.
         private void EnsureSources()
         {
             if (_musicSource == null)
@@ -77,7 +68,7 @@ namespace MysticJourney.Core.Services
                 _musicSource = gameObject.AddComponent<AudioSource>();
                 _musicSource.playOnAwake = false;
                 _musicSource.loop = true;
-                _musicSource.spatialBlend = 0f; // 2D
+                _musicSource.spatialBlend = 0f;
             }
 
             if (_sfxSource == null)
@@ -85,13 +76,12 @@ namespace MysticJourney.Core.Services
                 _sfxSource = gameObject.AddComponent<AudioSource>();
                 _sfxSource.playOnAwake = false;
                 _sfxSource.loop = false;
-                _sfxSource.spatialBlend = 0f; // 2D
+                _sfxSource.spatialBlend = 0f;
             }
         }
 
-        // ─── Nhạc nền ─────────────────────────────────────────────────────────
 
-        /// <summary>Phát nhạc nền. Nếu clip đang phát trùng thì bỏ qua (không restart).</summary>
+        // Executes core business logic for play music.
         public void PlayMusic(AudioClip clip, bool restartIfSame = false)
         {
             EnsureSources();
@@ -110,32 +100,28 @@ namespace MysticJourney.Core.Services
             _musicSource.Play();
         }
 
+        // Executes core business logic for stop music.
         public void StopMusic()
         {
             if (_musicSource != null) _musicSource.Stop();
             _currentMusicClip = null;
         }
 
-        // ─── Hiệu ứng (SFX) ───────────────────────────────────────────────────
 
-        /// <summary>Phát 1 hiệu ứng. volumeScale cho phép chỉnh nhỏ/to riêng từng clip.</summary>
+        // Executes core business logic for play sfx.
         public void PlaySfx(AudioClip clip, float volumeScale = 1f)
         {
             if (clip == null) return;
             EnsureSources();
-            // PlayOneShot nhân với _sfxSource.volume (đã set theo Master*SFX).
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             _sfxSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale));
         }
 
-        /// <summary>Tiếng mở panel UI. Đi qua kênh SFX nên slider SFX điều khiển được.</summary>
+        // Executes core business logic for play open panel.
         public void PlayOpenPanel() => PlaySfx(openPanelSfx);
 
-        // ─── Âm lượng ─────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Đọc giá trị từ SettingsService và áp vào 2 source.
-        /// Gọi mỗi khi người dùng kéo slider hoặc bật/tắt mute.
-        /// </summary>
+        // Executes core business logic for apply volumes from settings.
         public void ApplyVolumesFromSettings()
         {
             EnsureSources();
@@ -147,11 +133,13 @@ namespace MysticJourney.Core.Services
             _sfxSource.volume = master * s.SfxVolume;
         }
 
+        // Executes core business logic for on application quit.
         private void OnApplicationQuit()
         {
             _isQuitting = true;
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDestroy()
         {
             if (_instance == this)

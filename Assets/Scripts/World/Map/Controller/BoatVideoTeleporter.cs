@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Video;
 
+// Executes map teleport portal operation.
 public class BoatVideoTeleporter : MapTeleportPortal
 {
     [Header("Video Settings")]
@@ -10,17 +11,17 @@ public class BoatVideoTeleporter : MapTeleportPortal
     [Tooltip("Sự kiện xảy ra khi vừa bấm E lên thuyền (SFX, animation thuyền...)")]
     public UnityEngine.Events.UnityEvent onBoardBoat;
 
-    // ponytail: delayBeforeVideo giữ lại để không mất giá trị đã set trong scene, nhưng KHÔNG còn
-    // được dùng: 3 giây "chèo thuyền" chính là quãng người chơi thấy nhân vật biến mất và không có
-    // phản hồi gì. Muốn có màn chèo thuyền thật thì làm animation trong lúc loading đang che.
     [HideInInspector] public float delayBeforeVideo = 3f;
 
     private bool isTeleportingWithVideo = false;
 
-    // Chặn tính năng chạm vào là bay luôn của cổng dịch chuyển cũ
+    // Executes on trigger enter operation.
     private void OnTriggerEnter(Collider other) { }
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D other) { }
 
+    // Performs startup initialization for BoatVideoTeleporter on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (mapSceneController == null)
@@ -30,7 +31,7 @@ public class BoatVideoTeleporter : MapTeleportPortal
             videoPlayer.playOnAwake = false;
     }
 
-    // Hàm này sẽ được gọi khi bạn đứng gần thuyền và bấm phím E
+    // Executes interact with boat operation.
     public void InteractWithBoat()
     {
         if (isTeleportingWithVideo) return;
@@ -44,13 +45,6 @@ public class BoatVideoTeleporter : MapTeleportPortal
         if (mapSceneController == null)
             mapSceneController = FindFirstObjectByType<MapSceneController>();
 
-        // Toàn bộ trình tự nằm ở BoatVoyageSequence (object DontDestroyOnLoad). KHÔNG chạy coroutine
-        // ở đây: thuyền thuộc scene AutumnPumpkin và bị unload giữa lúc đổi map, coroutine chết theo
-        // -> đó là lý do trước đây video/dịch chuyển hay đứt đoạn.
-        //
-        // Cũng KHÔNG còn ẩn sprite người chơi + gắn thuyền vào player + chờ 3 giây: đúng quãng đó là
-        // lúc người chơi thấy "nhân vật mất tiêu" mà chưa có loading hay video nào hiện ra. Giờ bấm E
-        // là hiện loading ngay.
         BoatVoyageSequence.Begin(
             mapSceneController,
             targetMapData,

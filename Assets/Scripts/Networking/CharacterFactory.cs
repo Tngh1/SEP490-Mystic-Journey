@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class CharacterFactory : MonoBehaviour
 {
     [Header("Visual Prefabs (base body)")]
@@ -26,11 +27,14 @@ public class CharacterFactory : MonoBehaviour
 
     private bool _loggedMissingSkinDatabase;
 
+    // Initializes internal component caches and dependencies for CharacterFactory upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         EnsureSkinDatabase();
     }
 
+    // Executes create operation.
     public GameObject Create(int skinId, CharacterClass characterClass, Transform parent)
     {
         GameObject prefab = ResolvePrefab(skinId, characterClass);
@@ -56,6 +60,7 @@ public class CharacterFactory : MonoBehaviour
         return instance;
     }
 
+    // Executes ensure animation component operation.
     private static void EnsureAnimationComponent(GameObject instance)
     {
         var animator = instance != null ? instance.GetComponentInChildren<Animator>(true) : null;
@@ -66,6 +71,7 @@ public class CharacterFactory : MonoBehaviour
             animator.gameObject.AddComponent<PlayerAnimation>();
     }
 
+    // Executes ensure skin database operation.
     private SkinDatabaseSO EnsureSkinDatabase()
     {
         if (skinDatabase == null)
@@ -80,6 +86,7 @@ public class CharacterFactory : MonoBehaviour
         return skinDatabase;
     }
 
+    // Executes strip gameplay components operation.
     private static void StripGameplayComponents(GameObject visual)
     {
         DestroyAll<PlayerWorldInteractor>(visual);
@@ -93,6 +100,7 @@ public class CharacterFactory : MonoBehaviour
         DestroyAll<Collider2D>(visual);
     }
 
+    // Executes component operation.
     private static void DestroyAll<T>(GameObject root) where T : Component
     {
         var found = root.GetComponentsInChildren<T>(includeInactive: true);
@@ -103,6 +111,7 @@ public class CharacterFactory : MonoBehaviour
         }
     }
 
+    // Executes resolve prefab operation.
     private GameObject ResolvePrefab(int skinId, CharacterClass characterClass)
     {
         var database = EnsureSkinDatabase();
@@ -123,6 +132,7 @@ public class CharacterFactory : MonoBehaviour
         }
     }
 
+    // Executes resolve controller operation.
     private RuntimeAnimatorController ResolveController(int skinId, CharacterClass characterClass)
     {
         var database = EnsureSkinDatabase();
@@ -138,6 +148,8 @@ public class CharacterFactory : MonoBehaviour
         }
     }
 
+    // Executes configure sorting operation.
+    // Validates input parameters against null or empty values.
     private void ConfigureSorting(GameObject instance)
     {
         if (string.IsNullOrEmpty(sortingLayerName))
@@ -151,6 +163,7 @@ public class CharacterFactory : MonoBehaviour
         }
     }
 
+    // Executes configure animator operation.
     private void ConfigureAnimator(GameObject instance, int skinId, CharacterClass characterClass)
     {
         RuntimeAnimatorController controller = ResolveController(skinId, characterClass);
@@ -170,7 +183,6 @@ public class CharacterFactory : MonoBehaviour
         {
             animator.runtimeAnimatorController = controller;
 
-            // Fallback nếu Controller của Skin rỗng / thiếu Parameter (MoveX, MoveY, Speed, v.v.)
             if (animator.parameterCount == 0 && defaultClassController != null && controller != defaultClassController)
             {
                 Debug.LogWarning($"[CharacterFactory] Controller '{controller.name}' on skin {skinId} has 0 parameters. Overriding with class controller '{defaultClassController.name}'.");
@@ -179,6 +191,7 @@ public class CharacterFactory : MonoBehaviour
         }
     }
 
+    // Executes get class controller operation.
     private RuntimeAnimatorController GetClassController(CharacterClass characterClass)
     {
         switch (characterClass)

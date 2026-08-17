@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIDailyLogin : MonoBehaviour
 {
     public static UIDailyLogin Instance;
@@ -16,7 +17,7 @@ public class UIDailyLogin : MonoBehaviour
     [SerializeField] private int columns = 6;
     [SerializeField] private bool autoFitCellSize = true;
     [SerializeField] private bool preserveSquareAspect = true;
-    [SerializeField] private float slotAspectRatio = 1.0f; // Width / Height ratio (1.0 = Square)
+    [SerializeField] private float slotAspectRatio = 1.0f;
     [SerializeField] private bool ensureMaskComponent = true;
     [SerializeField] private bool centerGridAlignment = true;
 
@@ -24,6 +25,8 @@ public class UIDailyLogin : MonoBehaviour
 
     public Action<UIBaseItemSlot> OnDailyItemClaimed;
 
+    // Initializes internal component caches and dependencies for UIDailyLogin upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance == null)
@@ -32,23 +35,28 @@ public class UIDailyLogin : MonoBehaviour
         BindReferences();
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         BindReferences();
         UpdateGridLayout(slots.Count > 0 ? slots.Count : 30);
     }
 
+    // Performs startup initialization for UIDailyLogin on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         UpdateGridLayout(slots.Count > 0 ? slots.Count : 30);
     }
 
+    // Executes on rect transform dimensions change operation.
     private void OnRectTransformDimensionsChange()
     {
         if (gameObject.activeInHierarchy)
             UpdateGridLayout(slots.Count > 0 ? slots.Count : 30);
     }
 
+    // Executes refresh daily operation.
     public void RefreshDaily(List<UIItemDisplayData> dailyItems)
     {
         BindReferences();
@@ -60,7 +68,6 @@ public class UIDailyLogin : MonoBehaviour
             return;
         }
 
-        // Tự động Instantiate nếu thiếu slot
         for (int i = 0; i < dailyItems.Count; i++)
         {
             if (i >= slots.Count)
@@ -75,11 +82,10 @@ public class UIDailyLogin : MonoBehaviour
             slots[i].SetupDaily(dailyItems[i]);
         }
 
-        // Ẩn các slot thừa
         for (int i = dailyItems.Count; i < slots.Count; i++)
         {
             slots[i].ClearSlot();
-            slots[i].gameObject.SetActive(false); 
+            slots[i].gameObject.SetActive(false);
         }
 
         UpdateGridLayout(dailyItems.Count);
@@ -89,6 +95,7 @@ public class UIDailyLogin : MonoBehaviour
             LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
     }
 
+    // Executes update grid layout operation.
     public void UpdateGridLayout(int totalItemsCount = 30)
     {
         if (contentParent == null)
@@ -114,7 +121,6 @@ public class UIDailyLogin : MonoBehaviour
         if (containerRect == null)
             return;
 
-        // Nếu có ScrollRect ở cha (trường hợp muốn cuộn danh sách)
         var scrollRect = contentParent.GetComponentInParent<ScrollRect>();
         if (scrollRect != null && scrollRect.content == containerRect)
         {
@@ -123,7 +129,6 @@ public class UIDailyLogin : MonoBehaviour
             return;
         }
 
-        // Đảm bảo có RectMask2D hoặc Mask để không bị lem ra ngoài UI
         if (ensureMaskComponent)
         {
             var parentObj = contentParent.parent != null ? contentParent.parent.gameObject : contentParent.gameObject;
@@ -136,7 +141,6 @@ public class UIDailyLogin : MonoBehaviour
         if (!autoFitCellSize)
             return;
 
-        // Lấy kích thước hiện tại của container rect
         Vector2 containerSize = containerRect.rect.size;
 
         if (containerSize.x <= 0 || containerSize.y <= 0)
@@ -157,7 +161,6 @@ public class UIDailyLogin : MonoBehaviour
 
                 if (preserveSquareAspect)
                 {
-                    // Chọn kích thước vuông (Aspect ratio 1:1) chuẩn để không bị méo ô
                     float maxAllowedHeight = calculatedHeight;
                     float maxAllowedWidth = calculatedWidth;
 
@@ -175,11 +178,13 @@ public class UIDailyLogin : MonoBehaviour
         }
     }
 
+    // Executes handle slot clicked operation.
     private void HandleSlotClicked(UIBaseItemSlot clickedSlot)
     {
         OnDailyItemClaimed?.Invoke(clickedSlot);
     }
 
+    // Executes bind references operation.
     private void BindReferences()
     {
         if (contentParent == null)
@@ -191,13 +196,11 @@ public class UIDailyLogin : MonoBehaviour
                 contentParent = FindChild("Content") ?? FindChild("Grid") ?? FindChild("DailyGrid");
         }
 
-        // Nếu danh sách slots chưa có gì, tiến hành tìm kiếm toàn bộ con có chứa UIDailySlot
         if (slots.Count == 0)
         {
             var foundSlots = GetComponentsInChildren<UIDailySlot>(true);
             foreach (var slot in foundSlots)
             {
-                // Tránh add trùng lặp và gắn sự kiện click
                 if (!slots.Contains(slot))
                 {
                     slot.OnSlotClicked -= HandleSlotClicked;
@@ -208,6 +211,7 @@ public class UIDailyLogin : MonoBehaviour
         }
     }
 
+    // Executes find child operation.
     private Transform FindChild(string objectName)
     {
         var children = GetComponentsInChildren<Transform>(true);

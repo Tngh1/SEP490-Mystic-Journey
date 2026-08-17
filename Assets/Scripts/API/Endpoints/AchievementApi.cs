@@ -4,22 +4,18 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // ACHIEVEMENT API - Thành tựu
-    // ═══════════════════════════════════════════════════════════════
     public class AchievementApi : BaseApiService<AchievementApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy danh sách thành tựu ──────────────
+        // ─── Player APIs ───────────────────────────────────────────────────────
+        // Load all using page, page size, on success, and on error; it sends the GET API request and guards invalid or unavailable states.
         public void GetAll(
             int page,
             int pageSize,
             Action<PaginatedResponse<AchievementResponse>> onSuccess,
             Action<ApiException> onError,
             string search = null,
+            // Supported achievement types: Combat, Exploration, Social, Collection, or Progression; the type selects the tracked activity category.
             string type = null,
             bool? isActive = null)
         {
@@ -44,6 +40,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Executes get my achievements operation.
         public void GetMyAchievements(Action<PlayerMeAchievementsResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMyAchievements → me");
@@ -58,6 +55,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Executes unlock achievement operation.
         public void UnlockAchievement(int playerAchievementId, Action<PlayerAchievementResponse> onSuccess, Action<ApiException> onError)
         {
             string endpoint = string.Format(ApiConfig.AchievementUnlock, playerAchievementId);

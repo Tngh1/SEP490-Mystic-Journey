@@ -9,8 +9,10 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class MainNpcPanel : MonoBehaviour
 {
+    // Executes instance operation.
     public static MainNpcPanel Instance { get; private set; }
 
     [Header("Scene UI")]
@@ -37,14 +39,17 @@ public class MainNpcPanel : MonoBehaviour
     private Coroutine imageRoutine;
     private bool didBind;
     private int storyDialogueIndex = 0;
-    
+
     private Coroutine typewriterRoutine;
     private bool isTyping;
     private string fullDialogueText;
     private static readonly string[] NextPhrases = { "Tell me more...", "I'm listening...", "Go on...", "What happened next?", "I see..." };
 
+    // Executes is open operation.
     public bool IsOpen => npcPanel != null && npcPanel.activeInHierarchy;
 
+    // Initializes internal component caches and dependencies for MainNpcPanel upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -56,12 +61,15 @@ public class MainNpcPanel : MonoBehaviour
         Instance = this;
     }
 
+    // Performs startup initialization for MainNpcPanel on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private IEnumerator Start()
     {
         yield return null;
         BindUi();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (imageRoutine != null) StopCoroutine(imageRoutine);
@@ -71,6 +79,7 @@ public class MainNpcPanel : MonoBehaviour
             Instance = null;
     }
 
+    // Executes open for npc operation.
     public void OpenForNpc(WorldInteractable interactable)
     {
         if (interactable == null)
@@ -96,16 +105,9 @@ public class MainNpcPanel : MonoBehaviour
             return;
         }
 
-        // Không render lại lời chào trong lúc chờ API. TalkToNpc vẫn phải được gọi vì NPC
-        // có thể chính là objective Interact/Talk và server cần cập nhật tiến độ trước.
         WorldInteractionPromptRuntime.Hide();
         manager.TalkToNpc(
             interactable.NpcId,
-            // interactable is captured across a network round-trip and used as the fallback
-            // for name/description/portrait. A scene unload (dungeon enter/restart/exit)
-            // destroys it meanwhile, and touching a destroyed component throws
-            // MissingReferenceException. Unity's == override treats it as null, so this
-            // guard covers it; the locally-rendered panel from RenderLocal stays as-is.
             response =>
             {
                 if (interactable == null) return;
@@ -125,6 +127,7 @@ public class MainNpcPanel : MonoBehaviour
         );
     }
 
+    // Executes bind ui operation.
     private void BindUi()
     {
         npcPanel = npcPanel != null ? npcPanel : FindSceneObject("NPCPanel");
@@ -159,6 +162,8 @@ public class MainNpcPanel : MonoBehaviour
         didBind = true;
     }
 
+    // Executes render local operation.
+    // Validates input parameters against null or empty values.
     private void RenderLocal(WorldInteractable interactable)
     {
         firstQuestId = interactable.QuestId ?? 0;
@@ -175,6 +180,8 @@ public class MainNpcPanel : MonoBehaviour
         ApplyPortrait(null, interactable);
     }
 
+    // Executes clean name operation.
+    // Validates input parameters against null or empty values.
     private static string CleanName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "Elder Rowan";
@@ -187,11 +194,8 @@ public class MainNpcPanel : MonoBehaviour
         return clean;
     }
 
-    /// <summary>
-    /// Quest InProgress nhưng còn dang dở sẽ mở thẳng bảng quest thay vì phát lại thoại.
-    /// Quest đã đủ tiến độ, cùng Talk/Interact/Explore, phải đi qua NPC
-    /// panel để gọi đúng Complete/TurnIn/Claim flow; shortcut các trường hợp đó sẽ làm quest kẹt.
-    /// </summary>
+    // Executes try open accepted quest operation.
+    // Evaluates conditions and returns a boolean result.
     private bool TryOpenAcceptedQuest(IEnumerable<PlayerQuestResponse> linkedQuests)
     {
         var acceptedQuest = linkedQuests?
@@ -219,6 +223,7 @@ public class MainNpcPanel : MonoBehaviour
         return true;
     }
 
+    // Executes requires npc completion flow operation.
     private static bool RequiresNpcCompletionFlow(PlayerQuestResponse quest)
     {
         return IsObjectiveType(quest, "Talk") ||
@@ -226,15 +231,13 @@ public class MainNpcPanel : MonoBehaviour
                IsObjectiveType(quest, "Explore");
     }
 
+    // Executes render api response operation.
     private void RenderApiResponse(TalkToNpcResponse response, WorldInteractable fallback)
     {
         var npc = response?.Npc;
         var linkedQuests = response?.LinkedQuests?
             .Where(q => q != null && !QuestUIManager.IsStatus(q, "Claimed"))
             .OrderBy(q => QuestUIManager.IsStatus(q, "InProgress") ? 0 : QuestUIManager.IsStatus(q, "Completed") ? 1 : 2)
-            // Chuỗi main quest đi theo QuestId. KHÔNG sắp theo RequiredLevel: Arthur giữ quest
-            // 14 (lv12), 15 (lv12), 16 (lv5) → sắp theo level sẽ đưa quest 16 lên đầu và BE
-            // chặn "locked until the previous main quest is claimed" → player kẹt.
             .ThenBy(q => q.QuestId)
             .ToList() ?? new List<PlayerQuestResponse>();
 
@@ -261,12 +264,14 @@ public class MainNpcPanel : MonoBehaviour
         ApplyPortrait(npc, fallback);
     }
 
+    // Executes build intro dialogue operation.
     private static string BuildIntroDialogue(NPCDialogueResponse currentStoryDialogue, List<NPCDialogueResponse> dialogues, WorldInteractable fallback)
     {
         var intro = currentStoryDialogue ?? dialogues?.FirstOrDefault(d => !d.LinkedQuestId.HasValue) ?? dialogues?.FirstOrDefault();
         return Safe(intro?.Content, Safe(fallback.GreetingText, "Welcome to ElfLand. Talk to me when you are ready for your first quest."));
     }
 
+    // Executes pick quest dialogue operation.
     private static NPCDialogueResponse PickQuestDialogue(List<NPCDialogueResponse> dialogues, List<PlayerQuestResponse> linkedQuests, int index = 0)
     {
         if (dialogues == null || dialogues.Count == 0)
@@ -284,24 +289,26 @@ public class MainNpcPanel : MonoBehaviour
             }
         }
 
-        // NPC không có thoại cho quest đang tới lượt → dùng thoại thường, KHÔNG lấy thoại của
-        // quest khác (sẽ kể sai cốt truyện và trước đây còn khiến client nhận sai quest).
         if (linkedQuests != null && linkedQuests.Count > 0)
             return dialogues.FirstOrDefault(d => !d.LinkedQuestId.HasValue);
 
         return dialogues.FirstOrDefault(d => d.LinkedQuestId.HasValue);
     }
 
+    // Executes build quest hint operation.
+    // Validates input parameters against null or empty values.
     private static string BuildQuestHint(List<PlayerQuestResponse> linkedQuests)
     {
         if (linkedQuests == null || linkedQuests.Count == 0)
             return "No linked quest available.";
 
         var quest = linkedQuests[0];
+        // Supported display states: Available, NotStarted, InProgress, Completed, Claimed, or Failed; Available is the UI fallback before acceptance.
         var status = string.IsNullOrWhiteSpace(quest.Status) ? "Available" : quest.Status;
         return $"{quest.QuestTitle} [{status}]";
     }
 
+    // Executes bind fixed action buttons operation.
     private void BindFixedActionButtons(Transform actionArea)
     {
         actionButtons.Clear();
@@ -324,7 +331,7 @@ public class MainNpcPanel : MonoBehaviour
         }
     }
 
-    // Same hover-scale transition HUD/party buttons use.
+    // Executes add hover effect operation.
     private static void AddHoverEffect(Transform t)
     {
         if (t == null) return;
@@ -332,6 +339,7 @@ public class MainNpcPanel : MonoBehaviour
             t.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
+    // Initialize or configure default actions; it updates action button.
     private void ConfigureDefaultActions()
     {
         SetActionButton(0, "Greetings.", true, OnStoryDialogueAction);
@@ -340,6 +348,7 @@ public class MainNpcPanel : MonoBehaviour
         SetActionButton(3, "Farewell.", true, ClosePanel);
     }
 
+    // Initialize or configure npc actions; it builds story action label, loads linked quest, updates action button, and builds gift hint action label.
     private void ConfigureNpcActions()
     {
         var hasQuestion = HasDialogueType("Question") || HasDialogueType("Help");
@@ -356,6 +365,7 @@ public class MainNpcPanel : MonoBehaviour
         SetActionButton(3, "Farewell.", true, ClosePanel);
     }
 
+    // Executes set action button operation.
     private void SetActionButton(int index, string label, bool visible, UnityEngine.Events.UnityAction action)
     {
         if (index < 0 || index >= actionButtons.Count)
@@ -379,6 +389,7 @@ public class MainNpcPanel : MonoBehaviour
         RebuildActionLayout();
     }
 
+    // Executes set actions visible operation.
     private void SetActionsVisible(bool visible)
     {
         for (var i = 0; i < actionButtons.Count; i++)
@@ -391,18 +402,18 @@ public class MainNpcPanel : MonoBehaviour
         }
     }
 
+    // Executes rebuild action layout operation.
     private void RebuildActionLayout()
     {
         if (actionAreaRect != null)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(actionAreaRect);
 
-            // Fix layout gap/overlap if VerticalLayoutGroup is missing in Prefab
             if (actionAreaRect.GetComponent<UnityEngine.UI.VerticalLayoutGroup>() == null && actionButtons.Count > 0)
             {
-                float spacing = 10f; // Khoảng cách giữa các nút
+                float spacing = 10f;
                 var firstBtnRect = actionButtons[0] != null ? actionButtons[0].transform as RectTransform : null;
-                
+
                 if (firstBtnRect != null)
                 {
                     float currentY = firstBtnRect.anchoredPosition.y;
@@ -424,6 +435,7 @@ public class MainNpcPanel : MonoBehaviour
         }
     }
 
+    // Executes on story dialogue action operation.
     private void OnStoryDialogueAction()
     {
         if (isTyping)
@@ -464,6 +476,7 @@ public class MainNpcPanel : MonoBehaviour
         HandleLinkedQuestFromStory(dialogue, linkedQuest);
     }
 
+    // Executes handle linked quest from story operation.
     private void HandleLinkedQuestFromStory(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
         var manager = GetQuestManager();
@@ -473,7 +486,6 @@ public class MainNpcPanel : MonoBehaviour
             return;
         }
 
-        // [FIX] Ưu tiên xử lý Quest đang InProgress (Giao nhiệm vụ, báo cáo) trước khi xem xét Quest từ Dialogue
         var inProgressQuest = currentLinkedQuests.FirstOrDefault(q => QuestUIManager.IsStatus(q, "InProgress"));
         if (inProgressQuest != null)
         {
@@ -490,10 +502,6 @@ public class MainNpcPanel : MonoBehaviour
             }
         }
 
-        // Quest đang tới lượt (currentLinkedQuests[0]) mới là nguồn đúng, không phải dialogue:
-        // Arthur không có dòng thoại nào gắn quest 13 (Tristan giữ), nên PickQuestDialogue
-        // fallback sang thoại của quest 14 → client đi nhận quest 14 mà BE đang khoá
-        // ("locked until the previous main quest is claimed") → player kẹt vĩnh viễn.
         var activeQuest = currentLinkedQuests.FirstOrDefault();
         var questId = activeQuest?.QuestId ?? dialogue?.LinkedQuestId ?? linkedQuest?.QuestId ?? 0;
         if (questId <= 0 || processingQuestIds.Contains(questId))
@@ -508,8 +516,6 @@ public class MainNpcPanel : MonoBehaviour
 
         if (QuestUIManager.IsStatus(quest, "Completed"))
         {
-            // Completed nhưng chưa Claimed: tự claim luôn thay vì route mở panel mỗi lần talk
-            // (route lặp gây popup "Quest completed" lặp vô hạn khi nói chuyện lại NPC).
             AutoClaimCompletedQuest(manager, questId, quest);
             return;
         }
@@ -536,6 +542,8 @@ public class MainNpcPanel : MonoBehaviour
         AcceptLinkedQuest(manager, questId, quest, dialogue);
     }
 
+    // Executes accept linked quest operation.
+    // Validates input parameters against null or empty values.
     private void AcceptLinkedQuest(QuestUIManager manager, int questId, PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
         processingQuestIds.Add(questId);
@@ -576,6 +584,7 @@ public class MainNpcPanel : MonoBehaviour
         );
     }
 
+    // Executes complete talk quest and route to reward operation.
     private void CompleteTalkQuestAndRouteToReward(QuestUIManager manager, int questId, PlayerQuestResponse quest)
     {
         if (manager == null || questId <= 0)
@@ -597,7 +606,6 @@ public class MainNpcPanel : MonoBehaviour
                     completedQuest.Progress = Mathf.Max(1, completedQuest.TargetAmount);
                 }
 
-                // Auto-claim after completing talk quest
                 manager.ClaimReward(
                     questId,
                     onSuccess: () =>
@@ -610,8 +618,6 @@ public class MainNpcPanel : MonoBehaviour
                     {
                         processingQuestIds.Remove(questId);
                         Debug.LogWarning($"[MainNpcPanel] Auto claim failed: {err}");
-                        // Đây là nhánh LỖI: chỉ mở panel để người chơi tự claim, không bắn popup
-                        // "Quest completed..." vì InferKind sẽ dựng title thành công "Quest Completed!".
                         RouteToQuestReward(questId, null);
                     });
             },
@@ -624,6 +630,7 @@ public class MainNpcPanel : MonoBehaviour
         );
     }
 
+    // Executes auto claim completed quest operation.
     private void AutoClaimCompletedQuest(QuestUIManager manager, int questId, PlayerQuestResponse quest)
     {
         if (manager == null || questId <= 0 || processingQuestIds.Contains(questId))
@@ -647,6 +654,8 @@ public class MainNpcPanel : MonoBehaviour
             });
     }
 
+    // Executes route to quest reward operation.
+    // Validates input parameters against null or empty values.
     private void RouteToQuestReward(int questId, string message)
     {
         ClosePanel();
@@ -666,6 +675,9 @@ public class MainNpcPanel : MonoBehaviour
         WorldRuntimeEvents.RaiseQuestsChanged();
     }
 
+    // Executes resolve quest operation.
+    // Validates input parameters against null or empty values.
+    // Evaluates conditions and returns a boolean result.
     private static PlayerQuestResponse ResolveQuest(int questId, PlayerQuestResponse fallback, QuestUIManager manager)
     {
         if (questId <= 0)
@@ -674,6 +686,9 @@ public class MainNpcPanel : MonoBehaviour
         return manager?.GetQuestResponse(questId) ?? fallback;
     }
 
+    // Executes should auto complete npc talk quest operation.
+    // Validates input parameters against null or empty values.
+    // Evaluates conditions and returns a boolean result.
     private bool ShouldAutoCompleteNpcTalkQuest(PlayerQuestResponse quest)
     {
         if (quest == null) return false;
@@ -683,16 +698,17 @@ public class MainNpcPanel : MonoBehaviour
                               string.Equals(quest.ObjectiveType, "Interact", StringComparison.OrdinalIgnoreCase);
 
         if (!isTalkOrExplore) return false;
-            
+
         string target = quest.ObjectiveTarget;
-        if (string.IsNullOrWhiteSpace(target)) return true; // auto-complete if no target specified
-        
+        if (string.IsNullOrWhiteSpace(target)) return true;
+
         string currentNpc = CleanName(nameText.Text);
-        return target.IndexOf(currentNpc, StringComparison.OrdinalIgnoreCase) >= 0 || 
+        return target.IndexOf(currentNpc, StringComparison.OrdinalIgnoreCase) >= 0 ||
                currentNpc.IndexOf(target, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
 
+    // Executes turn in quest item and route operation.
     private void TurnInQuestItemAndRoute(PlayerQuestResponse quest)
     {
         if (quest == null || quest.QuestId <= 0)
@@ -739,8 +755,6 @@ public class MainNpcPanel : MonoBehaviour
                 SetText(dialogueText, Safe(response.Message, "Quest item handed over."));
                 WorldRuntimeEvents.RaiseQuestsChanged();
 
-                // Khi quest Collect hoàn thành → tự động Claim luôn, không cần player bấm tay.
-                // Quest tiếp theo sẽ unlock ngay lập tức.
                 if (response.Success && QuestUIManager.IsStatus(response.Quest, "Completed"))
                 {
                     var completedQuestId = quest.QuestId;
@@ -748,16 +762,13 @@ public class MainNpcPanel : MonoBehaviour
                         completedQuestId,
                         onSuccess: () =>
                         {
-                            // ClaimReward (non-silent) tự bắn popup "Reward Claimed!" — không bắn thêm ở đây.
                             Debug.Log($"[MainNpcPanel] Auto-claimed questId={completedQuestId}");
                             WorldRuntimeEvents.RaiseQuestsChanged();
                             ClosePanel();
                         },
                         onError: err =>
                         {
-                            // Fallback: route sang Reward panel để player claim tay nếu auto-claim thất bại
                             Debug.LogWarning($"[MainNpcPanel] Auto-claim failed ({err}), routing to panel.");
-                            // Nhánh lỗi: không popup (InferKind sẽ dựng "Quest Completed!" sai ngữ cảnh).
                             RouteToQuestReward(completedQuestId, null);
                         });
                 }
@@ -771,6 +782,7 @@ public class MainNpcPanel : MonoBehaviour
         );
     }
 
+    // Executes replace linked quest operation.
     private void ReplaceLinkedQuest(PlayerQuestResponse quest)
     {
         if (quest == null)
@@ -788,6 +800,7 @@ public class MainNpcPanel : MonoBehaviour
         currentLinkedQuests.Add(quest);
     }
 
+    // Executes build gift hint action label operation.
     private string BuildGiftHintActionLabel()
     {
         var quest = QuestUIManager.PickPreferredQuest(currentLinkedQuests);
@@ -811,11 +824,14 @@ public class MainNpcPanel : MonoBehaviour
         return "Do you have any advice for me?";
     }
 
+    // Executes is collect quest operation.
     private static bool IsCollectQuest(PlayerQuestResponse quest)
     {
         return quest != null && string.Equals(quest.ObjectiveType, "Collect", StringComparison.OrdinalIgnoreCase);
     }
 
+    // Executes has enough quest progress operation.
+    // Validates input parameters against null or empty values.
     private static bool HasEnoughQuestProgress(PlayerQuestResponse quest)
     {
         if (quest == null)
@@ -825,9 +841,12 @@ public class MainNpcPanel : MonoBehaviour
         return quest.Progress >= target;
     }
 
+    // Executes build missing quest item hint operation.
+    // Validates input parameters against null or empty values.
     private static string BuildMissingQuestItemHint(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
         var target = Mathf.Max(1, quest?.TargetAmount ?? 1);
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         var progress = Mathf.Clamp(quest?.Progress ?? 0, 0, target);
         var missing = Mathf.Max(0, target - progress);
         if (missing <= 0)
@@ -840,23 +859,24 @@ public class MainNpcPanel : MonoBehaviour
             : $"You need to collect {targetName} at {location}.";
         return $"{baseHint}\nI still need {missing} more {targetName} from you.";
     }
+    // Executes notify quest accepted operation.
     private void NotifyQuestAccepted(PlayerQuestResponse quest, NPCDialogueResponse dialogue)
     {
-        // KHÔNG bắn popup ở đây: QuestUIManager.AcceptQuest đã bắn popup "Quest Accepted!" (kind Accepted)
-        // khi server xác nhận. Bắn thêm ở đây gây popup trùng, và trước đây còn sai kind (Claimed →
-        // "Reward Claimed!" cho một quest vừa nhận). Chỉ log fallback khi không có panel.
         if (MainQuestPanelRuntime.Instance == null && FindQuestPanelRuntime() == null)
         {
             var title = Safe(quest?.QuestTitle, Safe(dialogue?.LinkedQuestTitle, "New quest"));
             Debug.Log($"[PaperPopup] Quest Accepted! {title} has been added to your quest log.");
         }
     }
+    // Executes on question action operation.
+    // Validates input parameters against null or empty values.
     private void OnQuestionAction()
     {
         var dialogue = NpcDialogueFlow.FindChoice(currentDialogues, currentNpcId, "Question", "Help");
         SetText(dialogueText, Safe(dialogue?.Content, "Feel free to ask. Press E to talk to others, P to gather items, and always keep an eye on your Quest Tracker to know what to do next."));
     }
 
+    // Executes on gift hint action operation.
     private void OnGiftHintAction()
     {
         var dialogue = NpcDialogueFlow.FindChoice(currentDialogues, currentNpcId, "Gift", "Hint");
@@ -907,6 +927,7 @@ public class MainNpcPanel : MonoBehaviour
 
         SetText(dialogueText, "There is something I can entrust to you. Listen to my story first, then follow your Quest Tracker.");
     }
+    // Executes open first quest operation.
     private void OpenFirstQuest()
     {
         if (firstQuestId <= 0)
@@ -919,6 +940,7 @@ public class MainNpcPanel : MonoBehaviour
             UIManager.Instance.OpenQuestPanel();
     }
 
+    // Executes show panel operation.
     private void ShowPanel()
     {
         WorldInteractionPromptRuntime.Hide();
@@ -929,9 +951,9 @@ public class MainNpcPanel : MonoBehaviour
             npcPanel.SetActive(true);
     }
 
+    // Executes close panel operation.
     private void ClosePanel()
     {
-        // Xoá trạng thái xử lý để tránh bị block khi mở NPC lại
         processingQuestIds.Clear();
 
         MysticJourney.Features.Quest.QuestWaypointManager.IsTrackingEnabled = true;
@@ -943,18 +965,21 @@ public class MainNpcPanel : MonoBehaviour
 
         WorldRuntimeEvents.RaiseQuestsChanged();
 
-        // Trigger mũi tên ngay lập tức (không chờ 2s routine)
         if (MysticJourney.Features.Quest.QuestWaypointManager.Instance != null)
             MysticJourney.Features.Quest.QuestWaypointManager.Instance.RefreshWaypoint();
     }
 
 
 
+    // Executes has dialogue type operation.
+    // Validates input parameters against null or empty values.
     private bool HasDialogueType(string responseType)
     {
         return FindDialogueByType(responseType) != null;
     }
 
+    // Executes find dialogue by type operation.
+    // Validates input parameters against null or empty values.
     private NPCDialogueResponse FindDialogueByType(params string[] responseTypes)
     {
         if (responseTypes == null || responseTypes.Length == 0)
@@ -973,6 +998,7 @@ public class MainNpcPanel : MonoBehaviour
 
         return null;
     }
+    // Executes find linked quest operation.
     private PlayerQuestResponse FindLinkedQuest(int? questId)
     {
         if (!questId.HasValue)
@@ -981,6 +1007,7 @@ public class MainNpcPanel : MonoBehaviour
         return currentLinkedQuests.FirstOrDefault(q => q != null && q.QuestId == questId.Value);
     }
 
+    // Executes build story action label operation.
     private string BuildStoryActionLabel(NPCDialogueResponse dialogue, PlayerQuestResponse linkedQuest)
     {
         if (linkedQuest != null)
@@ -992,6 +1019,7 @@ public class MainNpcPanel : MonoBehaviour
         return "Tell me about the story.";
     }
 
+    // Executes build player quest action label operation.
     private string BuildPlayerQuestActionLabel(PlayerQuestResponse quest)
     {
         if (QuestUIManager.IsStatus(quest, "Claimed"))
@@ -1032,17 +1060,20 @@ public class MainNpcPanel : MonoBehaviour
         return "I will help.";
     }
 
+    // Executes is objective type operation.
     private static bool IsObjectiveType(PlayerQuestResponse quest, string objectiveType)
     {
         return quest != null && string.Equals(quest.ObjectiveType, objectiveType, StringComparison.OrdinalIgnoreCase);
     }
 
+    // Executes build objective hint operation.
     private static string BuildObjectiveHint(PlayerQuestResponse quest)
     {
         if (quest == null)
             return "Check your Quest Tracker for the next step.";
 
         var target = Mathf.Max(1, quest.TargetAmount);
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         var progress = Mathf.Clamp(quest.Progress, 0, target);
         var objective = Safe(quest.ObjectiveType, "Explore");
         var targetName = Safe(quest.ObjectiveTarget, "the marked target");
@@ -1050,6 +1081,8 @@ public class MainNpcPanel : MonoBehaviour
         return $"{objective}: {targetName} at {location} ({progress}/{target}).";
     }
 
+    // Executes shorten operation.
+    // Validates input parameters against null or empty values.
     private static string Shorten(string value, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -1061,6 +1094,7 @@ public class MainNpcPanel : MonoBehaviour
 
         return trimmed.Substring(0, Mathf.Max(0, maxLength - 3)).TrimEnd() + "...";
     }
+    // Executes apply portrait operation.
     private void ApplyPortrait(NPCResponse npc, WorldInteractable fallback)
     {
         if (portraitImage == null)
@@ -1094,9 +1128,12 @@ public class MainNpcPanel : MonoBehaviour
 
         if (imageRoutine != null)
             StopCoroutine(imageRoutine);
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         imageRoutine = StartCoroutine(LoadSprite(npc.IconUrl, portraitImage));
     }
 
+    // Executes load sprite operation.
+    // Validates input parameters against null or empty values.
     private IEnumerator LoadSprite(string rawUrl, Image target)
     {
         var url = ResolveUrl(rawUrl);
@@ -1135,6 +1172,7 @@ public class MainNpcPanel : MonoBehaviour
         }
     }
 
+    // Executes get library sprite operation.
     private Sprite GetLibrarySprite(params string[] ids)
     {
         if (ids == null)
@@ -1152,6 +1190,8 @@ public class MainNpcPanel : MonoBehaviour
         return null;
     }
 
+    // Executes find portrait image operation.
+    // Validates input parameters against null or empty values.
     private Image FindPortraitImage()
     {
         var portrait = FindDescendant(npcPanel.transform, "PortraitSlot");
@@ -1161,6 +1201,8 @@ public class MainNpcPanel : MonoBehaviour
         return portrait.GetComponent<Image>() ?? portrait.GetComponentInChildren<Image>(true);
     }
 
+    // Executes get quest manager operation.
+    // Validates input parameters against null or empty values.
     private static QuestUIManager GetQuestManager()
     {
         if (QuestUIManager.Instance != null)
@@ -1176,6 +1218,8 @@ public class MainNpcPanel : MonoBehaviour
 
         return null;
     }
+    // Executes find quest panel runtime operation.
+    // Validates input parameters against null or empty values.
     private static MainQuestPanelRuntime FindQuestPanelRuntime()
     {
         var runtimes = Resources.FindObjectsOfTypeAll<MainQuestPanelRuntime>();
@@ -1189,6 +1233,8 @@ public class MainNpcPanel : MonoBehaviour
         return null;
     }
 
+    // Executes bind button operation.
+    // Validates input parameters against null or empty values.
     private static Button BindButton(GameObject target, UnityEngine.Events.UnityAction action)
     {
         if (target == null)
@@ -1209,6 +1255,8 @@ public class MainNpcPanel : MonoBehaviour
         return button;
     }
 
+    // Executes resolve url operation.
+    // Validates input parameters against null or empty values.
     private static string ResolveUrl(string rawUrl)
     {
         if (string.IsNullOrWhiteSpace(rawUrl))
@@ -1224,6 +1272,8 @@ public class MainNpcPanel : MonoBehaviour
         return ApiConfig.BaseUrl.TrimEnd('/') + "/" + trimmed;
     }
 
+    // Executes find scene object operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindSceneObject(string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -1238,6 +1288,7 @@ public class MainNpcPanel : MonoBehaviour
     }
 
 
+    // Executes find action button operation.
     private static Button FindActionButton(Transform root, params string[] names)
     {
         if (root == null || names == null)
@@ -1253,6 +1304,8 @@ public class MainNpcPanel : MonoBehaviour
 
         return null;
     }
+    // Executes find descendant operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindDescendant(Transform root, string objectName)
     {
         if (root == null || string.IsNullOrWhiteSpace(objectName))
@@ -1268,6 +1321,8 @@ public class MainNpcPanel : MonoBehaviour
         return null;
     }
 
+    // Executes find text slot operation.
+    // Validates input parameters against null or empty values.
     private static TextSlot FindTextSlot(Transform root, string name1, string name2 = null, string name3 = null, string name4 = null, TextSlot skip = default, TextSlot skip2 = default, TextSlot skip3 = default)
     {
         if (root == null)
@@ -1277,35 +1332,44 @@ public class MainNpcPanel : MonoBehaviour
         for (var i = 0; i < names.Length; i++)
         {
             var child = FindDescendant(root, names[i]);
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = TextSlot.From(child);
             if (slot.IsValid && !slot.Equals(skip) && !slot.Equals(skip2) && !slot.Equals(skip3))
+                // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                 return slot;
         }
 
         return default;
     }
 
+    // Executes set text operation.
+    // Validates input parameters against null or empty values.
     private static void SetText(TextSlot slot, string value)
     {
         slot.Set(value);
     }
 
+    // Executes safe operation.
+    // Validates input parameters against null or empty values.
     private static string Safe(string value, string fallback)
     {
         return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 
+    // Executes start typewriter operation.
     private void StartTypewriter(TextSlot slot, string text, float speed = 0.03f)
     {
         if (typewriterRoutine != null)
             StopCoroutine(typewriterRoutine);
-        
+
         fullDialogueText = text ?? string.Empty;
         if (!slot.IsValid) return;
-        
+
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         typewriterRoutine = StartCoroutine(TypewriterCoroutine(slot, fullDialogueText, speed));
     }
 
+    // Executes typewriter coroutine operation.
     private IEnumerator TypewriterCoroutine(TextSlot slot, string text, float speed)
     {
         isTyping = true;
@@ -1323,15 +1387,19 @@ public class MainNpcPanel : MonoBehaviour
         private readonly TMP_Text tmp;
         private readonly Text text;
 
+        // Executes text slot operation.
         public TextSlot(TMP_Text tmp, Text text)
         {
             this.tmp = tmp;
             this.text = text;
         }
 
+        // Executes is valid operation.
         public bool IsValid => tmp != null || text != null;
+        // Executes text operation.
         public string Text => tmp != null ? tmp.text : (text != null ? text.text : string.Empty);
 
+        // Executes from operation.
         public static TextSlot From(GameObject target)
         {
             if (target == null)
@@ -1340,6 +1408,7 @@ public class MainNpcPanel : MonoBehaviour
             return new TextSlot(target.GetComponent<TMP_Text>(), target.GetComponent<Text>());
         }
 
+        // Executes set operation.
         public void Set(string value)
         {
             if (tmp != null)
@@ -1352,16 +1421,19 @@ public class MainNpcPanel : MonoBehaviour
                 text.text = value ?? string.Empty;
         }
 
+        // Executes equals operation.
         public bool Equals(TextSlot other)
         {
             return tmp == other.tmp && text == other.text;
         }
 
+        // Executes equals operation.
         public override bool Equals(object obj)
         {
             return obj is TextSlot other && Equals(other);
         }
 
+        // Executes get hash code operation.
         public override int GetHashCode()
         {
             unchecked

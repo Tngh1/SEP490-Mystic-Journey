@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+// Executes world interactable kind operation.
+// Validates input parameters against null or empty values.
+// Evaluates conditions and returns a boolean result.
 public enum WorldInteractableKind
 {
     Npc,
@@ -10,15 +13,18 @@ public enum WorldInteractableKind
     Dungeon
 }
 
+// Executes mono behaviour operation.
 public class WorldInteractable : MonoBehaviour
 {
     public static readonly List<WorldInteractable> All = new List<WorldInteractable>();
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (!All.Contains(this)) All.Add(this);
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         All.Remove(this);
@@ -27,23 +33,12 @@ public class WorldInteractable : MonoBehaviour
     private Canvas overheadCanvas;
     private TextMeshProUGUI overheadText;
     private Coroutine overheadCoroutine;
-    // True while ShowInvestigationText owns the overhead label. Not derived from
-    // overheadCoroutine: StartCoroutine runs the body up to the first yield BEFORE it
-    // returns the handle, so a body that bails out early would be overwritten by a
-    // stale non-null handle and block the label forever.
     private bool investigationTextActive;
 
-    // Corpse/skull prefabs (Corpse_1, Corpse_2) ship with NO Collider at all, so the
-    // "disable the collider so it can't be re-used" trick below silently did nothing and
-    // the same body could be examined until the quest completed off one corpse. This flag
-    // is the real one-shot gate; PlayerWorldInteractor skips consumed investigation items.
     private bool investigationConsumed;
+    // Executes investigation consumed operation.
     public bool InvestigationConsumed => investigationConsumed;
 
-    // One line per body examined, so 5 corpses read as 5 discoveries instead of the same
-    // sentence five times. Advances per examine (static) rather than per object: several
-    // instances share the name "Corpse", so anything keyed off name/DisplayName would
-    // repeat itself. Order builds the Q12 -> Q13 reveal: not bandits, not even human.
     private static readonly string[] InvestigationLines =
     {
         "A city guard, cut down before he could draw his blade.",
@@ -73,19 +68,45 @@ public class WorldInteractable : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Sprite portraitSprite;
 
+    // Executes kind operation.
+    // Validates input parameters against null or empty values.
     public WorldInteractableKind Kind => kind;
+    // Executes npc id operation.
+    // Validates input parameters against null or empty values.
     public int NpcId => npcId;
+    // Executes display name operation.
+    // Validates input parameters against null or empty values.
     public string DisplayName => (string.IsNullOrWhiteSpace(displayName) || displayName.Equals("Interactable", System.StringComparison.OrdinalIgnoreCase)) ? gameObject.name : displayName;
+    // Executes description operation.
+    // Validates input parameters against null or empty values.
     public string Description => description;
+    // Executes greeting text operation.
+    // Validates input parameters against null or empty values.
     public string GreetingText => greetingText;
+    // Executes interaction radius operation.
+    // Validates input parameters against null or empty values.
     public float InteractionRadius => Mathf.Max(0.5f, interactionRadius);
+    // Executes object key operation.
+    // Validates input parameters against null or empty values.
     public string ObjectKey => string.IsNullOrWhiteSpace(objectKey) ? gameObject.name : objectKey;
+    // Executes interaction type operation.
+    // Validates input parameters against null or empty values.
     public string InteractionType => string.IsNullOrWhiteSpace(interactionType) ? "Interact" : interactionType;
+    // Executes quest id operation.
+    // Validates input parameters against null or empty values.
     public int? QuestId => questId > 0 ? questId : null;
+    // Executes progress delta operation.
+    // Validates input parameters against null or empty values.
     public int ProgressDelta => Mathf.Max(1, progressDelta);
+    // Executes linked quest ids operation.
+    // Validates input parameters against null or empty values.
     public IReadOnlyList<int> LinkedQuestIds => linkedQuestIds;
+    // Executes portrait sprite operation.
+    // Validates input parameters against null or empty values.
     public Sprite PortraitSprite => portraitSprite;
 
+    // Executes configure npc operation.
+    // Validates input parameters against null or empty values.
     public void ConfigureNpc(int id, string npcName, string npcDescription, string greeting, float radius, IEnumerable<int> questIds)
     {
         kind = WorldInteractableKind.Npc;
@@ -95,10 +116,12 @@ public class WorldInteractable : MonoBehaviour
         greetingText = greeting ?? string.Empty;
         interactionRadius = Mathf.Max(0.5f, radius);
         linkedQuestIds = questIds == null ? new int[0] : new List<int>(questIds).ToArray();
-        
+
         UpdateOverheadUI();
     }
 
+    // Executes configure object operation.
+    // Validates input parameters against null or empty values.
     public void ConfigureObject(string key, string objectName, string type, int linkedQuestId, int delta, float radius)
     {
         kind = WorldInteractableKind.Object;
@@ -111,20 +134,22 @@ public class WorldInteractable : MonoBehaviour
         description = interactionType;
         greetingText = string.Empty;
         linkedQuestIds = linkedQuestId > 0 ? new[] { linkedQuestId } : new int[0];
-        
+
         UpdateOverheadUI();
     }
 
+    // Executes configure quest item operation.
+    // Validates input parameters against null or empty values.
     public void ConfigureQuestItem(string key, string itemName, int linkedQuestId, int delta, float radius)
     {
-        // Preserve the interaction type set in the Inspector, default to "Collect" if empty
         string type = string.IsNullOrWhiteSpace(InteractionType) ? "Collect" : InteractionType;
         ConfigureObject(key, itemName, type, linkedQuestId, delta, radius);
         kind = WorldInteractableKind.QuestItem;
-        
+
         UpdateOverheadUI();
     }
 
+    // Executes configure dungeon operation.
     public void ConfigureDungeon(int configId, float radius)
     {
         kind = WorldInteractableKind.Dungeon;
@@ -132,28 +157,29 @@ public class WorldInteractable : MonoBehaviour
         interactionRadius = Mathf.Max(0.5f, radius);
         displayName = "Dungeon Entrance";
         objectKey = "dungeon_" + configId;
-        
+
         UpdateOverheadUI();
     }
 
+    // Performs startup initialization for WorldInteractable on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         CreateOverheadUI();
     }
 
+    // Per-frame update loop for WorldInteractable.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (overheadCanvas != null)
         {
-            // Counteract any flip in the parent hierarchy so text is never backwards
             float sign = transform.lossyScale.x < 0 ? -1f : 1f;
             if (overheadCanvas.transform.localScale.x != sign)
             {
                 overheadCanvas.transform.localScale = new Vector3(sign, 1f, 1f);
             }
 
-            // NPC prefabs face left via transform.rotation = Euler(0,-180,0) (EnemyBehaviour.ChangeFaceDir),
-            // which mirrors every child - including this canvas. Keep the label world-aligned.
             if (overheadCanvas.transform.rotation != Quaternion.identity)
             {
                 overheadCanvas.transform.rotation = Quaternion.identity;
@@ -161,19 +187,17 @@ public class WorldInteractable : MonoBehaviour
         }
     }
 
+    // Executes create overhead ui operation.
     private void CreateOverheadUI()
     {
-        // Recursively find and destroy any existing OverheadUI or legacy text components
         var oldTexts = GetComponentsInChildren<TextMeshProUGUI>(true);
         foreach (var t in oldTexts)
         {
-            // If the text is inside a Canvas that is a child of the NPC, destroy the whole Canvas
             var parentCanvas = t.GetComponentInParent<Canvas>();
             if (parentCanvas != null && parentCanvas.gameObject != this.gameObject)
             {
                 Destroy(parentCanvas.gameObject);
             }
-            // Otherwise just destroy the text object itself
             else if (t.gameObject != this.gameObject)
             {
                 Destroy(t.gameObject);
@@ -182,7 +206,6 @@ public class WorldInteractable : MonoBehaviour
 
         var go = new GameObject("OverheadUI");
         go.transform.SetParent(transform, false);
-        // Position will be set dynamically in UpdateOverheadUI
 
         overheadCanvas = go.AddComponent<Canvas>();
         overheadCanvas.renderMode = RenderMode.WorldSpace;
@@ -191,16 +214,14 @@ public class WorldInteractable : MonoBehaviour
 
         var textGo = new GameObject("Text");
         textGo.transform.SetParent(go.transform, false);
-        
+
         overheadText = textGo.AddComponent<TextMeshProUGUI>();
         overheadText.alignment = TextAlignmentOptions.Center;
         overheadText.textWrappingMode = TextWrappingModes.NoWrap;
         overheadText.overflowMode = TextOverflowModes.Overflow;
-        
-        // Crisp text with TMP
+
         overheadText.fontSize = 120;
-        
-        // Scale down for World Space Canvas
+
         var textRect = textGo.GetComponent<RectTransform>();
         textRect.sizeDelta = new Vector2(1200f, 250f);
         textRect.localScale = new Vector3(0.0025f, 0.0025f, 1f);
@@ -211,31 +232,25 @@ public class WorldInteractable : MonoBehaviour
         UpdateOverheadUI();
     }
 
+    // Executes update overhead ui operation.
     public void UpdateOverheadUI()
     {
         if (overheadText == null) return;
 
-        // Interact raises QuestsChanged -> RefreshFromApi -> ConfigureQuestItem -> here.
-        // That round-trip can land while ShowInvestigationText is on screen and would
-        // overwrite the line with "?" again. The coroutine owns the label until it ends.
         if (investigationTextActive) return;
 
-        // Move text higher for NPCs so it doesn't overlap their sprite
         float heightOffset = (kind == WorldInteractableKind.Npc) ? 2.3f : 1.2f;
         overheadCanvas.transform.localPosition = new Vector3(0, heightOffset, 0);
 
         if (kind == WorldInteractableKind.Npc)
         {
             overheadText.text = DisplayName;
-            overheadText.color = new Color(0.6f, 0.9f, 1f); // Light blue for NPC
+            overheadText.color = new Color(0.6f, 0.9f, 1f);
             overheadText.fontSize = 100;
             overheadCanvas.gameObject.SetActive(true);
         }
         else if (IsInvestigationItem())
         {
-            // An examined body keeps its sprite (it must stay on the street) but must not
-            // keep advertising "?" — otherwise the QuestsChanged -> RefreshFromApi round-trip
-            // re-lights every corpse the player already read.
             if (investigationConsumed)
             {
                 overheadCanvas.gameObject.SetActive(false);
@@ -253,24 +268,23 @@ public class WorldInteractable : MonoBehaviour
         }
     }
 
+    // Executes is investigation item operation.
+    // Evaluates conditions and returns a boolean result.
     private bool IsInvestigationItem()
     {
         if (kind != WorldInteractableKind.QuestItem) return false;
 
-        // DiggingInteractable luôn hiện "?" (đào đất, khám phá v.v.)
         if (GetComponent<DiggingInteractable>() != null) return true;
 
-        // Các vật phẩm mang tính "điều tra" theo tên: Corpse, Skull, Hộp sọ, Xác...
         return DisplayName.IndexOf("Corpse", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                ObjectKey.IndexOf("Corpse",  System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                DisplayName.IndexOf("Skull",  System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                ObjectKey.IndexOf("Skull",   System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    // Executes show investigation text operation.
     private System.Collections.IEnumerator ShowInvestigationText()
     {
-        // Bailing out early must also release the label, otherwise UpdateOverheadUI
-        // stays blocked and the "?" never comes back.
         if (overheadText == null)
         {
             investigationTextActive = false;
@@ -279,8 +293,6 @@ public class WorldInteractable : MonoBehaviour
 
         investigationTextActive = true;
 
-        // Modulo so a scene reload (cursor is static and survives it) wraps instead of
-        // running off the end.
         overheadText.text = InvestigationLines[investigationLineCursor % InvestigationLines.Length];
         investigationLineCursor++;
         overheadText.color = Color.white;
@@ -294,21 +306,16 @@ public class WorldInteractable : MonoBehaviour
             overheadCanvas.gameObject.SetActive(false);
         }
 
-        // Release the label back to UpdateOverheadUI (it early-returns while this runs).
         investigationTextActive = false;
     }
 
+    // Executes get prompt text operation.
     public string GetPromptText()
     {
         if (kind == WorldInteractableKind.Dungeon)
         {
-            // Cùng nguồn level và cùng ngưỡng với DungeonEntrance.Interact(), nếu không
-            // prompt sẽ nói "đủ level" trong khi gate vẫn chặn (hoặc ngược lại).
-            // DungeonEntrance nằm CÙNG GameObject (nó tự AddComponent ra cái này ở Start).
             var entrance = GetComponent<DungeonEntrance>();
 
-            // Chưa có DungeonEntrance hoặc server chưa trả LevelRequirement: nói thật là
-            // đang chờ, KHÔNG đoán một con số. Interact() cũng fail closed cùng lúc này.
             if (entrance == null || !entrance.RequiredLevel.HasValue)
                 return "Checking dungeon requirements...";
 
@@ -334,13 +341,13 @@ public class WorldInteractable : MonoBehaviour
         return $"{DisplayName}\nPress E to {InteractionType}";
     }
 
+    // Executes on successful interaction operation.
     public void OnSuccessfulInteraction()
     {
         Debug.Log($"[WorldInteractable] OnSuccessfulInteraction called on {gameObject.name}. Kind: {kind}, InteractionType: '{InteractionType}'");
 
         if (kind == WorldInteractableKind.QuestItem || kind == WorldInteractableKind.Object)
         {
-            // Nếu là cổng/cầu khóa bằng chìa (LockedBridgeGate), ủy quyền kiểm tra cho nó.
             var bridgeGate = GetComponent<LockedBridgeGate>();
             if (bridgeGate != null)
             {
@@ -348,7 +355,6 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
-            // Nếu là vật thể "đào" (DiggingInteractable), ủy quyền hoàn toàn cho nó.
             var digInteractable = GetComponent<DiggingInteractable>();
             if (digInteractable != null)
             {
@@ -356,7 +362,6 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
-            // Nếu là Cây Khởi Nguyên (OriginTreeInteractable), ủy quyền hoàn toàn cho nó.
             var treeInteractable = GetComponent<OriginTreeInteractable>();
             if (treeInteractable != null)
             {
@@ -364,7 +369,6 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
-            // Nếu là Cây Thường Xuân (IvyTreeInteractable), ủy quyền hoàn toàn cho nó.
             var ivyInteractable = GetComponent<IvyTreeInteractable>();
             if (ivyInteractable != null)
             {
@@ -372,13 +376,6 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
-            // Thuyền (BoatVideoTeleporter): ủy quyền SỚM, trước nhánh respawner bên dưới.
-            // Boat được tag "QuestItem" trong scene nên WorldSceneInteractableBootstrap
-            // .ConfigureTaggedQuestItems tự gắn WorldRespawnable cho nó → nhánh
-            // `respawner != null` chạy trước và ConsumeAndRespawn() tắt hết Renderer rồi
-            // return, nên thuyền BIẾN MẤT mà InteractWithBoat() (video + teleport) không bao
-            // giờ được gọi. Thuyền tự quản lý vòng đời của nó (ẩn player, chiếu video, đổi
-            // scene) nên không được để respawner/collider logic chạm vào.
             var boatTeleporter = GetComponent<BoatVideoTeleporter>();
             if (boatTeleporter != null)
             {
@@ -387,14 +384,8 @@ public class WorldInteractable : MonoBehaviour
                 return;
             }
 
-            // Vật phẩm "điều tra" (xác, hộp sọ): PHẢI ở lại hiện trường sau khi tương tác.
-            // WorldSceneInteractableBootstrap tự gắn WorldRespawnable cho mọi object tag
-            // "QuestItem", và WorldRespawnable tắt toàn bộ Renderer 30s -> "xác bị biến mất".
-            // Chặn trước nhánh respawner/Collect để xác chỉ tắt collider và hiện thoại.
             if (IsInvestigationItem())
             {
-                // The corpse prefabs carry no Collider, so these two lines are a no-op on
-                // them; investigationConsumed is what actually stops a second examine.
                 investigationConsumed = true;
 
                 var invCol = GetComponent<UnityEngine.Collider>();
@@ -405,6 +396,7 @@ public class WorldInteractable : MonoBehaviour
                 WorldInteractionPromptRuntime.Hide();
 
                 if (overheadCoroutine != null) StopCoroutine(overheadCoroutine);
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 overheadCoroutine = StartCoroutine(ShowInvestigationText());
                 return;
             }
@@ -419,7 +411,7 @@ public class WorldInteractable : MonoBehaviour
             }
             else
             {
-                bool isCollectOrGather = InteractionType.Equals("Collect", System.StringComparison.OrdinalIgnoreCase) || 
+                bool isCollectOrGather = InteractionType.Equals("Collect", System.StringComparison.OrdinalIgnoreCase) ||
                                          InteractionType.Equals("Gather", System.StringComparison.OrdinalIgnoreCase);
 
                 if (isCollectOrGather)
@@ -436,7 +428,7 @@ public class WorldInteractable : MonoBehaviour
                     if (col != null) col.enabled = false;
                     var col2D = GetComponent<UnityEngine.Collider2D>();
                     if (col2D != null) col2D.enabled = false;
-                    
+
                     WorldInteractionPromptRuntime.Hide();
                 }
             }

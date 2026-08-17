@@ -5,9 +5,11 @@ using System.Collections;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class ObjectSpin : MonoBehaviour
     {
         #pragma warning disable 0414
+        // Executes motion type operation.
         public enum MotionType { Rotation, SearchLight, Translation };
         public MotionType Motion;
 

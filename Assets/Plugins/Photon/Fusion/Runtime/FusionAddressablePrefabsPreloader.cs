@@ -7,10 +7,13 @@
   using UnityEngine.ResourceManagement.AsyncOperations;
 #endif
 
+  // Executes mono behaviour operation.
   public class FusionAddressablePrefabsPreloader : MonoBehaviour {
 #if FUSION_ENABLE_ADDRESSABLES && !FUSION_DISABLE_ADDRESSABLES
     private List<AsyncOperationHandle<GameObject>> _handles = new List<AsyncOperationHandle<GameObject>>();
 
+    // Performs startup initialization for FusionAddressablePrefabsPreloader on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private async void Start() {
       var config = NetworkProjectConfig.Global;
 
@@ -31,6 +34,8 @@
       }
     }
 
+    // Cleanup callback executed when FusionAddressablePrefabsPreloader is destroyed.
+    // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
     private void OnDestroy() {
       foreach (var handle in _handles) {
         Addressables.Release(handle);

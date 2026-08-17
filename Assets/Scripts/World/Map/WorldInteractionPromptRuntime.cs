@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+// Executes mono behaviour operation.
 public class WorldInteractionPromptRuntime : MonoBehaviour
 {
     private static WorldInteractionPromptRuntime instance;
@@ -11,6 +12,7 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
     private static Font font;
     private string lastMessage;
 
+    // Executes runtime font operation.
     private static Font RuntimeFont
     {
         get
@@ -22,6 +24,8 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         }
     }
 
+    // Initializes internal component caches and dependencies for WorldInteractionPromptRuntime upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (instance == null)
@@ -33,12 +37,14 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (instance == this)
             instance = null;
     }
 
+    // Executes show operation.
     public static void Show(string message)
     {
         var prompt = EnsureInstance();
@@ -47,8 +53,6 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
 
         string targetMsg = message ?? string.Empty;
 
-        // Tối ưu: Nếu message không đổi và prompt đang hiển thị thì KHÔNG làm gì cả
-        // Tránh dirty UI Canvas và gán text lại mỗi frame ở 60 FPS
         if (prompt.lastMessage == targetMsg && prompt.gameObject.activeSelf)
             return;
 
@@ -63,6 +67,7 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
             prompt.gameObject.SetActive(true);
     }
 
+    // Executes hide operation.
     public static void Hide()
     {
         if (instance != null)
@@ -73,12 +78,12 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         }
     }
 
+    // Executes ensure instance operation.
     private static WorldInteractionPromptRuntime EnsureInstance()
     {
         if (instance != null)
             return instance;
 
-        // Dùng FindFirstObjectByType nhanh gọn thay vì quét Resources.FindObjectsOfTypeAll đắt đỏ mỗi frame
         instance = Object.FindFirstObjectByType<WorldInteractionPromptRuntime>(FindObjectsInactive.Include);
         if (instance != null)
         {
@@ -129,6 +134,7 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         return instance;
     }
 
+    // Executes create text operation.
     private static Text CreateText(Transform parent)
     {
         var textObject = new GameObject("PromptText", typeof(RectTransform), typeof(Text));
@@ -151,7 +157,7 @@ public class WorldInteractionPromptRuntime : MonoBehaviour
         var outline = textObject.AddComponent<Outline>();
         outline.effectColor = Color.black;
         outline.effectDistance = new Vector2(1, -1);
-        
+
         return text;
     }
 }

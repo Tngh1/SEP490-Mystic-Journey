@@ -25,7 +25,7 @@ namespace Fusion {
     [Obsolete("Use RuntimeKey instead")]
     public AssetReference Address {
       get {
-        if (string.IsNullOrEmpty(RuntimeKey)) {
+        if (string.IsNullOrEmpty(RuntimeKey)) {  // Mandatory string argument is null or empty — fail fast
           return default;
         }
         return FusionAddressablesUtils.CreateAssetReference(RuntimeKey);
@@ -86,13 +86,15 @@ namespace Fusion {
       }
       
       if (_op.OperationException != null) {
-        throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}", _op.OperationException);
+        throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}", _op.OperationException);  // Unexpected runtime state — propagate to global error handler
       }
       
       Assert.Check(_op.Result != null, "_op.Result != null");
       return ValidateResult(_op.Result);
     }
     
+    // Executes load internal operation.
+    // Throws an exception if precondition validations fail.
     private void LoadInternal(bool synchronous) {
       Assert.Check(!_op.IsValid());
 
@@ -109,6 +111,7 @@ namespace Fusion {
       }
     }
 
+    // Executes unload internal operation.
     private void UnloadInternal() {
       if (_op.IsValid()) {
         var op = _op;
@@ -117,18 +120,20 @@ namespace Fusion {
       }
     }
 
+    // Executes validate result operation.
+    // Throws an exception if precondition validations fail.
     private T ValidateResult(object result) {
-      if (result == null) {
-        throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset is null");
+      if (result == null) {  // Entity not found — short-circuit with appropriate error result
+        throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset is null");  // Unexpected runtime state — propagate to global error handler
       }
       if (typeof(T).IsSubclassOf(typeof(Component))) {
         if (result is GameObject gameObject == false) {
-          throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset is not a GameObject, but a {result.GetType()}");
+          throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset is not a GameObject, but a {result.GetType()}");  // Unexpected runtime state — propagate to global error handler
         }
         
         var component = ((GameObject)result).GetComponent<T>();
         if (!component) {
-          throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset does not contain component {typeof(T)}");
+          throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset does not contain component {typeof(T)}");  // Unexpected runtime state — propagate to global error handler
         }
 
         return component;
@@ -138,7 +143,7 @@ namespace Fusion {
         return asset;
       }
       
-      throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset is not of type {typeof(T)}, but {result.GetType()}");
+      throw new InvalidOperationException($"Failed to load asset: {RuntimeKey}; asset is not of type {typeof(T)}, but {result.GetType()}");  // Unexpected runtime state — propagate to global error handler
     }
     
     /// <inheritdoc cref="NetworkAssetSourceResource{T}.Description"/>
@@ -216,7 +221,7 @@ namespace Fusion {
     /// </summary>
     public bool IsCompleted {
       get {
-        if (_state == null) {
+        if (_state == null) {  // Entity not found — short-circuit with appropriate error result
           // hasn't started
           return false;
         }
@@ -246,8 +251,8 @@ namespace Fusion {
         }
       }
       
-      if (_state == null) {
-        throw new InvalidOperationException($"Failed to load asset {typeof(T)}: {ResourcePath}[{SubObjectName}]. Asset is null.");  
+      if (_state == null) {  // Entity not found — short-circuit with appropriate error result
+        throw new InvalidOperationException($"Failed to load asset {typeof(T)}: {ResourcePath}[{SubObjectName}]. Asset is null.");  // Unexpected runtime state — propagate to global error handler
       }
 
       if (_state is T asset) {
@@ -259,22 +264,26 @@ namespace Fusion {
         throw new NotSupportedException();
       }
 
-      throw new InvalidOperationException($"Failed to load asset {typeof(T)}: {ResourcePath}, SubObjectName: {SubObjectName}");
+      throw new InvalidOperationException($"Failed to load asset {typeof(T)}: {ResourcePath}, SubObjectName: {SubObjectName}");  // Unexpected runtime state — propagate to global error handler
     }
 
+    // Executes finish async op operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     private void FinishAsyncOp(ResourceRequest asyncOp) {
       try {
         var asset = string.IsNullOrEmpty(SubObjectName) ? asyncOp.asset : LoadNamedResource(ResourcePath, SubObjectName);
         if (asset) {
           _state = asset;
         } else {
-          throw new InvalidOperationException($"Missing Resource: {ResourcePath}, SubObjectName: {SubObjectName}");
+          throw new InvalidOperationException($"Missing Resource: {ResourcePath}, SubObjectName: {SubObjectName}");  // Unexpected runtime state — propagate to global error handler
         }
       } catch (Exception ex) {
         _state = ExceptionDispatchInfo.Capture(ex);
       }
     }
     
+    // Executes load named resource operation.
     private static T LoadNamedResource(string resoucePath, string subObjectName) {
       var assets = UnityResources.LoadAll<T>(resoucePath);
 
@@ -288,6 +297,8 @@ namespace Fusion {
       return null;
     }
     
+    // Executes load internal operation.
+    // Validates input parameters against null or empty values.
     private void LoadInternal(bool synchronous) {
       Assert.Check(_state == null);
       try {
@@ -297,7 +308,7 @@ namespace Fusion {
           _state = UnityResources.LoadAsync<T>(ResourcePath);
         }
 
-        if (_state == null) {
+        if (_state == null) {  // Entity not found — short-circuit with appropriate error result
           _state = new InvalidOperationException($"Missing Resource: {ResourcePath}, SubObjectName: {SubObjectName}");
         }
       } catch (Exception ex) {
@@ -305,6 +316,7 @@ namespace Fusion {
       }
     }
 
+    // Executes unload internal operation.
     private void UnloadInternal() {
       if (_state is ResourceRequest asyncOp) {
         asyncOp.completed += op => {
@@ -385,8 +397,8 @@ namespace Fusion {
     /// Returns <seealso cref="Object"/> or throws an exception if the reference is missing.
     /// </summary>
     public T WaitForResult() {
-      if (Object == null) {
-        throw new InvalidOperationException("Missing static reference");
+      if (Object == null) {  // Entity not found — short-circuit with appropriate error result
+        throw new InvalidOperationException("Missing static reference");  // Unexpected runtime state — propagate to global error handler
       }
 
       return Object;
@@ -465,7 +477,7 @@ namespace Fusion {
     /// <inheritdoc cref="NetworkAssetSourceStatic{T}.WaitForResult"/>
     public T WaitForResult() {
       if (Object.asset == null) {
-        throw new InvalidOperationException("Missing static reference");
+        throw new InvalidOperationException("Missing static reference");  // Unexpected runtime state — propagate to global error handler
       }
 
       return Object.asset;
@@ -566,11 +578,7 @@ namespace Fusion {
   using Object = UnityEngine.Object;
   using static InternalLogStreams;
   
-  /// <summary>
-  /// If applied at the assembly level, allows <see cref="FusionGlobalScriptableObject{T}"/> to be loaded with Resources.
-  /// There is a default registration for this attribute, which attempts to load the asset from Resources using path from
-  /// <see cref="FusionGlobalScriptableObjectAttribute"/>.
-  /// </summary>
+  // Executes fusion global scriptable object source attribute operation.
   [Preserve]
   public class FusionGlobalScriptableObjectResourceAttribute : FusionGlobalScriptableObjectSourceAttribute {
     /// <param name="objectType">The type this attribute will attempt to load.</param>
@@ -598,7 +606,7 @@ namespace Fusion {
       Assert.Check(attribute != null);
 
       string resourcePath;
-      if (string.IsNullOrEmpty(ResourcePath)) {
+      if (string.IsNullOrEmpty(ResourcePath)) {  // Mandatory string argument is null or empty — fail fast
         string defaultAssetPath = attribute.DefaultPath;
         var indexOfResources = defaultAssetPath.LastIndexOf("/Resources/", StringComparison.OrdinalIgnoreCase);
         if (indexOfResources < 0) {
@@ -656,14 +664,19 @@ namespace Fusion {
   using System.Collections.Generic;
   using System.Runtime.ExceptionServices;
 
+  // Executes i disposable operation.
+  // Throws an exception if precondition validations fail.
   public sealed class FusionCoroutine : ICoroutine, IDisposable {
     private readonly IEnumerator             _inner;
     private          Action<IAsyncOperation> _completed;
 
+    // Executes fusion coroutine operation.
+    // Throws an exception if precondition validations fail.
     public FusionCoroutine(IEnumerator inner) {
       _inner = inner ?? throw new ArgumentNullException(nameof(inner));
     }
 
+    // Executes completed operation.
     public event Action<IAsyncOperation> Completed {
       add {
         _completed += value;
@@ -674,8 +687,13 @@ namespace Fusion {
       remove => _completed -= value;
     }
 
+    // Executes is done operation.
     public bool                  IsDone   { get; private set; }
+    // Executes progress operation.
     public float                 Progress { get; private set; }
+    // Executes error operation.
+    // Throws an exception if precondition validations fail.
+    // Evaluates conditions and returns a boolean result.
     public ExceptionDispatchInfo Error    { get; private set; }
 
     bool IEnumerator.MoveNext() {
@@ -691,7 +709,7 @@ namespace Fusion {
       }
 
       var completed = _completed;
-      if (completed != null) {
+      if (completed != null) {  // Entity exists — proceed with conditional branch
         List<Exception> errors = null;
         foreach (var del in completed.GetInvocationList()) {
           var action = (Action<IAsyncOperation>)del;
@@ -702,7 +720,7 @@ namespace Fusion {
             errors.Add(ex);
           }
         }
-        if (errors != null) {
+        if (errors != null) {  // Entity exists — proceed with conditional branch
           throw new AggregateException($"Error during {nameof(Completed)}", errors.ToArray());
         }
       }
@@ -720,6 +738,7 @@ namespace Fusion {
 
     object IEnumerator.Current => _inner.Current;
 
+    // Executes dispose operation.
     public void Dispose() {
       if (_inner is IDisposable disposable) {
         disposable.Dispose();
@@ -739,8 +758,11 @@ namespace Fusion {
   using UnityEngine;
 
   partial class FusionLogInitializer {
+    // Executes initialize unity logger user operation.
     static partial void InitializeUnityLoggerUser(ref FusionUnityLogger logger);
     
+    // Executes create logger operation.
+    // Evaluates conditions and returns a boolean result.
     static FusionUnityLogger CreateLogger(bool isDarkMode) {
       return new FusionUnityLogger(System.Threading.Thread.CurrentThread, isDarkMode);
     }
@@ -771,7 +793,7 @@ namespace Fusion {
         AppendPrefix(sb, context.Flags, context.Prefix);
 
         var pos = sb.Length;
-        if (obj != null) {
+        if (obj != null) {  // Entity exists — proceed with conditional branch
           if (obj is NetworkRunner runner) {
             TryAppendRunnerPrefix(sb, runner);
           } else if (obj is NetworkObject networkObject) {
@@ -883,7 +905,9 @@ namespace Fusion {
   using UnityEngine;
   using Object = System.Object;
 
+  // Executes fusion profiler operation.
   public static class FusionProfiler {
+    // Executes init operation.
     [RuntimeInitializeOnLoadMethod]
     static void Init() {
       Fusion.EngineProfiler.InterpolationOffsetCallback = f => SetCounter(InterpolationOffset, f);
@@ -970,6 +994,7 @@ namespace Fusion {
     public static readonly IntPtr InputRecvDelta = CreateCounter("F Input Recv Delta", ProfilerMarkerDataType.Float, ProfilerMarkerDataUnit.Count);
     public static readonly IntPtr InputRecvDeltaDeviation = CreateCounter("F Input Recv Delta Dev", ProfilerMarkerDataType.Float, ProfilerMarkerDataUnit.Count);
 
+    // Executes typeof operation.
     static readonly Dictionary<EngineProfiler.InternalSimulationType, (IntPtr Count, IntPtr Size)> AllocCounters = typeof(EngineProfiler.InternalSimulationType).GetEnumValues()
       .Cast<EngineProfiler.InternalSimulationType>()
       .ToDictionary(x => x, x => {
@@ -983,24 +1008,28 @@ namespace Fusion {
     public static readonly IntPtr ObjectAllocatorUsage = CreateCounterValue("F Object Allocator", ProfilerMarkerDataUnit.Bytes);
     public static readonly IntPtr MiscAllocatorUsage   = CreateCounterValue("F Misc Allocator", ProfilerMarkerDataUnit.Bytes);
 
+    // Executes readonly operation.
     public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketIn = (
       CreateCounterValue("F Objects In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Destroys In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Packet In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
     );
 
+    // Executes readonly operation.
     public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketOut = (
       CreateCounterValue("F Objects Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Destroys Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Packet Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
     );
     
+    // Executes readonly operation.
     public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketLost = (
       CreateCounterValue("F Objects Lost", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Destroys Lost", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Packet Lost", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
     );
     
+    // Executes readonly operation.
     public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketDelivered = (
       CreateCounterValue("F Objects Delivered", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
       CreateCounterValue("F Destroys Delivered", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
@@ -1009,6 +1038,7 @@ namespace Fusion {
 
     static readonly IntPtr UDPPackets = CreateCounterValue("F UDP Packets", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame);
 
+    // Executes create counter operation.
     static IntPtr CreateCounter(string name, ProfilerMarkerDataType dataType, ProfilerMarkerDataUnit unit) {
 #if ENABLE_PROFILER
       var marker = ProfilerUnsafeUtility.CreateMarker(name, ProfilerCategory.Scripts, MarkerFlags.Counter, 1);
@@ -1019,6 +1049,7 @@ namespace Fusion {
 #endif
     }
     
+    // Executes create counter value operation.
     static IntPtr CreateCounterValue(string name, ProfilerMarkerDataUnit unit, ProfilerCounterOptions options = ProfilerCounterOptions.FlushOnEndOfFrame) {
 #if ENABLE_PROFILER
       var flags = ProfilerCounterOptions.FlushOnEndOfFrame | options;
@@ -1031,6 +1062,7 @@ namespace Fusion {
 #endif
     }
 
+    // Executes set counter operation.
     [Conditional("ENABLE_PROFILER")]
     static void SetCounter(IntPtr counter, int value) {
       if (counter == default) {
@@ -1046,6 +1078,7 @@ namespace Fusion {
       }
     }
     
+    // Executes set counter operation.
     [Conditional("ENABLE_PROFILER")]
     static void SetCounter(IntPtr counter, float value) {
       if (counter == default) {
@@ -1061,6 +1094,7 @@ namespace Fusion {
       }
     }
     
+    // Executes set counter value operation.
     [Conditional("ENABLE_PROFILER")]
     static void SetCounterValue(IntPtr counter, int value, bool delta = false) {
       if (counter == default) {
@@ -1085,8 +1119,10 @@ namespace Fusion {
 namespace Fusion {
   using UnityEngine;
 
+  // Executes fusion runtime check operation.
   static class FusionRuntimeCheck {
 
+    // Executes runtime check operation.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void RuntimeCheck() {
       // BuildFlags
@@ -1121,7 +1157,11 @@ namespace Fusion {
 
 
 namespace Fusion {
+  // Executes trace channels extensions operation.
   static class TraceChannelsExtensions {
+    // Executes add channels from defines operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     public static TraceChannels AddChannelsFromDefines(this TraceChannels traceChannels) {
 #if FUSION_TRACE_GLOBAL
       traceChannels |= TraceChannels.Global;
@@ -1244,7 +1284,7 @@ namespace Fusion {
     /// <param name="instanceIDHandler">Handler for UnityEngine.Object references. If the handler returns an empty string,
     /// the reference is removed from the final result.</param>
     public static void ToJsonWithTypeAnnotation(object obj, TextWriter writer, int? integerEnquoteMinDigits = null, TypeSerializerDelegate typeSerializer = null, InstanceIDHandlerDelegate instanceIDHandler = null) {
-      if (obj == null) {
+      if (obj == null) {  // Entity not found — short-circuit with appropriate error result
         writer.Write("null");
         return;
       }
@@ -1315,7 +1355,7 @@ namespace Fusion {
 
           if (expectComma) {
             if (json[i] != ',') {
-              throw new InvalidOperationException($"Malformed at {i}: expected ,");
+              throw new InvalidOperationException($"Malformed at {i}: expected ,");  // Unexpected runtime state — propagate to global error handler
             }
             i = SkipWhiteOrThrow(i + 1);
           }
@@ -1335,7 +1375,7 @@ namespace Fusion {
         }
 
         if (i == json.Length) {
-          throw new InvalidOperationException($"Malformed at {i}: expected more");
+          throw new InvalidOperationException($"Malformed at {i}: expected more");  // Unexpected runtime state — propagate to global error handler
         }
 
         return i;
@@ -1343,6 +1383,8 @@ namespace Fusion {
     }
 
     
+    // Executes from json with type annotation internal operation.
+    // Throws an exception if precondition validations fail.
     private static object FromJsonWithTypeAnnotationInternal(string json, TypeResolverDelegate typeResolver = null, IList targetList = null) {
       Assert.Check(json != null);
 
@@ -1361,7 +1403,7 @@ namespace Fusion {
 
           if (expectComma) {
             if (json[i] != ',') {
-              throw new InvalidOperationException($"Malformed at {i}: expected ,");
+              throw new InvalidOperationException($"Malformed at {i}: expected ,");  // Unexpected runtime state — propagate to global error handler
             }
 
             i = SkipWhiteOrThrow(i + 1);
@@ -1374,8 +1416,8 @@ namespace Fusion {
         return targetList ?? ((List<object>)list).ToArray();
       }
 
-      if (targetList != null) {
-        throw new InvalidOperationException($"Expected list, got {json[i]}");
+      if (targetList != null) {  // Entity exists — proceed with conditional branch
+        throw new InvalidOperationException($"Expected list, got {json[i]}");  // Unexpected runtime state — propagate to global error handler
       }
 
       return FromJsonWithTypeAnnotationToObject(ref i, json, typeResolver);
@@ -1386,7 +1428,7 @@ namespace Fusion {
         }
 
         if (i == json.Length) {
-          throw new InvalidOperationException($"Malformed at {i}: expected more");
+          throw new InvalidOperationException($"Malformed at {i}: expected more");  // Unexpected runtime state — propagate to global error handler
         }
 
         return i;
@@ -1422,7 +1464,7 @@ namespace Fusion {
         Assert.Check('}' == json[^1]);
         writer.Write(',');
         
-        if (instanceIDHandler != null) {
+        if (instanceIDHandler != null) {  // Entity exists — proceed with conditional branch
           int i = 1;
           
           for (;;) {
@@ -1451,11 +1493,14 @@ namespace Fusion {
       }
     }
 
+    // Executes from json with type annotation to object operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     private static object FromJsonWithTypeAnnotationToObject(ref int i, string json, TypeResolverDelegate typeResolver) {
       if (json[i] == '{') {
         var endIndex = FindScopeEnd(json, i, '{', '}');
         if (endIndex < 0) {
-          throw new InvalidOperationException($"Unable to find end of object's end (starting at {i})");
+          throw new InvalidOperationException($"Unable to find end of object's end (starting at {i})");  // Unexpected runtime state — propagate to global error handler
         }
         
         Assert.Check(endIndex > i);
@@ -1469,9 +1514,9 @@ namespace Fusion {
         var typeInfo = JsonUtility.FromJson<TypeNameWrapper>(part.Replace(TypePropertyName, nameof(TypeNameWrapper.__TypeName), StringComparison.Ordinal));
 
         Type type;
-        if (typeResolver != null) {
+        if (typeResolver != null) {  // Entity exists — proceed with conditional branch
           type = typeResolver(typeInfo.__TypeName);
-          if (type == null) {
+          if (type == null) {  // Entity not found — short-circuit with appropriate error result
             return null;
           }
         } else {
@@ -1495,13 +1540,15 @@ namespace Fusion {
         return null;
       }
 
-      throw new InvalidOperationException($"Malformed at {i}: expected {{ or null");
+      throw new InvalidOperationException($"Malformed at {i}: expected {{ or null");  // Unexpected runtime state — propagate to global error handler
     }
     
+    // Executes find object end operation.
     internal static int FindObjectEnd(string json, int start = 0) {
       return FindScopeEnd(json, start, '{', '}');
     }
     
+    // Executes find scope end operation.
     private static int FindScopeEnd(string json, int start, char cstart = '{', char cend = '}') {
       var depth = 0;
       
@@ -1536,6 +1583,10 @@ namespace Fusion {
       return -1;
     }
     
+    // Executes type name wrapper operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
+    // Evaluates conditions and returns a boolean result.
     [Serializable]
     private class TypeNameWrapper {
 #pragma warning disable CS0649 // Set by serialization
@@ -1569,7 +1620,7 @@ namespace Fusion {
     /// <param name="subObjectName">The sub object name.</param>
     /// <returns><see langword="true"/> if the address is successfully parsed; otherwise, <see langword="false"/>.</returns>
     public static bool TryParseAddress(string address, out string mainPart, out string subObjectName) {
-      if (string.IsNullOrEmpty(address)) {
+      if (string.IsNullOrEmpty(address)) {  // Mandatory string argument is null or empty — fail fast
         mainPart = null;
         subObjectName = null;
         return false;
@@ -1673,6 +1724,7 @@ namespace Fusion {
   /// </summary>
   public static partial class FusionLogInitializer {
 #if UNITY_EDITOR
+    // Executes get editor log level operation.
     static LogLevel GetEditorLogLevel() {
       var currentBuildTarget = EditorUserBuildSettings.activeBuildTarget;
       var currentBuildTargetGroup = BuildPipeline.GetBuildTargetGroup(currentBuildTarget);
@@ -1698,7 +1750,7 @@ namespace Fusion {
       
       if (Array.IndexOf(defines, LogLevelTrace) >= 0) {
         FusionEditorLog.Warn($"{LogLevelTrace} is not supported in Fusion. Replacing with {LogLevelDebug}.");
-        ArrayUtility.Remove(ref defines, LogLevelTrace);
+        ArrayUtility.Remove(ref defines, LogLevelTrace);  // Mark entity for deletion in the next SaveChanges call
         defaultLogLevelDefine = LogLevelDebug;
       }
       
@@ -1712,7 +1764,7 @@ namespace Fusion {
         break;
       }
       
-      if (foundLogLevel == null) {
+      if (foundLogLevel == null) {  // Entity not found — short-circuit with appropriate error result
         if (Application.isPlaying) {
           FusionEditorLog.Log($"No log level define set for Fusion. Setting default: {defaultLogLevelDefine}");
         }
@@ -1733,6 +1785,7 @@ namespace Fusion {
 #if UNITY_EDITOR
     [UnityEditor.InitializeOnLoadMethod]
 #endif
+    // Executes initialize operation.
     [RuntimeInitializeOnLoadMethod]
     public static void Initialize() {
       var isDark = false;
@@ -1772,6 +1825,8 @@ namespace Fusion {
       Log.Initialize(logLevel, logger.CreateLogStream, traceChannels);
     }
     
+    // Executes initialize user operation.
+    // Validates input parameters against null or empty values.
     static partial void InitializeUser(ref LogLevel logLevel, ref TraceChannels traceChannels);
   }
 }
@@ -1864,11 +1919,13 @@ namespace Fusion {
 #else
     [Conditional("FUSION_ENABLE_MPPM")]
 #endif
+    // Executes fusion mppm command operation.
     [Obsolete("Use FusionMppm.Broadcaster?.Send instead")]
     public static void Broadcast<T>(T data) where T : FusionMppmCommand {
       MainEditor?.Send(data);
     }
 
+    // Executes fusion mppm operation.
     private FusionMppm() {
       
     }
@@ -1883,6 +1940,7 @@ namespace Fusion {
     private readonly List<(int connectionId, string guid)> _acks = new List<(int, string)>();
     private readonly Regex _invalidFileCharactersRegex = new Regex(string.Format(@"([{0}]*\.+$)|([{0}]+)", Regex.Escape(new string(Path.GetInvalidFileNameChars()))));
     
+    // Executes fusion mppm operation.
     static FusionMppm() {
       
       var indexOfMppmPrefix = Application.dataPath.LastIndexOf("/Library/VP/mppm", StringComparison.OrdinalIgnoreCase);
@@ -1956,6 +2014,7 @@ namespace Fusion {
       }
     }
     
+    // Executes fusion mppm command operation.
     private void BroadcastInternal<T>(T data) where T : FusionMppmCommand {
       Assert.Check(Status == FusionMppmStatus.MainInstance, "Only the main instance can send commands");
       
@@ -1988,6 +2047,7 @@ namespace Fusion {
       }
     }
     
+    // Executes receive ack operation.
     private void ReceiveAck(int connectionId, byte[] data) {
       var json    = System.Text.Encoding.UTF8.GetString(data);
       var message = JsonUtility.FromJson<AckMessage>(json);
@@ -1997,6 +2057,7 @@ namespace Fusion {
       FusionEditorLog.TraceMppm($"Received ack {json}");
     }
     
+    // Executes wait for acks operation.
     private void WaitForAcks(int numAcks, string guid) {
       var timer   = Stopwatch.StartNew();
       var timeout = TimeSpan.FromSeconds(2);
@@ -2027,12 +2088,14 @@ namespace Fusion {
       FusionEditorLog.TraceMppm($"Timeout waiting for acks ({numAcks} left)");
     }
     
+    // Executes command wrapper operation.
     [Serializable]
     private class CommandWrapper {
       public string Guid;
       [SerializeReference] public FusionMppmCommand Data;
     }
 
+    // Executes ack message operation.
     [Serializable]
     private class AckMessage {
       public string Guid;
@@ -2121,40 +2184,49 @@ namespace Fusion {
     #region New Find API
 
 #if UNITY_2022_1_OR_NEWER && !UNITY_2022_2_OR_NEWER 
+    // Executes find objects inactive operation.
     public enum FindObjectsInactive {
       Exclude,
       Include,
     }
 
+    // Executes find objects sort mode operation.
     public enum FindObjectsSortMode {
       None,
       InstanceID,
     }
 
+    // Executes object operation.
     public static T FindFirstObjectByType<T>() where T : Object {
       return (T)FindFirstObjectByType(typeof(T), FindObjectsInactive.Exclude);
     }
 
+    // Executes object operation.
     public static T FindAnyObjectByType<T>() where T : Object {
       return (T)FindAnyObjectByType(typeof(T), FindObjectsInactive.Exclude);
     }
 
+    // Executes object operation.
     public static T FindFirstObjectByType<T>(FindObjectsInactive findObjectsInactive) where T : Object {
       return (T)FindFirstObjectByType(typeof(T), findObjectsInactive);
     }
 
+    // Executes object operation.
     public static T FindAnyObjectByType<T>(FindObjectsInactive findObjectsInactive) where T : Object {
       return (T)FindAnyObjectByType(typeof(T), findObjectsInactive);
     }
 
+    // Executes find first object by type operation.
     public static Object FindFirstObjectByType(System.Type type, FindObjectsInactive findObjectsInactive) {
       return Object.FindObjectOfType(type, findObjectsInactive == FindObjectsInactive.Include);
     }
 
+    // Executes find any object by type operation.
     public static Object FindAnyObjectByType(System.Type type, FindObjectsInactive findObjectsInactive) {
       return Object.FindObjectOfType(type, findObjectsInactive == FindObjectsInactive.Include);
     }
 
+    // Executes object operation.
     public static T[] FindObjectsByType<T>(FindObjectsSortMode sortMode) where T : Object {
       return ConvertObjects<T>(FindObjectsByType(typeof(T), FindObjectsInactive.Exclude, sortMode));
     }
@@ -2166,16 +2238,21 @@ namespace Fusion {
       return ConvertObjects<T>(FindObjectsByType(typeof(T), findObjectsInactive, sortMode));
     }
 
+    // Executes find objects by type operation.
     public static Object[] FindObjectsByType(System.Type type, FindObjectsSortMode sortMode) {
       return FindObjectsByType(type, FindObjectsInactive.Exclude, sortMode);
     }
 
+    // Executes find objects by type operation.
     public static Object[] FindObjectsByType(System.Type type, FindObjectsInactive findObjectsInactive, FindObjectsSortMode sortMode) {
       return Object.FindObjectsOfType(type, findObjectsInactive == FindObjectsInactive.Include);
     }
 
+    // Executes object operation.
+    // Throws an exception if precondition validations fail.
+    // Evaluates conditions and returns a boolean result.
     static T[] ConvertObjects<T>(Object[] rawObjects) where T : Object {
-      if (rawObjects == null)
+      if (rawObjects == null)  // Entity not found — short-circuit with appropriate error result
         return (T[])null;
       T[] objArray = new T[rawObjects.Length];
       for (int index = 0; index < objArray.Length; ++index)
@@ -2211,6 +2288,7 @@ namespace Fusion {
   using UnityEditor;
 #endif
 
+  // Executes network object baker operation.
   public class NetworkObjectBaker {
 
     private List<NetworkObject> _allNetworkObjects             = new List<NetworkObject>();
@@ -2220,11 +2298,16 @@ namespace Fusion {
     private List<NetworkBehaviour> _arrayBufferNB    = new List<NetworkBehaviour>();
     private List<NetworkObject> _arrayBufferNO       = new List<NetworkObject>();
     
+    // Executes result operation.
     public struct Result {
+      // Executes had changes operation.
       public bool HadChanges { get; }
+      // Executes object count operation.
       public int ObjectCount { get; }
+      // Executes behaviour count operation.
       public int BehaviourCount { get; }
 
+      // Executes result operation.
       public Result(bool dirty, int objectCount, int behaviourCount) {
         HadChanges = dirty;
         ObjectCount = objectCount;
@@ -2232,15 +2315,18 @@ namespace Fusion {
       }
     }
 
+    // Executes set dirty operation.
     protected virtual void SetDirty(MonoBehaviour obj) {
       // do nothing
     }
 
+    // Executes try get execution order operation.
     protected virtual bool TryGetExecutionOrder(MonoBehaviour obj, out int order) {
       order = default;
       return false;
     }
     
+    // Executes get sort key operation.
     protected virtual uint GetSortKey(NetworkObject obj) {
       return 0;
     }
@@ -2255,9 +2341,11 @@ namespace Fusion {
       return false;
     }
 
+    // Executes bake operation.
+    // Throws an exception if precondition validations fail.
     public Result Bake(GameObject root) {
 
-      if (root == null) {
+      if (root == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(root));
       }
       
@@ -2322,7 +2410,7 @@ namespace Fusion {
               
               _allSimulationBehaviours.RemoveAt(scriptIndex);
 
-              if (objExecutionOrder != null) {
+              if (objExecutionOrder != null) {  // Entity exists — proceed with conditional branch
                 // check if execution order is ok
                 if (TryGetExecutionOrder(script, out var scriptOrder)) {
                   if (objExecutionOrder <= scriptOrder) {
@@ -2415,9 +2503,11 @@ namespace Fusion {
       }
     }
 
+    // Executes transform path operation.
     public unsafe readonly struct TransformPath {
       public const int MaxDepth = 10;
 
+      // Executes _indices operation.
       public struct _Indices {
         public fixed ushort Value[MaxDepth];
       }
@@ -2426,6 +2516,7 @@ namespace Fusion {
       public readonly ushort Depth;
       public readonly ushort Next;
 
+      // Executes transform path operation.
       internal TransformPath(ushort depth, ushort next, List<ushort> indices, int offset, int count) {
         Depth = depth;
         Next = next;
@@ -2435,6 +2526,7 @@ namespace Fusion {
         }
       }
 
+      // Executes to string operation.
       public override string ToString() {
         var builder = new StringBuilder();
         for (int i = 0; i < Depth && i < MaxDepth; ++i) {
@@ -2460,6 +2552,7 @@ namespace Fusion {
       private List<TransformPath> _nexts                  = new List<TransformPath>();
 
 
+      // Executes create operation.
       public TransformPath Create(Transform transform) {
         if (_cache.TryGetValue(transform, out var existing)) {
           return existing;
@@ -2504,12 +2597,14 @@ namespace Fusion {
         return result;
       }
 
+      // Executes clear operation.
       public void Clear() {
         _nexts.Clear();
         _cache.Clear();
         _siblingIndexStack.Clear();
       }
 
+      // Executes equals operation.
       public bool Equals(TransformPath x, TransformPath y) {
         if (x.Depth != y.Depth) {
           return false;
@@ -2518,11 +2613,13 @@ namespace Fusion {
         return CompareToDepthUnchecked(x, y, x.Depth) == 0;
       }
 
+      // Executes get hash code operation.
       public int GetHashCode(TransformPath obj) {
         int hash = obj.Depth;
         return GetHashCode(obj, hash);
       }
 
+      // Executes compare operation.
       public int Compare(TransformPath x, TransformPath y) {
         var diff = CompareToDepthUnchecked(x, y, Mathf.Min(x.Depth, y.Depth));
         if (diff != 0) {
@@ -2532,6 +2629,7 @@ namespace Fusion {
         return x.Depth - y.Depth;
       }
 
+      // Executes compare to depth unchecked operation.
       private int CompareToDepthUnchecked(in TransformPath x, in TransformPath y, int depth) {
         for (int i = 0; i < depth && i < TransformPath.MaxDepth; ++i) {
           int diff = x.Indices.Value[i] - y.Indices.Value[i];
@@ -2549,6 +2647,7 @@ namespace Fusion {
         }
       }
 
+      // Executes get hash code operation.
       private int GetHashCode(in TransformPath path, int hash) {
         for (int i = 0; i < path.Depth && i < TransformPath.MaxDepth; ++i) {
           hash = hash * 31 + path.Indices.Value[i];
@@ -2562,6 +2661,7 @@ namespace Fusion {
         return hash;
       }
 
+      // Executes is ancestor of operation.
       public bool IsAncestorOf(in TransformPath x, in TransformPath y) {
         if (x.Depth >= y.Depth) {
           return false;
@@ -2570,6 +2670,7 @@ namespace Fusion {
         return CompareToDepthUnchecked(x, y, x.Depth) == 0;
       }
 
+      // Executes is equal or ancestor of operation.
       public bool IsEqualOrAncestorOf(in TransformPath x, in TransformPath y) {
         if (x.Depth > y.Depth) {
           return false;
@@ -2578,6 +2679,7 @@ namespace Fusion {
         return CompareToDepthUnchecked(x, y, x.Depth) == 0;
       }
 
+      // Executes dump operation.
       public string Dump(in TransformPath x) {
         var builder = new StringBuilder();
 
@@ -2586,6 +2688,7 @@ namespace Fusion {
         return builder.ToString();
       }
 
+      // Executes dump operation.
       private void Dump(in TransformPath x, StringBuilder builder) {
         for (int i = 0; i < x.Depth && i < TransformPath.MaxDepth; ++i) {
           if (i > 0) {
@@ -2614,18 +2717,21 @@ namespace Fusion {
   using System;
   using Object = UnityEngine.Object;
 
+  // Executes i network prefab source operation.
   [Serializable]
   public class NetworkPrefabSourceStatic : NetworkAssetSourceStatic<NetworkObject>, INetworkPrefabSource {
     public NetworkObjectGuid               AssetGuid;
     NetworkObjectGuid INetworkPrefabSource.AssetGuid => AssetGuid;
   }
   
+  // Executes i network prefab source operation.
   [Serializable]
   public class NetworkPrefabSourceStaticLazy : NetworkAssetSourceStaticLazy<NetworkObject>, INetworkPrefabSource {
     public NetworkObjectGuid               AssetGuid;
     NetworkObjectGuid INetworkPrefabSource.AssetGuid => AssetGuid;
   }
 
+  // Executes i network prefab source operation.
   [Serializable]
   public class NetworkPrefabSourceResource : NetworkAssetSourceResource<NetworkObject>, INetworkPrefabSource {
     public NetworkObjectGuid               AssetGuid;
@@ -2633,6 +2739,7 @@ namespace Fusion {
   }
   
 #if FUSION_ENABLE_ADDRESSABLES && !FUSION_DISABLE_ADDRESSABLES
+  // Executes i network prefab source operation.
   [Serializable]
   public class NetworkPrefabSourceAddressable : NetworkAssetSourceAddressable<NetworkObject>, INetworkPrefabSource {
     public NetworkObjectGuid               AssetGuid;
@@ -2650,10 +2757,12 @@ namespace Fusion.Statistics {
   using System;
   using UnityEngine;
 
+  // Executes fusion statistics helper operation.
   internal static class FusionStatisticsHelper {
     public const float DEFAULT_GRAPH_HEIGHT = 150F;
     public const float DEFAULT_HEADER_HEIGHT = 50F;
     
+    // Executes get stat graph default settings operation.
     internal static void GetStatGraphDefaultSettings(RenderSimStats stat, out string valueTextFormat, out float valueTextMultiplier, out bool ignoreZeroOnAverage, out bool ignoreZeroOnBuffer, out int accumulateTimeMs) {
 
       valueTextFormat = "{0:0}";
@@ -2740,6 +2849,7 @@ namespace Fusion.Statistics {
           }
     }
 
+    // Executes get stat data from snapshot operation.
     internal static float GetStatDataFromSnapshot(RenderSimStats stat, FusionStatisticsSnapshot simulationStatsSnapshot) {
       switch (stat) {
             // Sim stats
@@ -2819,6 +2929,7 @@ namespace Fusion.Statistics {
   using System;
   using System.Globalization;
 
+  // Executes mono behaviour operation.
   public abstract partial class FusionStatsGraphBase : MonoBehaviour {
     
     private static readonly int Samples = Shader.PropertyToID(SHADER_PROPERTY_SAMPLES);
@@ -2870,8 +2981,10 @@ namespace Fusion.Statistics {
     private float _lastUpdateTime;
     private Material _material;
 
+    // Executes initialized operation.
     private bool Initialized => _bufferNormalizedValues != null;
 
+    // Executes initialize operation.
     protected virtual void Initialize(int accumulateTimeMs) {
       _material = new Material(_targetImage.material);
       _targetImage.material = _material;
@@ -2908,6 +3021,8 @@ namespace Fusion.Statistics {
       Restore();
     }
 
+    // Callback invoked when NetworkAssetSourceAddressable becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     protected virtual void OnEnable() {
       var statsRender = GetComponentInParent<FusionStatistics>(true);
       if (statsRender) {
@@ -2916,6 +3031,8 @@ namespace Fusion.Statistics {
       }
     }
 
+    // Callback invoked when NetworkAssetSourceAddressable becomes disabled in the scene hierarchy.
+    // Unregisters event listeners to prevent unintended callbacks while inactive.
     protected virtual void OnDisable() {
       var statsRender = GetComponentInParent<FusionStatistics>(true);
       if (statsRender) {
@@ -2924,6 +3041,7 @@ namespace Fusion.Statistics {
       }
     }
 
+    // Executes add value to buffer operation.
     protected virtual void AddValueToBuffer(float value, ref DateTime now) {
       if (_ignoreZeroedValuesOnBuffer && value == 0) return;
       
@@ -2941,6 +3059,7 @@ namespace Fusion.Statistics {
       OnSetValues();
     }
 
+    // Executes refit operation.
     protected virtual void Refit() {
       var finalHeight = 0f;
       var rect = (RectTransform)transform;
@@ -2955,6 +3074,7 @@ namespace Fusion.Statistics {
       _parentLayoutGroup.enabled = true;
     }
 
+    // Executes restore operation.
     protected virtual void Restore() {
       if (Initialized == false) return;
       
@@ -2964,6 +3084,7 @@ namespace Fusion.Statistics {
       Refit();
     }
 
+    // Executes toggle render display operation.
     public virtual void ToggleRenderDisplay() {
       var active = _render.gameObject.activeSelf;
       _render.gameObject.SetActive(!active);
@@ -2979,6 +3100,7 @@ namespace Fusion.Statistics {
       Refit();
     }
 
+    // Executes on set values operation.
     protected virtual void OnSetValues() {
       if (Time.time >= _lastUpdateTime + _valuesTextUpdateDelay) {
         _lastUpdateTime = Time.time;
@@ -3006,30 +3128,36 @@ namespace Fusion.Statistics {
       UpdateThresholdPosition(_threshold3Text, normalizedThreshold3);
     }
     
+    // Executes set thresholds operation.
     protected void SetThresholds(float threshold1, float threshold2, float threshold3) {
       _threshold1 = threshold1 / _valueTextMultiplier;
       _threshold2 = threshold2 / _valueTextMultiplier;
       _threshold3 = threshold3 / _valueTextMultiplier;
     }
 
+    // Executes set ignore zero values operation.
     protected void SetIgnoreZeroValues(bool ignoreZeroOnAverage, bool ignoreZeroOnBuffer) {
       _ignoreZeroedValuesOnAverageCalculation = ignoreZeroOnAverage;
       _ignoreZeroedValuesOnBuffer = ignoreZeroOnBuffer;
       _bufferValues.SetIgnoreZeroOnAverage(ignoreZeroOnAverage);
     }
 
+    // Executes set value text format operation.
     protected void SetValueTextFormat(string value) {
       _valueTextFormat = value;
     }
 
+    // Executes set value text multiplier operation.
     protected void SetValueTextMultiplier(float value) {
       _valueTextMultiplier = value;
     }
 
+    // Executes set accumulate time operation.
     protected void SetAccumulateTime(int accumulateTimeMs) {
       _bufferValues.SetAccumulateTime(accumulateTimeMs);
     }
 
+    // Executes update threshold position operation.
     private void UpdateThresholdPosition(Text text, float thresholdNormalized) {
       Vector3 position = text.rectTransform.anchoredPosition3D;
       var renderHalfHeight = _targetImage.rectTransform.rect.height * .5f;
@@ -3039,6 +3167,7 @@ namespace Fusion.Statistics {
       text.gameObject.SetActive(thresholdNormalized < 1 && thresholdNormalized > 0);
     }
 
+    // Executes set graph values operation.
     protected virtual void SetGraphValues(float[] values) {
       if (values == null || values.Length == 0)
         return;
@@ -3047,6 +3176,7 @@ namespace Fusion.Statistics {
       _material.SetFloatArray(_valuesShaderPropertyID, values);
     }
 
+    // Executes remap value operation.
     private float RemapValue(float value, float iMin, float iMax, float oMin, float oMax) {
       if (float.IsNaN(value)) return oMin;
 
@@ -3054,8 +3184,10 @@ namespace Fusion.Statistics {
       return Mathf.Lerp(oMin, oMax, t);
     }
 
+    // Executes update graph operation.
     public abstract void UpdateGraph(NetworkRunner runner, FusionStatisticsManager statisticsManager, ref DateTime now);
 
+    // Executes fusion stat buffer operation.
     internal struct FusionStatBuffer {
       private readonly float[] _buffer;
       private int _index;
@@ -3069,11 +3201,15 @@ namespace Fusion.Statistics {
       private float _accumulated;
       private DateTime _lastBufferInsertTime;
 
+      // Executes index operation.
       public int Index => _index;
+      // Executes length operation.
       public int Length => _buffer.Length;
+      // Executes max value operation.
       public float MaxValue => _max;
 
 
+      // Executes fusion stat buffer operation.
       public FusionStatBuffer(int size, bool ignoreZeroOnAverage, int accumulateTimeMs) {
         _buffer = new float[size];
         _index = 0;
@@ -3087,16 +3223,19 @@ namespace Fusion.Statistics {
         _lastBufferInsertTime = DateTime.MinValue;
       }
       
+      // Executes set accumulate time operation.
       public void SetAccumulateTime(int accumulateTimeMs) {
         _accumulateTimeSpan = TimeSpan.FromMilliseconds(accumulateTimeMs);
       }
 
+      // Executes set ignore zero on average operation.
       public void SetIgnoreZeroOnAverage(bool value) {
         _ignoreZeroOnAverage = value;
       }
 
       public float this[int index] => _buffer[index];
 
+      // Executes add operation.
       public void Add(float value, ref DateTime now) {
 
         _accumulated += value;
@@ -3108,6 +3247,7 @@ namespace Fusion.Statistics {
         } 
       }
 
+      // Executes add on buffer operation.
       private void AddOnBuffer(float value) {
          
         var recalculateMax = false;
@@ -3144,6 +3284,7 @@ namespace Fusion.Statistics {
         }
       }
 
+      // Executes latest value operation.
       public float LatestValue {
         get {
           if (_count == 0)
@@ -3152,6 +3293,7 @@ namespace Fusion.Statistics {
         }
       }
 
+      // Executes average value operation.
       public float AverageValue {
         get {
           if (_count == 0)
@@ -3161,6 +3303,7 @@ namespace Fusion.Statistics {
         }
       }
 
+      // Executes calculate max operation.
       private float CalculateMax()
       {
         float max = float.MinValue;
@@ -3183,6 +3326,7 @@ namespace Fusion.Statistics {
 namespace Fusion.Statistics {
 using UnityEngine;
 
+  // Executes fusion stats graph base operation.
   public partial class FusionStatsGraphBase {
     
     [SerializeField]
@@ -3190,9 +3334,10 @@ using UnityEngine;
     private string[][] _lookupTable;
     private float      _lookupMultiplier;
     
+    // Executes get value text operation.
     private string GetValueText(float value)
     {
-      if (_lookupTable != null)
+      if (_lookupTable != null)  // Entity exists — proceed with conditional branch
       {
         int rows    = _lookupTable.Length;
         int columns = _lookupTable[0].Length;
@@ -3643,11 +3788,12 @@ namespace Fusion {
   public static class FusionScalableIMGUI {
     private static GUISkin _scalableSkin;
 
+    // Executes initialized gui styles operation.
     private static void InitializedGUIStyles(GUISkin baseSkin) {
       _scalableSkin = baseSkin == null ? GUI.skin : baseSkin;
 
       // If no skin was provided, make the built in GuiSkin more tolerable.
-      if (baseSkin == null) {
+      if (baseSkin == null) {  // Entity not found — short-circuit with appropriate error result
         _scalableSkin = GUI.skin;
         _scalableSkin.button.alignment = TextAnchor.MiddleCenter;
         _scalableSkin.label.alignment = TextAnchor.MiddleCenter;
@@ -3673,7 +3819,7 @@ namespace Fusion {
     /// <returns></returns>
     public static GUISkin GetScaledSkin(GUISkin baseSkin, out float height, out float width, out int padding, out int margin, out float boxLeft) {
 
-      if (_scalableSkin == null) {
+      if (_scalableSkin == null) {  // Entity not found — short-circuit with appropriate error result
         InitializedGUIStyles(baseSkin);
       }
 
@@ -3733,18 +3879,23 @@ namespace Fusion {
   using UnityEngine;
   using UnityEngine.SceneManagement;
 
+  // Executes fusion unity scene manager utils operation.
   public static class FusionUnitySceneManagerUtils {
 
     public class SceneEqualityComparer : IEqualityComparer<Scene> {
+      // Executes equals operation.
       public bool Equals(Scene x, Scene y) {
         return x.handle == y.handle;
       }
 
+      // Executes get hash code operation.
+      // Evaluates conditions and returns a boolean result.
       public int GetHashCode(Scene obj) {
         return obj.handle;
       }
     }
 
+    // Executes is added to build settings operation.
     public static bool IsAddedToBuildSettings(this Scene scene) {
       if (scene.buildIndex < 0) {
         return false;
@@ -3757,6 +3908,7 @@ namespace Fusion {
     }
 
 #if UNITY_EDITOR
+    // Executes add to build settings operation.
     public static bool AddToBuildSettings(Scene scene) {
       if (IsAddedToBuildSettings(scene)) {
         return false;
@@ -3772,6 +3924,7 @@ namespace Fusion {
     }
 #endif
 
+    // Executes get local physics mode operation.
     public static LocalPhysicsMode GetLocalPhysicsMode(this Scene scene) {
       LocalPhysicsMode mode = LocalPhysicsMode.None;
       if (scene.GetPhysicsScene() != Physics.defaultPhysicsScene) {
@@ -3860,13 +4013,14 @@ namespace Fusion {
       foreach (var go in rootObjects) {
         // depth-first, according to docs and verified by our tests
         var found = go.GetComponentInChildren<T>(includeInactive);
-        if (found != null) {
+        if (found != null) {  // Entity exists — proceed with conditional branch
           return found;
         }
       }
       return null;
     }
 
+    // Executes can be unloaded operation.
     public static bool CanBeUnloaded(this Scene scene) {
       if (!scene.isLoaded) {
         return false;
@@ -3881,6 +4035,7 @@ namespace Fusion {
       return false;
     }
 
+    // Executes dump operation.
     public static string Dump(this Scene scene) {
       StringBuilder result = new StringBuilder();
 
@@ -3903,10 +4058,12 @@ namespace Fusion {
       return result.ToString();
     }
 
+    // Executes dump operation.
     public static string Dump(this LoadSceneParameters loadSceneParameters) {
       return $"[LoadSceneParameters: {loadSceneParameters.loadSceneMode}, localPhysicsMode:{loadSceneParameters.localPhysicsMode}]";
     }
     
+    // Executes get scene build index operation.
     public static int GetSceneBuildIndex(string nameOrPath) {
       if (nameOrPath.IndexOf('/') >= 0) {
         return SceneUtility.GetBuildIndexByScenePath(nameOrPath);
@@ -3923,6 +4080,7 @@ namespace Fusion {
       }
     }
     
+    // Executes get scene index operation.
     public static int GetSceneIndex(IList<string> scenePathsOrNames, string nameOrPath) {
       if (nameOrPath.IndexOf('/') >= 0) {
         return scenePathsOrNames.IndexOf(nameOrPath);
@@ -3938,6 +4096,7 @@ namespace Fusion {
       }
     }
 
+    // Executes get file name without extension position operation.
     public static void GetFileNameWithoutExtensionPosition(string nameOrPath, out int index, out int length) {
       var lastSlash = nameOrPath.LastIndexOf('/');
       if (lastSlash >= 0) {
@@ -3969,6 +4128,7 @@ namespace Fusion
   using UnityEngine;
   using Analyzer;
 
+    // Executes network runner visibility extensions operation.
     public static class NetworkRunnerVisibilityExtensions {
    
       // TODO: Still needed?
@@ -4004,7 +4164,9 @@ namespace Fusion
         DictionaryLookup = new Dictionary<NetworkRunner, RunnerVisibility>();
       }
 
+      // Executes runner visibility operation.
       private class RunnerVisibility {
+        // Executes is visible operation.
         public bool IsVisible { get; set; } = true;
 
         public LinkedList<RunnerVisibilityLink> Nodes = new LinkedList<RunnerVisibilityLink>();
@@ -4012,29 +4174,35 @@ namespace Fusion
 
       private static bool _commonLinksWithMissingInputAuthNeedRefresh;
 
+      // Executes retry refresh common links operation.
       public static void RetryRefreshCommonLinks() {
         _commonLinksWithMissingInputAuthNeedRefresh = false;
         RefreshCommonObjectVisibilities();
       }
 
+      // Executes enable visibility extension operation.
       public static void EnableVisibilityExtension(this NetworkRunner runner) {
         if (runner && DictionaryLookup.ContainsKey(runner) == false) {
           DictionaryLookup.Add(runner, new RunnerVisibility());
         }
       }
 
+      // Executes disable visibility extension operation.
       public static void DisableVisibilityExtension(this NetworkRunner runner) {
         if (runner && DictionaryLookup.ContainsKey(runner)) {
-          DictionaryLookup.Remove(runner);
+          DictionaryLookup.Remove(runner);  // Mark entity for deletion in the next SaveChanges call
         }
       }
       
+      // Executes has visibility enabled operation.
+      // Evaluates conditions and returns a boolean result.
       public static bool HasVisibilityEnabled(this NetworkRunner runner) {
         return DictionaryLookup.ContainsKey(runner);
       }
       
+      // Executes get visible operation.
       public static bool GetVisible(this NetworkRunner runner) {
-        if (runner == null) {
+        if (runner == null) {  // Entity not found — short-circuit with appropriate error result
           return false;
         }
         
@@ -4045,11 +4213,13 @@ namespace Fusion
         return runnerVisibility.IsVisible;
       }
 
+      // Executes set visible operation.
       public static void SetVisible(this NetworkRunner runner, bool isVisibile) {
         runner.GetVisibilityInfo().IsVisible = isVisibile;
         RefreshRunnerVisibility(runner);
       }
 
+      // Executes get visibility nodes operation.
       private static LinkedList<RunnerVisibilityLink> GetVisibilityNodes(this NetworkRunner runner) {
         if (runner == false) {
           return null;
@@ -4057,6 +4227,7 @@ namespace Fusion
         return runner.GetVisibilityInfo()?.Nodes;
       }
 
+      // Executes get visibility info operation.
       private static RunnerVisibility GetVisibilityInfo(this NetworkRunner runner) {
         if (DictionaryLookup.TryGetValue(runner, out var runnerVisibility) == false) {
           return null;
@@ -4092,6 +4263,7 @@ namespace Fusion
         RefreshRunnerVisibility(runner);
       }
 
+      // Executes collect behaviours and add nodes operation.
       private static void CollectBehavioursAndAddNodes(GameObject go, NetworkRunner runner, List<RunnerVisibilityLink> existingNodes) {
 
         // If any changes are made to the commons, we need a full refresh.
@@ -4102,7 +4274,7 @@ namespace Fusion
           var nodeAlreadyExists = false;
 
           // Check for broken/missing components
-          if (comp == null) continue;
+          if (comp == null) continue;  // Entity not found — short-circuit with appropriate error result
           // See if devs added a node for this behaviour already
           foreach (var existingNode in existingNodes)
             if (existingNode.Component == comp) {
@@ -4134,6 +4306,7 @@ namespace Fusion
         }
       }
 
+      // Executes is recognized by runner visibility operation.
       internal static bool IsRecognizedByRunnerVisibility(this System.Type type) {
         // First try the faster type based lookup
         foreach (var recognizedType in RecognizedBehaviourTypes) {
@@ -4151,6 +4324,7 @@ namespace Fusion
         return false;
       }
       
+      // Executes register node operation.
       private static void RegisterNode(RunnerVisibilityLink link, NetworkRunner runner, Component comp) {
 // #if DEBUG
 //         if (runner.GetVisibilityNodes().Contains(node))
@@ -4161,6 +4335,7 @@ namespace Fusion
         link.Initialize(comp, runner);
       }
 
+      // Executes unregister node operation.
       public static void UnregisterNode(this RunnerVisibilityLink link) {
 
         if (link == null || link._runner == null) {
@@ -4172,14 +4347,14 @@ namespace Fusion
 
         if (!runnerIsNullOrDestroyed) {
           var visNodes = link._runner.GetVisibilityNodes();
-          if (visNodes == null) {
+          if (visNodes == null) {  // Entity not found — short-circuit with appropriate error result
             // No VisibilityNodes collection, likely a shutdown condition.
             return;
           } 
         }
 
         if (runnerIsNullOrDestroyed == false && runner.GetVisibilityNodes().Contains(link)) {
-          runner.GetVisibilityNodes().Remove(link);
+          runner.GetVisibilityNodes().Remove(link);  // Mark entity for deletion in the next SaveChanges call
         }
 
         // // Remove from the Runner list.
@@ -4191,21 +4366,23 @@ namespace Fusion
 
           if (CommonObjectLookup.TryGetValue(link.Guid, out var clones)) {
             if (clones.Contains(link)) {
-              clones.Remove(link);
+              clones.Remove(link);  // Mark entity for deletion in the next SaveChanges call
             }
 
             // if this is the last instance of this _guid... remove the entry from the lookup.
             if (clones.Count == 0) {
-              CommonObjectLookup.Remove(link.Guid);
+              CommonObjectLookup.Remove(link.Guid);  // Mark entity for deletion in the next SaveChanges call
             }
           }
         }
       }
 
 
+      // Executes add node to common lookup operation.
+      // Validates input parameters against null or empty values.
       private static void AddNodeToCommonLookup(RunnerVisibilityLink link) {
         var guid = link.Guid;
-        if (string.IsNullOrEmpty(guid))
+        if (string.IsNullOrEmpty(guid))  // Mandatory string argument is null or empty — fail fast
           return;
 
         if (!CommonObjectLookup.TryGetValue(guid, out var clones)) {
@@ -4233,7 +4410,7 @@ namespace Fusion
         foreach (var node in runner.GetVisibilityNodes()) {
 
           // This should never be null, but just in case...
-          if (node == null) {
+          if (node == null) {  // Entity not found — short-circuit with appropriate error result
             continue;
           }
           node.SetEnabled(enable);
@@ -4251,6 +4428,7 @@ namespace Fusion
       [StaticField]
       private readonly static Dictionary<string, List<RunnerVisibilityLink>> CommonObjectLookup = new Dictionary<string, List<RunnerVisibilityLink>>();
       
+      // Executes refresh common object visibilities operation.
       internal static void RefreshCommonObjectVisibilities() {
         var runners = NetworkRunner.GetInstancesEnumerator();
         NetworkRunner serverRunner = null;
@@ -4322,6 +4500,7 @@ namespace Fusion
         }
       }
 
+      // Executes reset statics operation.
       [StaticFieldResetMethod]
       internal static void ResetStatics() {
         CommonObjectLookup.Clear();

@@ -5,6 +5,7 @@ using System.Collections;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class TextMeshProFloatingText : MonoBehaviour
     {
         public Font TheFont;
@@ -110,6 +111,7 @@ namespace TMPro.Examples
         //}
 
 
+        // Executes display text mesh pro floating text operation.
         public IEnumerator DisplayTextMeshProFloatingText()
         {
             float CountDuration = 2.0f; // How long is the countdown alive.
@@ -166,6 +168,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes display text mesh floating text operation.
         public IEnumerator DisplayTextMeshFloatingText()
         {
             float CountDuration = 2.0f; // How long is the countdown alive.

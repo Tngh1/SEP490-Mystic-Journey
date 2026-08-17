@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
+// Executes mono behaviour operation.
 public class ProtectiveShieldSkill : MonoBehaviour
 {
     [SerializeField] private float radius = 5f;
@@ -12,10 +13,10 @@ public class ProtectiveShieldSkill : MonoBehaviour
 
     private Transform _targetToFollow;
 
+    // Performs startup initialization for ProtectiveShieldSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private IEnumerator Start()
     {
-        // Replica markers are attached immediately after Instantiate on remote clients.
-        // Delay the gameplay/broadcast logic so a visual copy cannot apply the buff again.
         yield return null;
 
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
@@ -24,8 +25,7 @@ public class ProtectiveShieldSkill : MonoBehaviour
         }
         PlayerCombat casterCombat = null;
         Transform replicaOwner = PlayerSkillVisualReplica.GetOwner(this);
-        
-        // Find the caster (the local player where this was spawned)
+
         Collider2D[] casterHits = Physics2D.OverlapCircleAll(transform.position, 0.5f);
         foreach (var hit in casterHits)
         {
@@ -65,8 +65,6 @@ public class ProtectiveShieldSkill : MonoBehaviour
         float casterDef = casterCombat != null ? casterCombat.TotalDef : 0f;
         float buffAmount = casterDef * defenseShareRatio;
 
-        // Apply to all players in radius. A player may have several colliders, so
-        // de-duplicate by PlayerCombat before applying stats or broadcasting VFX.
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
         var affectedPlayers = new HashSet<PlayerCombat>();
         bool broadcastNetworkVisual = false;
@@ -78,7 +76,6 @@ public class ProtectiveShieldSkill : MonoBehaviour
                 var networkPlayer = player.GetComponent<NetworkPlayer>();
                 if (networkPlayer != null && networkPlayer.Object != null)
                 {
-                    // Call RPC to apply buff to all clients (including UI)
                     networkPlayer.RPC_ApplyDefBuff(buffAmount, duration);
                     networkPlayer.RPC_ApplyDebuffImmunity(duration);
 
@@ -90,12 +87,10 @@ public class ProtectiveShieldSkill : MonoBehaviour
                 }
                 else
                 {
-                    // Fallback for offline mode
                     player.AddDefBuff(buffAmount, duration);
                     player.AddDebuffImmunity(duration);
                 }
 
-                // Show a text popup for buff
                 if (DamagePopupManager.Instance != null)
                 {
                     DamagePopupManager.Instance.Create(player.transform.position + Vector3.up * 1f, (int)buffAmount, false, false);
@@ -103,8 +98,6 @@ public class ProtectiveShieldSkill : MonoBehaviour
             }
         }
 
-        // Network clients render the per-target visual created by the RPC above.
-        // Remove the original cast object so the caster does not see two shields.
         if (broadcastNetworkVisual)
         {
             Destroy(gameObject);
@@ -114,6 +107,8 @@ public class ProtectiveShieldSkill : MonoBehaviour
         Destroy(gameObject, duration);
     }
 
+    // Per-frame update loop for ProtectiveShieldSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_targetToFollow != null)

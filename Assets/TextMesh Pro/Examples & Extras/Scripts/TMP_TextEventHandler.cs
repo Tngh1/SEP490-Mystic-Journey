@@ -7,6 +7,7 @@ using System;
 namespace TMPro
 {
 
+    // Executes i pointer exit handler operation.
     public class TMP_TextEventHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         [Serializable]
@@ -217,42 +218,49 @@ namespace TMPro
         }
 
 
+        // Executes on pointer enter operation.
         public void OnPointerEnter(PointerEventData eventData)
         {
             //Debug.Log("OnPointerEnter()");
         }
 
 
+        // Executes on pointer exit operation.
         public void OnPointerExit(PointerEventData eventData)
         {
             //Debug.Log("OnPointerExit()");
         }
 
 
+        // Executes send on character selection operation.
         private void SendOnCharacterSelection(char character, int characterIndex)
         {
             if (onCharacterSelection != null)
                 onCharacterSelection.Invoke(character, characterIndex);
         }
 
+        // Executes send on sprite selection operation.
         private void SendOnSpriteSelection(char character, int characterIndex)
         {
             if (onSpriteSelection != null)
                 onSpriteSelection.Invoke(character, characterIndex);
         }
 
+        // Executes send on word selection operation.
         private void SendOnWordSelection(string word, int charIndex, int length)
         {
             if (onWordSelection != null)
                 onWordSelection.Invoke(word, charIndex, length);
         }
 
+        // Executes send on line selection operation.
         private void SendOnLineSelection(string line, int charIndex, int length)
         {
             if (onLineSelection != null)
                 onLineSelection.Invoke(line, charIndex, length);
         }
 
+        // Executes send on link selection operation.
         private void SendOnLinkSelection(string linkID, string linkText, int linkIndex)
         {
             if (onLinkSelection != null)

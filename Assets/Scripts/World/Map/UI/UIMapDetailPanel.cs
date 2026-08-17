@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIMapDetailPanel : MonoBehaviour
 {
     [Header("Dependencies")]
@@ -17,6 +18,8 @@ public class UIMapDetailPanel : MonoBehaviour
 
     private MapData currentMap;
 
+    // Performs startup initialization for UIMapDetailPanel on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (closeButton != null)
@@ -35,6 +38,7 @@ public class UIMapDetailPanel : MonoBehaviour
         }
     }
 
+    // Executes setup operation.
     public void Setup(MapData mapData)
     {
         currentMap = mapData;
@@ -42,17 +46,18 @@ public class UIMapDetailPanel : MonoBehaviour
         if (mapDescriptionText != null) mapDescriptionText.text = mapData.description;
         if (mapThumbnail != null && mapData.thumbnail != null) mapThumbnail.sprite = mapData.thumbnail;
     }
+    // Executes on enter map button operation.
     public void OnEnterMapButton()
     {
         if (mapManager == null)
         {
             mapManager = FindFirstObjectByType<MapSceneController>();
         }
-        
+
         if (mapManager != null && currentMap != null)
         {
             mapManager.EnterMap(currentMap);
-            gameObject.SetActive(false); // Đóng popup sau khi bấm Enter
+            gameObject.SetActive(false);
         }
         else
         {

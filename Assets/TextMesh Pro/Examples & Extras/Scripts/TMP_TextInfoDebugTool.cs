@@ -7,6 +7,7 @@ using UnityEditor;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class TMP_TextInfoDebugTool : MonoBehaviour
     {
         // Since this script is used for debugging, we exclude it from builds.

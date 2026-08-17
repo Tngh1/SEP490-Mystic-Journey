@@ -4,16 +4,10 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // QUEST API - Nhiệm vụ
-    // ═══════════════════════════════════════════════════════════════
     public class QuestApi : BaseApiService<QuestApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
 
-        // ── Lấy quest theo ID ───────────────────────────
+        // Executes get by id operation.
         public void GetById(int questId, Action<QuestResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.QuestById, questId);

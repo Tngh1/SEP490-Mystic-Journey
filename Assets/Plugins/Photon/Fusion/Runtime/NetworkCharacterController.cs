@@ -3,6 +3,7 @@ namespace Fusion {
   using System.Runtime.InteropServices;
   using UnityEngine;
 
+  // Executes i network struct operation.
   [StructLayout(LayoutKind.Explicit)]
   [NetworkStructWeaved(WORDS + 4)]
   public unsafe struct NetworkCCData : INetworkStruct {
@@ -18,11 +19,13 @@ namespace Fusion {
     [FieldOffset((NetworkTRSPData.WORDS + 1) * Allocator.REPLICATE_WORD_SIZE)]
     Vector3Compressed _velocityData;
 
+    // Executes grounded operation.
     public bool Grounded {
       get => _grounded == 1;
       set => _grounded = (value ? 1 : 0);
     }
 
+    // Executes velocity operation.
     public Vector3 Velocity {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       get => _velocityData;
@@ -49,16 +52,19 @@ namespace Fusion {
     Tick                _initial;
     CharacterController _controller;
 
+    // Executes velocity operation.
     public Vector3 Velocity {
       get => Data.Velocity;
       set => Data.Velocity = value;
     }
 
+    // Executes grounded operation.
     public bool Grounded {
       get => Data.Grounded;
       set => Data.Grounded = value;
     }
 
+    // Executes teleport operation.
     public void Teleport(Vector3? position = null, Quaternion? rotation = null) {
       _controller.enabled = false;
       NetworkTRSP.Teleport(this, transform, position, rotation);
@@ -66,6 +72,7 @@ namespace Fusion {
     }
 
 
+    // Executes jump operation.
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
       if (Data.Grounded || ignoreGrounded) {
         var newVel = Data.Velocity;
@@ -74,6 +81,7 @@ namespace Fusion {
       }
     }
 
+    // Executes move operation.
     public void Move(Vector3 direction) {
       var deltaTime    = Runner.DeltaTime;
       var previousPos  = transform.position;
@@ -107,6 +115,8 @@ namespace Fusion {
       Data.Grounded = _controller.isGrounded;
     }
     
+    // Fusion lifecycle callback invoked when this NetworkCCData NetworkObject is spawned into the network session.
+    // Configures input/state authority handlers, sets singleton references if local player, and applies initial visuals.
     public override void Spawned() {
       _initial = default;
       TryGetComponent(out _controller);
@@ -117,6 +127,7 @@ namespace Fusion {
       CopyToBuffer();
     }
 
+    // Executes render operation.
     public override void Render() {
       NetworkTRSP.Render(this, transform, false, false, false, ref _initial);
     }

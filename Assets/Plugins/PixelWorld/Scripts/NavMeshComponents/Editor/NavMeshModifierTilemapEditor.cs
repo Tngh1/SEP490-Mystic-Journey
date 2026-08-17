@@ -21,6 +21,7 @@ namespace NavMeshPlus.Components.Editors
             m_TileModifiers = serializedObject.FindProperty("m_TileModifiers");
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             NavMeshModifierTilemap modifierTilemap = target as NavMeshModifierTilemap;
@@ -57,6 +58,7 @@ namespace NavMeshPlus.Components.Editors
             }
         }
 
+        // Executes add used tiles operation.
         private void AddUsedTiles(Tilemap tilemap, NavMeshModifierTilemap modifierTilemap)
         {
             Dictionary<TileBase, NavMeshModifierTilemap.TileModifier> tileModifiers = modifierTilemap.GetModifierMap();
@@ -92,6 +94,7 @@ namespace NavMeshPlus.Components.Editors
             
             private static Dictionary<Object, Texture2D> Previews;
             
+            // Executes claim advance operation.
             private Rect ClaimAdvance(ref Rect position, float height)
             {
                 Rect retVal = position;
@@ -101,6 +104,7 @@ namespace NavMeshPlus.Components.Editors
                 return retVal;
             }
 
+            // Executes on gui operation.
             public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
             {
                 Rect expandRect = ClaimAdvance(ref position, 20);
@@ -159,6 +163,7 @@ namespace NavMeshPlus.Components.Editors
                 }
             }
 
+            // Executes get preview operation.
             static Texture2D GetPreview(Object objectToPreview)
             {
                 int maxResolution = 128;
@@ -179,6 +184,7 @@ namespace NavMeshPlus.Components.Editors
                 return preview;
             }
 
+            // Executes get property height operation.
             public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
             {
                 if (property.isExpanded)

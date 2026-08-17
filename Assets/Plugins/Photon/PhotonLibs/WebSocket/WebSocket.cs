@@ -32,6 +32,7 @@ namespace ExitGames.Client.Photon
     // changed mProxyAddress to ProxyAddress
     // changed mUrl to Url
 
+    // Initializes a new default instance of the WebSocket class.
     public partial class WebSocket
     {
         /// <summary>Server address</summary>
@@ -60,6 +61,8 @@ namespace ExitGames.Client.Photon
         public Action<DebugLevel, string> DebugReturn { get; set; }
 
 
+        // Initializes a new instance of WebSocket with dependencies: url, proxyAddress, openCallback, Action<byte[], recvCallback, Action<int, errorCallback, Action<int, closeCallback, null.
+        // Assigns injected service and configuration instances to readonly fields for runtime operations.
         public WebSocket(Uri url, string proxyAddress, Action openCallback, Action<byte[], int>  recvCallback, Action<int, string> errorCallback, Action<int, string> closeCallback, string protocols = null)
         {
             this.Url = url;
@@ -84,7 +87,7 @@ namespace ExitGames.Client.Photon
     }
 
 
-    // .net specific implementation using websocket-sharp.dll
+    // Initializes a new default instance of the WebSocket class.
     public partial class WebSocket
     {
         #if PHOTON_WEBSOCKET_CS
@@ -94,6 +97,7 @@ namespace ExitGames.Client.Photon
         WebSocketSharp.WebSocket m_Socket;
 
 
+        // Executes connect operation.
         public void Connect()
         {
             this.m_Socket = new WebSocketSharp.WebSocket(this.Url.ToString(), new string[] {this.protocols});
@@ -173,12 +177,14 @@ namespace ExitGames.Client.Photon
         }
 
 
+        // Executes close operation.
         public void Close()
         {
             // at this low level we are fine with closing the socket async / non-blocking
             this.m_Socket.CloseAsync();
         }
 
+        // Executes send operation.
         public void Send(byte[] buffer)
         {
             this.m_Socket.Send(buffer);
@@ -197,18 +203,23 @@ namespace ExitGames.Client.Photon
 
         static Dictionary<int, WebSocket> instances = new Dictionary<int, WebSocket>();
 
+        // Executes socket create operation.
         [DllImport("__Internal")]
         private static extern int SocketCreate(string url, string protocols, Action<int> openCallbackStatic,  Action<int, IntPtr, int> recvCallbackStatic, Action<int, int> errorCallbackStatic, Action<int, int> closeCallbackStatic);
 
+        // Executes socket state operation.
         [DllImport("__Internal")]
         private static extern int SocketState (int socketInstance);
 
+        // Executes socket send operation.
         [DllImport("__Internal")]
         private static extern void SocketSend (int socketInstance, byte[] ptr, int length);
 
+        // Executes socket close operation.
         [DllImport("__Internal")]
         private static extern void SocketClose (int socketInstance);
 
+        // Executes socket error operation.
         [DllImport("__Internal")]
         private static extern int SocketError (int socketInstance, byte[] ptr, int length);
 
@@ -237,24 +248,28 @@ namespace ExitGames.Client.Photon
         }
 
 
+        // Executes connect operation.
         public void Connect()
         {
             m_NativeRef = SocketCreate (this.Url.ToString(), this.protocols, OpenCallbackStatic, RecvCallbackStatic, ErrorCallbackStatic, CloseCallbackStatic);
             instances[m_NativeRef] = this;
         }
 
+        // Executes close operation.
         public void Close()
         {
             SocketClose(m_NativeRef);
         }
 
 
+        // Executes send operation.
         public void Send(byte[] buffer)
         {
             SocketSend (m_NativeRef, buffer, buffer.Length);
         }
 
 
+        // Executes recv callback static operation.
         [MonoPInvokeCallback(typeof(Action<int, IntPtr, int>))]
         public static void RecvCallbackStatic(int instance, IntPtr p, int len)
         {
@@ -263,6 +278,7 @@ namespace ExitGames.Client.Photon
 
         private byte[] receiveBuffer;
 
+        // Executes recv callback instance operation.
         public void RecvCallbackInstance(IntPtr p, int len)
         {
             if (this.receiveBuffer == null || this.receiveBuffer.Length < len)
@@ -276,12 +292,14 @@ namespace ExitGames.Client.Photon
 
 
 
+        // Executes open callback static operation.
         [MonoPInvokeCallback(typeof(Action<int>))]
         public static void OpenCallbackStatic(int instance)
         {
             instances[instance].OpenCallbackInstance();
         }
 
+        // Executes open callback instance operation.
         public void OpenCallbackInstance()
         {
             this.Connected = true;
@@ -290,6 +308,7 @@ namespace ExitGames.Client.Photon
 
 
 
+        // Executes error callback static operation.
         [MonoPInvokeCallback(typeof(Action<int, int>))]
         public static void ErrorCallbackStatic(int instance, int code)
         {
@@ -322,6 +341,7 @@ namespace ExitGames.Client.Photon
             instances[instance].ErrorCallbackInstance(code, msg);
         }
 
+        // Executes error callback instance operation.
         public void ErrorCallbackInstance(int code, string msg)
         {
             this.Connected = false;
@@ -329,6 +349,7 @@ namespace ExitGames.Client.Photon
         }
 
 
+        // Executes close callback static operation.
         [MonoPInvokeCallback(typeof(Action<int, int>))]
         public static void CloseCallbackStatic(int instance, int code)
         {
@@ -336,6 +357,7 @@ namespace ExitGames.Client.Photon
             instances[instance].CloseCallbackInstance(code, msg);
         }
 
+        // Executes close callback instance operation.
         public void CloseCallbackInstance(int code, string msg)
         {
             this.Connected = false;

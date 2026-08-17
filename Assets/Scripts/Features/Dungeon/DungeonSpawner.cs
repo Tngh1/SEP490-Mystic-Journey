@@ -7,55 +7,12 @@ using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Data-driven dungeon monster spawner. Placed as a component in the dungeon scene.
-///
-/// ── Architecture ──────────────────────────────────────────────────────────────
-///
-///   DungeonManager  (Controller / Orchestrator)
-///         │
-///         │  SpawnMonstersForDungeon(configId, mapName, callback)
-///         ▼
-///   DungeonSpawner  (Coordinator — calls API, drives Allocator, drives Instantiate)
-///         │                               │
-///         │  GetSpawnsForMap()            │  Allocate()
-///         ▼                               ▼
-///   MonsterApi                      SpawnAllocator
-///   (existing API layer)            (pure algorithm — no Unity ops)
-///         │                               │
-///         ▼                               ▼
-///   MonsterSpawnResponse[]      List&lt;SpawnRequest&gt;
-///                                         │
-///   MonsterDatabaseSO  ──────────────────►│  ResolvePrefab()
-///   (ScriptableObject)                    │
-///                                         ▼
-///                                    Instantiate()
-///                                    Set EnemyEntity.SetSpawnData()
-///                                         │
-///                                         ▼
-///                                    callback(List&lt;EnemyEntity&gt;)
-///
-/// ── Two-Phase Spawning ────────────────────────────────────────────────────────
-///   Phase 1 — ALLOCATION (SpawnAllocator):
-///     Pure data mapping: which monster type goes to which SpawnPoint.
-///     No GameObjects are created yet. Enables future portal animations,
-///     multiplayer sync, or editor previews without touching the algorithm.
-///
-///   Phase 2 — INSTANTIATION (DungeonSpawner):
-///     Creates GameObjects from the SpawnRequest list and wires them up.
-///
-/// ── Boss Exclusion ────────────────────────────────────────────────────────────
-///   Boss-type monsters are filtered out here. The BossSpawner handles them
-///   separately via BossSpawn. See IsBossType() for detection rules.
-/// </summary>
+// Executes mono behaviour operation.
 public class DungeonSpawner : MonoBehaviour
 {
-    // ── Scene-local singleton (NOT DontDestroyOnLoad — lives only in dungeon scene) ──
+    // Executes instance operation.
     public static DungeonSpawner Instance { get; private set; }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // INSPECTOR REFERENCES
-    // ═══════════════════════════════════════════════════════════════════════════
 
     [Header("Monster Prefab Registry")]
     [Tooltip("ScriptableObject mapping MonsterId → MonsterPrefab. MUST be assigned.")]
@@ -68,13 +25,11 @@ public class DungeonSpawner : MonoBehaviour
     [Tooltip("Child of MonsterContainer named 'SpawnGroups'. Parent of all SpawnGroup_X objects.")]
     [SerializeField] private Transform spawnGroupsRoot;
 
-    // Data for the boss, extracted from the API response and held until boss phase
     private DungeonMonsterSpawnData _bossSpawnData;
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // UNITY LIFECYCLE
-    // ═══════════════════════════════════════════════════════════════════════════
 
+    // Initializes internal component caches and dependencies for DungeonSpawner upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -85,48 +40,27 @@ public class DungeonSpawner : MonoBehaviour
         Instance = this;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (Instance == this)
             Instance = null;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PUBLIC ENTRY POINT — called by DungeonManager after dungeon scene loads
-    // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Full spawning pipeline (two-phase: allocate → instantiate).
-    /// Calls MonsterApi DIRECTLY — does NOT route through MonsterManager.
-    /// This keeps the monster gameplay manager (MonsterManager) separate from
-    /// dungeon session responsibilities.
-    /// </summary>
-    /// <param name="dungeonConfigId">
-    ///   The dungeon's config ID, passed as the 'dungeonId' filter to the API.
-    /// </param>
-    /// <param name="mapName">
-    ///   Scene/map name, used as the 'mapName' parameter in the spawns API call.
-    /// </param>
-    /// <param name="onComplete">
-    ///   Invoked when all monsters are spawned.
-    ///   Delivers the list of EnemyEntity components so DungeonManager can
-    ///   subscribe to OnDeath events and track active enemies.
-    /// </param>
+    // Executes spawn monsters for dungeon operation.
     public void SpawnMonstersForDungeon(int dungeonConfigId, string mapName, Action<List<EnemyEntity>> onComplete)
     {
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(SpawnPipeline(dungeonConfigId, mapName, onComplete));
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PRIVATE PIPELINE
-    // ═══════════════════════════════════════════════════════════════════════════
 
+    // Executes spawn pipeline operation.
     private IEnumerator SpawnPipeline(int dungeonConfigId, string mapName, Action<List<EnemyEntity>> onComplete)
     {
-        // Wait one frame so all scene objects have completed their Awake/Start
         yield return null;
 
-        // ── 1. Resolve scene hierarchy references ────────────────────────────────
         ResolveSceneReferences();
 
         if (monsterContainer == null)
@@ -138,7 +72,6 @@ public class DungeonSpawner : MonoBehaviour
             yield break;
         }
 
-        // ── 2. Collect SpawnGroups — reset each for a fresh run ──────────────────
         List<SpawnGroupController> spawnGroups = CollectAndResetSpawnGroups();
 
         if (spawnGroups.Count == 0)
@@ -150,12 +83,10 @@ public class DungeonSpawner : MonoBehaviour
             yield break;
         }
 
-        // Clear previous boss data for fresh run
         _bossSpawnData = null;
 
         Debug.Log($"[DungeonSpawner] Starting spawn pipeline | dungeonId={dungeonConfigId} | map='{mapName}' | groups={spawnGroups.Count}");
 
-        // ── 3. Fetch spawn data from backend — calls MonsterApi DIRECTLY ─────────
         bool apiDone = false;
         MonsterSpawnResponse[] apiSpawns = null;
 
@@ -194,7 +125,6 @@ public class DungeonSpawner : MonoBehaviour
             yield break;
         }
 
-        // ── 4. Build the typed spawn queue (filter bosses, aggregate by type, resolve prefabs) ──
         List<DungeonMonsterSpawnData> spawnQueue = BuildSpawnQueue(apiSpawns);
 
         if (spawnQueue.Count == 0)
@@ -205,14 +135,10 @@ public class DungeonSpawner : MonoBehaviour
             yield break;
         }
 
-        // ── 5. PHASE 1 — Allocate: pure algorithm, no Instantiate ───────────────
         List<SpawnRequest> spawnRequests = SpawnAllocator.Allocate(spawnQueue, spawnGroups);
 
         Debug.Log($"[DungeonSpawner] Allocation: {spawnRequests.Count} spawn slots assigned.");
 
-        // ── 6. PHASE 2 — Instantiate from the allocation plan ───────────────────
-        //   (This separation allows a spawn animation coroutine, portal effects,
-        //    networked sync, etc. to be inserted here without touching the algorithm.)
         var spawnedEnemies = new List<EnemyEntity>(spawnRequests.Count);
         InstantiateAll(spawnRequests, spawnedEnemies);
 
@@ -220,11 +146,8 @@ public class DungeonSpawner : MonoBehaviour
         onComplete?.Invoke(spawnedEnemies);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP IMPLEMENTATIONS
-    // ═══════════════════════════════════════════════════════════════════════════
 
-    // ── Step 1: Scene reference resolution ──────────────────────────────────────
+    // Executes resolve scene references operation.
     private void ResolveSceneReferences()
     {
         if (monsterContainer == null)
@@ -243,7 +166,7 @@ public class DungeonSpawner : MonoBehaviour
         }
     }
 
-    // ── Step 2: Collect all SpawnGroupControllers and reset them for this run ───
+    // Executes collect and reset spawn groups operation.
     private List<SpawnGroupController> CollectAndResetSpawnGroups()
     {
         var groups = new List<SpawnGroupController>();
@@ -254,7 +177,7 @@ public class DungeonSpawner : MonoBehaviour
             var group = searchRoot.GetChild(i).GetComponent<SpawnGroupController>();
             if (group != null && group.Capacity > 0)
             {
-                group.ResetGroup(); // Restore + shuffle free points for this run
+                group.ResetGroup();
                 groups.Add(group);
             }
         }
@@ -263,14 +186,8 @@ public class DungeonSpawner : MonoBehaviour
         return groups;
     }
 
-    // ── Step 4: Build spawn queue from API response ──────────────────────────────
-    /// <summary>
-    /// Aggregates MonsterSpawnResponse[] into a typed list:
-    ///   - Filters out boss-type monsters (handled by BossSpawner).
-    ///   - Groups entries by MonsterId and sums SpawnCount.
-    ///   - Resolves each MonsterId to a Unity prefab via MonsterDatabaseSO.
-    ///   - Skips types with no prefab match (logged as warnings).
-    /// </summary>
+    // Executes build spawn queue operation.
+    // Validates input parameters against null or empty values.
     private List<DungeonMonsterSpawnData> BuildSpawnQueue(MonsterSpawnResponse[] responses)
     {
         var aggregated = new Dictionary<int, DungeonMonsterSpawnData>();
@@ -279,12 +196,11 @@ public class DungeonSpawner : MonoBehaviour
         {
             if (response == null) continue;
 
-            // ── Extract bosses (Boss phase handles those later) ───────────────────────
             if (IsBossType(response))
             {
                 Debug.Log($"[DungeonSpawner] Extracted Boss data: '{response.MonsterName}' (id={response.MonsterId})");
                 GameObject bossPrefab = ResolvePrefab(response.MonsterId);
-                
+
                 if (bossPrefab != null)
                 {
                     _bossSpawnData = new DungeonMonsterSpawnData
@@ -340,7 +256,7 @@ public class DungeonSpawner : MonoBehaviour
         return queue;
     }
 
-    // ── Step 6: Instantiate all spawn requests ───────────────────────────────────
+    // Executes instantiate all operation.
     private void InstantiateAll(List<SpawnRequest> requests, List<EnemyEntity> spawnedEnemies)
     {
         int index = 0;
@@ -352,14 +268,13 @@ public class DungeonSpawner : MonoBehaviour
                 request.Position,
                 Quaternion.identity);
 
-            if (instance == null) continue; // proxy client — enemy arrives replicated
+            if (instance == null) continue;
 
             instance.name = $"{request.MonsterName}_{index}";
 
             var entity = instance.GetComponent<EnemyEntity>();
             if (entity != null)
             {
-                // Inject backend IDs so EnemyEntity can report defeats to the server
                 entity.SetSpawnData(request.MonsterId, request.MonsterSpawnId);
                 spawnedEnemies.Add(entity);
             }
@@ -373,13 +288,7 @@ public class DungeonSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Create one enemy GameObject. Online (Photon running) ONLY the master client
-    /// spawns it as a networked object via Runner.Spawn — it holds authority, runs
-    /// the AI, and Fusion replicates the enemy to every other client (which return
-    /// a null here and pick up the replicated NetworkObject instead). Offline it is
-    /// a plain Instantiate exactly as before.
-    /// </summary>
+    // Executes spawn enemy object operation.
     private GameObject SpawnEnemyObject(GameObject prefab, Vector3 position, Quaternion rotation)
     {
         var photon = PhotonManager.Instance;
@@ -387,82 +296,44 @@ public class DungeonSpawner : MonoBehaviour
 
         if (online && prefab.GetComponent<Fusion.NetworkObject>() != null)
         {
-            // Non-authority clients do not spawn — they receive the replica.
             if (!photon.IsHost)
             {
                 Debug.Log($"[DungeonSpawner] Proxy — skipping local spawn of '{prefab.name}', waiting for replica.");
                 return null;
             }
 
-            // Runner.Spawn can legitimately fail (runner shutting down, its gameplay
-            // SceneRef unloaded by the dungeon transition, prefab not in the Fusion
-            // table). Swallowing that silently was why "no monsters" left no trace in
-            // the console: the master returned null exactly like a proxy, InstantiateAll
-            // skipped it, and DungeonManager registered an empty list — so every client
-            // sat on "Loading..." with nothing to explain it.
             Fusion.NetworkObject netObj = null;
             try
             {
+                // Spawn through Fusion so state authority and replication are assigned consistently.
                 netObj = photon.Runner.Spawn(prefab, position, rotation);
             }
             catch (System.Exception ex)
             {
+                // Spawn through Fusion so state authority and replication are assigned consistently.
                 Debug.LogError($"[DungeonSpawner] Runner.Spawn THREW for '{prefab.name}': {ex.Message}");
                 return null;
             }
 
             if (netObj == null)
             {
+                // Spawn through Fusion so state authority and replication are assigned consistently.
                 Debug.LogError($"[DungeonSpawner] Runner.Spawn returned NULL for '{prefab.name}' " +
                                $"(IsHost={photon.IsHost}, runner running={photon.IsConnected}). " +
                                "Enemy will be missing on every client.");
                 return null;
             }
 
-            // Do NOT reparent networked enemies: Fusion's NetworkTransform replicates
-            // LOCAL position and this prefab has SyncParent disabled, so parenting the
-            // authority's enemy under monsterContainer (not at the origin) would make its
-            // local position = world - containerPos; the proxy, staying unparented, would
-            // then render it offset by containerPos — off-screen (the old "hit but
-            // invisible" bug).
-            //
-            // BUT Runner.Spawn drops the object into the ACTIVE scene, which is "Main" by
-            // the time the spawner runs (TransitionToDungeon re-activates Main). Enemies
-            // must live in the dungeon scene so they UNLOAD WITH IT — otherwise they leak
-            // into Main when the dungeon closes. (NavMesh access is not a reason: the
-            // navigation world is global, see the agent comment below.)
-            // Move by SCENE MEMBERSHIP only (world position preserved, no transform
-            // parent) — this restores what the reparent used to provide, without the
-            // local-position offset.
             var dungeonScene = SceneManager.GetSceneByName(WorldState.CurrentMapName);
             if (dungeonScene.IsValid() && dungeonScene.isLoaded)
                 SceneManager.MoveGameObjectToScene(netObj.gameObject, dungeonScene);
 
-            // Re-initialise the agent so it binds to the NavMesh.
-            //
-            // NavMeshes are NOT per-scene: NavMeshSurface.OnEnable calls
-            // NavMesh.AddNavMeshData, which registers into ONE global navigation world.
-            // So the scene move above does not grant NavMesh access, and an agent
-            // instantiated in Main is not disadvantaged by that. What actually decides
-            // binding is whether a walkable surface exists at the spawn position.
-            // The toggle is kept because Runner.Spawn can instantiate before the dungeon
-            // surface has registered; re-enabling re-runs the bind against current data.
-            //
-            // This path only runs on the host (authority) — the proxy disables its agent
-            // in NetworkEnemy.Spawned, so we never fight that here.
             var agent = netObj.GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null)
             {
                 agent.enabled = false;
                 agent.enabled = true;
-                // Note: no agent.Warp(hit.position) — that could warp enemies under the floor.
-                // Unity snaps the agent to the nearest walkable surface when enabled.
 
-                // Report the bind result instead of asserting it. This used to log
-                // "Agent bound to NavMesh" unconditionally, which reported success while
-                // Unity was logging "Failed to create agent" for the same object — the
-                // reason an empty NavMesh bake stayed hidden. EnemyBehaviour gates all
-                // movement on isOnNavMesh, so a false here means the enemy cannot move.
                 if (agent.isOnNavMesh)
                 {
                     Debug.Log($"[DungeonSpawner] Spawned {prefab.name} at {position}. Agent bound to NavMesh.");
@@ -482,14 +353,8 @@ public class DungeonSpawner : MonoBehaviour
         return Instantiate(prefab, position, rotation, monsterContainer);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // BOSS SPAWNING
-    // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Spawns the boss that was extracted during the initial API call.
-    /// Called by DungeonManager when all normal monsters are dead.
-    /// </summary>
+    // Executes spawn boss operation.
     public EnemyEntity SpawnBoss()
     {
         if (_bossSpawnData == null || _bossSpawnData.Prefab == null)
@@ -512,8 +377,6 @@ public class DungeonSpawner : MonoBehaviour
 
         if (bossInstance == null)
         {
-            // Proxy client — the boss is spawned by the master client and arrives
-            // as a replicated NetworkObject; no local instance to return.
             return null;
         }
 
@@ -533,24 +396,9 @@ public class DungeonSpawner : MonoBehaviour
         return entity;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PRIVATE HELPERS
-    // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Boss detection logic — matches existing DungeonManager convention.
-    /// Returns true for monsters that should be spawned by BossSpawner instead.
-    /// Rules (applied in order):
-    ///   1. MonsterType == "Boss" (case-insensitive) — the flat field the API actually sends.
-    ///   2. MonsterName contains "boss" or "ogre" (case-insensitive).
-    ///
-    /// Rule 1 used to read <c>response.Monster.Type</c>, but GET /api/monsters/spawns maps to
-    /// MonsterSpawnResponseDto, which flattens the monster to MonsterName + MonsterType and
-    /// carries no nested Monster object — so that check never fired and every boss row was
-    /// queued as a normal enemy (no "Extracted Boss data" log, _bossSpawnData stayed null,
-    /// SpawnBoss failed). The name fallback does not cover most seeded bosses either
-    /// ("SwampDemon", "UnderKing", "OrcWarlord"), so MonsterType is the only reliable signal.
-    /// </summary>
+    // Executes is boss type operation.
+    // Validates input parameters against null or empty values.
     private static bool IsBossType(MonsterSpawnResponse response)
     {
         if (!string.IsNullOrEmpty(response.MonsterType) &&
@@ -561,10 +409,7 @@ public class DungeonSpawner : MonoBehaviour
         return name.Contains("boss") || name.Contains("ogre");
     }
 
-    /// <summary>
-    /// Resolves a Unity prefab for the given MonsterId from MonsterDatabaseSO.
-    /// Returns null and logs an error if the database is unassigned or the ID is missing.
-    /// </summary>
+    // Executes resolve prefab operation.
     private GameObject ResolvePrefab(int monsterId)
     {
         if (monsterDatabase == null)

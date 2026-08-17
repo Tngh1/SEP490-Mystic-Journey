@@ -1,9 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Dữ liệu tĩnh của một quest. Lưu trong Unity, không lưu DB.
-/// QuestId phải khớp với QuestId trong bảng PlayerQuests (BE).
-/// </summary>
+// Executes scriptable object operation.
 [CreateAssetMenu(menuName = "Mystic Journey/Quest Data", fileName = "NewQuestData")]
 public class QuestData : ScriptableObject
 {
@@ -11,14 +8,15 @@ public class QuestData : ScriptableObject
     public int questId;
     public string title;
     [TextArea(2, 4)] public string description;
+    // Supported quest types: Main, Side, Daily, or Event; the type determines how the quest is grouped and presented.
     public QuestType type;
 
     [Header("Map & Chain")]
     public int mapId;
-    public int nextQuestId; // 0 = quest cuối của map
+    public int nextQuestId;
 
     [Header("Objective")]
-    public int targetAmount; // Số lượng cần hoàn thành
+    public int targetAmount;
 
     [Header("Rewards (mirror quest_config.json trên server)")]
     public int rewardGold;
@@ -32,4 +30,5 @@ public class QuestData : ScriptableObject
     public Sprite npcGiverPortrait;
 }
 
+// Executes quest type operation.
 public enum QuestType { Main, Side, Daily, Event }

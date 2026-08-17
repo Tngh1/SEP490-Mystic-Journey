@@ -2,19 +2,16 @@ using UnityEngine;
 
 namespace MysticJourney.API.Core
 {
-    /// <summary>
-    /// Shared hidden host for API MonoBehaviours that need to run coroutines.
-    /// Keeping them on one object prevents every endpoint from adding a root
-    /// object to the runtime Hierarchy.
-    /// </summary>
+    // Initializes a new default instance of the ApiRuntimeHost class.
     internal static class ApiRuntimeHost
     {
         private const string HostName = "[ApiRuntime]";
         private static GameObject _host;
 
+        // Executes get or create operation.
         public static GameObject GetOrCreate()
         {
-            if (_host != null)
+            if (_host != null)  // Entity exists — proceed with conditional branch
                 return _host;
 
             foreach (var candidate in Resources.FindObjectsOfTypeAll<GameObject>())
@@ -38,6 +35,7 @@ namespace MysticJourney.API.Core
             return _host;
         }
 
+        // Executes component operation.
         public static T GetOrAdd<T>() where T : Component
         {
             var host = GetOrCreate();

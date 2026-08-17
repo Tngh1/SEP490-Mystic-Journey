@@ -6,15 +6,14 @@ using MysticJourney.API.Models.Request;
 using MysticJourney.API.Models.Response;
 using UnityEngine;
 
-/// <summary>
-/// Quản lý dữ liệu quái từ API: spawn theo map/dungeon, bestiary, phần thưởng khi hạ quái.
-/// </summary>
+// Executes core business logic for mono behaviour.
 public class MonsterManager : MonoBehaviour
 {
     private static MonsterManager _instance;
-    public static MonsterManager Instance 
-    { 
-        get 
+    // Executes core business logic for instance.
+    public static MonsterManager Instance
+    {
+        get
         {
             if (_instance == null)
             {
@@ -35,6 +34,8 @@ public class MonsterManager : MonoBehaviour
     private MonsterSpawnResponse[] _currentSpawns = Array.Empty<MonsterSpawnResponse>();
     private string _currentMapName;
 
+    // Initializes internal component caches and dependencies for MonsterManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -47,20 +48,24 @@ public class MonsterManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    // Executes core business logic for get current spawns.
     public MonsterSpawnResponse[] GetCurrentSpawns() => _currentSpawns;
 
+    // Executes core business logic for get catalog item.
     public PlayerMonsterCatalogItem GetCatalogItem(int monsterId)
     {
         _catalogCache.TryGetValue(monsterId, out var item);
         return item;
     }
 
+    // Executes core business logic for get cached monster.
     public MonsterDetailResponse GetCachedMonster(int monsterId)
     {
         _monsterCache.TryGetValue(monsterId, out var monster);
         return monster;
     }
 
+    // Executes core business logic for load spawns for map.
     public void LoadSpawnsForMap(string mapName, string regionName = null, int? dungeonId = null, Action onComplete = null)
     {
         if (!ApiClient.Instance.HasToken())
@@ -89,6 +94,7 @@ public class MonsterManager : MonoBehaviour
             dungeonId);
     }
 
+    // Executes core business logic for load catalog.
     public void LoadCatalog(int page = 1, int pageSize = 50, Action onComplete = null)
     {
         if (!ApiClient.Instance.HasToken())
@@ -119,6 +125,7 @@ public class MonsterManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for discover monster.
     public void DiscoverMonster(int monsterId, Action<PlayerMonsterCatalogItem> onSuccess = null)
     {
         MonsterApi.Instance.Discover(
@@ -131,6 +138,7 @@ public class MonsterManager : MonoBehaviour
             error => Debug.LogError($"[MonsterManager] Discover failed: {error.Message}"));
     }
 
+    // Executes core business logic for report defeat.
     public void ReportDefeat(int monsterId, int? monsterSpawnId = null, int? dungeonSessionId = null)
     {
         MonsterApi.Instance.Defeat(
@@ -153,6 +161,7 @@ public class MonsterManager : MonoBehaviour
             error => Debug.LogError($"[MonsterManager] Defeat failed: {error.Message}"));
     }
 
+    // Executes core business logic for load monster detail.
     public void LoadMonsterDetail(int monsterId, bool forPlayer, Action<MonsterDetailResponse> onSuccess = null)
     {
         if (forPlayer)
@@ -178,6 +187,7 @@ public class MonsterManager : MonoBehaviour
             error => Debug.LogError($"[MonsterManager] GetById failed: {error.Message}"));
     }
 
+    // Executes core business logic for cache monsters from spawns.
     private void CacheMonstersFromSpawns(IEnumerable<MonsterSpawnResponse> spawns)
     {
         foreach (var spawn in spawns)

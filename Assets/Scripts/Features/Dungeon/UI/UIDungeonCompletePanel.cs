@@ -8,8 +8,10 @@ using System.Collections.Generic;
 using System.Linq;
 namespace MysticJourney.Features.Dungeon.UI
 {
+    // Executes mono behaviour operation.
     public class UIDungeonCompletePanel : MonoBehaviour
     {
+        // Executes instance operation.
         public static UIDungeonCompletePanel Instance { get; private set; }
 
         [Header("UI References")]
@@ -26,6 +28,8 @@ namespace MysticJourney.Features.Dungeon.UI
 
         private int currentSessionId;
 
+        // Initializes internal component caches and dependencies for UIDungeonCompletePanel upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -35,37 +39,33 @@ namespace MysticJourney.Features.Dungeon.UI
             if (againButton != null) againButton.onClick.AddListener(OnAgainClicked);
         }
 
+        // Refresh visible state and subscribe the event handlers required while this component is active.
         private void OnEnable()
         {
             NetworkPlayer.OnAnyReadyStateChanged += UpdateReadyState;
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDisable()
         {
             NetworkPlayer.OnAnyReadyStateChanged -= UpdateReadyState;
         }
 
-        /// <summary>
-        /// Gọi hàm này khi Boss chết hoặc màn chơi kết thúc
-        /// </summary>
+        // Executes show panel operation.
         public void ShowPanel(int sessionId)
         {
             currentSessionId = sessionId;
             gameObject.SetActive(true);
 
-            // The button is disabled after a click to prevent duplicate migrations. This
-            // panel is reused for later runs, so it must be restored every time it opens.
             if (exitButton != null) exitButton.interactable = true;
 
-            // Reset Again button
             if (againButton != null)
             {
                 againButton.interactable = true;
                 var txt = againButton.GetComponentInChildren<TMP_Text>();
                 if (txt != null) txt.text = "Again";
             }
-            
-            // Xóa các item cũ (nếu có) trước khi hiển thị mới
+
             if (rewardContainer != null)
             {
                 foreach (Transform child in rewardContainer)
@@ -74,22 +74,16 @@ namespace MysticJourney.Features.Dungeon.UI
                 }
             }
 
-            // Clear placeholder texts
             if (goldText != null) goldText.text = "...";
             if (expText != null) expText.text = "...";
 
             if (timeText != null) timeText.text = "--:--";
 
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(ClaimWithRetry(sessionId));
         }
 
-        /// <summary>
-        /// The backend only allows claim-reward once the session is "Completed", and only the
-        /// host marks it so (POST complete). The host broadcasts RPC_BossDied *before* that call
-        /// returns, so a party member who reaches the chest first used to get
-        /// "cannot have rewards claimed (status: InProgress)" and the panel sat on "..." with no
-        /// gold, no items and no time. Retry briefly instead of failing the whole reward.
-        /// </summary>
+        // Executes claim with retry operation.
         private IEnumerator ClaimWithRetry(int sessionId)
         {
             if (sessionId <= 0)
@@ -112,8 +106,6 @@ namespace MysticJourney.Features.Dungeon.UI
                     response => { OnClaimSuccess(response); done = true; },
                     error =>
                     {
-                        // Only the "not completed yet" race is worth retrying; a duplicate claim
-                        // or a missing session will never succeed on a second attempt.
                         retryable = error.Message != null && error.Message.Contains("Complete the dungeon first");
                         if (!retryable) OnClaimError(error);
                         done = true;
@@ -132,6 +124,7 @@ namespace MysticJourney.Features.Dungeon.UI
             if (expText != null) expText.text = "+0";
         }
 
+        // Executes on claim success operation.
         private void OnClaimSuccess(ClaimDungeonRewardResponse response)
         {
             Debug.Log("Claim Reward Success!");
@@ -152,13 +145,11 @@ namespace MysticJourney.Features.Dungeon.UI
                     response.Character.MaxEnergy);
             }
 
-            // Keep profile/EXP and any fallback resource fields synchronized even when an
-            // older backend response does not include Wallet or Character.
             WorldRuntimeEvents.RaiseCurrencyChanged();
 
             if (goldText != null)
                 goldText.text = "+" + response.GoldEarned.ToString();
-            
+
             if (expText != null)
                 expText.text = "+" + response.ExperienceEarned.ToString();
 
@@ -174,6 +165,7 @@ namespace MysticJourney.Features.Dungeon.UI
                 foreach (var item in response.Items)
                 {
                     var go = Instantiate(rewardItemPrefab, rewardContainer);
+                    // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                     var slot = go.GetComponent<UIRewardSlot>();
                     if (slot != null)
                     {
@@ -191,19 +183,14 @@ namespace MysticJourney.Features.Dungeon.UI
             }
         }
 
+        // Executes on claim error operation.
         private void OnClaimError(ApiException error)
         {
             Debug.LogError($"Claim Reward Failed: {error.Message}");
 
-            // Never leave the panel on "..." — that reads as "still loading" forever. A failed
-            // claim (already claimed, session gone) still has to resolve to something visible.
             if (goldText != null) goldText.text = "+0";
             if (expText != null) expText.text = "+0";
 
-            // Năng lượng được kiểm tra & trừ ở đây (claim-reward), KHÔNG chặn lúc vào dungeon.
-            // Nếu không đủ thì phải nói rõ, nếu không người chơi chỉ thấy +0/+0 và tưởng bug.
-            // Khớp theo message giống ClaimWithRetry ở trên: ErrorCode là INVALID_OPERATION dùng
-            // chung cho mọi lỗi claim nên không phân biệt được trường hợp thiếu năng lượng.
             if (error.Message != null && error.Message.Contains("Insufficient energy"))
             {
                 UIPopupBox.Notify(
@@ -214,6 +201,7 @@ namespace MysticJourney.Features.Dungeon.UI
             }
         }
 
+        // Executes on exit clicked operation.
         private void OnExitClicked()
         {
             if (exitButton != null) exitButton.interactable = false;
@@ -222,17 +210,13 @@ namespace MysticJourney.Features.Dungeon.UI
 
             if (DungeonManager.Instance != null)
             {
-                // Exiting is a local action for every party member. Start it before any
-                // optional network cleanup so an RPC rejection can never strand a client.
                 DungeonManager.Instance.ReturnToWorldMap();
             }
 
-            // Leaving cancels our restart vote while the avatar is still replicated. This
-            // is deliberately best-effort; despawning during room migration also removes the
-            // player from the vote list.
             NetworkPlayer.Local?.CancelRestartVoteForExit();
         }
 
+        // Executes on again clicked operation.
         private void OnAgainClicked()
         {
             if (againButton != null)
@@ -246,12 +230,11 @@ namespace MysticJourney.Features.Dungeon.UI
             }
             else
             {
-                // Offline / single-player has no NetworkPlayer at all, so the ready-vote path
-                // never resolves and the button just went dead. Restart straight away.
                 DungeonManager.Instance?.RestartDungeon();
             }
         }
 
+        // Executes update ready state operation.
         private void UpdateReadyState()
         {
             if (!gameObject.activeInHierarchy || againButton == null) return;
@@ -268,9 +251,6 @@ namespace MysticJourney.Features.Dungeon.UI
             }
             else
             {
-                // The host clears every ready flag when it fires the restart, and also when a
-                // vote is abandoned (someone exited). Without this the button stayed disabled
-                // reading "Waiting..." forever with nothing left to wait for.
                 txt.text = "Again";
                 againButton.interactable = true;
             }

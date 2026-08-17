@@ -7,17 +7,17 @@ using MysticJourney.API.Models.Response;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+// Executes network behaviour operation.
 [RequireComponent(typeof(PlayerMovement))]
 [RequireComponent(typeof(PlayerCombat))]
 [RequireComponent(typeof(PlayerEntity))]
 public class NetworkPlayer : NetworkBehaviour
 {
+    // Executes local operation.
     public static NetworkPlayer Local { get; private set; }
+    // Executes all operation.
     public static List<NetworkPlayer> All { get; private set; } = new List<NetworkPlayer>();
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Inspector — character config
-    // ─────────────────────────────────────────────────────────────────────────
 
     [Header("Spawn")]
     [Tooltip("World position players of this prefab will spawn at. " +
@@ -45,51 +45,37 @@ public class NetworkPlayer : NetworkBehaviour
     private Canvas _nameplateCanvas;
     private TextMeshProUGUI _nameplateText;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Networked state
-    // ─────────────────────────────────────────────────────────────────────────
 
     [Networked] public int PlayerProfileId { get; set; }
     [Networked, OnChangedRender(nameof(OnPlayerNameChanged))] public NetworkString<_32> PlayerName { get; set; }
     [Networked] public int Level { get; set; }
 
-    /// <summary>
-    /// Profile avatar resource name (e.g. "avatar_3") under Resources/Avatars. Replicated
-    /// so party members can render each other's avatar in the in-dungeon roster — the HUD's
-    /// own avatar comes straight from the profile API, but a proxy has no API access to
-    /// another player's profile.
-    /// </summary>
     [Networked] public NetworkString<_32> AvatarUrl { get; set; }
 
     [Networked, OnChangedRender(nameof(OnPlayerClassChanged))] public int PlayerClass { get; set; }
     [Networked, OnChangedRender(nameof(OnSkinChanged))] public int EquippedSkinId { get; set; }
 
-    // (PlayerClass, EquippedSkinId) the current visual was built from. -1 = none yet.
     private long _builtVisualKey = -1;
-    // API equip responses arrive on the input client before the networked skin
-    // property is replicated back from state authority. Keep a local override so
-    // the player's own visual changes immediately without writing a Networked
-    // property from the wrong authority.
     private int _localSkinOverride = -1;
 
+    // Callback triggered when the networked skin ID changes; updates character sprite/visuals.
     public void OnSkinChanged()
     {
         OnPlayerClassChanged();
     }
 
+    // Callback triggered when the networked player name changes; updates overhead nameplate UI.
     private void OnPlayerNameChanged()
     {
         RefreshNameplate();
     }
 
 
+    // Executes on player class changed operation.
     public void OnPlayerClassChanged()
     {
         if (visualRoot == null) return;
 
-        // Spawned(), both OnChangedRender hooks and the async inventory fetch all
-        // funnel here, so the same (class, skin) pair was rebuilt 2-3 times per
-        // spawn — each rebuild destroys and re-instantiates the whole visual.
         int visualSkinId = (Object != null && Object.HasInputAuthority && _localSkinOverride >= 0)
             ? _localSkinOverride
             : EquippedSkinId;
@@ -114,27 +100,23 @@ public class NetworkPlayer : NetworkBehaviour
             _spawnedVisual = CreateFallbackVisual((CharacterClass)PlayerClass, visualRoot);
         }
 
-        // Rebind local combat/animation components if they exist
         if (_spawnedVisual != null)
         {
             var newAnimator = _spawnedVisual.GetComponentInChildren<Animator>(true);
             var newAnimation = _spawnedVisual.GetComponentInChildren<PlayerAnimation>(true);
-            
+
             if (_combat == null) _combat = GetComponent<PlayerCombat>();
             if (_combat != null)
             {
-                // The spawned visual initially contains the class-specific PlayerCombat 
-                // before CharacterFactory strips it. We copy its skills to our networked root.
                 var visualCombat = _spawnedVisual.GetComponent<PlayerCombat>();
                 if (visualCombat != null)
                 {
                     _combat.CopyCombatSettingsFrom(visualCombat);
                 }
-                
+
                 _combat.SetVisualComponents(newAnimator, newAnimation);
             }
 
-            // Update the NetworkPlayer's own animation reference so Render() drives the correct animator
             _animation = newAnimation;
         }
     }
@@ -143,16 +125,17 @@ public class NetworkPlayer : NetworkBehaviour
     [Networked] public int MaxHp { get; set; }
     [Networked, OnChangedRender(nameof(OnAliveChanged))] public NetworkBool IsAlive { get; set; }
 
-    [Networked, OnChangedRender(nameof(OnReadyStateChanged))] 
+    // Executes is ready to restart operation.
+    [Networked, OnChangedRender(nameof(OnReadyStateChanged))]
     public NetworkBool IsReadyToRestart { get; set; }
 
+    // Callback triggered when player alive state changes; updates collider, animation, and death UI.
     private void OnAliveChanged()
     {
         if (Object.HasInputAuthority)
         {
             if (IsAlive)
             {
-                // When revived (e.g. dungeon restart), ensure death UI is hidden on the client
                 var hud = FindFirstObjectByType<PlayerHUDUIManager>();
                 if (hud != null)
                 {
@@ -161,7 +144,6 @@ public class NetworkPlayer : NetworkBehaviour
             }
             else
             {
-                // Trigger death popup for the local player when IsAlive becomes false
                 OnDied?.Invoke();
             }
         }
@@ -169,55 +151,38 @@ public class NetworkPlayer : NetworkBehaviour
 
     public static event Action OnAnyReadyStateChanged;
 
+    // Executes on ready state changed operation.
     private void OnReadyStateChanged() => EvaluateRestartReadiness();
 
-    /// <summary>
-    /// Runs on every client whenever a ready flag changes or a player leaves; only the
-    /// master client actually triggers the restart.
-    /// </summary>
+    // Executes evaluate restart readiness operation.
     private static void EvaluateRestartReadiness()
     {
-        OnAnyReadyStateChanged?.Invoke();
+        OnAnyReadyStateChanged?.Invoke(); // Notify UI components (e.g., restart vote panel) that a ready state changed
 
-        // In Shared Mode EVERY client has StateAuthority over its own avatar, so
-        // HasStateAuthority is not a host check — gating on it made all N clients
-        // fire the restart RPC and DungeonManager.RestartDungeon ran N times.
-        // Only the Fusion master client evaluates the all-ready condition.
-        if (PhotonManager.Instance == null || !PhotonManager.Instance.IsHost) return;
-        if (All.Count == 0 || !All.TrueForAll(p => p.IsReadyToRestart)) return;
+        if (PhotonManager.Instance == null || !PhotonManager.Instance.IsHost) return; // Only the host evaluates and triggers restart
+        if (All.Count == 0 || !All.TrueForAll(p => p.IsReadyToRestart)) return; // Wait until every connected player is ready
 
-        // Clearing the flag is per-avatar StateAuthority work, so ask each owner to
-        // do it; locally we can write directly.
         foreach (var p in All)
         {
             if (p.Object == null) continue;
-            if (p.Object.HasStateAuthority) p.IsReadyToRestart = false;
-            else p.RPC_ClearReadyToRestart();
+            if (p.Object.HasStateAuthority) p.IsReadyToRestart = false; // Reset flag directly when state authority
+            else p.RPC_ClearReadyToRestart(); // Send RPC to reset flag on remote authority peer
         }
 
         Debug.Log("[NetworkPlayer] Master client detects all players ready, sending RPC_TriggerRestartDungeon!");
 
-        // Must be sent from an avatar we own. OnChangedRender fires on the avatar whose
-        // flag changed, so when a REMOTE player was the last to press Again the master
-        // was calling this on a proxy it has no StateAuthority over and Fusion rejected
-        // it ("Local simulation is not allowed to send this RPC on NetworkPlayer_2"),
-        // leaving every client stuck on "Waiting...". Local is always ours.
-        if (Local != null) Local.RPC_TriggerRestartDungeon();
+        if (Local != null) Local.RPC_TriggerRestartDungeon(); // Broadcast dungeon restart to all clients
         else Debug.LogWarning("[NetworkPlayer] All players ready but Local is null — cannot send restart RPC.");
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    // Executes rpc_clear ready to restart operation.
     public void RPC_ClearReadyToRestart()
     {
         IsReadyToRestart = false;
     }
 
-    /// <summary>
-    /// Best-effort vote cleanup used while this client is already leaving the dungeon.
-    /// In Shared Mode the local player normally owns StateAuthority, so write directly
-    /// instead of routing the Exit button through an RPC that Fusion may reject while the
-    /// runner is migrating rooms.
-    /// </summary>
+    // Executes cancel restart vote for exit operation.
     public void CancelRestartVoteForExit()
     {
         if (Object == null) return;
@@ -236,62 +201,42 @@ public class NetworkPlayer : NetworkBehaviour
         }
         catch (Exception exception)
         {
-            // Room migration/despawn can race this cleanup. Exit has already started, and
-            // Unregister() will remove this avatar from the vote list.
             Debug.LogWarning($"[NetworkPlayer] Could not clear restart vote while exiting: {exception.Message}");
         }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_trigger restart dungeon operation.
     public void RPC_TriggerRestartDungeon()
     {
         Debug.Log("[NetworkPlayer] Received RPC to RestartDungeon!");
         DungeonManager.Instance?.RestartDungeon();
     }
 
-    /// <summary>
-    /// Host → everyone: the backend session id of the NEW run. Only the host calls the
-    /// Enter API on restart, so without this members keep the finished run's id and their
-    /// claim-reward fails on run 2 (panel falls back to +0 / +0 / --:--).
-    /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All)]
+    // Executes rpc_set restart session operation.
+    // Validates input parameters against null or empty values.
+    // Evaluates conditions and returns a boolean result.
     public void RPC_SetRestartSession(int sessionId)
     {
         DungeonManager.Instance?.AdoptRestartSession(sessionId);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Party chat INSIDE the dungeon
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Party chat received while in the dungeon room. Static because the receiver
-    /// (ChatUIManager) has no reason to know which avatar carried the RPC.
-    ///
-    /// PartyLobby cannot serve chat here: it is a NetworkObject of the SOCIAL LOBBY
-    /// room, and entering a dungeon tears the runner down (PhotonManager.MigrateToRoomAsync),
-    /// which despawns it and nulls PartyLobby.Local for the whole run. NetworkPlayer is
-    /// the only party-wide replicated object that survives into DUNGEON_{hostProfileId} —
-    /// and because that room contains exactly the party (capped at PartyLobby.MaxMembers),
-    /// "everyone in the room" == "the party". UIDungeonPartyRoster already relies on that.
-    /// </summary>
     public static event Action<PartyChatMessageResponse> PartyChatReceived;
 
-    /// <summary>True when party chat can be sent/received over the dungeon room.</summary>
+    // Executes can use party chat operation.
+    // Validates input parameters against null or empty values.
+    // Evaluates conditions and returns a boolean result.
     public static bool CanUsePartyChat =>
         Local != null && Local.Object != null && Local.Runner != null && Local.Runner.IsRunning;
 
-    /// <summary>
-    /// Send a party chat message to everyone in the dungeon room. Returns false when
-    /// the transport is not ready, so the caller can restore the typed text.
-    /// </summary>
+    // Executes broadcast party chat operation.
+    // Validates input parameters against null or empty values.
     public static bool BroadcastPartyChat(PartyChatMessageResponse message)
     {
         if (message == null || string.IsNullOrWhiteSpace(message.Content)) return false;
 
-        // Each gate logs which one tripped: the caller can only surface a generic
-        // "Party chat is not ready", which made a failed send indistinguishable from a
-        // dropped RPC.
         if (Local == null)
         {
             Debug.LogWarning("[NetworkPlayer] Party chat send failed: no local avatar spawned yet.");
@@ -322,11 +267,6 @@ public class NetworkPlayer : NetworkBehaviour
             ? DateTime.UtcNow.ToString("O")
             : message.SentAt;
 
-        // Sent from the avatar we own — Fusion rejects RPCs raised on a proxy.
-        // Logged with the room + peer count because the two clients silently landing in
-        // DIFFERENT rooms looks exactly like a dropped RPC from here: the send "succeeds",
-        // the local echo shows, and nobody else ever hears it. If SessionName differs
-        // between the two clients' logs, the bug is the migration, not the chat.
         Debug.Log($"[NetworkPlayer] Party chat send | room='{Local.Runner.SessionInfo?.Name}' " +
                   $"peers={Local.Runner.SessionInfo?.PlayerCount} avatars={All.Count} sender={senderId}");
 
@@ -338,19 +278,13 @@ public class NetworkPlayer : NetworkBehaviour
         return true;
     }
 
-    // Plain `string` params, NOT NetworkString<_N>: a NetworkString always costs its full width
-    // and _N counts 32-bit WORDS, so <_32>/<_128>/<_32> summed to 792 bytes against Fusion's
-    // 512-byte ceiling — Fusion dropped every send and logged "payload is too large". A string
-    // is weaved as variable-length UTF-8, so a short message now costs a few dozen bytes.
     [Rpc(RpcSources.All, RpcTargets.All)]
+    // Process rpc party chat message using sender id, sender name, content, and sent at; it guards invalid or unavailable states.
     private void RPC_PartyChatMessage(int senderId, string senderName,
                                       string content, string sentAt)
     {
         if (senderId <= 0) return;
 
-        // Logged so a silent chat can be pinned down: if this line appears but no message
-        // shows, the RPC arrived and the UI dropped it (wrong tab / not subscribed); if it
-        // never appears on the other client, the RPC itself did not travel.
         Debug.Log($"[NetworkPlayer] Party chat RPC received from {senderId} " +
                   $"({senderName}), listeners={PartyChatReceived?.GetInvocationList().Length ?? 0}");
 
@@ -364,22 +298,16 @@ public class NetworkPlayer : NetworkBehaviour
         });
     }
 
-    /// <summary>Clamp a string so it fits a fixed-size NetworkString without Fusion truncating mid-send.</summary>
+    // Executes trim for fusion operation.
+    // Validates input parameters against null or empty values.
     private static string TrimForFusion(string value, int maxLength)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
         return value.Length <= maxLength ? value : value.Substring(0, maxLength);
     }
 
-    // Replicated movement vector. The input-authority client writes it each tick
-    // from its input; every OTHER client reads it in Render() to drive the walk
-    // animation of the remote avatar. Without this, remote players slide to their
-    // NetworkTransform position with no walk animation (idle pose while moving).
     [Networked] public Vector2 NetworkedMove { get; set; }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Local references
-    // ─────────────────────────────────────────────────────────────────────────
 
     private PlayerMovement _movement;
     private PlayerCombat _combat;
@@ -390,61 +318,51 @@ public class NetworkPlayer : NetworkBehaviour
     private GameObject _spawnedVisual;
     private NetworkButtons _previousButtons;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Events
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Raised on every client after Spawned completes (visual is ready).</summary>
     public event Action<NetworkPlayer> OnPlayerReady;
 
-    /// <summary>Raised when this player dies (only on the client that owns input authority).</summary>
     public event Action OnDied;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Public API
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Convenience accessor for UI/Party code that needs the PlayerRef.</summary>
+    // Executes player operation.
     public PlayerRef Player => Object.InputAuthority;
 
-    /// <summary>Returns the live visual GameObject for this player, or null before Spawned.</summary>
+    // Executes visual object operation.
     public GameObject VisualObject => _spawnedVisual;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Unity lifecycle
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Initializes internal component caches and dependencies for NetworkPlayer upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
-        _movement = GetComponent<PlayerMovement>();
-        _combat = GetComponent<PlayerCombat>();
-        _entity = GetComponent<PlayerEntity>();
-        _animation = GetComponent<PlayerAnimation>();
-        _playerInput = GetComponent<PlayerInput>();
+        _movement = GetComponent<PlayerMovement>(); // Cache PlayerMovement for direct access during FixedUpdateNetwork
+        _combat = GetComponent<PlayerCombat>(); // Cache PlayerCombat to dispatch skill/damage calls
+        _entity = GetComponent<PlayerEntity>(); // Cache PlayerEntity for HP and stat access
+        _animation = GetComponent<PlayerAnimation>(); // Cache PlayerAnimation to trigger visual state changes
+        _playerInput = GetComponent<PlayerInput>(); // Cache Unity Input System component for enabling/disabling player control
 
         if (visualRoot == null)
         {
             var found = transform.Find("VisualRoot");
             if (found != null)
             {
-                visualRoot = found;
+                visualRoot = found; // Re-use existing VisualRoot child if one was attached in the prefab
             }
             else
             {
-                var go = new GameObject("VisualRoot");
+                var go = new GameObject("VisualRoot"); // Create a dedicated container for character visuals at runtime
                 go.transform.SetParent(transform, worldPositionStays: false);
                 visualRoot = go.transform;
             }
         }
 
-        EnsureNameplate();
+        EnsureNameplate(); // Create or attach the overhead nameplate Canvas component
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy() => Unregister();
 
-    // Despawned and OnDestroy both run (in either order) depending on whether the
-    // avatar leaves the session or the scene unloads, so cleanup is idempotent and
-    // lives in one place.
+    // Executes unregister operation.
     private void Unregister()
     {
         All.Remove(this);
@@ -457,16 +375,11 @@ public class NetworkPlayer : NetworkBehaviour
             _spawnedVisual = null;
         }
 
-        // Exit leaves the room, so the remaining players' "all ready" condition changes
-        // without any ready flag changing. Without this re-check, P1 pressing Again then
-        // P2 pressing Exit left P1 on "Waiting... (1/2)" forever — nothing ever fired again.
         if (Local != null) EvaluateRestartReadiness();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Fusion lifecycle
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes apply equipped skin operation.
     public void ApplyEquippedSkin(int skinId)
     {
         int normalizedSkinId = Mathf.Max(0, skinId);
@@ -487,11 +400,7 @@ public class NetworkPlayer : NetworkBehaviour
         OnPlayerClassChanged();
     }
 
-    /// <summary>
-    /// Record the local player's profile avatar and replicate it if the avatar already
-    /// exists. Safe to call before Spawned() — WorldState is written either way and
-    /// Spawned() picks it up from there.
-    /// </summary>
+    // Executes publish local avatar operation.
     public static void PublishLocalAvatar(string avatarUrl)
     {
         WorldState.AvatarUrl = avatarUrl;
@@ -504,10 +413,8 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Load a player's avatar sprite from Resources/Avatars, falling back to avatar_1 when
-    /// the profile has none or the named sprite is missing.
-    /// </summary>
+    // Executes resolve avatar sprite operation.
+    // Validates input parameters against null or empty values.
     public static Sprite ResolveAvatarSprite(string avatarUrl)
     {
         Sprite sprite = null;
@@ -519,6 +426,8 @@ public class NetworkPlayer : NetworkBehaviour
         return sprite != null ? sprite : Resources.Load<Sprite>("Avatars/avatar_1");
     }
 
+    // Fusion lifecycle callback invoked when this NetworkPlayer NetworkObject is spawned into the network session.
+    // Configures input/state authority handlers, sets singleton references if local player, and applies initial visuals.
     public override void Spawned()
     {
         Debug.Log($"[NetworkPlayer] Spawned. InputAuthority={Object.InputAuthority}, " +
@@ -526,66 +435,54 @@ public class NetworkPlayer : NetworkBehaviour
 
         if (_playerInput != null)
         {
-            _playerInput.enabled = Object.HasInputAuthority;
+            _playerInput.enabled = Object.HasInputAuthority; // Only enable keyboard/gamepad input for the locally controlled player
         }
 
         if (Object.HasStateAuthority)
         {
-            // Assign this player's class from WorldState (server-authoritative so all clients see the same value).
+            // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
             string className = WorldState.PlayerClass ?? "Knight";
-            // ignoreCase must match PhotonManager's parse, otherwise a lowercase
-            // "knight" from the API silently falls back to a different class here.
             if (!Enum.TryParse<CharacterClass>(className, ignoreCase: true, out var parsed))
-                parsed = CharacterClass.Knight;
-            PlayerClass = (int)parsed;
-            PlayerName = WorldState.PlayerName ?? "Player";
-            PlayerProfileId = WorldState.PlayerProfileId;
-            Level = Mathf.Max(1, WorldState.PlayerLevel);
-            AvatarUrl = TrimForFusion(WorldState.AvatarUrl, 30);
+                parsed = CharacterClass.Knight; // Fall back to Knight when class name is unrecognized
+            PlayerClass = (int)parsed; // Write class to networked property — triggers OnPlayerClassChanged on all clients
+            PlayerName = WorldState.PlayerName ?? "Player"; // Write display name to networked string — triggers nameplate refresh
+            PlayerProfileId = WorldState.PlayerProfileId; // Store server-assigned profile ID for API calls
+            Level = Mathf.Max(1, WorldState.PlayerLevel); // Clamp level to minimum 1 in case of missing data
+            AvatarUrl = TrimForFusion(WorldState.AvatarUrl, 30); // Truncate avatar URL to fit Fusion NetworkString limit
 
-            // PlayerSpawner đã hydrate skin trước khi spawn. Dùng state đã có để tránh
-            // tải lại toàn bộ inventory ngay sau request bootstrap vừa hoàn tất.
-            EquippedSkinId = Mathf.Max(0, WorldState.EquippedSkinId);
+            EquippedSkinId = Mathf.Max(0, WorldState.EquippedSkinId); // Initialize skin ID from local player prefs
 
-            // Anchor spawns at the current world position (e.g. ElfForest ~(11.9,17.8))
-            // rather than world origin, then fan out so players don't stack.
-            Vector3 spawnBase = ResolveSpawnBase();
-            TeleportTo(spawnBase + FanOutOffset(Object.InputAuthority.PlayerId));
+            Vector3 spawnBase = ResolveSpawnBase(); // Look up spawn point from SpawnPointManager or default position
+            TeleportTo(spawnBase + FanOutOffset(Object.InputAuthority.PlayerId)); // Fan players out to prevent spawn overlap
 
-            // Read initial stats from PlayerEntity if available (loaded from DB), else fallback
             var pEntity = GetComponent<PlayerEntity>();
             if (MaxHp <= 0)
             {
-                MaxHp = (pEntity != null && pEntity.MaxHealth > 0) ? pEntity.MaxHealth : 100;
-                CurrentHp = (pEntity != null) ? pEntity.CurrentHealth : MaxHp;
+                MaxHp = (pEntity != null && pEntity.MaxHealth > 0) ? pEntity.MaxHealth : 100; // Initialize max HP from entity stats or default 100
+                CurrentHp = (pEntity != null) ? pEntity.CurrentHealth : MaxHp; // Initialize current HP from entity or full health
             }
 
-            IsAlive = CurrentHp > 0;
+            IsAlive = CurrentHp > 0; // Mark alive state based on current HP — drives death UI and collider activation
         }
 
-        // Force an initial visual creation since OnChangedRender might not fire for default/initial values
-        OnPlayerClassChanged();
-        RefreshNameplate();
+        OnPlayerClassChanged(); // Rebuild character visual after networked class and skin values are set
+        RefreshNameplate(); // Update overhead name text from networked PlayerName value
 
         if (Object.HasInputAuthority)
         {
-            Local = this;
-            name = "NetworkPlayer_Local";
+            Local = this; // Register this instance as the local player singleton for global access
+            name = "NetworkPlayer_Local"; // Rename GameObject for easy identification in the Hierarchy
 
-            // Configure skills only after this dungeon avatar owns local input. This
-            // keeps combat independent from SkillPanel.OnEnable, so the player can cast
-            // immediately without opening the panel once.
             var localCombat = GetComponent<PlayerCombat>();
-            if (localCombat != null) localCombat.LoadEquippedSkills();
+            if (localCombat != null) localCombat.LoadEquippedSkills(); // Load skill assets from server data into the local combat component
 
             var hud = FindFirstObjectByType<PlayerHUDUIManager>(FindObjectsInactive.Include);
             if (hud != null)
             {
-                hud.SubscribeToLocalPlayer(this);
+                hud.SubscribeToLocalPlayer(this); // Connect HUD health bar and death events to this player instance
                 if (!IsAlive)
                 {
-                    // Force death UI if they spawned dead, as OnChanged might not fire or fired early
-                    hud.ShowDeathPopup();
+                    hud.ShowDeathPopup(); // Show death screen immediately if player was dead before respawn
                 }
                 else
                 {
@@ -596,15 +493,10 @@ public class NetworkPlayer : NetworkBehaviour
             var pEntityLocal = GetComponent<PlayerEntity>();
             if (pEntityLocal != null)
             {
-                // In multiplayer, multiple PlayerEntity objects spawn. Ensure the singleton
-                // points to the LOCAL player's entity, not the last spawned remote player.
-                PlayerEntity.Instance = pEntityLocal;
+                PlayerEntity.Instance = pEntityLocal; // Set global PlayerEntity singleton for scene-wide stat access
             }
 
-            // This is the local player's network avatar. Remove any leftover
-            // non-networked local player (spawned by PlayerSpawner if we connected
-            // AFTER entering the map) and hand the scene camera + minimap to us.
-            RemoveLegacyLocalPlayers();
+            RemoveLegacyLocalPlayers(); // Destroy any leftover local player GameObjects from previous scene loads
             AttachLocalCamera();
             EnsureLocalInputComponents();
         }
@@ -623,26 +515,7 @@ public class NetworkPlayer : NetworkBehaviour
         OnPlayerReady?.Invoke(this);
     }
 
-    /// <summary>
-    /// Stop this avatar from physically colliding with the other players' avatars.
-    ///
-    /// Every avatar — local AND remote proxies — is a DYNAMIC Rigidbody2D with a
-    /// non-trigger CapsuleCollider2D on the Default layer, and the 2D collision
-    /// matrix is fully enabled. A remote proxy is not driven by physics: NetworkTransform
-    /// writes its position in Render(), i.e. it TELEPORTS every frame. When such a
-    /// teleport lands it overlapping the local avatar, the solver sees a deep
-    /// interpenetration and answers with a large depenetration impulse. That fights the
-    /// local velocity write every single tick, which reads to the player as
-    /// "movement is slow and stutters" — and only ever with 2+ players in the dungeon,
-    /// because solo there is no second body to contact.
-    ///
-    /// Pair-wise Physics2D.IgnoreCollision instead of a Player physics layer: the
-    /// avatars sit on Default (layer 0) and are found by tag, and several systems
-    /// (skill overlaps, enemy aggro, world interactables) raycast against that layer.
-    /// Moving avatars to the unused "Player" layer would silently change what all of
-    /// those hit. Ignoring the specific pairs removes ONLY player-vs-player contact
-    /// response and leaves every query untouched.
-    /// </summary>
+    // Executes ignore collisions with other players operation.
     private void IgnoreCollisionsWithOtherPlayers()
     {
         var mine = GetComponentsInChildren<Collider2D>(includeInactive: true);
@@ -666,18 +539,7 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Per-player offset from a shared spawn anchor, so party members never land on
-    /// top of each other. This matters beyond looks: the avatar is a DYNAMIC
-    /// Rigidbody2D with a non-trigger CapsuleCollider2D and players collide with
-    /// each other, so two avatars teleported to the exact same point are interpenetrating
-    /// and the physics solver holds them there — which reads to the player as
-    /// "can't move at all after joining a dungeon together".
-    ///
-    /// Golden angle instead of a fixed 60° step: 60° wrapped around after 6 players
-    /// so PlayerId 1 and 7 spawned on top of each other. Radius grows slowly so a
-    /// large party spirals outward instead of ringing up.
-    /// </summary>
+    // Executes fan out offset operation.
     public static Vector3 FanOutOffset(int playerId)
     {
         int playerIndex = Mathf.Max(0, playerId - 1);
@@ -686,11 +548,7 @@ public class NetworkPlayer : NetworkBehaviour
         return new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * radius;
     }
 
-    /// <summary>
-    /// Move this avatar without the remote clients interpolating across the gap.
-    /// Writing transform.position directly makes NetworkTransform treat it as
-    /// movement, so remotes see the avatar slide in from the previous position.
-    /// </summary>
+    // Instantly teleports the player transform and networked position to the specified coordinates.
     private void TeleportTo(Vector3 position)
     {
         var nt = GetComponent<NetworkTransform>();
@@ -705,11 +563,7 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// World position the state authority uses as the spawn anchor. Prefers the
-    /// last known world position (so players spawn in the active gameplay area,
-    /// e.g. ElfForest ~(11.9,17.8)) and falls back to the inspector default.
-    /// </summary>
+    // Executes resolve spawn base operation.
     private Vector3 ResolveSpawnBase()
     {
         Vector3 last = WorldState.LastPosition;
@@ -719,20 +573,14 @@ public class NetworkPlayer : NetworkBehaviour
         return valid ? last : defaultSpawnPosition;
     }
 
-    /// <summary>
-    /// Destroy any non-networked PlayerMovement instances left over from the
-    /// single-player spawn path. A local player is "non-networked" when its
-    /// PlayerMovement has no Fusion Object; we must not touch network avatars.
-    /// </summary>
+    // Executes remove legacy local players operation.
     private void RemoveLegacyLocalPlayers()
     {
         var movers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         foreach (var mover in movers)
         {
-            // Do not destroy the NetworkPlayer root, and do not destroy its child visuals
-            // (which temporarily still have PlayerMovement until the end of the frame when Destroy is processed).
-            if (mover.gameObject != this.gameObject && 
-                !mover.transform.IsChildOf(this.transform) && 
+            if (mover.gameObject != this.gameObject &&
+                !mover.transform.IsChildOf(this.transform) &&
                 mover.GetComponent<NetworkObject>() == null)
             {
                 Debug.Log("[NetworkPlayer] Removing leftover local (non-networked) player after connect.");
@@ -741,9 +589,7 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Point the scene's Cinemachine camera and minimap at this local avatar.
-    /// </summary>
+    // Executes attach local camera operation.
     private void AttachLocalCamera()
     {
         var cam = FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
@@ -764,18 +610,7 @@ public class NetworkPlayer : NetworkBehaviour
             minimapCam.InitializeMinimap(transform);
     }
 
-    /// <summary>
-    /// Ensure the local networked avatar carries the input-driven gameplay
-    /// components that the offline spawn path (PlayerSpawner) would otherwise add.
-    /// Only the local (input-authority) avatar needs these; remote avatars are
-    /// driven purely by replicated NetworkTransform + the networked animation
-    /// state written in <see cref="FixedUpdateNetwork"/>.
-    ///   • GameplayInputProvider — single source of truth for input reads.
-    ///   • PlayerWorldInteractor — polls the local GameplayInputProvider for the
-    ///     rebindable Interact action to talk to NPCs / open dungeons / world
-    ///     objects. Interact is client-local (opens panels / calls the API, not
-    ///     the simulation), so it is never routed over the network.
-    /// </summary>
+    // Executes ensure local input components operation.
     private void EnsureLocalInputComponents()
     {
         if (GetComponent<GameplayInputProvider>() == null)
@@ -785,6 +620,7 @@ public class NetworkPlayer : NetworkBehaviour
             gameObject.AddComponent<PlayerWorldInteractor>();
     }
 
+    // Executes create fallback visual operation.
     private static GameObject CreateFallbackVisual(CharacterClass characterClass, Transform parent)
     {
         var go = new GameObject($"Visual_{characterClass}_Fallback");
@@ -802,22 +638,21 @@ public class NetworkPlayer : NetworkBehaviour
         return go;
     }
 
+    // Executes class color operation.
     private static Color ClassColor(CharacterClass c)
     {
         switch (c)
         {
-            case CharacterClass.Archer: return new Color(0.30f, 0.85f, 0.30f); // green
-            case CharacterClass.Mage:   return new Color(0.45f, 0.35f, 0.95f); // purple
+            case CharacterClass.Archer: return new Color(0.30f, 0.85f, 0.30f);
+            case CharacterClass.Mage:   return new Color(0.45f, 0.35f, 0.95f);
             case CharacterClass.Knight:
-            default:                    return new Color(0.95f, 0.70f, 0.20f); // gold
+            default:                    return new Color(0.95f, 0.70f, 0.20f);
         }
     }
 
-    // One sprite per class, kept for the lifetime of the app. Building it per
-    // fallback visual leaked a Texture2D on every class/skin change, and the
-    // visual is rebuilt several times per spawn.
     private static readonly Dictionary<CharacterClass, Sprite> _fallbackSprites = new();
 
+    // Executes solid sprite operation.
     private static Sprite SolidSprite(CharacterClass characterClass)
     {
         if (_fallbackSprites.TryGetValue(characterClass, out var cached) && cached != null)
@@ -840,13 +675,11 @@ public class NetworkPlayer : NetworkBehaviour
         return sprite;
     }
 
+    // Fusion lifecycle callback invoked when this NetworkPlayer NetworkObject is despawned from the network session.
+    // Performs teardown, unregisters network listeners, and cleans up singleton references.
     public override void Despawned(NetworkRunner runner, bool hasState) => Unregister();
 
-    /// <summary>
-    /// Render-phase callback. Runs every Unity Update after simulation has settled.
-    /// Drives animation and other per-frame visual state from the latest network
-    /// values (movement, alive/dead).
-    /// </summary>
+    // Executes render operation.
     public override void Render()
     {
         if (_nameplateCanvas != null)
@@ -863,6 +696,8 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
+    // Executes ensure nameplate operation.
+    // Validates input parameters against null or empty values.
     private void EnsureNameplate()
     {
         if (_nameplateCanvas != null && _nameplateText != null) return;
@@ -906,6 +741,8 @@ public class NetworkPlayer : NetworkBehaviour
         textRect.localScale = new Vector3(nameplateWorldScale, nameplateWorldScale, 1f);
     }
 
+    // Executes refresh nameplate operation.
+    // Validates input parameters against null or empty values.
     private void RefreshNameplate()
     {
         EnsureNameplate();
@@ -917,6 +754,7 @@ public class NetworkPlayer : NetworkBehaviour
         _nameplateCanvas.gameObject.SetActive(!string.IsNullOrWhiteSpace(displayName));
     }
 
+    // Executes apply nameplate style operation.
     private void ApplyNameplateStyle()
     {
         if (_nameplateText == null) return;
@@ -927,8 +765,6 @@ public class NetworkPlayer : NetworkBehaviour
             _nameplateText.fontSharedMaterial = nameplateFont.material;
         }
 
-        // Assign outline after the font material because changing the material can
-        // restore its default face/outline values.
         _nameplateText.outlineWidth = nameplateOutlineWidth;
         _nameplateText.outlineColor = Color.black;
 
@@ -937,6 +773,8 @@ public class NetworkPlayer : NetworkBehaviour
     }
 
 
+    // Networked fixed-step simulation tick callback executed by Photon Fusion.
+    // Processes synchronized player input, applies physics velocities, and updates authoritative gameplay mechanics.
     public override void FixedUpdateNetwork()
     {
         if (!HasInputAuthority) return;
@@ -957,9 +795,6 @@ public class NetworkPlayer : NetworkBehaviour
         var input = GetInput<NetworkInputData>();
         if (!input.HasValue)
         {
-            // Movement is velocity-driven, so an input-less tick must actively stop the
-            // body. Returning bare would leave the previous velocity integrating and the
-            // avatar would drift on its own until the next tick that carries input.
             _movement.Move(Vector2.zero, Runner.DeltaTime);
             NetworkedMove = Vector2.zero;
             return;
@@ -971,9 +806,6 @@ public class NetworkPlayer : NetworkBehaviour
 
         var buttons = inputData.Buttons;
 
-        // Attack / skills are edge-triggered off the previous tick's buttons so a
-        // held key fires ONE request, not one every network tick (which would
-        // spam RequestAttack/RPC and re-trigger the cast repeatedly).
         if (buttons.WasPressed(_previousButtons, InputButtons.Attack))
         {
             _combat.RequestAttack(inputData.AimWorldPosition);
@@ -990,89 +822,85 @@ public class NetworkPlayer : NetworkBehaviour
         {
             _combat.RequestSkill(2, inputData.AimWorldPosition);
         }
-        // Interact / Inventory / Map are client-local (they open panels / talk to
-        // the API, not the simulation) so they are polled directly on the local
-        // player by PlayerWorldInteractor / the UI runtimes — not routed here.
 
         _previousButtons = buttons;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Damage / Death / Respawn (server-authoritative)
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Applies combat damage authoritatively to this player on the StateAuthority instance.
+    // Reduces CurrentHp, triggers combat popup RPCs across clients, and calls Die() if HP reaches zero.
     public void ApplyDamage(int amount, bool isCritical = false)
     {
-        if (!Object.HasStateAuthority) return;
-        if (!IsAlive) return;
+        if (!Object.HasStateAuthority) return; // Only the authoritative simulation peer may mutate networked HP
+        if (!IsAlive) return; // Skip damage processing — player is already in death state
 
-        int previousHp = CurrentHp;
-        CurrentHp = Mathf.Max(0, CurrentHp - amount);
-        int appliedDamage = previousHp - CurrentHp;
+        int previousHp = CurrentHp; // Snapshot HP before reduction to compute actual damage absorbed
+        CurrentHp = Mathf.Max(0, CurrentHp - amount); // Reduce HP and clamp to 0 to prevent negative health
+        int appliedDamage = previousHp - CurrentHp; // Compute real damage after floor clamping
         if (appliedDamage > 0)
         {
-            RPC_ShowPlayerCombatPopup(transform.position, appliedDamage, isCritical, false);
+            RPC_ShowPlayerCombatPopup(transform.position, appliedDamage, isCritical, false); // Broadcast floating damage number to all clients
         }
 
         if (CurrentHp <= 0)
         {
-            Die();
+            Die(); // HP depleted — trigger death sequence (disable collider, play animation, show death UI)
         }
     }
 
-    /// <summary>
-    /// Damage this player from any client (e.g. an enemy AI running on the master
-    /// client hitting a remote player). In Shared Mode each player owns
-    /// StateAuthority over its own avatar, so the request is routed there via RPC
-    /// and applied authoritatively. Safe to call from the enemy authority.
-    /// </summary>
+    // Requests damage to be applied to this player, routing via RPC to the StateAuthority instance.
     public void RequestDamage(int amount, bool isCritical = false)
     {
-        if (amount <= 0) return;
+        if (amount <= 0) return; // Ignore zero or negative damage values — no-op
 
         if (Object.HasStateAuthority)
-            ApplyDamage(amount, isCritical);
+            ApplyDamage(amount, isCritical); // Apply directly — no RPC needed, this peer owns state
         else
-            RPC_RequestDamage(amount, isCritical);
+            RPC_RequestDamage(amount, isCritical); // Send RPC to the authority peer to apply damage
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    // Photon Fusion RPC receiving damage request on the StateAuthority and executing ApplyDamage().
     private void RPC_RequestDamage(int amount, NetworkBool isCritical)
     {
         ApplyDamage(amount, isCritical);
     }
 
+    // Restores player health clamped to MaxHp and triggers combat popup visual effects.
     public void ApplyHeal(int amount)
     {
-        if (!Object.HasStateAuthority) return;
-        if (!IsAlive) return;
+        if (!Object.HasStateAuthority) return; // Only the authoritative simulation peer may mutate networked HP
+        if (!IsAlive) return; // Dead players cannot receive healing
 
-        int previousHp = CurrentHp;
-        CurrentHp = Mathf.Min(MaxHp, CurrentHp + amount);
-        int appliedHeal = CurrentHp - previousHp;
+        int previousHp = CurrentHp; // Snapshot HP before restoration to compute actual healed amount
+        CurrentHp = Mathf.Min(MaxHp, CurrentHp + amount); // Restore HP and clamp to MaxHp to prevent overhealing
+        int appliedHeal = CurrentHp - previousHp; // Compute real heal after ceiling clamping
         if (appliedHeal > 0)
         {
-            RPC_ShowPlayerCombatPopup(transform.position, appliedHeal, false, true);
+            RPC_ShowPlayerCombatPopup(transform.position, appliedHeal, false, true); // Broadcast floating heal number to all clients
         }
     }
 
+    // Requests healing to be applied to this player, routing via RPC to the StateAuthority instance.
     public void RequestHeal(int amount)
     {
-        if (amount <= 0) return;
+        if (amount <= 0) return; // Ignore zero or negative heal values — no-op
 
         if (Object.HasStateAuthority)
-            ApplyHeal(amount);
+            ApplyHeal(amount); // Apply directly — no RPC needed, this peer owns state
         else
-            RPC_RequestHeal(amount);
+            RPC_RequestHeal(amount); // Send RPC to the authority peer to apply heal
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    // Photon Fusion RPC receiving heal request on the StateAuthority and executing ApplyHeal().
     private void RPC_RequestHeal(int amount)
     {
         ApplyHeal(amount);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Process rpc show player combat popup using world position, amount, is critical, and is heal; it creates create and guards invalid or unavailable states.
     private void RPC_ShowPlayerCombatPopup(Vector3 worldPosition, int amount,
         NetworkBool isCritical, NetworkBool isHeal)
     {
@@ -1082,59 +910,56 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Replicates a legacy buff visual on the player who actually received it.
-    /// The copy is marked visual-only before Start runs, so it cannot apply stats
-    /// or broadcast another effect.
-    /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All)]
+    // Instantiates a visual-only buff effect prefab attached to the player across all clients.
     public void RPC_ShowBuffVisual(string prefabName)
     {
-        GameObject prefab = PlayerCombat.FindLoadedSkillPrefab(prefabName);
+        GameObject prefab = PlayerCombat.FindLoadedSkillPrefab(prefabName); // Look up preloaded skill VFX prefab by name
         if (prefab == null)
         {
             Debug.LogWarning($"[NetworkPlayer] Cannot resolve buff visual prefab '{prefabName}'.");
-            return;
+            return; // Prefab not loaded — skip visual without crashing
         }
 
-        GameObject effect = Instantiate(prefab, transform.position, Quaternion.identity);
-        effect.SetActive(false);
-        PlayerSkillVisualReplica.Mark(effect, transform);
-        effect.SetActive(true);
+        GameObject effect = Instantiate(prefab, transform.position, Quaternion.identity); // Spawn VFX at current player position
+        effect.SetActive(false); // Disable briefly to allow PlayerSkillVisualReplica.Mark to configure it before activation
+        PlayerSkillVisualReplica.Mark(effect, transform); // Tag as visual-only replica — prevents this client from re-broadcasting effects
+        effect.SetActive(true); // Activate after marking to trigger OnEnable logic correctly
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
+    // Applies a temporary defense multiplier buff to the player's combat component.
     public void RPC_ApplyDefBuff(float amount, float duration)
     {
-        var combat = GetComponent<PlayerCombat>();
+        var combat = GetComponent<PlayerCombat>(); // Resolve combat component on this peer's instance
         if (combat != null)
         {
-            combat.AddDefBuff(amount, duration);
+            combat.AddDefBuff(amount, duration); // Apply defense percentage multiplier buff for the given duration
         }
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
+    // Applies temporary debuff immunity to the player's combat component.
     public void RPC_ApplyDebuffImmunity(float duration)
     {
-        var combat = GetComponent<PlayerCombat>();
+        var combat = GetComponent<PlayerCombat>(); // Resolve combat component on this peer's instance
         if (combat != null)
         {
-            combat.AddDebuffImmunity(duration);
+            combat.AddDebuffImmunity(duration); // Grant immunity to incoming debuffs for the given duration
         }
     }
 
+    // Marks player as dead (IsAlive = false), halts movement, and triggers death sequence.
     public void Die()
     {
         if (!IsAlive) return;
         IsAlive = false;
         Debug.Log($"[NetworkPlayer] {PlayerName} died.");
 
-        // OnDied is raised from OnAliveChanged() only. Invoking it here as well made
-        // the local player get two death popups (OnChangedRender fires on the
-        // authority too). Spawning already dead is handled in Spawned().
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    // Executes rpc_set ready to restart operation.
     public void RPC_SetReadyToRestart()
     {
         if (!Object.HasStateAuthority) return;
@@ -1144,11 +969,11 @@ public class NetworkPlayer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_boss spawning operation.
     public void RPC_BossSpawning()
     {
-        // Host already executes the sequence locally in DungeonManager, avoid double execution
         if (Object.HasStateAuthority) return;
-        
+
         if (DungeonManager.Instance != null)
         {
             DungeonManager.Instance.ClientReceiveBossSpawning();
@@ -1156,9 +981,9 @@ public class NetworkPlayer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_boss died operation.
     public void RPC_BossDied(Vector3 chestPosition)
     {
-        // Host already executes the sequence locally in DungeonManager, avoid double execution
         if (Object.HasStateAuthority) return;
 
         if (DungeonManager.Instance != null)
@@ -1167,10 +992,11 @@ public class NetworkPlayer : NetworkBehaviour
         }
     }
 
+    // Resets player stats, restores full HP, sets IsAlive to true, and teleports to respawn point.
     public void ResetForRestart(Vector3 spawnPos)
     {
         if (!Object.HasStateAuthority) return;
-        
+
         CurrentHp = MaxHp;
         IsAlive = true;
         IsReadyToRestart = false;
@@ -1179,12 +1005,13 @@ public class NetworkPlayer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    // Authoritative RPC respawning player in the open world with 10% HP at specified respawn position.
     public void RPC_WorldRespawn(Vector3 position)
     {
         if (!Object.HasStateAuthority) return;
         if (IsAlive) return;
 
-        CurrentHp = Mathf.Max(1, MaxHp / 10); // 10% HP
+        CurrentHp = Mathf.Max(1, MaxHp / 10);
         IsAlive = true;
         IsReadyToRestart = false;
         TeleportTo(position);
@@ -1192,21 +1019,20 @@ public class NetworkPlayer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    // Authoritative RPC respawning player inside a dungeon session with full HP at spawn position.
     public void RPC_DungeonRespawn(Vector3 position)
     {
         if (!Object.HasStateAuthority) return;
-        
-        CurrentHp = MaxHp; // Full HP
+
+        CurrentHp = MaxHp;
         IsAlive = true;
         IsReadyToRestart = false;
         TeleportTo(position);
         Debug.Log($"[NetworkPlayer] {PlayerName} respawned in dungeon at {position} with FULL HP.");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Editor / debug
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes on draw gizmos selected operation.
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;

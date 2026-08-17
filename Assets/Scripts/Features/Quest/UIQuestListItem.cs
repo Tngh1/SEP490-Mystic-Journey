@@ -4,8 +4,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIQuestListItem : MonoBehaviour
 {
+    // Executes quest type slot operation.
+    // Validates input parameters against null or empty values.
     public enum QuestTypeSlot
     {
         Kill,
@@ -14,6 +17,8 @@ public class UIQuestListItem : MonoBehaviour
         Explore,
     }
 
+    // Executes map objective type operation.
+    // Validates input parameters against null or empty values.
     public static QuestTypeSlot MapObjectiveType(string objectiveType)
     {
         var normalized = string.IsNullOrWhiteSpace(objectiveType)
@@ -64,11 +69,14 @@ public class UIQuestListItem : MonoBehaviour
     private Color suggestLevelNormalColor;
     private bool hasSuggestLevelNormalColor;
 
+    // Initializes internal component caches and dependencies for UIQuestListItem upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         Bind();
     }
 
+    // Executes setup operation.
     public void Setup(PlayerQuestResponse data, bool selected, Action<PlayerQuestResponse> selectedCallback)
     {
         Bind();
@@ -95,17 +103,14 @@ public class UIQuestListItem : MonoBehaviour
         if (activeBackground != null)
             activeBackground.SetActive(selected);
 
-        // Icon complete chỉ hiện khi ĐÃ NHẬN THƯỞNG (Claimed). Trạng thái Completed mà chưa
-        // claim vẫn coi như đang làm dở → không đóng dấu hoàn thành.
         bool isComplete = data != null && string.Equals(data.Status, "Claimed", StringComparison.OrdinalIgnoreCase);
-        // Ổ khóa chỉ nói về điều kiện KHÔNG THỂ làm được (thiếu level). Quest NotStarted nhưng
-        // đủ level là quest sắp nhận (đang được tracker chỉ đường) → không được khóa.
         bool isLocked = data == null || underLeveled;
 
         if (lockIcon != null) lockIcon.SetActive(isLocked);
         if (completeIcon != null) completeIcon.SetActive(isComplete);
     }
 
+    // Executes apply type icon operation.
     private void ApplyTypeIcon(string objectiveType)
     {
         if (typeImage == null) return;
@@ -126,6 +131,7 @@ public class UIQuestListItem : MonoBehaviour
         typeImage.gameObject.SetActive(hasSprite);
     }
 
+    // Executes bind operation.
     private void Bind()
     {
         if (background == null)
@@ -170,18 +176,21 @@ public class UIQuestListItem : MonoBehaviour
         selectButton.onClick.AddListener(() => onSelected?.Invoke(quest));
     }
 
+    // Executes find image by name operation.
     private Image FindImageByName(string objectName)
     {
         var child = FindChild(objectName);
         return child == null ? null : child.GetComponent<Image>();
     }
 
+    // Executes find tmp by name operation.
     private TMP_Text FindTMPByName(string objectName)
     {
         var child = FindChild(objectName);
         return child == null ? null : child.GetComponent<TMP_Text>();
     }
 
+    // Executes find child operation.
     private GameObject FindChild(string objectName)
     {
         var children = GetComponentsInChildren<Transform>(true);

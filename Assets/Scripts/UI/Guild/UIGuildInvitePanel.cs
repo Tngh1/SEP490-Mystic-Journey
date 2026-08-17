@@ -7,6 +7,7 @@ using System.Collections.Generic;
 
 namespace MysticJourney.UI.Guild
 {
+    // Executes mono behaviour operation.
     public class UIGuildInvitePanel : MonoBehaviour
     {
         public Transform contentContainer;
@@ -14,23 +15,26 @@ namespace MysticJourney.UI.Guild
         public GameObject loadingText;
         public GameObject emptyText;
         public Button btnInviteSelected;
-        public Button btnCancel; // Nút tắt panel
-        
+        public Button btnCancel;
+
         private HashSet<int> selectedFriends = new HashSet<int>();
-        
+
+        // Initializes internal component caches and dependencies for UIGuildInvitePanel upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (btnInviteSelected != null)
             {
                 btnInviteSelected.onClick.AddListener(OnInviteSelectedClicked);
             }
-            
+
             if (btnCancel != null)
             {
                 btnCancel.onClick.AddListener(ClosePanel);
             }
         }
-        
+
+        // Update visibility for panel; it updates active, updates invite button state, and loads friends.
         public void OpenPanel()
         {
             this.gameObject.SetActive(true);
@@ -39,18 +43,19 @@ namespace MysticJourney.UI.Guild
             LoadFriends();
         }
 
+        // Update visibility for panel; it updates active.
         public void ClosePanel()
         {
             this.gameObject.SetActive(false);
         }
 
+        // Executes load friends operation.
         private void LoadFriends()
         {
             if (loadingText != null) loadingText.SetActive(true);
             if (emptyText != null) emptyText.SetActive(false);
-            
-            // Clear old entries
-            foreach (Transform t in contentContainer) 
+
+            foreach (Transform t in contentContainer)
             {
                 Destroy(t.gameObject);
             }
@@ -63,7 +68,7 @@ namespace MysticJourney.UI.Guild
                         if (emptyText != null) emptyText.SetActive(true);
                         return;
                     }
-                    
+
                     foreach (var friend in list)
                     {
                         var obj = Instantiate(friendEntryPrefab, contentContainer);
@@ -78,15 +83,17 @@ namespace MysticJourney.UI.Guild
                 }
             );
         }
-        
+
+        // Executes on toggle friend selection operation.
         private void OnToggleFriendSelection(int friendId, bool isSelected)
         {
             if (isSelected) selectedFriends.Add(friendId);
             else selectedFriends.Remove(friendId);
-            
+
             UpdateInviteButtonState();
         }
-        
+
+        // Executes update invite button state operation.
         private void UpdateInviteButtonState()
         {
             if (btnInviteSelected != null)
@@ -94,25 +101,26 @@ namespace MysticJourney.UI.Guild
                 btnInviteSelected.interactable = selectedFriends.Count > 0;
             }
         }
-        
+
+        // Executes on invite selected clicked operation.
         private void OnInviteSelectedClicked()
         {
             if (selectedFriends.Count == 0) return;
-            
-            if (GuildUIManager.Instance == null || GuildUIManager.Instance.currentGuild == null) 
+
+            if (GuildUIManager.Instance == null || GuildUIManager.Instance.currentGuild == null)
             {
                 UIPopup.Instance.ShowAlert("Error", "You are not in a guild!");
                 return;
             }
-            
+
             int guildId = GuildUIManager.Instance.currentGuild.guildId;
             int total = selectedFriends.Count;
             int successCount = 0;
             int processed = 0;
             List<string> errors = new List<string>();
-            
+
             btnInviteSelected.interactable = false;
-            
+
             foreach (int targetId in selectedFriends)
             {
                 GuildApi.InviteMember(guildId, targetId,
@@ -128,7 +136,8 @@ namespace MysticJourney.UI.Guild
                     });
             }
         }
-        
+
+        // Executes check invite completion operation.
         private void CheckInviteCompletion(int total, int successCount, int processed, List<string> errors)
         {
             if (processed >= total)

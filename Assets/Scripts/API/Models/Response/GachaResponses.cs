@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace MysticJourney.API.Models.Response
 {
+    // Initializes a new default instance of the GachaBannerResponse class.
     [Serializable]
     public class GachaBannerResponse
     {
         public int GachaBannerId;
         public string Name;
+        // Supported gacha banner types: Standard, Limited, or Event; the type controls banner categorization and presentation.
         public string Type;
         public int PullCost;
         public int PityLimit;
@@ -16,11 +18,13 @@ namespace MysticJourney.API.Models.Response
         public DateTime EndAt;
     }
 
+    // Initializes a new default instance of the GachaBannerResponse class.
     public class GachaBannerDetailResponse : GachaBannerResponse
     {
         public List<GachaBannerItemResponse> BannerItems;
     }
 
+    // Executes gacha banner item response operation.
     [Serializable]
     public class GachaBannerItemResponse
     {
@@ -28,11 +32,13 @@ namespace MysticJourney.API.Models.Response
         public int ItemId;
         public string ItemName;
         public string ItemIconUrl;
+        // Supported rarity values: Common, Uncommon, Rare, Epic, Legendary, or Mythic; rarity controls quality, visuals, and sorting priority.
         public string ItemRarity;
         public float DropRate;
         public bool IsFeatured;
     }
 
+    // Executes gacha pull result response operation.
     [Serializable]
     public class GachaPullResultResponse
     {
@@ -47,6 +53,7 @@ namespace MysticJourney.API.Models.Response
         public int CurrentPity;
     }
 
+    // Executes multi pull result response operation.
     [Serializable]
     public class MultiPullResultResponse
     {
@@ -56,6 +63,7 @@ namespace MysticJourney.API.Models.Response
         public float TotalCost;
     }
 
+    // Executes gacha pull history response operation.
     [Serializable]
     public class GachaPullHistoryResponse
     {
