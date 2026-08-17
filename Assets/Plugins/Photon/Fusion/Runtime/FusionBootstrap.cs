@@ -51,6 +51,7 @@ namespace Fusion {
       public int ClientCount;
       public bool IsShared;
 
+      // Executes execute operation.
       public override void Execute() { 
         Instance = this;
       }
@@ -174,16 +175,23 @@ namespace Fusion {
     /// </summary>
     public GameMode CurrentServerMode { get; internal set; }
 
+    // Executes can add clients operation.
     protected bool CanAddClients => CurrentStage == Stage.AllConnected && CurrentServerMode > 0 && CurrentServerMode != GameMode.Shared && CurrentServerMode != GameMode.Single;
+    // Executes can add shared clients operation.
     protected bool CanAddSharedClients => CurrentStage == Stage.AllConnected && CurrentServerMode > 0 && CurrentServerMode == GameMode.Shared;
+    // Executes is shutdown operation.
     protected bool IsShutdown => CurrentStage == Stage.Disconnected;
+    // Executes is shutdown and multi peer operation.
     protected bool IsShutdownAndMultiPeer => CurrentStage == Stage.Disconnected && UsingMultiPeerMode;
 
+    // Executes using multi peer mode operation.
     protected bool UsingMultiPeerMode => NetworkProjectConfig.Global.PeerMode == NetworkProjectConfig.PeerModes.Multiple;
+    // Executes show auto clients operation.
     protected bool ShowAutoClients    => UsingMultiPeerMode && (StartMode == StartModes.UserInterface || (StartMode == StartModes.Automatic && AutoStartAs != GameMode.Single));
 
 
 #if UNITY_EDITOR
+    // Executes reset operation.
     protected virtual void Reset() {
       if (TryGetComponent<FusionBootstrapDebugGUI>(out var ndsg) == false) {
         ndsg = gameObject.AddComponent<FusionBootstrapDebugGUI>();
@@ -193,10 +201,12 @@ namespace Fusion {
 #endif
 
 
+    // Performs startup initialization for for on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     protected virtual void Start() {
 
-      if (_initialScenePath == null) {
-        if (string.IsNullOrEmpty(InitialScenePath)) {
+      if (_initialScenePath == null) {  // Entity not found — short-circuit with appropriate error result
+        if (string.IsNullOrEmpty(InitialScenePath)) {  // Mandatory string argument is null or empty — fail fast
           var currentScene = SceneManager.GetActiveScene();
           if (currentScene.IsValid()) {
             _initialScenePath = currentScene.path;
@@ -231,7 +241,7 @@ namespace Fusion {
           return;
         } else {
           // If no RunnerPrefab is supplied, use the scene runner.
-          if (RunnerPrefab == null) {
+          if (RunnerPrefab == null) {  // Entity not found — short-circuit with appropriate error result
             RunnerPrefab = existingRunner;
           }
         }
@@ -271,6 +281,7 @@ namespace Fusion {
       }
     }
 
+    // Executes show user interface operation.
     protected void ShowUserInterface() {
       if (TryGetComponent<FusionBootstrapDebugGUI>(out var gui) == false) {
         gui = gameObject.AddComponent<FusionBootstrapDebugGUI>();
@@ -278,6 +289,7 @@ namespace Fusion {
       gui.enabled = true;
     }
     
+    // Executes try get scene ref operation.
     private bool TryGetSceneRef(out SceneRef sceneRef) {
       var activeScene = SceneManager.GetActiveScene();
       if (activeScene.buildIndex < 0 || activeScene.buildIndex >= SceneManager.sceneCountInBuildSettings) {
@@ -331,6 +343,7 @@ namespace Fusion {
       StartCoroutine(StartWithClients(GameMode.Client, default, 1));
     }
     
+    // Executes start shared client operation.
     [EditorButton(EditorButtonVisibility.PlayMode)]
     [DrawIf(nameof(IsShutdown), Hide = true)]
     public virtual void StartSharedClient() {
@@ -339,6 +352,7 @@ namespace Fusion {
       }
     }
     
+    // Executes start auto client operation.
     [EditorButton("Start Auto Host Or Client", EditorButtonVisibility.PlayMode)]
     [DrawIf(nameof(IsShutdown), Hide = true)]
     public virtual void StartAutoClient() {
@@ -367,6 +381,7 @@ namespace Fusion {
       StartHostPlusClients(AutoClients);
     }
 
+    // Executes shutdown operation.
     [EditorButton(EditorButtonVisibility.PlayMode)]
     [DrawIf(nameof(CurrentStage), Hide = true)]
     public void Shutdown() {
@@ -429,6 +444,7 @@ namespace Fusion {
       }
     }
 
+    // Executes start multiple auto clients operation.
     public void StartMultipleAutoClients(int clientCount) {
       if (NetworkProjectConfig.Global.PeerMode == NetworkProjectConfig.PeerModes.Multiple) {
         if (TryGetSceneRef(out var sceneRef)) {
@@ -439,6 +455,7 @@ namespace Fusion {
       }
     }
 
+    // Executes shutdown all operation.
     public void ShutdownAll() {
       foreach (var runner in NetworkRunner.Instances.ToList()) {
         if (runner != null && runner.IsRunning) {
@@ -455,6 +472,7 @@ namespace Fusion {
     }
 
 
+    // Executes start with clients operation.
     protected IEnumerator StartWithClients(GameMode serverMode, SceneRef sceneRef, int clientCount) {
       // Avoid double clicks or disallow multiple startup calls.
       if (CurrentStage != Stage.Disconnected) {
@@ -555,6 +573,7 @@ namespace Fusion {
       }
     }
 
+    // Executes start with mppm virtual instance operation.
     protected IEnumerator StartWithMppmVirtualInstance() {
       while (StartCommand.Instance == null) {
         yield return null;
@@ -567,6 +586,7 @@ namespace Fusion {
       yield return StartClients(command.ClientCount, command.IsShared ? GameMode.Shared : GameMode.Client, command.InitialScene);
     }
 
+    // Executes add client operation.
     [EditorButton("Add Additional Client", EditorButtonVisibility.PlayMode)]
     [DrawIf(nameof(CanAddClients), Hide = true)]
     public void AddClient() {
@@ -575,6 +595,7 @@ namespace Fusion {
       }
     }
 
+    // Executes add shared client operation.
     [EditorButton("Add Additional Shared Client", EditorButtonVisibility.PlayMode)]
     [DrawIf(nameof(CanAddSharedClients), Hide = true)]
     public void AddSharedClient() {
@@ -583,6 +604,7 @@ namespace Fusion {
       }
     }
 
+    // Executes add client operation.
     public Task AddClient(GameMode serverMode, SceneRef sceneRef) {
       var client = Instantiate(RunnerPrefab);
       DontDestroyOnLoad(client);
@@ -610,6 +632,7 @@ namespace Fusion {
       return clientTask;
     }
 
+    // Executes start clients operation.
     protected IEnumerator StartClients(int clientCount, GameMode serverMode, SceneRef sceneRef = default) {
 
       CurrentStage = Stage.ConnectingClients;
@@ -637,13 +660,13 @@ namespace Fusion {
       INetworkRunnerUpdater updater = null) {
 
       var sceneManager = runner.GetComponent<INetworkSceneManager>();
-      if (sceneManager == null) {
+      if (sceneManager == null) {  // Entity not found — short-circuit with appropriate error result
         Debug.Log($"NetworkRunner does not have any component implementing {nameof(INetworkSceneManager)} interface, adding {nameof(NetworkSceneManagerDefault)}.", runner);
         sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
       }
 
       var objectProvider = runner.GetComponent<INetworkObjectProvider>();
-      if (objectProvider == null) {
+      if (objectProvider == null) {  // Entity not found — short-circuit with appropriate error result
         Debug.Log($"NetworkRunner does not have any component implementing {nameof(INetworkObjectProvider)} interface, adding {nameof(NetworkObjectProviderDefault)}.", runner);
         objectProvider = runner.gameObject.AddComponent<NetworkObjectProviderDefault>();
       }
@@ -665,6 +688,7 @@ namespace Fusion {
       });
     }
     
+    // Executes is mppm enabled operation.
     private static bool IsMPPMEnabled => FusionMppm.Status != FusionMppmStatus.Disabled;
     
     /// <summary>

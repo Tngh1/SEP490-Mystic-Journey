@@ -29,6 +29,7 @@ namespace ExitGames.Client.Photon
 
         private readonly object syncer = new object();
 
+        // Executes socket web tcp operation.
         [Preserve]
         public SocketWebTcp(PeerBase npeer) : base(npeer)
         {
@@ -42,6 +43,7 @@ namespace ExitGames.Client.Photon
             this.PollReceive = false;
         }
 
+        // Executes dispose operation.
         public void Dispose()
         {
             this.State = PhotonSocketState.Disconnecting;
@@ -66,6 +68,7 @@ namespace ExitGames.Client.Photon
         }
 
 
+        // Executes connect operation.
         public override bool Connect()
         {
             this.State = PhotonSocketState.Connecting;
@@ -110,6 +113,7 @@ namespace ExitGames.Client.Photon
             }
         }
 
+        // Executes close callback operation.
         private void CloseCallback(int code, string reason)
         {
             if (this.State == PhotonSocketState.Connecting)
@@ -137,6 +141,7 @@ namespace ExitGames.Client.Photon
             }
         }
 
+        // Executes open callback operation.
         private void OpenCallback()
         {
             if (State == PhotonSocketState.Connecting)
@@ -221,7 +226,7 @@ namespace ExitGames.Client.Photon
                         this.Listener.DebugReturn(DebugLevel.ERROR, "WebSocket Proxy: " + url + " system settings ProxySystemSettings.GetProxy() error: " + err);
                         return false;
                     }
-                    if (proxyAutoConfigPacUrl != null)
+                    if (proxyAutoConfigPacUrl != null)  // Entity exists — proceed with conditional branch
                     {
                         if (proxyAutoConfigPacUrl.IndexOf("://") == -1)
                         {
@@ -251,6 +256,7 @@ namespace ExitGames.Client.Photon
         }
 
 
+        // Executes disconnect operation.
         public override bool Disconnect()
         {
             if (this.ReportDebugOfLevel(DebugLevel.INFO))
@@ -315,12 +321,14 @@ namespace ExitGames.Client.Photon
         }
 
 
+        // Executes receive operation.
         public override PhotonSocketError Receive(out byte[] data)
         {
             data = null;
             return PhotonSocketError.NoData;
         }
 
+        // Executes receive callback operation.
         public void ReceiveCallback(byte[] buf, int len)
         {
             // once the websocket is disconnecting / disconnected, it should not receive anything anymore

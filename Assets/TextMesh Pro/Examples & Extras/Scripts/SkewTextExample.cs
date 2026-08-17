@@ -5,6 +5,7 @@ using System.Collections;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class SkewTextExample : MonoBehaviour
     {
 
@@ -28,6 +29,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes copy animation curve operation.
         private AnimationCurve CopyAnimationCurve(AnimationCurve curve)
         {
             AnimationCurve newCurve = new AnimationCurve();

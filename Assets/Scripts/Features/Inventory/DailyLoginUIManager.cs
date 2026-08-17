@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes core business logic for mono behaviour.
 public class DailyLoginUIManager : MonoBehaviour
 {
     [SerializeField] private UIDailyLogin uiDailyLogin;
@@ -35,19 +36,22 @@ public class DailyLoginUIManager : MonoBehaviour
     private bool eventsBound;
     private float rewardsLoadedAt = -999f;
 
+    // Binds UI controls, subscribes buttons, and initializes month banner label.
     private void Awake()
     {
-        BindUi();
-        BindEvents();
-        UpdateMonthText();
+        BindUi(); // Auto-locate claim/refresh buttons
+        BindEvents(); // Hook click listeners
+        UpdateMonthText(); // Display current month name (e.g. "August")
     }
 
+    // Refreshes calendar view and queries claim status upon modal display.
     private void OnEnable()
     {
         UpdateMonthText();
-        LoadDaily(false);
+        LoadDaily(false); // Load daily rewards from backend
     }
 
+    // Loads current month's reward calendar table and player claim streak status.
     public void LoadDaily(bool force)
     {
         BindUi();
@@ -55,7 +59,7 @@ public class DailyLoginUIManager : MonoBehaviour
         UpdateMonthText();
 
         if (requestInFlight)
-            return;
+            return; // Avoid duplicate fetch calls
 
         requestInFlight = true;
         SetLoading(true);
@@ -68,22 +72,21 @@ public class DailyLoginUIManager : MonoBehaviour
         {
             pending--;
             if (pending > 0)
-                return;
+                return; // Wait until both API responses arrive
 
             requestInFlight = false;
             SetLoading(false);
-            Render();
+            Render(); // Draw calendar cards
         }
 
         if (needsRewards)
         {
-            // Gọi endpoint current-month: tự động trả về đúng số ngày tháng hiện tại
             DailyLoginApi.Instance.GetCurrentMonth(
                 response =>
                 {
                     rewards.Clear();
                     if (response != null)
-                        rewards.AddRange(response.Where(item => item != null && item.IsActive));
+                        rewards.AddRange(response.Where(item => item != null && item.IsActive)); // Filter active reward days
                     rewardsLoaded = true;
                     rewardsLoadedAt = Time.unscaledTime;
                     Done();
@@ -98,7 +101,7 @@ public class DailyLoginUIManager : MonoBehaviour
         WorldApi.Instance.GetState(
             state =>
             {
-                status = state?.DailyLogin;
+                status = state?.DailyLogin; // Extract player's claimed days streak
                 Done();
             },
             error =>
@@ -108,6 +111,7 @@ public class DailyLoginUIManager : MonoBehaviour
             });
     }
 
+    // Formats and displays active month title on top header.
     private void UpdateMonthText()
     {
         if (monthsText == null)
@@ -117,16 +121,17 @@ public class DailyLoginUIManager : MonoBehaviour
         int validMonth = Mathf.Clamp(m, 1, 12);
         string monthName = System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(validMonth);
 
-        monthsText.text = monthName;
+        monthsText.text = monthName; // Set month name (e.g. "January")
     }
 
+    // Generates 28-31 calendar reward card views and updates claim button interactability.
     private void Render()
     {
         if (uiDailyLogin == null)
             return;
 
-        var claimedDaysList = status?.ClaimedDays ?? new List<int>();
-        var currentDay = DateTime.UtcNow.Day; // Đồng bộ múi giờ UTC với backend
+        var claimedDaysList = status?.ClaimedDays ?? new List<int>(); // Extract list of already claimed day numbers
+        var currentDay = DateTime.UtcNow.Day;
         var list = new List<UIItemDisplayData>();
 
         UpdateMonthText();
@@ -157,11 +162,9 @@ public class DailyLoginUIManager : MonoBehaviour
         UpdateStatusText(status?.TotalDaysClaimed ?? 0, currentDay);
     }
 
+    // Executes core business logic for claim available reward.
     private void ClaimAvailableReward()
     {
-        // UtcNow, không phải Now: backend chốt ngày theo UTC (DailyLoginRewardService).
-        // Ở UTC+7 thì 07:00-24:00 giờ VN đã sang ngày mới theo local nhưng vẫn là ngày cũ
-        // theo UTC, nên dùng Now sẽ so sai ngày và guard chống nhận trùng bị hỏng.
         if (requestInFlight || status != null && status.ClaimedDays != null && status.ClaimedDays.Contains(DateTime.UtcNow.Day))
             return;
 
@@ -201,6 +204,7 @@ public class DailyLoginUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for retro claim reward.
     private void RetroClaimReward(int dayNumber)
     {
         if (requestInFlight) return;
@@ -232,7 +236,7 @@ public class DailyLoginUIManager : MonoBehaviour
                 if (status.ClaimedDays == null) status.ClaimedDays = new List<int>();
                 status.ClaimedDays.Add(dayNumber);
                 status.TotalDaysClaimed = response?.TotalDaysClaimed ?? status.TotalDaysClaimed + 1;
-                status.RetroClaimCount += 1; // Tăng số lần bù trên UI
+                status.RetroClaimCount += 1;
                 RefreshClaimedReward();
                 Render();
             },
@@ -245,14 +249,14 @@ public class DailyLoginUIManager : MonoBehaviour
             });
     }
 
+    // Update claimed reward; it updates any.
     private static void RefreshClaimedReward()
     {
-        // The backend has already delivered item rewards. Force the cached inventory and
-        // player stats to reload so item stacks, currency, and energy update immediately.
         InventoryUIManager.RefreshAny(refreshStats: true);
         WorldRuntimeEvents.RaiseCurrencyChanged();
     }
 
+    // Executes core business logic for bind events.
     private void BindEvents()
     {
         if (eventsBound)
@@ -270,6 +274,7 @@ public class DailyLoginUIManager : MonoBehaviour
         eventsBound = uiDailyLogin != null || refreshButton != null || claimButton != null;
     }
 
+    // Executes core business logic for handle daily slot clicked.
     private void HandleDailySlotClicked(UIBaseItemSlot slot)
     {
         if (slot?.RawData is not UIItemDisplayData data)
@@ -288,9 +293,9 @@ public class DailyLoginUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for show retro claim popup.
     private void ShowRetroClaimPopup(int dayNumber)
     {
-        // Kiểm tra xem đã vượt quá giới hạn 5 lần 1 tháng chưa
         if (status != null && status.RetroClaimCount >= 5)
         {
             UIPopupBox.Notify(
@@ -300,11 +305,10 @@ public class DailyLoginUIManager : MonoBehaviour
             return;
         }
 
-        // Tìm ngày gần nhất bị lỡ
         int maxMissedDay = -1;
         var claimedSet = status?.ClaimedDays?.ToHashSet() ?? new HashSet<int>();
         var currentDay = DateTime.UtcNow.Day;
-        
+
         for (int d = currentDay - 1; d >= 1; d--)
         {
             if (!claimedSet.Contains(d))
@@ -314,7 +318,6 @@ public class DailyLoginUIManager : MonoBehaviour
             }
         }
 
-        // Nếu ngày bấm vào KHÔNG PHẢI là ngày lỡ gần nhất thì chặn lại
         if (dayNumber != maxMissedDay)
         {
             SetError("You must retro-claim the most recent missed day first.");
@@ -333,6 +336,8 @@ public class DailyLoginUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for bind ui.
+    // Logic details: validates required non-empty string arguments.
     private void BindUi()
     {
         if (uiDailyLogin == null)
@@ -353,6 +358,8 @@ public class DailyLoginUIManager : MonoBehaviour
 
     }
 
+    // Executes core business logic for find scene object.
+    // Logic details: validates required non-empty string arguments.
     private static GameObject FindSceneObject(string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -365,6 +372,7 @@ public class DailyLoginUIManager : MonoBehaviour
         return null;
     }
 
+    // Executes core business logic for find descendant.
     private static GameObject FindDescendant(Transform root, params string[] names)
     {
         if (root == null || names == null)
@@ -383,28 +391,27 @@ public class DailyLoginUIManager : MonoBehaviour
     }
 
 
+    // Executes core business logic for resolve reward icon.
+    // Logic details: validates required non-empty string arguments.
     private Sprite ResolveRewardIcon(DailyLoginRewardResponse reward)
     {
         if (reward == null)
             return null;
 
-        // 1. If reward is an Item (has RewardItemName) -> Lookup in ItemIconDatabase
         if (!string.IsNullOrWhiteSpace(reward.RewardItemName) && ItemIconDatabase.Instance != null)
         {
             var icon = ItemIconDatabase.Instance.GetIcon(reward.RewardItemName, null);
             if (icon != null) return icon;
         }
 
+        // Supported reward types: Gold, Gems, EXP, Energy, or Item; Item rewards also require an item identifier and quantity.
         var type = reward.RewardType ?? string.Empty;
 
-        // 2. Lookup in ItemIconDatabase by exact RewardType or synonyms
         if (!string.IsNullOrWhiteSpace(type) && ItemIconDatabase.Instance != null)
         {
-            // Direct lookup by key (case-insensitive in ItemIconDatabase)
             var typeIcon = ItemIconDatabase.Instance.GetIcon(type, null);
             if (typeIcon != null) return typeIcon;
 
-            // Synonym key lookups
             if (string.Equals(type, "Gems", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Gem", System.StringComparison.OrdinalIgnoreCase))
             {
                 typeIcon = ItemIconDatabase.Instance.GetIcon("Gem", null) ?? ItemIconDatabase.Instance.GetIcon("Gems", null) ?? ItemIconDatabase.Instance.GetIcon("Diamond", null);
@@ -422,7 +429,6 @@ public class DailyLoginUIManager : MonoBehaviour
             }
         }
 
-        // 3. Fallback: Check serialized inspector fields if assigned
         if (string.Equals(type, "Gold", System.StringComparison.OrdinalIgnoreCase) && goldIcon != null)
             return goldIcon;
         if ((string.Equals(type, "Energy", System.StringComparison.OrdinalIgnoreCase) ||
@@ -437,7 +443,6 @@ public class DailyLoginUIManager : MonoBehaviour
              string.Equals(type, "Diamond", System.StringComparison.OrdinalIgnoreCase)) && gemIcon != null)
             return gemIcon;
 
-        // 4. Resources fallback lookup: "Icons/Gold", "Icons/Energy", "Icons/Exp", "Icons/Gem"
         if (!string.IsNullOrWhiteSpace(type))
         {
             var loaded = Resources.Load<Sprite>($"Icons/{type}");
@@ -454,7 +459,6 @@ public class DailyLoginUIManager : MonoBehaviour
             }
         }
 
-        // 5. ItemIconDatabase Fallback: Lookup by standard Item Name ("Exp" currency item / "Energy Elixir" consumable)
         if (ItemIconDatabase.Instance != null)
         {
             if (string.Equals(type, "EXP", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Exp", System.StringComparison.OrdinalIgnoreCase) || string.Equals(type, "Experience", System.StringComparison.OrdinalIgnoreCase))
@@ -477,6 +481,8 @@ public class DailyLoginUIManager : MonoBehaviour
         return null;
     }
 
+    // Executes core business logic for build reward name.
+    // Logic details: validates required non-empty string arguments.
     private static string BuildRewardName(DailyLoginRewardResponse reward)
     {
         if (reward == null)
@@ -488,6 +494,7 @@ public class DailyLoginUIManager : MonoBehaviour
         return string.IsNullOrWhiteSpace(reward.RewardType) ? "Reward" : reward.RewardType;
     }
 
+    // Executes core business logic for build reward quantity.
     private static int BuildRewardQuantity(DailyLoginRewardResponse reward)
     {
         if (reward == null)
@@ -499,6 +506,7 @@ public class DailyLoginUIManager : MonoBehaviour
         return Mathf.Max(1, Mathf.RoundToInt((float)reward.RewardValue));
     }
 
+    // Executes core business logic for update status text.
     private void UpdateStatusText(int claimedDays, int availableDay)
     {
         if (statusText != null)
@@ -508,12 +516,16 @@ public class DailyLoginUIManager : MonoBehaviour
             claimButton.interactable = availableDay > 0 && !requestInFlight;
     }
 
+    // Executes core business logic for set loading.
+    // Logic details: validates required non-empty string arguments.
     private void SetLoading(bool value)
     {
         if (loadingIndicator != null)
             loadingIndicator.SetActive(value);
     }
 
+    // Executes core business logic for set error.
+    // Logic details: validates required non-empty string arguments.
     private void SetError(string value)
     {
         if (errorText == null)
@@ -523,18 +535,21 @@ public class DailyLoginUIManager : MonoBehaviour
         errorText.gameObject.SetActive(!string.IsNullOrWhiteSpace(value));
     }
 
+    // Executes core business logic for find button.
     private Button FindButton(params string[] names)
     {
         var obj = FindObject(names);
         return obj == null ? null : obj.GetComponent<Button>();
     }
 
+    // Executes core business logic for find text.
     private TMP_Text FindText(params string[] names)
     {
         var obj = FindObject(names);
         return obj == null ? null : obj.GetComponent<TMP_Text>();
     }
 
+    // Executes core business logic for find object.
     private GameObject FindObject(params string[] names)
     {
         var children = GetComponentsInChildren<Transform>(true);

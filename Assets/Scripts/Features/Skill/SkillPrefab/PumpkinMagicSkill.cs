@@ -1,11 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Skill Bẫy Quả Bí (Pumpkin Magic) dành cho Xạ thủ (Archer).
-/// Skill dạng AoE đặt trên mặt đất, tồn tại tối đa 5 giây.
-/// Khi quái vật chạm vào hoặc hết 5s sẽ tự động phát nổ gây sát thương diện rộng.
-/// </summary>
+// Executes mono behaviour operation.
 public class PumpkinMagicSkill : MonoBehaviour
 {
     [Header("Skill Settings")]
@@ -34,29 +30,32 @@ public class PumpkinMagicSkill : MonoBehaviour
     private float _timer = 0f;
     private Animator _animator;
 
+    // Initializes internal component caches and dependencies for PumpkinMagicSkill upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _animator = GetComponent<Animator>();
     }
 
+    // Executes setup operation.
     public void Setup(float damage)
     {
         _damage = damage;
         _timer = duration;
         _isExploding = false;
 
-        // Phát âm thanh khi đặt skill
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
     }
 
+    // Per-frame update loop for PumpkinMagicSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_isExploding) return;
 
-        // Đếm ngược 5s tự phát nổ
         _timer -= Time.deltaTime;
         if (_timer <= 0f)
         {
@@ -64,47 +63,45 @@ public class PumpkinMagicSkill : MonoBehaviour
         }
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (_isExploding) return;
 
-        // Nếu quái va chạm vào quả bí thì phát nổ ngay lập tức
         if (collision.CompareTag("Monster"))
         {
             Explode();
         }
     }
 
+    // Executes explode operation.
     public void Explode()
     {
         if (_isExploding) return;
         _isExploding = true;
 
-        // Phát âm thanh nổ
         if (explodeSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(explodeSound, soundVolume);
         }
 
-        // Kích hoạt animation nổ (PumpkinmagicBoom)
         if (_animator != null)
         {
             _animator.Play(boomAnimState);
         }
 
-        // Gây sát thương AoE xung quanh vị trí quả bí
         DealAoEDamage();
 
-        // Hủy GameObject sau khi animation nổ chạy xong
         Destroy(gameObject, explodeDuration);
     }
 
+    // Executes deal ao e damage operation.
     private void DealAoEDamage()
     {
         if (PlayerSkillVisualReplica.IsReplica(this)) return;
 
         LayerMask targetMask = (monsterLayer != 0) ? monsterLayer : LayerMask.GetMask("Monster");
-        if (targetMask == 0) targetMask = ~0; // Fallback nếu chưa setup layer
+        if (targetMask == 0) targetMask = ~0;
 
         Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius, targetMask);
         HashSet<EnemyEntity> damagedEnemies = new HashSet<EnemyEntity>();
@@ -118,14 +115,13 @@ public class PumpkinMagicSkill : MonoBehaviour
                 {
                     damagedEnemies.Add(enemy);
 
-                    // Logic Chí mạng (20% crit, x1.5 sát thương)
+                    // Randomize the eligible candidates before selecting this gameplay result.
                     bool isCrit = Random.Range(0f, 100f) <= 20f;
                     float finalDamage = isCrit ? _damage * 1.5f : _damage;
                     int damageInt = Mathf.RoundToInt(finalDamage);
 
                     enemy.TakeDamage(damageInt);
 
-                    // Hiển thị số sát thương
                     if (DamagePopupManager.Instance != null)
                     {
                         DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
@@ -135,9 +131,9 @@ public class PumpkinMagicSkill : MonoBehaviour
         }
     }
 
+    // Executes on draw gizmos selected operation.
     private void OnDrawGizmosSelected()
     {
-        // Vẽ bán kính nổ trong cửa sổ Scene
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, explosionRadius);
     }

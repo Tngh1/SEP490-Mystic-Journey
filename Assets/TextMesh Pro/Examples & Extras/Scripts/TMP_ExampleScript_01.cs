@@ -7,8 +7,10 @@ using TMPro;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class TMP_ExampleScript_01 : MonoBehaviour
     {
+        // Executes object type operation.
         public enum objectType { TextMeshPro = 0, TextMeshProUGUI = 1 };
 
         public objectType ObjectType;

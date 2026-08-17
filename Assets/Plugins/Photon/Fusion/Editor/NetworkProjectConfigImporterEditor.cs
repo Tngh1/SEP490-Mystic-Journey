@@ -7,6 +7,7 @@ namespace Fusion.Editor {
   using UnityEditor.AssetImporters;
   using UnityEngine;
 
+  // Executes scripted importer editor operation.
   [CustomEditor(typeof(NetworkProjectConfigImporter))]
   internal class NetworkProjectConfigImporterEditor : ScriptedImporterEditor {
 
@@ -17,16 +18,19 @@ namespace Fusion.Editor {
     private static string _version;
     private static string _allVersionInfo;
 
+    // Executes show imported object operation.
     public override bool showImportedObject => false;
 
+    // Executes extra data type operation.
     protected override Type extraDataType => typeof(NetworkProjectConfigAsset);
 
+    // Executes on inspector gui operation.
     public override void OnInspectorGUI() {
 
       bool rebuildPrefabTable = false;
       
       try {
-        if (_initializeException != null) {
+        if (_initializeException != null) {  // Entity exists — proceed with conditional branch
           EditorGUILayout.HelpBox(_initializeException.ToString(), MessageType.Error, true);
         } else {
 
@@ -76,8 +80,10 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes version info gui operation.
+    // Validates input parameters against null or empty values.
     private static void VersionInfoGUI() {
-      if (string.IsNullOrEmpty(_allVersionInfo)) {
+      if (string.IsNullOrEmpty(_allVersionInfo)) {  // Mandatory string argument is null or empty — fail fast
         var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
         foreach (var asm in assemblies) {
           var assemblyFullName = asm.FullName;
@@ -101,10 +107,11 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes apply operation.
     protected override void Apply() {
       base.Apply();
 
-      if (targets != null) {
+      if (targets != null) {  // Entity exists — proceed with conditional branch
         for (int i = 0; i < extraDataTargets.Length; ++i) {
           var importer = GetImporter(i);
           var wrapper = GetConfigWrapper(i);
@@ -117,6 +124,7 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes initialize extra data instance operation.
     protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex) {
       try {
         var importer = GetImporter(targetIndex);
@@ -130,10 +138,12 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes get importer operation.
     private NetworkProjectConfigImporter GetImporter(int i) {
       return (NetworkProjectConfigImporter)targets[i];
     }
 
+    // Executes get config wrapper operation.
     private NetworkProjectConfigAsset GetConfigWrapper(int i) {
       return (NetworkProjectConfigAsset)extraDataTargets[i];
     }

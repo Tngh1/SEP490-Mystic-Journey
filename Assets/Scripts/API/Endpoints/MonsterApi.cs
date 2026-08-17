@@ -5,16 +5,9 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // MONSTER API - Quái vật
-    // ═══════════════════════════════════════════════════════════════
     public class MonsterApi : BaseApiService<MonsterApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
-
-        // ── Lấy quái vật theo ID ──────────────────────────
+        // Executes get by id operation.
         public void GetById(int monsterId, Action<MonsterDetailResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.MonsterById, monsterId);
@@ -33,7 +26,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy quái vật theo ID cho player ───────────────
+        // Executes get by id for player operation.
         public void GetByIdForPlayer(int monsterId, Action<MonsterDetailResponse> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.MonsterByIdForPlayer, monsterId);
@@ -52,13 +45,14 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy catalog quái vật của player ──────────────
+        // Load catalog for player using page, page size, on success, and on error; it sends the GET API request and guards invalid or unavailable states.
         public void GetCatalogForPlayer(
             int page,
             int pageSize,
             Action<PagedResultResponse<PlayerMonsterCatalogItem>> onSuccess,
             Action<ApiException> onError,
             string search = null,
+            // Supported monster types: Normal, Elite, or Boss; the type controls presentation and encounter behavior.
             string type = null)
         {
             var endpoint = $"{ApiConfig.MonsterCatalogForPlayer}?page={page}&pageSize={pageSize}";
@@ -80,7 +74,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy spawns theo map ───────────────────────────
+        // Load spawns for map using map name, on success, on error, and region name; it sends the GET API request and guards invalid or unavailable states.
         public void GetSpawnsForMap(
             string mapName,
             Action<MonsterSpawnResponse[]> onSuccess,
@@ -109,7 +103,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Khám phá quái vật ──────────────────────────────
+        // Executes discover operation.
         public void Discover(int monsterId, Action<PlayerMonsterCatalogItem> onSuccess, Action<ApiException> onError)
         {
             var endpoint = string.Format(ApiConfig.MonsterDiscover, monsterId);
@@ -128,7 +122,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Đánh bại quái vật ─────────────────────────────
+        // Process defeat using monster id, body, on success, and on error; it sends the POST API request.
         public void Defeat(
             int monsterId,
             MonsterDefeatRequest body,

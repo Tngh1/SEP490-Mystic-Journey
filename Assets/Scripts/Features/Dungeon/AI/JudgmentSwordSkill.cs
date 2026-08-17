@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using MysticJourney.Core.Services;
 
+// Executes mono behaviour operation.
 public class JudgmentSwordSkill : MonoBehaviour
 {
     [Header("Judgment Settings")]
@@ -25,6 +26,8 @@ public class JudgmentSwordSkill : MonoBehaviour
     [SerializeField] private AudioClip hitSound;
     [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
 
+    // Performs startup initialization for JudgmentSwordSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (castSound != null && AudioManager.Instance != null)
@@ -32,20 +35,19 @@ public class JudgmentSwordSkill : MonoBehaviour
             AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // Khi vừa sinh ra, bắt đầu quá trình giáng đòn
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(JudgmentRoutine());
     }
 
+    // Executes judgment routine operation.
     private IEnumerator JudgmentRoutine()
     {
-        // 1. Chờ hoạt ảnh kiếm rơi xuống (0.5s)
         yield return new WaitForSeconds(impactDelay);
 
-        // 2. Chém xuống, quét xem người chơi có còn đứng trong vùng ảnh hưởng không
         Collider2D[] hits = EnemySkillVisualReplica.IsReplica(this)
             ? System.Array.Empty<Collider2D>()
             : Physics2D.OverlapCircleAll(transform.position, hitRadius, playerLayer);
-        
+
         foreach (var hit in hits)
         {
             if (hit.CompareTag("Player"))
@@ -55,17 +57,14 @@ public class JudgmentSwordSkill : MonoBehaviour
                     AudioManager.Instance.PlaySfx(hitSound, soundVolume);
                 }
 
-                // Lấy chỉ số Hắc hoá từ API/GameState toàn cục
                 float currentDarkness = 0f;
                 if (GameStateService.Instance != null)
                 {
                     currentDarkness = GameStateService.Instance.CorruptionLevel;
                 }
 
-                // Tính toán sát thương
                 int totalDamage = baseDamage + Mathf.RoundToInt(currentDarkness * darknessDamageMultiplier);
 
-                // Gây sát thương
                 PlayerEntity entity = hit.GetComponent<PlayerEntity>();
                 if (entity != null)
                 {
@@ -75,12 +74,11 @@ public class JudgmentSwordSkill : MonoBehaviour
             }
         }
 
-        // 3. Chờ thêm 1 chút để hoạt ảnh biến mất rồi huỷ object
         yield return new WaitForSeconds(1f);
         Destroy(gameObject);
     }
 
-    // Vẽ vòng tròn phạm vi chém trong Editor để dễ căn chỉnh
+    // Executes on draw gizmos selected operation.
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.magenta;

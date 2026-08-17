@@ -5,11 +5,14 @@ using MysticJourney.API.Core;
 using UnityEngine;
 using UnityEngine.Networking;
 
+// Initializes a new default instance of the RemoteSpriteCache class.
 public static class RemoteSpriteCache
 {
     private static readonly Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
     private static readonly Dictionary<string, List<Action<Sprite>>> Pending = new Dictionary<string, List<Action<Sprite>>>();
 
+    // Executes get cached operation.
+    // Validates input parameters against null or empty values.
     public static Sprite GetCached(string url)
     {
         var normalizedUrl = NormalizeUrl(url);
@@ -19,6 +22,8 @@ public static class RemoteSpriteCache
         return Sprites.TryGetValue(normalizedUrl, out var sprite) ? sprite : null;
     }
 
+    // Executes load operation.
+    // Validates input parameters against null or empty values.
     public static void Load(MonoBehaviour runner, string url, Action<Sprite> callback)
     {
         var normalizedUrl = NormalizeUrl(url);
@@ -41,9 +46,12 @@ public static class RemoteSpriteCache
         }
 
         Pending[normalizedUrl] = new List<Action<Sprite>> { callback };
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         runner.StartCoroutine(LoadRoutine(normalizedUrl));
     }
 
+    // Executes normalize url operation.
+    // Validates input parameters against null or empty values.
     private static string NormalizeUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -57,6 +65,7 @@ public static class RemoteSpriteCache
         return trimmed.StartsWith("/") ? baseUrl + trimmed : baseUrl + "/" + trimmed;
     }
 
+    // Executes load routine operation.
     private static IEnumerator LoadRoutine(string url)
     {
         Sprite sprite = null;

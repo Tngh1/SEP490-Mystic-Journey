@@ -44,6 +44,7 @@ namespace Fusion {
       InputAuthority,
     }
 
+    // Executes component type operation.
     private enum ComponentType {
       None,
       Renderer,
@@ -63,6 +64,7 @@ namespace Fusion {
     /// </summary>
     public Component Component;
     
+    // Executes is on single runner operation.
     public bool IsOnSingleRunner { get; private set; }
 
     /// <summary>
@@ -98,10 +100,11 @@ namespace Fusion {
 
      // internal LinkedListNode<RunnerVisibilityNode> _node;
 
+    // Executes enabled operation.
     internal bool Enabled {
       get { return _componentType == ComponentType.Renderer ? (Component as Renderer).enabled : (Component as UnityEngine.Behaviour).enabled; }
       set {
-        if (Component == null) {
+        if (Component == null) {  // Entity not found — short-circuit with appropriate error result
           return;
         }
         if (_componentType == ComponentType.Renderer)
@@ -120,6 +123,7 @@ namespace Fusion {
       Guid = System.Guid.NewGuid().ToString();
     }
 
+    // Executes associate component operation.
     private bool AssociateComponent(Component component) {
       Component = component;
       var type = component.GetType();
@@ -133,9 +137,10 @@ namespace Fusion {
       return false;
     }
 
+    // Executes on validate operation.
     private void OnValidate() {
 
-      if (Component != null) {
+      if (Component != null) {  // Entity exists — proceed with conditional branch
         if (Component.transform != transform) {
           Debug.LogWarning($"{nameof(RunnerVisibilityLink)} can only be associated with components on the same GameObject.");
           Component = null;
@@ -150,16 +155,21 @@ namespace Fusion {
       }
     }
 
+    // Initializes internal component caches and dependencies for as upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake() {
       // TODO: once deprecated, make this flag always the case and remove the bool check.
       if (!_showAtRuntime)
         this.hideFlags = HideFlags.HideInInspector;
     }
 
+    // Cleanup callback executed when as is destroyed.
+    // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
     private void OnDestroy() {
       this.UnregisterNode();
     }
 
+    // Executes initialize operation.
     internal void Initialize(UnityEngine.Component comp, NetworkRunner runner) {
       _runner = runner;
       
@@ -219,6 +229,7 @@ namespace Fusion {
       }
     }
 
+    // Executes is input auth operation.
     internal bool IsInputAuth() {
       if (_networkObject && _networkObject.IsValid) {
         return _networkObject.HasInputAuthority;
@@ -227,16 +238,19 @@ namespace Fusion {
       return false;
     }
 
+    // Executes setup on single runner link operation.
     internal void SetupOnSingleRunnerLink(PreferredRunners preferredRunner) {
       PreferredRunner = preferredRunner;
       IsOnSingleRunner = true;
     }
 
+    // Executes invoke refresh common object visibilities operation.
     internal void InvokeRefreshCommonObjectVisibilities(float time) {
       StopAllCoroutines();
       Invoke(nameof(RetryRefreshCommonLinks), time);
     }
 
+    // Executes retry refresh common links operation.
     private void RetryRefreshCommonLinks() {
       NetworkRunnerVisibilityExtensions.RetryRefreshCommonLinks();
     }

@@ -1,4 +1,5 @@
 
+// Initializes a new default instance of the CharacterClass class.
 public enum CharacterClass
 {
     Archer = 0,

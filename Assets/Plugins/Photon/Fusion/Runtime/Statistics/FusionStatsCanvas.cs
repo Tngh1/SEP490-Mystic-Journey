@@ -12,6 +12,7 @@ namespace Fusion.Statistics {
   public enum CanvasAnchor {TopLeft, TopRight}
 
   
+  // Executes i begin drag handler operation.
   public class FusionStatsCanvas : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHandler {
     [Header("General References")]
     [SerializeField] private Canvas _canvas;
@@ -31,15 +32,18 @@ namespace Fusion.Statistics {
     [Space] [Header("World Anchor Panel Settings")] 
     [SerializeField] private FusionStatsConfig _config;
     
+    // Executes _is colapsed operation.
     private bool _isColapsed => !_contentPanel.gameObject.activeSelf;
     
     private CanvasAnchor _anchor;
     
+    // Executes drag mode operation.
     private enum DragMode {None, DragCanvas, ResizeContent}
 
     private DragMode _dragMode;
     private static int _statsCanvasActiveCount = 0;
 
+    // Executes setup stats canvas operation.
     internal void SetupStatsCanvas(FusionStatistics fusionStatistics, CanvasAnchor canvasAnchor, UnityAction closeButtonAction) {
       _anchor = canvasAnchor;
       _canvasPanel.anchoredPosition = GetDefinedAnchorPosition();
@@ -57,6 +61,7 @@ namespace Fusion.Statistics {
       _config.SetupStatisticReference(fusionStatistics);
     }
 
+    // Executes on begin drag operation.
     public void OnBeginDrag(PointerEventData eventData) {
       if (_config.IsWorldAnchored) return;
       
@@ -68,6 +73,7 @@ namespace Fusion.Statistics {
       _dragMode = resize ? DragMode.ResizeContent : DragMode.DragCanvas;
     }
 
+    // Executes on drag operation.
     public void OnDrag(PointerEventData eventData) {
       if (_config.IsWorldAnchored) return;
       
@@ -81,6 +87,7 @@ namespace Fusion.Statistics {
       }
     }
 
+    // Executes on end drag operation.
     public void OnEndDrag(PointerEventData eventData) {
       if (_config.IsWorldAnchored) return;
       
@@ -111,16 +118,20 @@ namespace Fusion.Statistics {
       _dragMode = DragMode.None;
     }
     
+    // Executes snap panel back to origin pos operation.
     public void SnapPanelBackToOriginPos() {
       _canvasPanel.anchoredPosition = GetDefinedAnchorPosition();
     }
 
+    // Executes update content container height operation.
     private void UpdateContentContainerHeight(float yDelta) {
       var height = _contentPanel.sizeDelta.y;
       var targetHeight = height - yDelta;
       SetContentPanelHeight(targetHeight);
     }
     
+    // Executes toggle hide operation.
+    // Evaluates conditions and returns a boolean result.
     internal void ToggleHide() {
       var active = _contentPanel.gameObject.activeSelf;
       _hideButton.transform.rotation = active ? Quaternion.Euler(0, 0, 90) : Quaternion.identity;
@@ -143,6 +154,7 @@ namespace Fusion.Statistics {
       return true;
     }
 
+    // Executes set content panel height operation.
     private void SetContentPanelHeight(float value) {
       if (value < FusionStatisticsHelper.DEFAULT_GRAPH_HEIGHT) {
         value = FusionStatisticsHelper.DEFAULT_GRAPH_HEIGHT;
@@ -158,6 +170,7 @@ namespace Fusion.Statistics {
       _contentPanel.gameObject.SetActive(true);
     }
 
+    // Executes adapt content height to graphs operation.
     private void AdaptContentHeightToGraphs() {
       var neededHeight = 0f;
       for (int i = 0; i < _contentContainer.childCount; i++) {
@@ -176,21 +189,27 @@ namespace Fusion.Statistics {
       SetContentPanelHeight(neededHeight);
     }
 
+    // Callback invoked when FusionStatsCanvas becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     private void OnEnable() {
       _statsCanvasActiveCount++;
       _header.OnRenderStatsUpdate += AdaptContentHeightToGraphs;
     }
 
+    // Callback invoked when FusionStatsCanvas becomes disabled in the scene hierarchy.
+    // Unregisters event listeners to prevent unintended callbacks while inactive.
     private void OnDisable() {
       _statsCanvasActiveCount--;
       _header.OnRenderStatsUpdate -= AdaptContentHeightToGraphs;
     }
 
+    // Executes set canvas anchor operation.
     public void SetCanvasAnchor(CanvasAnchor anchor) {
       _anchor = anchor;
       SnapPanelBackToOriginPos();
     }
     
+    // Executes get defined anchor position operation.
     private Vector2 GetDefinedAnchorPosition() {
       var refRes = _canvasScaler.referenceResolution;
       switch (_anchor) {

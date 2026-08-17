@@ -7,6 +7,7 @@ using MysticJourney.API.Models.Request;
 
 namespace UI.Friend
 {
+    // Executes mono behaviour operation.
     public class UINameChangePopup : MonoBehaviour
     {
         [Header("UI References")]
@@ -19,12 +20,15 @@ namespace UI.Friend
         private Action<string> _onSuccess;
         private bool _isFree;
 
+        // Initializes internal component caches and dependencies for UINameChangePopup upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (confirmButton != null) confirmButton.onClick.AddListener(OnConfirmClicked);
             if (cancelButton != null) cancelButton.onClick.AddListener(ClosePopup);
         }
 
+        // Executes show popup operation.
         public void ShowPopup(bool isFree, Action<string> onSuccess)
         {
             _isFree = isFree;
@@ -37,11 +41,14 @@ namespace UI.Friend
             gameObject.SetActive(true);
         }
 
+        // Update visibility for popup; it updates active.
         public void ClosePopup()
         {
             gameObject.SetActive(false);
         }
 
+        // Executes on confirm clicked operation.
+        // Validates input parameters against null or empty values.
         private void OnConfirmClicked()
         {
             if (nameInput == null) return;

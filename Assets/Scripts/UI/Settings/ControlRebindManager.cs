@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 namespace MysticJourney.Screen.GameSetting
 {
+    // Executes core business logic for mono behaviour.
     public class ControlRebindManager : MonoBehaviour
     {
         [Header("Bindings")]
@@ -14,32 +15,35 @@ namespace MysticJourney.Screen.GameSetting
         private InputActionRebindingExtensions.RebindingOperation currentRebindOperation;
         private const string BindingKey = "MJ_KEY_BINDINGS";
 
+        // Executes core business logic for has unsaved changes.
         public bool HasUnsavedChanges { get; private set; }
 
         public event Action<string> OnConflictDetected;
 
-        // ─── Lifecycle ───────────────────────────────────────────────────────────
 
+        // Performs startup initialization for ControlRebindManager on the first active frame.
+        // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
         private void Start()
         {
-            // LoadBindings() được gọi bởi GameSettingUIManager để tránh gọi 2 lần.
             RegisterButtons();
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDestroy()
         {
             currentRebindOperation?.Dispose();
             currentRebindOperation = null;
         }
 
-        // ─── UI Text ─────────────────────────────────────────────────────────────
 
+        // Update all texts; it updates binding text and processes each matching entry.
         private void UpdateAllTexts()
         {
             foreach (var b in bindings)
                 UpdateBindingText(b);
         }
 
+        // Executes core business logic for update binding text.
         private void UpdateBindingText(ControlBinding binding)
         {
             if (binding?.action == null || binding.keyText == null) return;
@@ -50,8 +54,8 @@ namespace MysticJourney.Screen.GameSetting
             binding.keyText.text = action.GetBindingDisplayString(binding.bindingIndex);
         }
 
-        // ─── Button Registration ──────────────────────────────────────────────────
 
+        // Executes core business logic for register buttons.
         private void RegisterButtons()
         {
             foreach (var binding in bindings)
@@ -64,8 +68,8 @@ namespace MysticJourney.Screen.GameSetting
             }
         }
 
-        // ─── Rebind ───────────────────────────────────────────────────────────────
 
+// Executes core business logic for start rebind.
 private void StartRebind(ControlBinding binding)
         {
             if (binding?.action == null) return;
@@ -91,14 +95,12 @@ private void StartRebind(ControlBinding binding)
                 .OnComplete(op =>
                 {
                     action.Enable();
-                    
-                    // LẤY RA CONTROL VỪA NHẤN TRƯỚC KHI DISPOSE
-                    InputControl newControl = op.selectedControl; 
-                    
+
+                    InputControl newControl = op.selectedControl;
+
                     op.Dispose();
                     currentRebindOperation = null;
 
-                    // TRUYỀN CONTROL VÀO HÀM KIỂM TRA
                     string conflict = FindConflict(binding, newControl);
                     if (conflict != null)
                     {
@@ -119,19 +121,18 @@ private void StartRebind(ControlBinding binding)
             currentRebindOperation.Start();
         }
 
-        // ─── Conflict Detection ───────────────────────────────────────────────────
+        // Executes core business logic for get current path.
+        // Logic details: validates required non-empty string arguments.
         private static string GetCurrentPath(InputBinding b)
         {
-            // overridePath có khi đã rebind (kể cả đã load từ save)
             if (!string.IsNullOrEmpty(b.overridePath)) return b.overridePath;
-            // path là giá trị mặc định trong Input Action Asset
             return b.path;
         }
 
-        // ─── Conflict Detection ───────────────────────────────────────────────────
 
-// ─── Conflict Detection ───────────────────────────────────────────────────
 
+        // Executes core business logic for find conflict.
+        // Logic details: validates required non-empty string arguments.
         private string FindConflict(ControlBinding target, InputControl newControl)
         {
             if (newControl == null) return null;
@@ -151,7 +152,7 @@ private void StartRebind(ControlBinding binding)
                 if (other.bindingIndex >= otherAction.bindings.Count) continue;
 
                 var otherBindingEntry = otherAction.bindings[other.bindingIndex];
-                
+
                 if (otherBindingEntry.isComposite) continue;
 
                 string otherPath = otherBindingEntry.effectivePath;
@@ -171,21 +172,19 @@ private void StartRebind(ControlBinding binding)
             return null;
         }
 
-        // ─── Save / Load / Reset ──────────────────────────────────────────────────
 
+        // Executes core business logic for cancel current rebind.
         private void CancelCurrentRebind()
         {
             if (currentRebindOperation == null) return;
 
-            // Lưu local ref và null field TRƯỚC khi Cancel()
-            // vì Cancel() → OnCancel callback → set currentRebindOperation = null
-            // → nếu không làm vậy thì dòng Dispose() sau sẽ NullReference
             var op = currentRebindOperation;
             currentRebindOperation = null;
             op.Cancel();
             op.Dispose();
         }
 
+        // Executes core business logic for save bindings.
         public void SaveBindings()
         {
             if (bindings.Count == 0 || bindings[0].action == null) return;
@@ -195,9 +194,10 @@ private void StartRebind(ControlBinding binding)
             HasUnsavedChanges = false;
         }
 
+        // Executes core business logic for load bindings.
         public void LoadBindings()
         {
-            CancelCurrentRebind(); // Hủy rebind đang chờ nếu có
+            CancelCurrentRebind();
 
             if (!PlayerPrefs.HasKey(BindingKey))
             {
@@ -213,9 +213,10 @@ private void StartRebind(ControlBinding binding)
             HasUnsavedChanges = false;
         }
 
+        // Executes core business logic for reset bindings.
         public void ResetBindings()
         {
-            CancelCurrentRebind(); // Hủy rebind đang chờ nếu có
+            CancelCurrentRebind();
 
             if (bindings.Count == 0 || bindings[0].action == null) return;
 

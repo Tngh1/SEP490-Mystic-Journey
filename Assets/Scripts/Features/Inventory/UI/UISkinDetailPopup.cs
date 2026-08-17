@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UISkinDetailPopup : MonoBehaviour
 {
     [Header("Skin Panel - Container")]
@@ -13,7 +14,7 @@ public class UISkinDetailPopup : MonoBehaviour
     [SerializeField] private TMP_Text skinTitleText;
     [SerializeField] private TMP_Text skinNameText;
     [SerializeField] private Image skinIcon;
-    
+
     [Header("Skin Panel - Buttons")]
     [SerializeField] private Button confirmSkinButton;
     [SerializeField] private Button cancelSkinButton;
@@ -24,6 +25,8 @@ public class UISkinDetailPopup : MonoBehaviour
     public Action<PlayerSkinSummaryResponse> OnEquipSkinClicked;
     public Action<PlayerSkinSummaryResponse> OnUnequipSkinClicked;
 
+    // Initializes internal component caches and dependencies for UISkinDetailPopup upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (skinPanel != null && !skinPanel.transform.IsChildOf(this.transform))
@@ -61,9 +64,8 @@ public class UISkinDetailPopup : MonoBehaviour
             if (t) skinNameText = t.GetComponent<TMP_Text>();
         }
 
-        // Force find the correct Icon object, ignoring incorrect Inspector assignments
         var iconTransform = transform.Find("Container/SkinPanel/SkinIcon_Frame/Icon");
-        if (iconTransform != null) 
+        if (iconTransform != null)
         {
             skinIcon = iconTransform.GetComponent<Image>();
         }
@@ -72,7 +74,6 @@ public class UISkinDetailPopup : MonoBehaviour
             var images = GetComponentsInChildren<Image>(true);
             foreach (var img in images)
             {
-                // Must be the actual Icon child, not the Frame
                 if (img.gameObject.name == "Icon")
                 {
                     skinIcon = img;
@@ -80,7 +81,7 @@ public class UISkinDetailPopup : MonoBehaviour
                 }
             }
         }
-        
+
         if (skinIcon != null)
             Debug.Log($"[UISkinDetailPopup] Successfully found skinIcon: {skinIcon.gameObject.name}");
         else
@@ -90,9 +91,10 @@ public class UISkinDetailPopup : MonoBehaviour
         if (cancelSkinButton)  cancelSkinButton.onClick.AddListener(Hide);
     }
 
+    // Executes show skin details operation.
     public void ShowSkinDetails(PlayerSkinSummaryResponse skin, Sprite icon)
     {
-        gameObject.SetActive(true); // Triggers Awake() on first run if inactive
+        gameObject.SetActive(true);
 
         _currentSkin = skin;
         _currentIcon = icon;
@@ -130,15 +132,13 @@ public class UISkinDetailPopup : MonoBehaviour
         {
             skinTitleText.text = skin.IsEquipped ? "Remove Cosmetic" : "Use Cosmetic";
         }
-        
-        // Đảm bảo cancel button luôn hiển thị khi popup được mở
+
         if (cancelSkinButton) cancelSkinButton.gameObject.SetActive(true);
 
         if (confirmSkinButton)
         {
             bool isDefaultSkin = skin.SkinName != null && skin.SkinName.IndexOf("Default", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            // Ẩn nút nếu: chưa sở hữu HOẶC (đang dùng VÀ là skin mặc định)
             if (skin.PlayerSkinId <= 0 || (skin.IsEquipped && isDefaultSkin))
             {
                 confirmSkinButton.gameObject.SetActive(false);
@@ -146,7 +146,7 @@ public class UISkinDetailPopup : MonoBehaviour
             else
             {
                 confirmSkinButton.gameObject.SetActive(true);
-                
+
                 var tmp = confirmSkinButton.GetComponentInChildren<TMP_Text>();
                 if (tmp)
                 {
@@ -156,16 +156,18 @@ public class UISkinDetailPopup : MonoBehaviour
         }
     }
 
+    // Update visibility for the current state; it updates active.
     public void Hide()
     {
         gameObject.SetActive(false);
         _currentSkin = null;
     }
 
+    // Executes handle skin confirmed operation.
     private void HandleSkinConfirmed()
     {
         if (_currentSkin == null) return;
-        
+
         if (_currentSkin.IsEquipped)
         {
             OnUnequipSkinClicked?.Invoke(_currentSkin);

@@ -6,29 +6,29 @@ using MysticJourney.API.Models.Request;
 
 namespace UI.Friend
 {
+    // Executes mono behaviour operation.
     public class UIAvatarSelectionPanel : MonoBehaviour
     {
         [Header("UI References")]
         [SerializeField] private Button closeButton;
         [SerializeField] private Button saveButton;
         [SerializeField] private Transform avatarListContainer;
-        [SerializeField] private GameObject avatarButtonPrefab; // Prefab có chứa Image và Button
+        [SerializeField] private GameObject avatarButtonPrefab;
 
         private string _selectedAvatarId;
         private int _myProfileId;
         private PlayerProfileUIManager _profilePanel;
 
-        // Cấu hình danh sách avatar mặc định
         private readonly List<string> _availableAvatars = new List<string>
         {
             "avatar_1", "avatar_2", "avatar_3", "avatar_4", "avatar_5",
             "avatar_6", "avatar_7", "avatar_8", "avatar_9", "avatar_10"
         };
 
+        // Initializes internal component caches and dependencies for UIAvatarSelectionPanel upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
-            // closeButton bỏ trống trong Inspector nên nút X của panel này không làm gì cả
-            // (onClick trong scene cũng rỗng). Tự tìm theo tên để không phụ thuộc việc gán tay.
             if (closeButton == null)
                 closeButton = transform.Find("CloseButton")?.GetComponent<Button>();
 
@@ -51,11 +51,9 @@ namespace UI.Friend
             }
         }
 
+        // Refresh visible state and subscribe the event handlers required while this component is active.
         private void OnEnable()
         {
-            // This panel is toggled repeatedly by the profile panel. Keep the
-            // close/save actions valid even when a scene variant omitted a
-            // serialized reference.
             if (closeButton == null)
                 closeButton = GetComponentsInChildren<Button>(true)
                     [System.Array.FindIndex(GetComponentsInChildren<Button>(true), b => b.name.IndexOf("Close", System.StringComparison.OrdinalIgnoreCase) >= 0)];
@@ -75,6 +73,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes open panel operation.
         public void OpenPanel(int myProfileId, string currentAvatarId, PlayerProfileUIManager profilePanel)
         {
             _myProfileId = myProfileId;
@@ -86,11 +85,13 @@ namespace UI.Friend
             PopulateAvatarList();
         }
 
+        // Update visibility for panel; it updates active.
         public void ClosePanel()
         {
             gameObject.SetActive(false);
         }
 
+        // Executes populate avatar list operation.
         private void PopulateAvatarList()
         {
             if (avatarListContainer == null || avatarButtonPrefab == null)
@@ -99,13 +100,11 @@ namespace UI.Friend
                 return;
             }
 
-            // Xoá các item cũ
             foreach (Transform child in avatarListContainer)
             {
                 Destroy(child.gameObject);
             }
 
-            // Tạo các item mới
             foreach (var avatarId in _availableAvatars)
             {
                 GameObject btnObj = Instantiate(avatarButtonPrefab, avatarListContainer);
@@ -122,10 +121,9 @@ namespace UI.Friend
                     Debug.LogWarning($"[UIAvatarSelection] Không tìm thấy sprite cho {avatarId} trong Resources/Avatars/");
                 }
 
-                // Đánh dấu avatar đang được chọn
                 if (avatarId == _selectedAvatarId)
                 {
-                    btnObj.transform.localScale = new Vector3(1.1f, 1.1f, 1.1f); // Highlight đơn giản
+                    btnObj.transform.localScale = new Vector3(1.1f, 1.1f, 1.1f);
                 }
 
                 btn.onClick.AddListener(() =>
@@ -135,12 +133,16 @@ namespace UI.Friend
             }
         }
 
+        // Executes select avatar operation.
+        // Validates input parameters against null or empty values.
         private void SelectAvatar(string avatarId)
         {
             _selectedAvatarId = avatarId;
-            PopulateAvatarList(); // Cập nhật lại UI để hiển thị highlight
+            PopulateAvatarList();
         }
 
+        // Executes save avatar operation.
+        // Validates input parameters against null or empty values.
         private void SaveAvatar()
         {
             if (string.IsNullOrEmpty(_selectedAvatarId))
@@ -154,7 +156,6 @@ namespace UI.Friend
                 AvatarUrl = _selectedAvatarId
             };
 
-            // Vô hiệu hóa nút Save để tránh bấm nhiều lần
             if (saveButton != null) saveButton.interactable = false;
 
             PlayerApi.Instance.UpdateProfile(_myProfileId, updateRequest,
@@ -162,8 +163,7 @@ namespace UI.Friend
                 {
                     Debug.Log($"[UIAvatarSelection] Lưu Avatar thành công: {response.AvatarUrl}");
                     if (saveButton != null) saveButton.interactable = true;
-                    
-                    // Cập nhật lại giao diện Profile
+
                     if (_profilePanel != null)
                     {
                         _profilePanel.UpdateAvatarImage(response.AvatarUrl);

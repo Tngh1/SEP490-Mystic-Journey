@@ -31,6 +31,7 @@ namespace Fusion {
 
 #if UNITY_EDITOR
 
+    // Executes reset operation.
     protected virtual void Reset() {
       _networkDebugStart = EnsureNetworkDebugStartExists();
       _clientCount = _networkDebugStart.AutoClients.ToString();
@@ -39,17 +40,20 @@ namespace Fusion {
 
 #endif
 
+    // Executes on validate operation.
     protected virtual void OnValidate() {
       ValidateClientCount();
     }
 
+    // Executes validate client count operation.
     protected void ValidateClientCount() {
-      if (_clientCount == null) {
+      if (_clientCount == null) {  // Entity not found — short-circuit with appropriate error result
         _clientCount = "1";
       } else {
         _clientCount = System.Text.RegularExpressions.Regex.Replace(_clientCount, "[^0-9]", "");
       }
     }
+    // Executes get client count operation.
     protected int GetClientCount() {
       try {
         return Convert.ToInt32(_clientCount);
@@ -58,6 +62,8 @@ namespace Fusion {
       }
     }
 
+    // Initializes internal component caches and dependencies for FusionBootstrapDebugGUI upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     protected virtual void Awake() {
 
       _nicifiedStageNames = ConvertEnumToNicifiedNameLookup<FusionBootstrap.Stage>("Fusion Status: ");
@@ -65,10 +71,13 @@ namespace Fusion {
       _clientCount = _networkDebugStart.AutoClients.ToString();
       ValidateClientCount();
     }
+    // Performs startup initialization for FusionBootstrapDebugGUI on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     protected virtual void Start() {
       _isMultiplePeerMode = NetworkProjectConfig.Global.PeerMode == NetworkProjectConfig.PeerModes.Multiple;
     }
 
+    // Executes ensure network debug start exists operation.
     protected FusionBootstrap EnsureNetworkDebugStartExists() {
       if (_networkDebugStart) {
         if (_networkDebugStart.gameObject == gameObject)
@@ -84,6 +93,8 @@ namespace Fusion {
       return _networkDebugStart;
     }
 
+    // Per-frame update loop for FusionBootstrapDebugGUI.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update() {
 
       var nds = EnsureNetworkDebugStartExists();
@@ -143,6 +154,7 @@ namespace Fusion {
       }
     }
 
+    // Executes on gui operation.
     protected virtual void OnGUI() {
 
       var nds = EnsureNetworkDebugStartExists();
@@ -266,6 +278,7 @@ namespace Fusion {
       GUI.skin = holdskin;
     }
 
+    // Executes start host with clients operation.
     private void StartHostWithClients(FusionBootstrap nds) {
       int count;
       try {
@@ -276,6 +289,7 @@ namespace Fusion {
       nds.StartHostPlusClients(count);
     }
 
+    // Executes start server with clients operation.
     private void StartServerWithClients(FusionBootstrap nds) {
       int count;
       try {
@@ -286,6 +300,7 @@ namespace Fusion {
       nds.StartServerPlusClients(count);
     }
 
+    // Executes start multiple clients operation.
     private void StartMultipleClients(FusionBootstrap nds) {
       int count;
       try {
@@ -296,11 +311,13 @@ namespace Fusion {
       nds.StartMultipleClients(count);
     }
 
+    // Executes start multiple auto clients operation.
     private void StartMultipleAutoClients(FusionBootstrap nds) {
       int.TryParse(_clientCount, out int count);
       nds.StartMultipleAutoClients(count);
     }
 
+    // Executes start multiple shared clients operation.
     private void StartMultipleSharedClients(FusionBootstrap nds) {
       int count;
       try {
@@ -316,7 +333,7 @@ namespace Fusion {
 
       System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
-      if (nonalloc == null) {
+      if (nonalloc == null) {  // Entity not found — short-circuit with appropriate error result
         nonalloc = new Dictionary<T, string>();
       } else {
         nonalloc.Clear();
@@ -326,7 +343,7 @@ namespace Fusion {
       var values = Enum.GetValues(typeof(T));
       for (int i = 0, cnt = names.Length; i < cnt; ++i) {
         sb.Clear();
-        if (prefix != null) {
+        if (prefix != null) {  // Entity exists — proceed with conditional branch
           sb.Append(prefix);
         }
         var name = names[i];
@@ -346,9 +363,11 @@ namespace Fusion {
     }
 #if UNITY_EDITOR
 
+    // Executes object operation.
+    // Validates input parameters against null or empty values.
     public static T GetAsset<T>(string Guid) where T : UnityEngine.Object {
       var path = UnityEditor.AssetDatabase.GUIDToAssetPath(Guid);
-      if (string.IsNullOrEmpty(path)) {
+      if (string.IsNullOrEmpty(path)) {  // Mandatory string argument is null or empty — fail fast
         return null;
       } else {
         return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);

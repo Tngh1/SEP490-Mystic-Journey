@@ -5,6 +5,7 @@ namespace Fusion {
   using UnityEngine.SceneManagement;
   using UnityEngine.Serialization;
 
+  // Executes i network object provider operation.
   public class NetworkObjectProviderDefault : Fusion.Behaviour, INetworkObjectProvider {
     /// <summary>
     /// If enabled, the provider will delay acquiring a prefab instance if the scene manager is busy.
@@ -12,6 +13,7 @@ namespace Fusion {
     [InlineHelp]
     public bool DelayIfSceneManagerIsBusy = true;
 
+    // Executes acquire prefab instance operation.
     public virtual NetworkObjectAcquireResult AcquirePrefabInstance(NetworkRunner runner, in NetworkPrefabAcquireContext context, out NetworkObject instance) {
 
       instance = null;
@@ -47,6 +49,8 @@ namespace Fusion {
       return NetworkObjectAcquireResult.Success;
     }
 
+    // Executes release instance operation.
+    // Throws an exception if precondition validations fail.
     public virtual void ReleaseInstance(NetworkRunner runner, in NetworkObjectReleaseContext context) {
       var instance = context.Object;
 
@@ -67,22 +71,27 @@ namespace Fusion {
       }
     }
 
+    // Executes get prefab id operation.
     public NetworkPrefabId GetPrefabId(NetworkRunner runner, NetworkObjectGuid prefabGuid) {
       return runner.Prefabs.GetId(prefabGuid);
     }
 
+    // Executes instantiate prefab operation.
     protected virtual NetworkObject InstantiatePrefab(NetworkRunner runner, NetworkObject prefab) {
       return Instantiate(prefab);
     }
 
+    // Executes destroy prefab instance operation.
     protected virtual void DestroyPrefabInstance(NetworkRunner runner, NetworkPrefabId prefabId, NetworkObject instance) {
       Destroy(instance.gameObject);
     }
     
+    // Executes destroy prefab nested object operation.
     protected virtual void DestroyPrefabNestedObject(NetworkRunner runner, NetworkObject instance) {
       Destroy(instance.gameObject);
     }
 
+    // Executes destroy scene object operation.
     protected virtual void DestroySceneObject(NetworkRunner runner, NetworkSceneObjectId sceneObjectId, NetworkObject instance) {
       Destroy(instance.gameObject);
     }

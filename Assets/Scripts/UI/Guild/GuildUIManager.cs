@@ -9,13 +9,15 @@ using MysticJourney.UI;
 
 namespace MysticJourney.UI.Guild
 {
+    // Executes core business logic for mono behaviour.
     public class GuildUIManager : MonoBehaviour
     {
+        // Executes core business logic for instance.
         public static GuildUIManager Instance { get; private set; }
 
         [Header("Panels")]
-        [SerializeField] private GameObject mainGuildPanel; // Panel bự nhất chứa tất cả
-        [SerializeField] private GameObject tabsPanel; // Panel chứa các Tab bên phải (Info, Rank, Chat)
+        [SerializeField] private GameObject mainGuildPanel;
+        [SerializeField] private GameObject tabsPanel;
         [SerializeField] private GameObject guildListPanel;
         [SerializeField] private GameObject guildDetailPanel;
         [SerializeField] private GameObject createGuildPanel;
@@ -75,51 +77,50 @@ namespace MysticJourney.UI.Guild
         [SerializeField] private GameObject guildEntryPrefab;
 
         [Header("Rank Settings")]
-        [SerializeField] private GameObject memberHeaders; // Chứa text Members, Medals, Feats, Status
-        [SerializeField] private GameObject rankHeaders; // Chứa text hạng, tên guild, level, điểm
-        [SerializeField] private Image btnRankTabImage; // Nút bấm Tab Rank bên phải
+        [SerializeField] private GameObject memberHeaders;
+        [SerializeField] private GameObject rankHeaders;
+        [SerializeField] private Image btnRankTabImage;
 
 
-        // Lưu thông tin Guild hiện tại
-        public GuildDetailResponseDto currentGuild; // Lu thng tin Guild ca ti hoc Guild dang xem chi tit
+        public GuildDetailResponseDto currentGuild;
         private bool isShowingApplications = false;
 
+        // Initializes singleton instance on component creation.
         private void Awake()
         {
             if (Instance == null) Instance = this;
-            else Destroy(gameObject);
+            else Destroy(gameObject); // Prevent multiple instances
         }
 
+        // Monitors panel visibility and synchronizes tab states per frame.
         private void Update()
         {
-            // Auto hide/show tabsPanel if we are inside GuildInfo but viewing GuildDetail preview (from Rank list)
             if (currentGuild != null && guildInfoPanel != null && guildInfoPanel.activeInHierarchy)
             {
                 bool isViewingDetail = (guildDetailPanel != null && guildDetailPanel.activeInHierarchy);
                 if (tabsPanel != null && tabsPanel.activeSelf == isViewingDetail)
                 {
-                    tabsPanel.SetActive(!isViewingDetail);
+                    tabsPanel.SetActive(!isViewingDetail); // Toggle side tabs when viewing guild detail popup
                 }
             }
         }
 
+        // Binds button listeners for guild info tabs, management controls, and donations.
         private void Start()
         {
-            // Tạm thời để ẩn hết
-            if (mainGuildPanel != null) mainGuildPanel.SetActive(false);
+            if (mainGuildPanel != null) mainGuildPanel.SetActive(false); // Hide main modal on start
             if (guildListPanel != null) guildListPanel.SetActive(false);
             if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
             if (createGuildPanel != null) createGuildPanel.SetActive(false);
-            
-            // Ràng buộc số lượng ký tự nhập vào khi tạo Guild
-            if (inputCreateName != null) inputCreateName.characterLimit = 15;
+
+            if (inputCreateName != null) inputCreateName.characterLimit = 15; // Set 15 char max length
 
             if (toggleRequireApproval != null)
             {
                 toggleRequireApproval.onValueChanged.AddListener(isOn => {
                     if (inputRequiredLevel != null)
                     {
-                        inputRequiredLevel.readOnly = !isOn || !IsCurrentPlayerGuildLeader();
+                        inputRequiredLevel.readOnly = !isOn || !IsCurrentPlayerGuildLeader(); // Enable min level input if approval is required
                     }
                 });
                 toggleRequireApproval.isOn = false;
@@ -127,48 +128,45 @@ namespace MysticJourney.UI.Guild
 
             if (btnSaveSettings != null)
             {
-                btnSaveSettings.onClick.AddListener(OnSaveSettingsClicked);
+                btnSaveSettings.onClick.AddListener(OnSaveSettingsClicked); // Wire save settings handler
             }
 
             if (btnLeave != null)
             {
-                btnLeave.onClick.AddListener(RequestLeaveGuild);
+                btnLeave.onClick.AddListener(RequestLeaveGuild); // Wire leave guild request
             }
 
             if (btnApprove != null)
             {
-                btnApprove.onClick.AddListener(ToggleApplicationsList);
+                btnApprove.onClick.AddListener(ToggleApplicationsList); // Wire applicant list toggle
             }
 
             if (btnLevelUp != null)
             {
-                btnLevelUp.onClick.AddListener(LevelUp);
+                btnLevelUp.onClick.AddListener(LevelUp); // Wire guild level up action
             }
 
-            // Bind Right Tabs
             if (tabsPanel != null)
             {
                 Transform btnRightInfo = tabsPanel.transform.Find("InfoButton");
                 if (btnRightInfo != null) {
                     btnRightInfo.GetComponent<Button>()?.onClick.RemoveAllListeners();
-                    btnRightInfo.GetComponent<Button>()?.onClick.AddListener(SwitchToInfoTab);
+                    btnRightInfo.GetComponent<Button>()?.onClick.AddListener(SwitchToInfoTab); // Route to info tab
                 }
 
                 Transform btnRightRank = tabsPanel.transform.Find("RankButton");
                 if (btnRightRank != null) {
                     btnRightRank.GetComponent<Button>()?.onClick.RemoveAllListeners();
-                    btnRightRank.GetComponent<Button>()?.onClick.AddListener(SwitchToRankTab);
+                    btnRightRank.GetComponent<Button>()?.onClick.AddListener(SwitchToRankTab); // Route to rank tab
                 }
             }
             else
             {
-                // Fallback if tabsPanel is somehow null
                 if (btnInfoTabImage != null) btnInfoTabImage.GetComponent<Button>()?.onClick.AddListener(SwitchToInfoTab);
                 if (btnManageTabImage != null) btnManageTabImage.GetComponent<Button>()?.onClick.AddListener(SwitchToManageTab);
                 if (btnRankTabImage != null) btnRankTabImage.GetComponent<Button>()?.onClick.AddListener(SwitchToRankTab);
             }
 
-            // Bind Left Tabs
             if (guildInfoPanel != null)
             {
                 Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
@@ -183,18 +181,17 @@ namespace MysticJourney.UI.Guild
                     Transform btnLeftManage = leftTabs.Find("ManageButton");
                     if (btnLeftManage != null) {
                         btnLeftManage.GetComponent<Button>()?.onClick.RemoveAllListeners();
-                        btnLeftManage.GetComponent<Button>()?.onClick.AddListener(SwitchToManageTab);
+                        btnLeftManage.GetComponent<Button>()?.onClick.AddListener(SwitchToManageTab); // Route to manage tab
                     }
                 }
-                
-                // Bind Donate button if it exists
+
                 var allButtons = guildInfoPanel.GetComponentsInChildren<Button>(true);
                 foreach (var b in allButtons)
                 {
                     if (b.name == "DonateButton")
                     {
                         b.onClick.RemoveAllListeners();
-                        b.onClick.AddListener(OpenDonatePopup);
+                        b.onClick.AddListener(OpenDonatePopup); // Wire guild donation popup trigger
                         break;
                     }
                 }
@@ -202,43 +199,44 @@ namespace MysticJourney.UI.Guild
         }
 
 
-        public UIGuildDonatePanel donatePanel; // The new UI panel
+        public UIGuildDonatePanel donatePanel;
 
+        // Opens the Guild Donation dialog (Gold, Gems, Medals contribution).
         private void OpenDonatePopup()
         {
             if (currentGuild == null) return;
-            
-            // Try to find if not explicitly assigned
+
             if (donatePanel == null) donatePanel = FindFirstObjectByType<UIGuildDonatePanel>(FindObjectsInactive.Include);
 
             if (donatePanel != null)
             {
-                donatePanel.Open(currentGuild.guildId, () => 
+                donatePanel.Open(currentGuild.guildId, () =>
                 {
-                    GuildApi.GetGuildDetail(currentGuild.guildId, 
-                        onSuccess: (detail) => OpenMyGuildDashboard(detail), 
+                    GuildApi.GetGuildDetail(currentGuild.guildId,
+                        onSuccess: (detail) => OpenMyGuildDashboard(detail),
                         onError: (err) => Debug.LogError("Error refreshing guild after donate: " + err.Message));
                 });
             }
         }
 
+        // Executes core business logic for on save settings clicked.
+        // Logic details: validates required non-empty string arguments.
         private void OnSaveSettingsClicked()
         {
             if (currentGuild == null) return;
-            
+
             int joinPolicy = toggleRequireApproval != null && toggleRequireApproval.isOn ? 1 : 0;
             int requiredLevel = 1;
-            
+
             if (inputRequiredLevel != null && !string.IsNullOrEmpty(inputRequiredLevel.text))
             {
                 int.TryParse(inputRequiredLevel.text, out requiredLevel);
-                if (requiredLevel < 1) requiredLevel = 1; // Khong cho nhap am
+                if (requiredLevel < 1) requiredLevel = 1;
             }
 
-            GuildApi.UpdateSettings(currentGuild.guildId, requiredLevel, joinPolicy, 
+            GuildApi.UpdateSettings(currentGuild.guildId, requiredLevel, joinPolicy,
                 response => {
                     UIPopup.Instance.ShowAlert("Notice", "Guild settings saved!");
-                    // Update local copy
                     currentGuild.joinPolicy = joinPolicy;
                     currentGuild.requiredLevel = requiredLevel;
                 },
@@ -247,15 +245,12 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
-        /// <summary>
-        /// Gọi hàm này khi người chơi bấm nút "Guild" ở màn hình chính
-        /// </summary>
+        // Executes core business logic for open guild system.
         public void OpenGuildSystem()
         {
-            this.gameObject.SetActive(true); // Đảm bảo script được chạy
-            if (mainGuildPanel != null) mainGuildPanel.SetActive(true); // Bật Panel tổng lên!
-            
-            // Ẩn tất cả trước khi có kết quả
+            this.gameObject.SetActive(true);
+            if (mainGuildPanel != null) mainGuildPanel.SetActive(true);
+
             if (guildListPanel != null) guildListPanel.SetActive(false);
             if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
             if (createGuildPanel != null) createGuildPanel.SetActive(false);
@@ -264,12 +259,10 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (detail) => {
                     if (detail != null && detail.guildId > 0)
                     {
-                        // Đã có Guild -> Mở tab Info của Guild mình
                         OpenMyGuildDashboard(detail);
                     }
                     else
                     {
-                        // Chưa có Guild -> Mở danh sách
                         OpenGuildList();
                     }
                 },
@@ -280,18 +273,21 @@ namespace MysticJourney.UI.Guild
             );
         }
 
+        // Executes core business logic for close guild system.
         public void CloseGuildSystem()
         {
             if (mainGuildPanel != null) mainGuildPanel.SetActive(false);
-            this.gameObject.SetActive(false); // Ẩn luôn cục quản lý để tối ưu performance
+            this.gameObject.SetActive(false);
         }
 
+        // Executes core business logic for search guild.
         public void SearchGuild()
         {
             string keyword = inputSearchGuild != null ? inputSearchGuild.text : "";
             LoadGuildList(keyword);
         }
 
+        // Executes core business logic for open guild list.
         public void OpenGuildList()
         {
             Debug.Log("[GuildUIManager] OpenGuildList() is called! StackTrace: " + UnityEngine.StackTraceUtility.ExtractStackTrace());
@@ -300,9 +296,8 @@ namespace MysticJourney.UI.Guild
             if (createGuildPanel != null) createGuildPanel.SetActive(false);
             if (guildInfoPanel != null) guildInfoPanel.SetActive(false);
             if (memberListPanel != null) memberListPanel.SetActive(false);
-            if (tabsPanel != null) tabsPanel.SetActive(false); // Ẩn các tab bên phải khi chưa có guild
+            if (tabsPanel != null) tabsPanel.SetActive(false);
 
-            // Nếu GuildList đang được dùng làm Rank thì nút Create bị ẩn đi, giờ cần hiện lại
             if (guildListPanel != null)
             {
                 Transform createBtn = guildListPanel.transform.Find("CreateButton");
@@ -315,16 +310,19 @@ namespace MysticJourney.UI.Guild
             LoadGuildList("");
         }
 
+        // Executes core business logic for open create guild panel.
+        // Logic details: validates required non-empty string arguments.
         public void OpenCreateGuildPanel()
         {
-            // Không ẩn guildListPanel vì nó nằm bên phải, create nằm bên trái
             if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
             if (guildInfoPanel != null) guildInfoPanel.SetActive(false);
             if (tabsPanel != null) tabsPanel.SetActive(false);
-            
+
             if (createGuildPanel != null) createGuildPanel.SetActive(true);
         }
 
+        // Executes core business logic for submit create guild.
+        // Logic details: validates required non-empty string arguments.
         public void SubmitCreateGuild()
         {
             if (inputCreateName == null || string.IsNullOrWhiteSpace(inputCreateName.text))
@@ -338,13 +336,12 @@ namespace MysticJourney.UI.Guild
                 name = inputCreateName.text,
                 notice = inputCreateNotice != null ? inputCreateNotice.text : "",
                 requiredLevel = 1,
-                joinPolicy = 0 // Open by default
+                joinPolicy = 0
             };
 
             GuildApi.CreateGuild(request,
                 onSuccess: (guildResp) =>
                 {
-                    // Tắt loading hoặc hiện thông báo
                     if (UIPopup.Instance != null)
                     {
                         UIPopup.Instance.ShowAlert("Success", $"Created guild '{guildResp.name}' successfully!");
@@ -353,12 +350,10 @@ namespace MysticJourney.UI.Guild
                     {
                         Debug.Log($"[GuildUIManager] Created guild '{guildResp.name}' successfully!");
                     }
-                    
-                    // Clear the form
+
                     inputCreateName.text = "";
                     if (inputCreateNotice != null) inputCreateNotice.text = "";
-                    
-                    // Automatically open the Guild System again (which will fetch My Guild and open Info Panel)
+
                     OpenGuildSystem();
                 },
                 onError: (err) =>
@@ -374,24 +369,23 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for request leave guild.
         public void RequestLeaveGuild()
         {
             Debug.Log($"[GuildUIManager] RequestLeaveGuild called. currentGuild: {(currentGuild != null ? currentGuild.name : "null")}");
             if (currentGuild == null) return;
-            
+
             int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
             Debug.Log($"[GuildUIManager] myProfileId: {myProfileId}, leaderId: {currentGuild.leaderId}");
-            
+
             if (currentGuild.leaderId == myProfileId)
             {
                 Debug.Log($"[GuildUIManager] User is leader. Members count: {(currentGuild.members != null ? currentGuild.members.Count : 0)}");
-                // Kiểm tra xem bang còn ai khác không
                 if (currentGuild.members != null && currentGuild.members.Count > 1)
                 {
-                    // Tìm 1 người khác (ưu tiên Officer, hoặc level cao nhất, hoặc random ai đó khác leader)
                     var nextLeader = currentGuild.members
                         .Where(m => m.playerProfileId != myProfileId)
-                        .OrderBy(m => m.role == "Officer" ? 0 : 1) // ưu tiên Officer
+                        .OrderBy(m => m.role == "Officer" ? 0 : 1)
                         .ThenByDescending(m => m.playerLevel)
                         .FirstOrDefault();
 
@@ -424,12 +418,11 @@ namespace MysticJourney.UI.Guild
                 }
                 else
                 {
-                    // Chỉ có 1 mình -> Giải tán bang
                     if (UIPopup.Instance != null)
                     {
                         UIPopup.Instance.ShowConfirm(
-                            "Dissolve Guild", 
-                            $"You are the only member of '{currentGuild.name}'. Leaving will permanently dissolve the guild. Are you sure you want to dissolve it?", 
+                            "Dissolve Guild",
+                            $"You are the only member of '{currentGuild.name}'. Leaving will permanently dissolve the guild. Are you sure you want to dissolve it?",
                             onConfirm: ExecuteDissolveGuild
                         );
                     }
@@ -442,12 +435,11 @@ namespace MysticJourney.UI.Guild
             else
             {
                 Debug.Log("[GuildUIManager] User is NOT leader. Showing leave confirm popup.");
-                // Thành viên bình thường -> Rời bang
                 if (UIPopup.Instance != null)
                 {
                     UIPopup.Instance.ShowConfirm(
-                        "Leave Guild", 
-                        $"Are you sure you want to leave the guild '{currentGuild.name}'?", 
+                        "Leave Guild",
+                        $"Are you sure you want to leave the guild '{currentGuild.name}'?",
                         onConfirm: ExecuteLeaveGuild
                     );
                 }
@@ -458,21 +450,19 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for load guild list.
         private void LoadGuildList(string keyword)
         {
-            // Fetch list
             GuildApi.GetGuildList(keyword, null, null,
                 onSuccess: (list) => {
                     Debug.Log($"Loaded {list.Count} guilds!");
-                    
-                    // Xóa danh sách cũ
+
                     if (guildListContainer != null)
                     {
                         guildListContainer.gameObject.SetActive(true);
                         foreach (Transform child in guildListContainer)
                             Destroy(child.gameObject);
-                        
-                        // Tạo danh sách mới
+
                         for (int i = 0; i < list.Count; i++)
                         {
                             var guild = list[i];
@@ -480,8 +470,8 @@ namespace MysticJourney.UI.Guild
                             obj.SetActive(true);
                             obj.transform.localScale = Vector3.one;
                             UIGuildEntry entry = obj.GetComponent<UIGuildEntry>();
-                            entry.Setup(guild, 
-                                entryClicked: (id) => OpenGuildDetail(id), 
+                            entry.Setup(guild,
+                                entryClicked: (id) => OpenGuildDetail(id),
                                 applyClicked: (id) => ApplyToGuild(id),
                                 rank: i + 1);
                         }
@@ -492,18 +482,16 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // Dành cho: NGƯỜI CHƯA CÓ GUILD (Bấm vào xem Preview)
-        // ─────────────────────────────────────────────────────────────────────────
+        // Executes core business logic for open guild detail.
+        // Logic details: validates required non-empty string arguments.
         public void OpenGuildDetail(int guildId)
         {
-            if (createGuildPanel != null) createGuildPanel.SetActive(false); // Ẩn Create panel (bên trái)
+            if (createGuildPanel != null) createGuildPanel.SetActive(false);
 
-            GuildApi.GetGuildDetail(guildId, 
+            GuildApi.GetGuildDetail(guildId,
                 onSuccess: (detail) => {
                     guildDetailPanel.SetActive(true);
-                    
-                    // Gắn thông tin cho bảng Preview (Dành cho người chưa có Guild)
+
                     if (txtPreviewName != null) txtPreviewName.text = detail.name;
                     if (txtPreviewMember != null) txtPreviewMember.text = $"Members: {detail.memberCount}/{detail.maxMembers}";
                     if (txtPreviewLeader != null) txtPreviewLeader.text = $"Leader: {detail.leaderName}";
@@ -525,7 +513,7 @@ namespace MysticJourney.UI.Guild
                         btnPreviewApply.onClick.RemoveAllListeners();
                         btnPreviewApply.onClick.AddListener(() => ApplyToGuild(detail.guildId));
                     }
-                    
+
                     Debug.Log($"Preview Guild: {detail.name}");
                 },
                 onError: (err) => {
@@ -533,35 +521,28 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // Dành cho: NGƯỜI ĐÃ CÓ GUILD (Mở Dashboard quản lý)
-        // ─────────────────────────────────────────────────────────────────────────
+        // Executes core business logic for open my guild dashboard.
         public void OpenMyGuildDashboard(GuildDetailResponseDto detail)
         {
             currentGuild = detail;
 
-            // Ẩn các màn hình khác
             if (guildListPanel != null) guildListPanel.SetActive(false);
             if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
             if (createGuildPanel != null) createGuildPanel.SetActive(false);
-            
-            // Bật màn hình Dashboard (Info Panel) và Tab mặc định là Info
+
             if (guildInfoPanel != null) guildInfoPanel.SetActive(true);
-            if (tabsPanel != null) tabsPanel.SetActive(true); // Bật các tab bên phải lên
+            if (tabsPanel != null) tabsPanel.SetActive(true);
             SwitchToInfoTab();
 
-            // Map UI cho Tab Info
             if (txtGuildName != null) txtGuildName.text = detail.name;
             if (txtGuildLevel != null) txtGuildLevel.text = $"Lv. {detail.level}";
             if (txtGuildNotice != null) txtGuildNotice.text = detail.notice;
             if (txtMemberCount != null) txtMemberCount.text = $"Member: {detail.memberCount}/{detail.maxMembers}";
             if (txtGuildTotalMedals != null) txtGuildTotalMedals.text = $"Medals: {detail.totalMedals}";
 
-            // Map UI cho Tab Manage
             if (txtGuildExp != null) txtGuildExp.text = $"EXP: {detail.guildExp}/{detail.expToNextLevel}";
             if (txtMedalsToLevelUp != null) txtMedalsToLevelUp.text = $"Medals: {detail.medalsToNextLevel}";
 
-            // Check Daily Donate Limit
             int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
             var myMember = detail.members?.FirstOrDefault(m => m.playerProfileId == myProfileId);
             if (guildInfoPanel != null && myMember != null)
@@ -584,7 +565,6 @@ namespace MysticJourney.UI.Guild
                     if (b.name == "DonateButton")
                     {
                         b.interactable = !hasDonatedToday;
-                        // Optional: Dim visual if it has Image or CanvasGroup
                         var cg = b.GetComponent<CanvasGroup>();
                         if (cg != null) cg.alpha = hasDonatedToday ? 0.5f : 1.0f;
                         break;
@@ -592,12 +572,12 @@ namespace MysticJourney.UI.Guild
                 }
             }
 
-            // Load danh sách thành viên (bao gồm cả bản thân)
             LoadMemberList();
 
             Debug.Log($"My Guild loaded: {detail.name} with {detail.members.Count} members.");
         }
 
+        // Executes core business logic for switch to info tab.
         public void SwitchToInfoTab()
         {
             if (infoTabContainer != null) infoTabContainer.SetActive(true);
@@ -606,27 +586,25 @@ namespace MysticJourney.UI.Guild
             if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
             if (memberHeaders != null) memberHeaders.SetActive(true);
             if (rankHeaders != null) rankHeaders.SetActive(false);
-            
-            // Ẩn panel của Rank tab (vì nó dùng chung guildListPanel)
+
             if (guildListPanel != null) guildListPanel.SetActive(false);
 
             HighlightLeftTab("InfoButton");
             HighlightRightTab("InfoButton");
 
-            // Show Left Tabs
             if (guildInfoPanel != null)
             {
                 Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
                 if (leftTabs != null) leftTabs.gameObject.SetActive(true);
             }
 
-            // Hiển thị danh sách thành viên khi vào Info Tab
             if (currentGuild != null)
             {
                 LoadMemberList();
             }
         }
 
+        // Executes core business logic for switch to manage tab.
         public void SwitchToManageTab()
         {
             if (infoTabContainer != null) infoTabContainer.SetActive(false);
@@ -635,25 +613,21 @@ namespace MysticJourney.UI.Guild
             if (applicationListPanel != null && applicationListPanel != memberListPanel) applicationListPanel.SetActive(false);
             if (memberHeaders != null) memberHeaders.SetActive(true);
             if (rankHeaders != null) rankHeaders.SetActive(false);
-            
-            // Ẩn panel của Rank tab
+
             if (guildListPanel != null) guildListPanel.SetActive(false);
 
             HighlightLeftTab("ManageButton");
             HighlightRightTab("InfoButton");
 
-            // Show Left Tabs
             if (guildInfoPanel != null)
             {
                 Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
                 if (leftTabs != null) leftTabs.gameObject.SetActive(true);
             }
 
-            // Chuyển về hiển thị danh sách Member mặc định khi sang Manage Tab
             isShowingApplications = false;
             LoadMemberList();
 
-            // Bật nút Approve chỉ khi là Leader hoặc Officer
             UpdateManageButtonsVisibility();
 
             if (btnApprove != null)
@@ -663,6 +637,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for update manage buttons visibility.
         private void UpdateManageButtonsVisibility()
         {
             int myProfileId = PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerProfileIdKey, -1);
@@ -673,13 +648,11 @@ namespace MysticJourney.UI.Guild
             bool isLeaderOrOfficer = isLeader || isOfficer;
 
             if (btnApprove != null) btnApprove.gameObject.SetActive(isLeaderOrOfficer);
-            
-            // Leader-only buttons
+
             if (btnLevelUp != null) btnLevelUp.gameObject.SetActive(isLeader);
             if (btnSaveSettings != null) btnSaveSettings.gameObject.SetActive(isLeader);
             if (btnToggleKickMode != null) btnToggleKickMode.gameObject.SetActive(isLeader);
-            
-            // Setup settings UI interactability based on Leader role
+
             if (currentGuild != null)
             {
                 if (toggleRequireApproval != null)
@@ -688,7 +661,7 @@ namespace MysticJourney.UI.Guild
                     toggleRequireApproval.interactable = isLeader;
                     toggleRequireApproval.SetIsOnWithoutNotify(currentGuild.joinPolicy == 1);
                 }
-                
+
                 if (inputRequiredLevel != null)
                 {
                     inputRequiredLevel.gameObject.SetActive(true);
@@ -699,6 +672,8 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for is current player guild leader.
+        // Returns a boolean indicating operation success.
         private bool IsCurrentPlayerGuildLeader()
         {
             if (currentGuild == null || currentGuild.members == null)
@@ -712,25 +687,21 @@ namespace MysticJourney.UI.Guild
                 string.Equals(member.role, "Leader", System.StringComparison.OrdinalIgnoreCase));
         }
 
+        // Executes core business logic for switch to rank tab.
         public void SwitchToRankTab()
         {
-            // Tắt Info/Manage/Member
             if (infoTabContainer != null) infoTabContainer.SetActive(false);
             if (manageTabContainer != null) manageTabContainer.SetActive(false);
             if (memberListPanel != null) memberListPanel.SetActive(false);
             if (applicationListPanel != null) applicationListPanel.SetActive(false);
-            
-            // Ẩn Header Member, Bật Header Rank
+
             if (memberHeaders != null) memberHeaders.SetActive(false);
             if (rankHeaders != null) rankHeaders.SetActive(true);
 
-            // Bật Panel Rank
             if (guildListPanel != null) guildListPanel.SetActive(true);
 
-            // Tắt màu Info/Manage, Bật màu Rank
             HighlightRightTab("RankButton");
 
-            // Hide Left Tabs
             if (guildInfoPanel != null)
             {
                 Transform leftTabs = guildInfoPanel.transform.Find("Tabs");
@@ -739,7 +710,6 @@ namespace MysticJourney.UI.Guild
 
             if (createGuildPanel != null) createGuildPanel.SetActive(false);
 
-            // Hide Create Button if we are viewing Rank while not in a guild
             if (guildListPanel != null)
             {
                 Transform createBtn = guildListPanel.transform.Find("CreateButton");
@@ -749,9 +719,9 @@ namespace MysticJourney.UI.Guild
             LoadGuildRankings();
         }
 
+        // Executes core business logic for load guild rankings.
         private void LoadGuildRankings()
         {
-            // Xóa list cũ
             if (guildListContainer != null)
             {
                 foreach (Transform child in guildListContainer)
@@ -771,8 +741,8 @@ namespace MysticJourney.UI.Guild
                         var entry = obj.GetComponent<UIGuildEntry>();
                         if (entry != null)
                         {
-                            entry.SetupRank(rank, 
-                                entryClicked: (id) => OpenGuildDetail(id), 
+                            entry.SetupRank(rank,
+                                entryClicked: (id) => OpenGuildDetail(id),
                                 applyClicked: (id) => ApplyToGuild(id));
                         }
                     }
@@ -784,17 +754,17 @@ namespace MysticJourney.UI.Guild
 
 
 
+        // Executes core business logic for toggle applications list.
         public void ToggleApplicationsList()
         {
             if (currentGuild == null) return;
 
             isShowingApplications = !isShowingApplications;
 
-            // Nếu 2 panel khác nhau thì bật tắt, nếu giống nhau thì luôn bật
             if (applicationListPanel != null && applicationListPanel != memberListPanel)
             {
                 applicationListPanel.SetActive(isShowingApplications);
-                if (memberListPanel != null) 
+                if (memberListPanel != null)
                     memberListPanel.SetActive(!isShowingApplications);
             }
             else if (memberListPanel != null)
@@ -818,17 +788,16 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for load member list.
         private void LoadMemberList()
         {
             if (currentGuild == null || currentGuild.members == null) return;
             if (memberListContainer == null || memberEntryPrefab == null) return;
 
-            // Xóa danh sách cũ
             memberListContainer.gameObject.SetActive(true);
             foreach (Transform child in memberListContainer)
                 Destroy(child.gameObject);
 
-            // Sắp xếp: Leader > Officer > Member, sau đó theo level
             var sortedMembers = currentGuild.members
                 .OrderByDescending(m => m.role == "Leader" ? 2 : m.role == "Officer" ? 1 : 0)
                 .ThenByDescending(m => m.playerLevel)
@@ -852,7 +821,7 @@ namespace MysticJourney.UI.Guild
                         if (myRole == "Leader") canKick = true;
                         else if (myRole == "Officer" && member.role == "Member") canKick = true;
                     }
-                    
+
                     entry.Setup(
                         member,
                         canKick,
@@ -865,6 +834,7 @@ namespace MysticJourney.UI.Guild
             Debug.Log($"Loaded {sortedMembers.Count} guild members (including self)");
         }
 
+        // Executes core business logic for load application list.
         private void LoadApplicationList()
         {
             if (currentGuild == null) return;
@@ -873,7 +843,6 @@ namespace MysticJourney.UI.Guild
             GuildApi.GetApplications(currentGuild.guildId,
                 onSuccess: (applications) =>
                 {
-                    // Xóa danh sách cũ
                     applicationListContainer.gameObject.SetActive(true);
                     foreach (Transform child in applicationListContainer)
                         Destroy(child.gameObject);
@@ -903,6 +872,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for on application approved.
         private void OnApplicationApproved(int applicationId)
         {
             if (currentGuild == null) return;
@@ -911,7 +881,6 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (result) =>
                 {
                     Debug.Log("Application approved!");
-                    // Refresh lại danh sách
                     RefreshCurrentGuild();
                 },
                 onError: (err) =>
@@ -922,6 +891,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for on application rejected.
         private void OnApplicationRejected(int applicationId)
         {
             if (currentGuild == null) return;
@@ -930,7 +900,6 @@ namespace MysticJourney.UI.Guild
                 onSuccess: (result) =>
                 {
                     Debug.Log("Application rejected!");
-                    // Refresh lại danh sách
                     RefreshCurrentGuild();
                 },
                 onError: (err) =>
@@ -939,6 +908,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for refresh current guild.
         private void RefreshCurrentGuild()
         {
             if (currentGuild == null) return;
@@ -962,6 +932,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for highlight left tab.
         private void HighlightLeftTab(string activeTabName)
         {
             if (guildInfoPanel == null) return;
@@ -969,16 +940,16 @@ namespace MysticJourney.UI.Guild
             if (leftTabs == null) return;
 
             Color activeBgColor = Color.white;
-            Color inactiveBgColor = new Color(0.5f, 0.5f, 0.5f, 1f); 
-            Color activeTxtColor = new Color(0.35f, 0.2f, 0.05f, 1f); // Nâu đậm
-            Color inactiveTxtColor = new Color(0.4f, 0.4f, 0.4f, 1f); // Xám
+            Color inactiveBgColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+            Color activeTxtColor = new Color(0.35f, 0.2f, 0.05f, 1f);
+            Color inactiveTxtColor = new Color(0.4f, 0.4f, 0.4f, 1f);
 
             string[] tabNames = { "InfoButton", "ManageButton" };
             foreach (var tabName in tabNames)
             {
                 Transform tab = leftTabs.Find(tabName);
                 if (tab == null) continue;
-                
+
                 bool isActive = (tabName == activeTabName);
                 var img = tab.GetComponent<Image>();
                 if (img != null) img.color = isActive ? activeBgColor : inactiveBgColor;
@@ -988,14 +959,15 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for highlight right tab.
         private void HighlightRightTab(string activeTabName)
         {
             if (tabsPanel == null) return;
 
             Color activeBgColor = Color.white;
-            Color inactiveBgColor = new Color(0.5f, 0.5f, 0.5f, 1f); 
-            Color activeTxtColor = new Color(0.35f, 0.2f, 0.05f, 1f); // Nâu đậm
-            Color inactiveTxtColor = new Color(0.4f, 0.4f, 0.4f, 1f); // Xám
+            Color inactiveBgColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+            Color activeTxtColor = new Color(0.35f, 0.2f, 0.05f, 1f);
+            Color inactiveTxtColor = new Color(0.4f, 0.4f, 0.4f, 1f);
 
             string[] tabNames = { "InfoButton", "RankButton", "QuestButton" };
             foreach (var tabName in tabNames)
@@ -1012,6 +984,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for apply to guild.
         public void ApplyToGuild(int guildId)
         {
             GuildApi.ApplyToGuild(guildId,
@@ -1019,11 +992,10 @@ namespace MysticJourney.UI.Guild
                     if (result.success)
                     {
                         UIPopup.Instance.ShowAlert("Notice", result.message);
-                        OpenGuildSystem(); // Refresh toàn bộ hệ thống
+                        OpenGuildSystem();
                     }
                     else if (!result.canJoin && result.cooldownRemainingSeconds > 0)
                     {
-                        // Hiện Popup thông báo cooldown 24h
                         int hours = result.cooldownRemainingSeconds / 3600;
                         int minutes = (result.cooldownRemainingSeconds % 3600) / 60;
                         UIPopup.Instance.ShowAlert("Cannot join Guild", $"You must wait {hours}h {minutes}m.");
@@ -1040,6 +1012,7 @@ namespace MysticJourney.UI.Guild
 
 
 
+        // Executes core business logic for level up.
         public void LevelUp()
         {
             if (currentGuild == null) return;
@@ -1047,7 +1020,6 @@ namespace MysticJourney.UI.Guild
             GuildApi.LevelUp(currentGuild.guildId,
                 onSuccess: (result) => {
                     Debug.Log("Guild Leveled Up Successfully!");
-                    // Refresh data
                     OpenGuildDetail(currentGuild.guildId);
                 },
                 onError: (err) => {
@@ -1055,6 +1027,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for execute leave guild.
         private void ExecuteLeaveGuild()
         {
             if (currentGuild == null) return;
@@ -1067,9 +1040,9 @@ namespace MysticJourney.UI.Guild
                             UIPopup.Instance.ShowAlert("Success", "Left guild successfully.");
                         else
                             Debug.Log("Left guild successfully.");
-                            
+
                         currentGuild = null;
-                        OpenGuildList(); // Quay về màn hình tìm guild
+                        OpenGuildList();
                     }
                     else
                     {
@@ -1087,6 +1060,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for execute dissolve guild.
         private void ExecuteDissolveGuild()
         {
             if (currentGuild == null) return;
@@ -1097,9 +1071,9 @@ namespace MysticJourney.UI.Guild
                         UIPopup.Instance.ShowAlert("Success", "Guild dissolved successfully.");
                     else
                         Debug.Log("Guild dissolved successfully.");
-                        
+
                     currentGuild = null;
-                    OpenGuildList(); // Quay về màn hình tìm guild
+                    OpenGuildList();
                 },
                 onError: (err) => {
                     if (UIPopup.Instance != null)
@@ -1109,6 +1083,7 @@ namespace MysticJourney.UI.Guild
                 });
         }
 
+        // Executes core business logic for open invite panel.
         public void OpenInvitePanel()
         {
             if (invitePanel != null)
@@ -1123,6 +1098,7 @@ namespace MysticJourney.UI.Guild
 
         private bool isKickModeActive = false;
 
+        // Executes core business logic for toggle kick mode.
         public void ToggleKickMode()
         {
             isKickModeActive = !isKickModeActive;
@@ -1139,6 +1115,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes core business logic for handle kick member.
         private void HandleKickMember(int memberId)
         {
             if (currentGuild == null) return;

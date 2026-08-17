@@ -1,38 +1,40 @@
 using UnityEngine;
 
+// Executes skill projectile operation.
 public class DeadlyCurseSkill : SkillProjectile
 {
     private Animator anim;
     private bool isExploding = false;
-    
-    [SerializeField] private float explodeDuration = 0.5f; // Thời gian chờ nổ xong (chỉnh lại cho khớp với animation của bạn)
 
+    [SerializeField] private float explodeDuration = 0.5f;
+
+    // Initializes internal component caches and dependencies for DeadlyCurseSkill upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         anim = GetComponent<Animator>();
     }
 
+    // Per-frame update loop for DeadlyCurseSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     protected override void Update()
     {
-        // Chỉ di chuyển nếu chưa bị nổ
         if (!isExploding)
         {
             base.Update();
         }
     }
 
+    // Executes on hit target operation.
     protected override void OnHitTarget()
     {
-        // Đánh dấu là đang nổ để không bay tới trước nữa
         isExploding = true;
-        
+
         if (anim != null)
         {
-            // Trigger parameter "Hit" như bạn mong muốn
-            anim.SetTrigger("Hit"); 
+            anim.SetTrigger("Hit");
         }
 
-        // Thay vì destroy ngay lập tức như đạn bình thường, ta delay một chút để animation nổ kịp chạy xong
         Destroy(gameObject, explodeDuration);
     }
 }

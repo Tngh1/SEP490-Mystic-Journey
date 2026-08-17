@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class SkillProjectile : MonoBehaviour
 {
     [SerializeField] protected float speed = 10f;
@@ -8,6 +9,7 @@ public class SkillProjectile : MonoBehaviour
     [SerializeField, Range(0f, 1f)] protected float soundVolume = 1f;
     protected float _damage;
 
+    // Executes setup operation.
     public virtual void Setup(float damage)
     {
         _damage = damage;
@@ -19,33 +21,33 @@ public class SkillProjectile : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for SkillProjectile.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     protected virtual void Update()
     {
         transform.Translate(Vector3.right * speed * Time.deltaTime, Space.Self);
     }
 
+    // Executes on trigger enter2 d operation.
     protected virtual void OnTriggerEnter2D(Collider2D collision)
     {
-        // Bỏ qua va chạm với Player (người tung skill hoặc đồng đội)
         if (collision.CompareTag("Player")) return;
 
         EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
 
-        // Bỏ qua các vùng kích hoạt ẩn (Trigger) không phải là Monster (ví dụ: fader cây/nhà, portal)
         if (collision.isTrigger && enemy == null && !collision.CompareTag("Monster")) return;
 
         if (enemy != null || collision.CompareTag("Monster"))
         {
             if (enemy != null && !PlayerSkillVisualReplica.IsReplica(this))
             {
-                // 👇 Thêm logic Chí mạng cho Kỹ năng (Tạm để 20% crit, x1.5 sát thương)
+                // Randomize the eligible candidates before selecting this gameplay result.
                 bool isCrit = Random.Range(0f, 100f) <= 20f;
                 float finalDamage = isCrit ? _damage * 1.5f : _damage;
                 int damageInt = Mathf.RoundToInt(finalDamage);
 
                 enemy.TakeDamage(damageInt);
 
-                // 👇 Hiện số sát thương bay lên
                 if (DamagePopupManager.Instance != null)
                 {
                     DamagePopupManager.Instance.Create(enemy.transform.position, damageInt, isCrit, false);
@@ -55,21 +57,22 @@ public class SkillProjectile : MonoBehaviour
             return;
         }
 
-        // Đạn va chạm bất kỳ vật thể nào trên bản đồ (Monster, tường, địa hình, chướng ngại vật...) đều nổ / biến mất
         OnHitTarget();
     }
 
+    // Executes on collision enter2 d operation.
     protected virtual void OnCollisionEnter2D(Collision2D collision)
     {
         OnTriggerEnter2D(collision.collider);
     }
 
+    // Executes on hit target operation.
     protected virtual void OnHitTarget()
     {
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
         }
-        Destroy(gameObject); // Chạm quái thì đạn nổ biến mất
+        Destroy(gameObject);
     }
 }

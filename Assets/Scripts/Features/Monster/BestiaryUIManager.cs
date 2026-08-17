@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes core business logic for mono behaviour.
 public class BestiaryUIManager : MonoBehaviour
 {
     [Header("Left Panel - List")]
@@ -32,12 +33,15 @@ public class BestiaryUIManager : MonoBehaviour
 
     private MonsterSlotUI _selectedSlot;
 
+    // Initializes internal component caches and dependencies for BestiaryUIManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         EnsureDiscoveredCountText();
         SetupHoverEffects();
     }
 
+    // Executes core business logic for ensure discovered count text.
     private void EnsureDiscoveredCountText()
     {
         if (discoveredCountText != null) return;
@@ -47,10 +51,7 @@ public class BestiaryUIManager : MonoBehaviour
             discoveredCountText = discoveredNumber.GetComponent<TextMeshProUGUI>();
     }
 
-    /// <summary>
-    /// Gắn hiệu ứng phóng to khi rê chuột, dùng đúng component UIHoverScaleEffect mà HUD đang dùng.
-    /// Slot quái được gắn trong MonsterSlotUI.Init vì chúng sinh ra lúc chạy.
-    /// </summary>
+    // Executes core business logic for setup hover effects.
     private void SetupHoverEffects()
     {
         if (closeButton == null) return;
@@ -58,6 +59,7 @@ public class BestiaryUIManager : MonoBehaviour
             closeButton.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (closeButton != null)
@@ -72,10 +74,7 @@ public class BestiaryUIManager : MonoBehaviour
         LoadCatalogData();
     }
 
-    /// <summary>
-    /// Ô detail trong scene có sẵn text mẫu ("Monster Name", "Boss", "1000"...) nên panel vừa mở
-    /// đã thấy dữ liệu giả dù chưa chọn con nào. Xoá trắng cho tới khi người chơi bấm 1 slot.
-    /// </summary>
+    // Executes core business logic for clear detail.
     private void ClearDetail()
     {
         if (detailIcon != null)
@@ -93,21 +92,22 @@ public class BestiaryUIManager : MonoBehaviour
         SetStats(string.Empty, string.Empty, string.Empty);
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (closeButton != null) closeButton.onClick.RemoveAllListeners();
     }
 
+    // Executes core business logic for close panel.
     private void ClosePanel()
     {
-        // Qua UIManager để nó dọn currentPanel và giữ quest tracker hiển thị đúng
         if (UIManager.Instance != null) UIManager.Instance.ClosePanel(gameObject);
         else gameObject.SetActive(false);
     }
 
+    // Executes core business logic for load catalog data.
     private void LoadCatalogData()
     {
-        // Gọi thẳng API, bỏ qua MonsterManager để tránh lỗi Null
         MonsterApi.Instance.GetCatalogForPlayer(1, 1000, response =>
         {
             if (response != null && response.Items != null)
@@ -123,13 +123,13 @@ public class BestiaryUIManager : MonoBehaviour
         }, error => Debug.LogError("Failed to load Bestiary: " + error.Message));
     }
 
+    // Executes core business logic for populate list.
     private void PopulateList(PlayerMonsterCatalogItem[] items)
     {
         ClearList();
 
         foreach (var item in items)
         {
-            // Sinh ra 1 ô quái mới
             GameObject slotObj = Instantiate(monsterSlotPrefab, contentContainer);
             MonsterSlotUI slotUI = slotObj.GetComponent<MonsterSlotUI>();
             if (slotUI == null)
@@ -138,13 +138,13 @@ public class BestiaryUIManager : MonoBehaviour
                 continue;
             }
 
-            // Gắn dữ liệu. Bắt slot vào closure để tô sáng đúng ô được bấm.
             PlayerMonsterCatalogItem captured = item;
             MonsterSlotUI capturedSlot = slotUI;
             slotUI.Init(captured, data => OnSlotClicked(capturedSlot, data), GetIconFor(item.MonsterId));
         }
     }
 
+    // Executes core business logic for get icon for.
     private Sprite GetIconFor(int monsterId)
     {
         if (monsterVisualDatabase == null) return null;
@@ -152,6 +152,7 @@ public class BestiaryUIManager : MonoBehaviour
         return visualData != null ? visualData.MonsterIcon : null;
     }
 
+    // Executes core business logic for on slot clicked.
     private void OnSlotClicked(MonsterSlotUI slot, PlayerMonsterCatalogItem data)
     {
         if (_selectedSlot != null && _selectedSlot != slot) _selectedSlot.SetSelected(false);
@@ -161,6 +162,7 @@ public class BestiaryUIManager : MonoBehaviour
         ShowDetail(data);
     }
 
+    // Executes core business logic for clear list.
     private void ClearList()
     {
         _selectedSlot = null;
@@ -171,6 +173,7 @@ public class BestiaryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for show detail.
     private void ShowDetail(PlayerMonsterCatalogItem data)
     {
         Sprite iconSprite = GetIconFor(data.MonsterId);
@@ -197,7 +200,6 @@ public class BestiaryUIManager : MonoBehaviour
 
             SetStats(data.MaxHp.ToString(), data.Atk.ToString(), data.Def.ToString());
 
-            // Chỉ dùng khi giao diện còn ô stats gộp
             if (detailStatsText != null)
             {
                 detailStatsText.text = $"Level: {data.Level}\n" +
@@ -231,6 +233,7 @@ public class BestiaryUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for set stats.
     private void SetStats(string hp, string atk, string def)
     {
         if (healthValueText != null) healthValueText.text = hp;

@@ -1,11 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Skill Kén Phục Sinh (Resurrection Cocoon) do Boss UnderKing thi triển (mặc định 10s 1 lần).
-/// Tác dụng:
-/// 1. Hồi 20% máu tối đa cho UnderKing.
-/// 2. Tạo Kén bao bọc UnderKing giúp chặn 2 đòn đánh / kỹ năng từ Player.
-/// </summary>
+// Executes mono behaviour operation.
 public class ResurrectionCocoonSkill : MonoBehaviour
 {
     [Header("Skill Settings")]
@@ -26,15 +21,15 @@ public class ResurrectionCocoonSkill : MonoBehaviour
     [SerializeField] private AudioClip castSound;
     [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
 
+    // Performs startup initialization for ResurrectionCocoonSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // Phát âm thanh thi triển kỹ năng Kén Phục Sinh
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // Tìm Boss UnderKing gần nhất hoặc parent
         EnemyEntity bossEntity = GetComponentInParent<EnemyEntity>();
         if (bossEntity == null)
         {
@@ -52,19 +47,17 @@ public class ResurrectionCocoonSkill : MonoBehaviour
         }
     }
 
+    // Executes apply cocoon to boss operation.
     private void ApplyCocoonToBoss(EnemyEntity boss)
     {
-        // 1. Hồi 20% Máu tối đa cho Boss UnderKing
         int healAmount = Mathf.RoundToInt(boss.MaxHealth * (healPercent / 100f));
         boss.Heal(healAmount);
 
-        // Hiển thị Popup Hồi Máu màu Xanh Lá
         if (DamagePopupManager.Instance != null && healAmount > 0)
         {
             DamagePopupManager.Instance.Create(boss.transform.position, healAmount, false, false, true);
         }
 
-        // 2. Gắn visual Kén bao bọc quanh Boss tại tâm thân người (Offset Y)
         transform.SetParent(boss.transform);
         Transform foundSpawnPoint = boss.transform.Find("SpawnPoint") ?? boss.transform.Find("SkillSpawn");
         if (foundSpawnPoint != null)
@@ -76,7 +69,6 @@ public class ResurrectionCocoonSkill : MonoBehaviour
             transform.localPosition = localOffset;
         }
 
-        // 3. Khởi tạo/Cập nhật Khiên chặn 2 đòn đánh trên Boss UnderKing
         ResurrectionCocoonShield existingShield = boss.GetComponent<ResurrectionCocoonShield>();
         if (existingShield != null)
         {
@@ -88,10 +80,10 @@ public class ResurrectionCocoonSkill : MonoBehaviour
             newShield.Initialize(maxBlockHits, gameObject);
         }
 
-        // Tự động giải phóng kén sau khoảng thời gian tối đa nếu không bị đánh vỡ
         Destroy(gameObject, shieldMaxDuration);
     }
 
+    // Executes find nearest boss operation.
     private EnemyEntity FindNearestBoss()
     {
         EnemyEntity[] enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
@@ -111,7 +103,6 @@ public class ResurrectionCocoonSkill : MonoBehaviour
             }
         }
 
-        // Fallback: Lấy quái gần nhất trong bán kính 5m
         if (nearestBoss == null)
         {
             foreach (var enemy in enemies)

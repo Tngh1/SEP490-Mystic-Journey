@@ -3,15 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Draws player markers on top of the minimap render texture: the local player
-/// plus every other player in the current Photon Fusion session, with their name.
-/// Markers outside the minimap view are clamped to the edge so you always know
-/// which direction a teammate is.
-///
-/// Attach to the masked minimap viewport (the RectTransform that holds the
-/// minimap RawImage). Markers are generated at runtime — no prefab wiring.
-/// </summary>
+// Executes mono behaviour operation.
 [RequireComponent(typeof(RectTransform))]
 public class MinimapMarkerLayer : MonoBehaviour
 {
@@ -37,6 +29,7 @@ public class MinimapMarkerLayer : MonoBehaviour
 
     private static Sprite _dotSprite;
 
+    // Executes marker operation.
     private sealed class Marker
     {
         public RectTransform Rect;
@@ -44,6 +37,8 @@ public class MinimapMarkerLayer : MonoBehaviour
         public TMP_Text Label;
     }
 
+    // Initializes internal component caches and dependencies for MinimapMarkerLayer upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _rect = GetComponent<RectTransform>();
@@ -58,6 +53,7 @@ public class MinimapMarkerLayer : MonoBehaviour
         rootRect.offsetMax = Vector2.zero;
     }
 
+    // Executes late update operation.
     private void LateUpdate()
     {
         var minimap = MinimapCameraController.Instance;
@@ -69,8 +65,6 @@ public class MinimapMarkerLayer : MonoBehaviour
 
         foreach (var pair in _markers) pair.Value.Rect.gameObject.SetActive(false);
 
-        // Multiplayer avatars (Fusion). NetworkPlayer.All contains every player in
-        // the session, including the local one.
         var players = NetworkPlayer.All;
         for (int i = 0; i < players.Count; i++)
         {
@@ -82,14 +76,13 @@ public class MinimapMarkerLayer : MonoBehaviour
                        isLocal ? null : p.PlayerName.ToString());
         }
 
-        // Offline / single-player path: no networked avatar, so fall back to the
-        // camera target (the local player PlayerSpawner handed us).
         if (players.Count == 0 && minimap.Target != null)
             DrawMarker(minimap.Camera, minimap.Target, minimap.Target.position, true, null);
 
         PruneDestroyed();
     }
 
+    // Executes draw marker operation.
     private void DrawMarker(Camera cam, Object owner, Vector3 worldPos, bool isLocal, string label)
     {
         Vector3 viewport = cam.WorldToViewportPoint(worldPos);
@@ -99,7 +92,9 @@ public class MinimapMarkerLayer : MonoBehaviour
         if (offView)
         {
             if (!clampToEdge) return;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             centered.x = Mathf.Clamp(centered.x, -0.5f, 0.5f);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             centered.y = Mathf.Clamp(centered.y, -0.5f, 0.5f);
         }
 
@@ -120,6 +115,7 @@ public class MinimapMarkerLayer : MonoBehaviour
         }
     }
 
+    // Executes get or create operation.
     private Marker GetOrCreate(Object owner, bool isLocal, string label)
     {
         if (_markers.TryGetValue(owner, out var existing)) return existing;
@@ -163,6 +159,7 @@ public class MinimapMarkerLayer : MonoBehaviour
         return marker;
     }
 
+    // Executes prune destroyed operation.
     private void PruneDestroyed()
     {
         _stale.Clear();
@@ -179,6 +176,7 @@ public class MinimapMarkerLayer : MonoBehaviour
         }
     }
 
+    // Executes hide all operation.
     private void HideAll()
     {
         foreach (var pair in _markers)
@@ -187,9 +185,7 @@ public class MinimapMarkerLayer : MonoBehaviour
         }
     }
 
-    // ponytail: procedural 1px dot scaled by the Image instead of an art asset —
-    // swap in a proper marker sprite (arrow for local, class icon for remotes)
-    // when art is available.
+    // Executes dot sprite operation.
     private static Sprite DotSprite()
     {
         if (_dotSprite != null) return _dotSprite;
@@ -201,7 +197,7 @@ public class MinimapMarkerLayer : MonoBehaviour
             for (int x = 0; x < 16; x++)
             {
                 float d = Vector2.Distance(new Vector2(x, y), center);
-                // Soft-edged circle with a darker rim so markers read on any terrain.
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 float a = Mathf.Clamp01(7.5f - d);
                 float rim = d > 5.5f ? 0.45f : 1f;
                 tex.SetPixel(x, y, new Color(rim, rim, rim, a));

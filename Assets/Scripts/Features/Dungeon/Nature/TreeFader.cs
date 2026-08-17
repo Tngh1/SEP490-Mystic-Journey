@@ -1,13 +1,11 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+// Executes mono behaviour operation.
 public class TreeFader3 : MonoBehaviour
 {
     const float VISIBLE_ALPHA = 1f;
     const float TRANSPARENT_ALPHA = 0.3f;
-    // Ngưỡng dừng: khi alpha đã đủ gần target thì snap về đúng giá trị
-    // và tắt Update() hoàn toàn — không tốn CPU khi cây không ai đứng vào.
-    // 959 TreeFader3 trong ElfForest → tiết kiệm 959 Update() mỗi frame!
     const float ALPHA_EPSILON = 0.005f;
 
     private SpriteRenderer[] m_SpriteRenderers;
@@ -17,6 +15,7 @@ public class TreeFader3 : MonoBehaviour
     private int m_InitialSortOrder;
     private SpriteRenderer m_InteractorRenderer;
 
+    // Executes background object alpha operation.
     private float BackgroundObjectAlpha
     {
         get
@@ -33,8 +32,6 @@ public class TreeFader3 : MonoBehaviour
     {
         m_SpriteRenderers = GetComponentsInChildren<SpriteRenderer>();
         m_Tilemaps = GetComponentsInChildren<Tilemap>();
-        // Bắt đầu ở trạng thái idle — tắt Update() ngay trong Awake
-        // OnTriggerEnter2D sẽ bật lại khi player vào
         this.enabled = false;
     }
 
@@ -50,7 +47,6 @@ public class TreeFader3 : MonoBehaviour
 
         if (diff <= ALPHA_EPSILON)
         {
-            // Snap về đúng target và tắt Update — zero CPU khi idle
             ApplyAlpha(targetAlpha);
             if (!m_FadeOutEnabled && m_InteractorRenderer != null)
                 m_InteractorRenderer.sortingOrder = m_InitialSortOrder;
@@ -58,13 +54,13 @@ public class TreeFader3 : MonoBehaviour
             return;
         }
 
-        // Vẫn đang fade → tiếp tục lerp
         if (m_FadeOutEnabled)
             FadeOut();
         else
             FadeIn();
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (m_FadeOutEnabled) return;
@@ -76,11 +72,12 @@ public class TreeFader3 : MonoBehaviour
             {
                 m_InitialSortOrder = m_InteractorRenderer.sortingOrder;
                 m_FadeOutEnabled = true;
-                this.enabled = true; // Bật Update để bắt đầu fade out
+                this.enabled = true;
             }
         }
     }
 
+    // Executes on trigger exit2 d operation.
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (!m_FadeOutEnabled) return;
@@ -88,10 +85,11 @@ public class TreeFader3 : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             m_FadeOutEnabled = false;
-            this.enabled = true; // Bật Update để fade in ngược lại
+            this.enabled = true;
         }
     }
 
+    // Executes fade out operation.
     private void FadeOut()
     {
         if (m_SpriteRenderers != null)
@@ -102,6 +100,7 @@ public class TreeFader3 : MonoBehaviour
                 ChangeTilemapOpacity(map, TRANSPARENT_ALPHA);
     }
 
+    // Executes fade in operation.
     private void FadeIn()
     {
         if (m_SpriteRenderers != null)
@@ -112,7 +111,7 @@ public class TreeFader3 : MonoBehaviour
                 ChangeTilemapOpacity(map, VISIBLE_ALPHA);
     }
 
-    /// <summary>Snap alpha ngay lập tức (không lerp) — dùng khi đã đủ gần target.</summary>
+    // Executes apply alpha operation.
     private void ApplyAlpha(float alpha)
     {
         if (m_SpriteRenderers != null)
@@ -123,12 +122,14 @@ public class TreeFader3 : MonoBehaviour
                 if (t != null) { var c = t.color; t.color = new Color(c.r, c.g, c.b, alpha); }
     }
 
+    // Executes change sprite opacity operation.
     private void ChangeSpriteOpacity(SpriteRenderer renderer, float targetAlpha)
     {
         Color color = renderer.color;
         renderer.color = new Color(color.r, color.g, color.b, Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * 4));
     }
 
+    // Executes change tilemap opacity operation.
     private void ChangeTilemapOpacity(Tilemap map, float targetAlpha)
     {
         Color color = map.color;

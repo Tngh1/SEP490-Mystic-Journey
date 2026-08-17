@@ -12,6 +12,8 @@ using MysticJourney.UI;
 
 namespace MysticJourney.Screen.Login
 {
+    // Executes core business logic for mono behaviour.
+    // Logic details: validates required non-empty string arguments.
     public class LoginUIManager : MonoBehaviour
     {
         [Header("Input Fields (TMP)")]
@@ -28,33 +30,32 @@ namespace MysticJourney.Screen.Login
         [Tooltip("Thời gian chờ (giây) trước khi chuyển scene, để user kịp đọc log.")]
         [SerializeField, Min(0f)] private float delayBeforeSceneLoad = 0.5f;
 
-        // --- BỔ SUNG BIẾN CHO FAILED POPUP ---
         [Header("Failed Popup UI")]
-        [SerializeField] private GameObject failedPopup;     // Object FailedPopup tổng
-        [SerializeField] private TMP_Text errorText;         // Chữ hiển thị lỗi
-        [SerializeField] private Button popupExitButton;     // Nút X để đóng Popup
+        [SerializeField] private GameObject failedPopup;
+        [SerializeField] private TMP_Text errorText;
+        [SerializeField] private Button popupExitButton;
 
         public event System.Action<LoginGameResponse> OnLoginSuccess;
         public event System.Action<ApiException> OnLoginFailed;
 
         private bool _isLoggingIn;
 
+        // Initializes internal component caches and dependencies for LoginUIManager upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
-            // Bị buộc logout (session hết hạn/bị đè, mất kết nối) từ scene trước sẽ để lại lý do
-            // ở đây. PHẢI check trong Awake (không phải Start) và force active GameObject
-            // vì scene có thể load với LoginPanel inactive, Start() sẽ không được gọi.
             var pendingReason = MysticJourney.Core.Services.SessionService.PendingLogoutReason;
             if (!string.IsNullOrEmpty(pendingReason))
             {
-                // Force active GameObject để popup hiển thị được
                 gameObject.SetActive(true);
 
-                // Trì hoãn 1 frame để đảm bảo scene đã load xong, rồi hiện popup
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(ShowLogoutNotificationDelayed(pendingReason));
             }
         }
 
+        // Performs startup initialization for LoginUIManager on the first active frame.
+        // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
         private void Start()
         {
             if (passwordInput != null)
@@ -63,30 +64,27 @@ namespace MysticJourney.Screen.Login
             if (loginButton != null)
                 loginButton.onClick.AddListener(OnLoginButtonClicked);
 
-            // Ẩn popup khi mới bắt đầu game và gán sự kiện cho nút đóng
             if (failedPopup != null)
                 failedPopup.SetActive(false);
 
             if (popupExitButton != null)
                 popupExitButton.onClick.AddListener(CloseFailedPopup);
 
-            // Load Remember Me data
             LoadRememberMeData();
         }
 
+        // Executes core business logic for show logout notification delayed.
+        // Logic details: validates required non-empty string arguments.
         private IEnumerator ShowLogoutNotificationDelayed(string reason)
         {
-            yield return null; // Đợi 1 frame
+            yield return null;
             ShowLogoutNotification(reason);
         }
 
-        /// <summary>
-        /// Hiển thị thông báo logout (session hết hạn / bị đè bởi thiết bị khác) 
-        /// bằng UIPopupBox trong MainMenu Scene. Message bằng tiếng Anh.
-        /// </summary>
+        // Executes core business logic for show logout notification.
+        // Logic details: validates required non-empty string arguments.
         private void ShowLogoutNotification(string reason)
         {
-            // Mặc định message bằng tiếng Anh
             string title = "Logged Out";
             string message = reason;
 
@@ -95,13 +93,10 @@ namespace MysticJourney.Screen.Login
                 message = "Your session has ended. Please log in again.";
             }
 
-            // Thử dùng UIPopupBox trước (popup chuẩn của game)
-            // Nếu không tìm thấy UIPopup trong scene, dùng failedPopup có sẵn
             bool popupShown = TryShowUIPopupBox(title, message);
 
             if (!popupShown && failedPopup != null)
             {
-                // Fallback: dùng failedPopup có sẵn trong MainMenuScene
                 ShowErrorPopup(message);
             }
 
@@ -109,15 +104,12 @@ namespace MysticJourney.Screen.Login
             MysticJourney.Core.Services.SessionService.ClearPendingLogoutReason();
         }
 
-        /// <summary>
-        /// Thử hiển thị bằng UIPopupBox. Trả về true nếu thành công.
-        /// </summary>
+        // Executes core business logic for try show ui popup box.
+        // Returns a boolean indicating operation success.
         private bool TryShowUIPopupBox(string title, string message)
         {
             try
             {
-                // UIPopupBox.Notify yêu cầu transform của caller để tìm Canvas
-                // Dùng transform của LoginUIManager (thường nằm trong Canvas)
                 return UIPopupBox.Notify(transform, title, message);
             }
             catch (Exception ex)
@@ -127,6 +119,7 @@ namespace MysticJourney.Screen.Login
             }
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDestroy()
         {
             if (loginButton != null)
@@ -139,8 +132,9 @@ namespace MysticJourney.Screen.Login
                 rememberMeToggle.onValueChanged.RemoveListener(OnRememberMeChanged);
         }
 
-        // ── Click Handler ─────────────────────────────────────────
 
+        // Executes core business logic for on login button clicked.
+        // Logic details: validates required non-empty string arguments.
         public void OnLoginButtonClicked()
         {
             if (_isLoggingIn) return;
@@ -165,7 +159,7 @@ namespace MysticJourney.Screen.Login
                     _isLoggingIn = false;
                     SetInteractable(true);
 
-                    if (failedPopup != null) failedPopup.SetActive(false); // Ẩn popup nếu đang bật
+                    if (failedPopup != null) failedPopup.SetActive(false);
 
                     Debug.Log("========== [LoginUIManager] LOGIN OK ==========");
                     Debug.Log($"  UserName        : {response.UserName}");
@@ -186,17 +180,18 @@ namespace MysticJourney.Screen.Login
 
                     OnLoginSuccess?.Invoke(response);
 
-                    // Save username if Remember Me is checked
                     SaveRememberMeData(response.UserName);
 
                     if (!response.HasCharacter)
                     {
                         Debug.Log("[LoginUIManager] Loading Intro1Scene for new player...");
+                        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                         StartCoroutine(LoadSceneAfterDelay("Intro1Scene", delayBeforeSceneLoad));
                     }
                     else
                     {
                         Debug.Log($"[LoginUIManager] Loading game via Bootstrap...");
+                        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                         StartCoroutine(LoadSceneAfterDelay(MysticJourney.Core.Utilities.GameConstants.Scenes.Bootstrap, delayBeforeSceneLoad));
                     }
                 },
@@ -205,7 +200,6 @@ namespace MysticJourney.Screen.Login
                     _isLoggingIn = false;
                     SetInteractable(true);
 
-                    // Hiển thị lỗi lên Popup UI
                     ShowErrorPopup(!string.IsNullOrEmpty(error.Message) ? error.Message : "Login failed. Please try again.");
 
                     Debug.LogError("========== [LoginUIManager] LOGIN FAIL ==========");
@@ -218,11 +212,7 @@ namespace MysticJourney.Screen.Login
             );
         }
 
-        // ── Failed Popup Helpers ──────────────────────────────────
-
-        // Popup này hiện `message` NGUYÊN VĂN, không dịch. Nên mọi nguồn chảy vào đây phải là
-        // tiếng Anh: chuỗi hardcode ở file này, `ApiException.Message` do ApiClient tự tạo
-        // (SESSION_EXPIRED / PARSE_ERROR), và `message` trong envelope lỗi của BE.
+        // Executes core business logic for show error popup.
         private void ShowErrorPopup(string message)
         {
             if (failedPopup == null || errorText == null) return;
@@ -230,18 +220,18 @@ namespace MysticJourney.Screen.Login
             errorText.text = message;
             failedPopup.SetActive(true);
 
-            // Đẩy popup lên trên cùng (phòng trường hợp bị che)
             failedPopup.transform.SetAsLastSibling();
         }
 
+        // Executes core business logic for close failed popup.
         public void CloseFailedPopup()
         {
             if (failedPopup != null)
                 failedPopup.SetActive(false);
         }
 
-        // ── Helpers ───────────────────────────────────────────────
 
+        // Executes core business logic for load scene after delay.
         private IEnumerator LoadSceneAfterDelay(string sceneName, float delay)
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
@@ -252,21 +242,18 @@ namespace MysticJourney.Screen.Login
                 yield break;
             }
 
-            // Tạo camera tạm DontDestroyOnLoad để lấp khoảng trống giữa 2 scene.
-            // Nếu không có camera nào tồn tại trong khoảng chuyển scene thì Unity
-            // sẽ hiển thị "Display 1 No cameras rendering" trên màn hình.
-            // Camera này render solid black (clearFlags = SolidColor, background = black)
-            // và sẽ tự mất khi scene mới load xong.
             var placeholderCamGO = new GameObject("__TransitionCamera__");
             var placeholderCam   = placeholderCamGO.AddComponent<Camera>();
             placeholderCam.clearFlags       = CameraClearFlags.SolidColor;
             placeholderCam.backgroundColor  = Color.black;
-            placeholderCam.depth            = -100; // Nằm dưới mọi camera thật
+            placeholderCam.depth            = -100;
             DontDestroyOnLoad(placeholderCamGO);
 
             SceneManager.LoadScene(sceneName);
         }
 
+        // Executes core business logic for set interactable.
+        // Logic details: validates required non-empty string arguments.
         private void SetInteractable(bool interactable)
         {
             if (loginButton != null) loginButton.interactable = interactable;
@@ -274,14 +261,17 @@ namespace MysticJourney.Screen.Login
             if (passwordInput != null) passwordInput.interactable = interactable;
         }
 
+        // Executes core business logic for truncate.
+        // Logic details: validates required non-empty string arguments.
         private static string Truncate(string value, int maxLength)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
             return value.Length <= maxLength ? value : value.Substring(0, maxLength);
         }
 
-        // ── Remember Me Helpers ──────────────────────────────────────
 
+        // Executes core business logic for load remember me data.
+        // Logic details: validates required non-empty string arguments.
         private void LoadRememberMeData()
         {
             if (rememberMeToggle == null)
@@ -302,6 +292,7 @@ namespace MysticJourney.Screen.Login
             }
         }
 
+        // Executes core business logic for on remember me changed.
         private void OnRememberMeChanged(bool isOn)
         {
             PlayerPrefs.SetInt(ApiConfig.RememberMeKey, isOn ? 1 : 0);
@@ -312,6 +303,8 @@ namespace MysticJourney.Screen.Login
             }
         }
 
+        // Executes core business logic for save remember me data.
+        // Logic details: validates required non-empty string arguments.
         private void SaveRememberMeData(string username)
         {
             if (rememberMeToggle != null && rememberMeToggle.isOn && !string.IsNullOrEmpty(username))

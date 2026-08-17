@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace UI.Combat
 {
+    // Executes core business logic for mono behaviour.
     public class UIBuffManager : MonoBehaviour
     {
         [SerializeField] private GameObject buffIconPrefab;
@@ -10,6 +11,7 @@ namespace UI.Combat
 
         private Dictionary<string, BuffIconUI> _activeBuffIcons = new Dictionary<string, BuffIconUI>();
 
+        // Executes core business logic for add or update buff icon.
         public void AddOrUpdateBuffIcon(string buffName, Sprite icon, float duration, bool isDebuff)
         {
             if (_activeBuffIcons.TryGetValue(buffName, out var existingIcon))
@@ -37,6 +39,7 @@ namespace UI.Combat
             }
         }
 
+        // Executes core business logic for remove buff icon.
         public void RemoveBuffIcon(string buffName)
         {
             if (_activeBuffIcons.TryGetValue(buffName, out var icon))
@@ -48,7 +51,8 @@ namespace UI.Combat
                 _activeBuffIcons.Remove(buffName);
             }
         }
-        
+
+        // Executes core business logic for clear all.
         public void ClearAll()
         {
             foreach (var kvp in _activeBuffIcons)
@@ -61,9 +65,10 @@ namespace UI.Combat
             _activeBuffIcons.Clear();
         }
 
+        // Performs startup initialization for UIBuffManager on the first active frame.
+        // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
         private void Start()
         {
-            // Assuming the UIBuffManager is on the same GameObject as BuffManager, or we find it
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
@@ -76,16 +81,16 @@ namespace UI.Combat
             }
         }
 
+        // Executes core business logic for refresh ui.
+        // Logic details: validates required non-empty string arguments.
         private void RefreshUI(BuffManager bm)
         {
-            // Simple refresh logic: add or update all, then remove expired ones
             HashSet<string> currentBuffs = new HashSet<string>();
 
             foreach (var buff in bm.ActiveBuffs)
             {
                 currentBuffs.Add(buff.BuffName);
-                
-                // Try to load icon from Resources (assume iconName matches filename in Resources/Icons/Buffs)
+
                 Sprite iconSprite = null;
                 if (!string.IsNullOrEmpty(buff.IconName))
                 {
@@ -95,11 +100,10 @@ namespace UI.Combat
                         iconSprite = sprites[0];
                     }
                 }
-                
+
                 AddOrUpdateBuffIcon(buff.BuffName, iconSprite, buff.DurationRemaining, buff.IsDebuff);
             }
 
-            // Remove buffs that are no longer active
             List<string> toRemove = new List<string>();
             foreach (var key in _activeBuffIcons.Keys)
             {

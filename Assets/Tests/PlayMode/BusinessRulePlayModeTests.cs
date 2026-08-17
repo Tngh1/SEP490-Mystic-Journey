@@ -11,14 +11,19 @@ using UnityEngine.TestTools;
 
 namespace MysticJourney.Tests.PlayMode
 {
+    // Initializes a new default instance of the BusinessRulePlayModeTests class.
     public sealed class BusinessRulePlayModeTests
     {
+        // Executes require type operation.
+        // Throws an exception if precondition validations fail.
         private static Type RequireType(string name) =>
             AppDomain.CurrentDomain.GetAssemblies()
                 .Select(a => a.GetType(name, false))
                 .FirstOrDefault(t => t != null)
             ?? throw new AssertionException("Production type not found: " + name);
 
+        // Executes invoke static operation.
+        // Throws an exception if precondition validations fail.
         private static object InvokeStatic(string typeName, string methodName, params object[] args)
         {
             var method = RequireType(typeName).GetMethods(BindingFlags.Public | BindingFlags.Static)
@@ -27,10 +32,12 @@ namespace MysticJourney.Tests.PlayMode
             return method.Invoke(null, args);
         }
 
+        // Executes party rule operation.
         private static bool PartyRule(string method, params object[] args) =>
             (bool)InvokeStatic("PartyLifecycleRules", method, args);
 
         [UnityTest]
+        // Executes br088_091_two to four client replicas follow the same party lifecycle operation.
         public IEnumerator BR088_091_TwoToFourClientReplicasFollowTheSamePartyLifecycle()
         {
             var sceneFixture = new GameObject("PartyLifecycleFixture");
@@ -78,6 +85,7 @@ namespace MysticJourney.Tests.PlayMode
         }
 
         [Test]
+        // Executes br089_only host can kick invite or start operation.
         public void BR089_OnlyHostCanKickInviteOrStart()
         {
             Assert.That(PartyRule("CanKick", true, true, false), Is.True);
@@ -90,6 +98,7 @@ namespace MysticJourney.Tests.PlayMode
         }
 
         [Test]
+        // Executes br090_party capacity is exactly four operation.
         public void BR090_PartyCapacityIsExactlyFour()
         {
             Assert.That((int)RequireType("PartyLifecycleRules")
@@ -100,6 +109,7 @@ namespace MysticJourney.Tests.PlayMode
         }
 
         [Test]
+        // Executes party invite requires invitee to have unlocked dungeon map operation.
         public void PartyInviteRequiresInviteeToHaveUnlockedDungeonMap()
         {
             const string rules = "MysticJourney.Core.Utilities.MapProgressionRules";
@@ -113,6 +123,7 @@ namespace MysticJourney.Tests.PlayMode
         }
 
         [UnityTest]
+        // Executes br078_scene dialogue fixture advances only by configured choice operation.
         public IEnumerator BR078_SceneDialogueFixtureAdvancesOnlyByConfiguredChoice()
         {
             var root = new GameObject("NpcDialogueSceneFixture");
@@ -164,6 +175,7 @@ namespace MysticJourney.Tests.PlayMode
         }
 
         [Test]
+        // Executes br082_combat persistence uses authenticated backend defeat contract operation.
         public void BR082_CombatPersistenceUsesAuthenticatedBackendDefeatContract()
         {
             var apiConfig = RequireType("MysticJourney.API.Core.ApiConfig");
@@ -184,6 +196,8 @@ namespace MysticJourney.Tests.PlayMode
 
         [UnityTest]
         [Category("LiveApi")]
+        // Executes br082_unity sends combat persistence to isolated api host operation.
+        // Validates input parameters against null or empty values.
         public IEnumerator BR082_UnitySendsCombatPersistenceToIsolatedApiHost()
         {
             var token = Environment.GetEnvironmentVariable("MJ_TEST_JWT");

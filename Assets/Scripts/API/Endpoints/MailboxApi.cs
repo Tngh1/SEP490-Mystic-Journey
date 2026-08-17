@@ -4,16 +4,10 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // MAILBOX API - Thư
-    // ═══════════════════════════════════════════════════════════════════════
     public class MailboxApi : BaseApiService<MailboxApi>
     {
-        // ═══════════════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════════════
-
-        // ── Lấy danh sách thư (overload cho tương thích) ────────────
+        // ─── Player APIs ───────────────────────────────────────────────────────
+        // Load my mailboxes using on success and on error and returns the computed result.
         public void GetMyMailboxes(
             Action<MailboxListPagedResponse> onSuccess,
             Action<ApiException> onError)
@@ -21,7 +15,7 @@ namespace MysticJourney.API.Endpoints
             GetMyMailboxes(1, 20, onSuccess, onError);
         }
 
-        // ── Lấy danh sách thư có phân trang ────────────────────────
+        // Load my mailboxes using page, page size, on success, and on error; it sends the GET API request.
         public void GetMyMailboxes(
             int page,
             int pageSize,
@@ -31,7 +25,6 @@ namespace MysticJourney.API.Endpoints
             string endpoint = $"{ApiConfig.MailMe}?page={page}&pageSize={pageSize}";
             SafeDebugLog($"GetMyMailboxes → page={page} pageSize={pageSize}");
 
-            // ApiClient đã xử lý success:false và unwrap envelope, nhận trực tiếp MailboxListPagedResponse
             ApiClient.Instance.Get<MailboxListPagedResponse>(
                 endpoint,
                 response =>
@@ -47,7 +40,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Lấy chi tiết thư ───────────────────────────────────────
+        // Load by id using mailbox id, on success, and on error; it sends the GET API request.
         public void GetById(
             int mailboxId,
             Action<MailboxDetailResponse> onSuccess,
@@ -71,7 +64,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Đánh dấu đã đọc ──────────────────────────────────────
+        // Process as read using mailbox id, on success, and on error; it sends the POST API request.
         public void MarkAsRead(
             int mailboxId,
             Action<MailboxDetailResponse> onSuccess,
@@ -95,7 +88,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nhận phần thưởng thư ───────────────────────────────────
+        // Process claim reward using mailbox id, on success, and on error; it sends the POST API request.
         public void ClaimReward(
             int mailboxId,
             Action<MailboxDetailResponse> onSuccess,
@@ -119,7 +112,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Xóa thư ───────────────────────────────────────────────
+        // Delete through the endpoint and return the completed API result.
         public void Delete(
             int mailboxId,
             Action<SimpleResponse> onSuccess,

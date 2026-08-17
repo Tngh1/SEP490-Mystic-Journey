@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UISkinInventory : MonoBehaviour
 {
     [SerializeField] private UIInventorySkinSlot slotPrefab;
@@ -13,12 +14,15 @@ public class UISkinInventory : MonoBehaviour
 
     public Action<UIBaseItemSlot> OnInventorySlotClicked;
 
+    // Initializes internal component caches and dependencies for UISkinInventory upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         BindReferences();
         CreateSlots(totalSlots);
     }
 
+    // Executes refresh operation.
     public void Refresh(List<UIItemDisplayData> items)
     {
         BindReferences();
@@ -41,8 +45,6 @@ public class UISkinInventory : MonoBehaviour
             }
             else
             {
-                // Skins are a variable-length list, not a fixed bag: leaving surplus slots
-                // active padded Content to 20 cells and scrolled the real ones out of view.
                 slots[i].ClearSlot();
                 slots[i].gameObject.SetActive(false);
             }
@@ -53,6 +55,7 @@ public class UISkinInventory : MonoBehaviour
             LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
     }
 
+    // Executes bind references operation.
     private void BindReferences()
     {
         if (contentParent == null)
@@ -66,6 +69,7 @@ public class UISkinInventory : MonoBehaviour
         }
     }
 
+    // Executes create slots operation.
     private void CreateSlots(int desiredCount)
     {
         if (slotPrefab == null || contentParent == null)
@@ -76,6 +80,7 @@ public class UISkinInventory : MonoBehaviour
         desiredCount = Mathf.Max(0, desiredCount);
         while (slots.Count < desiredCount)
         {
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             UIInventorySkinSlot slot = Instantiate(slotPrefab, contentParent);
             slot.transform.localScale = Vector3.one;
             slot.ClearSlot();
@@ -84,8 +89,7 @@ public class UISkinInventory : MonoBehaviour
         }
     }
 
-    // Slots placed in the scene at design time still show the prefab's placeholder
-    // name/icon unless we take them over, so adopt them before instantiating more.
+    // Executes adopt existing slots operation.
     private void AdoptExistingSlots()
     {
         if (contentParent == null)
@@ -103,11 +107,13 @@ public class UISkinInventory : MonoBehaviour
         }
     }
 
+    // Executes handle slot clicked operation.
     private void HandleSlotClicked(UIBaseItemSlot clickedSlot)
     {
         OnInventorySlotClicked?.Invoke(clickedSlot);
     }
 
+    // Executes find child operation.
     private Transform FindChild(string objectName)
     {
         var children = GetComponentsInChildren<Transform>(true);

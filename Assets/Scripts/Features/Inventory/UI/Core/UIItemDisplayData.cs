@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// Initializes a new default instance of the UIItemDisplayData class.
 [System.Serializable]
 public class UIItemDisplayData
 {
@@ -7,15 +8,16 @@ public class UIItemDisplayData
     public string itemName;
     public Sprite icon;
     public int quantity;
+    // Supported rarity values: Common, Uncommon, Rare, Epic, Legendary, or Mythic; rarity controls quality, visuals, and sorting priority.
     public string rarity;
     public string category;
 
     public bool isEquipped;
 
-    // Legacy integer price kept for old local/test callers. API shop uses unitPrice.
     public int price;
     public decimal unitPrice;
     public decimal originalUnitPrice;
+    // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
     public string currency = "Gold";
     public Sprite currencyIcon;
 
@@ -35,7 +37,6 @@ public class UIItemDisplayData
     public int remainingWeeklyPurchases = -1;
     public float corruptionReduction;
 
-    // Equipment & Item Stats
     public int baseHp;
     public int baseAtk;
     public int baseDef;
@@ -45,6 +46,7 @@ public class UIItemDisplayData
     public float bonusCritRate;
     public float bonusCritDamage;
     public string description;
+    // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
     public string slot;
 
     public bool isClaimed;
@@ -54,9 +56,12 @@ public class UIItemDisplayData
 
     public object rawData;
 
+    // Executes effective unit price operation.
     public decimal EffectiveUnitPrice => unitPrice > 0 ? unitPrice : price;
+    // Executes has deal price operation.
     public bool HasDealPrice => originalUnitPrice > EffectiveUnitPrice && EffectiveUnitPrice > 0;
 
+    // Executes get max purchase quantity operation.
     public int GetMaxPurchaseQuantity(int hardCap = 99)
     {
         if (isSkin)

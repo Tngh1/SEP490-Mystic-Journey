@@ -2,12 +2,13 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class FadeInLogo : MonoBehaviour
 {
     [Header("Cài đặt chung")]
     [Tooltip("Thời gian xuất hiện (giây)")]
-    public float duration = 2f; 
-    
+    public float duration = 2f;
+
     [Header("Cài đặt Zoom")]
     [Tooltip("Có bật hiệu ứng zoom không?")]
     public bool enableZoom = true;
@@ -20,23 +21,21 @@ public class FadeInLogo : MonoBehaviour
 
     void Start()
     {
-        // Lấy component và lưu kích thước chuẩn
         spriteRenderer = GetComponent<SpriteRenderer>();
         uiImage = GetComponent<Image>();
         originalScale = transform.localScale;
-        
-        // Đặt độ trong suốt về 0 và thu nhỏ ngay khi bắt đầu
+
         SetAlpha(0f);
         if (enableZoom)
         {
             transform.localScale = originalScale * startScaleMultiplier;
         }
-        
-        // Kích hoạt hiệu ứng
+
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(FadeAndZoomCoroutine());
     }
 
-    // Hàm hỗ trợ để set Alpha
+    // Executes set alpha operation.
     private void SetAlpha(float alpha)
     {
         if (spriteRenderer != null)
@@ -61,26 +60,22 @@ public class FadeInLogo : MonoBehaviour
         while (elapsedTime < duration)
         {
             elapsedTime += Time.deltaTime;
-            
-            // Tính tiến trình (0.0 đến 1.0)
+
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             float t = Mathf.Clamp01(elapsedTime / duration);
-            
-            // Làm mượt chuyển động bằng SmoothStep (để bắt đầu và kết thúc êm ái hơn)
+
             float smoothT = Mathf.SmoothStep(0f, 1f, t);
-            
-            // Cập nhật Alpha (Fade In)
+
             SetAlpha(smoothT);
-            
-            // Cập nhật kích thước (Zoom In)
+
             if (enableZoom)
             {
                 transform.localScale = Vector3.Lerp(startScale, originalScale, smoothT);
             }
-            
-            yield return null; // Chờ frame tiếp theo
+
+            yield return null;
         }
-        
-        // Đảm bảo set chính xác các thông số ở cuối cùng
+
         SetAlpha(1f);
         if (enableZoom) transform.localScale = originalScale;
     }

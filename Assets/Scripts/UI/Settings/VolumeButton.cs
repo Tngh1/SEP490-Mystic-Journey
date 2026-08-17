@@ -3,23 +3,28 @@ using UnityEngine;
 using UnityEngine.UI;
 using MysticJourney.Core.Utilities;
 
+// Executes mono behaviour operation.
 public class VolumeMuteButton : MonoBehaviour
 {
     public Slider volumeSlider;
     public GameObject unmuteIcon;
     public GameObject muteIcon;
-    
+
+    // Executes volume type operation.
     public enum VolumeType { Master, Music, SFX }
     public VolumeType volumeType = VolumeType.Master;
 
     private float _previousVolume = 1f;
 
+    // Performs startup initialization for VolumeMuteButton on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         volumeSlider.onValueChanged.AddListener(OnSliderChanged);
         UpdateIcon();
     }
 
+    // Executes toggle mute operation.
     public void ToggleMute()
     {
         if (volumeSlider.value > GameConstants.Timing.MuteThreshold)
@@ -38,6 +43,7 @@ public class VolumeMuteButton : MonoBehaviour
         ApplyVolumeChange(volumeSlider.value);
     }
 
+    // Executes on slider changed operation.
     private void OnSliderChanged(float value)
     {
         if (value > GameConstants.Timing.MuteThreshold)
@@ -47,6 +53,7 @@ public class VolumeMuteButton : MonoBehaviour
         ApplyVolumeChange(value);
     }
 
+    // Executes apply volume change operation.
     private void ApplyVolumeChange(float val)
     {
         if (volumeType == VolumeType.Master) SettingsService.Instance.SetMasterVolume(val);
@@ -54,6 +61,7 @@ public class VolumeMuteButton : MonoBehaviour
         else if (volumeType == VolumeType.SFX) SettingsService.Instance.SetSfxVolume(val);
     }
 
+    // Executes update icon operation.
     private void UpdateIcon()
     {
         bool isMute = volumeSlider.value <= GameConstants.Timing.MuteThreshold;

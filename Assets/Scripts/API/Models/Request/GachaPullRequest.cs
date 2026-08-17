@@ -2,6 +2,7 @@ using System;
 
 namespace MysticJourney.API.Models.Request
 {
+    // Initializes a new default instance of the GachaPullRequest class.
     [Serializable]
     public class GachaPullRequest
     {

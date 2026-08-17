@@ -82,6 +82,7 @@ namespace Fusion {
     [StaticField(StaticFieldResetMode.None)]
     private static readonly List<Component> reusableComponentsList2 = new List<UnityEngine.Component>();
 
+    // Executes find recognized components on game object operation.
     private static Component[] FindRecognizedComponentsOnGameObject(GameObject go) {
       try {
         go.GetComponents(reusableComponentsList);
@@ -99,6 +100,7 @@ namespace Fusion {
       }
     }
 
+    // Executes find recognized nested components operation.
     private static Component[] FindRecognizedNestedComponents(GameObject go) {
       try {
         go.transform.GetNestedComponentsInChildren<UnityEngine.Component, NetworkObject>(reusableComponentsList, true);

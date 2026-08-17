@@ -2,14 +2,14 @@ using UnityEngine;
 
 namespace MysticJourney.Core.Utilities
 {
+    // Initializes a new default instance of the GameConstants class.
     public static class GameConstants
     {
+        // Executes scenes operation.
         public static class Scenes
         {
             public const string Bootstrap = "Bootstrap";
             public const string Intro = "Intro";
-            // Tên scene THẬT trong Build Settings là "MainMenuScene" (không phải "MainMenu").
-            // Hằng cũ ghi "MainMenu" nên bất kỳ LoadScene dùng nó đều fail im lặng.
             public const string MainMenu = "MainMenuScene";
             public const string Loading = "Loading";
             public const string CharacterCreation = "CharacterCreation";
@@ -20,6 +20,7 @@ namespace MysticJourney.Core.Utilities
             public const string AbandonedCastle = "AbandonedCastle";
         }
 
+        // Executes ui elements operation.
         public static class UIElements
         {
             public const string QuestPanel = "QuestPanel";
@@ -55,6 +56,7 @@ namespace MysticJourney.Core.Utilities
             public const string QuestItemTag = "QuestItem";
         }
 
+        // Executes world defaults operation.
         public static class WorldDefaults
         {
             public const string DefaultMap = "ElfForest";
@@ -63,6 +65,7 @@ namespace MysticJourney.Core.Utilities
             public static readonly Vector3 DefaultSpawnPosition = new(11.9f, 17.8f, 0f);
         }
 
+        // Executes unlock levels operation.
         public static class UnlockLevels
         {
             public const int Inventory = 2;
@@ -73,6 +76,7 @@ namespace MysticJourney.Core.Utilities
             public const int Guild = 5;
         }
 
+        // Executes timing operation.
         public static class Timing
         {
             public const float PositionSyncInterval = 1f;
@@ -85,6 +89,7 @@ namespace MysticJourney.Core.Utilities
             public const float MuteThreshold = 0.001f;
         }
 
+        // Executes player classes operation.
         public static class PlayerClasses
         {
             public const string Knight = "Knight";

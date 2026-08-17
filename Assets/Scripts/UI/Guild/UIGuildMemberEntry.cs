@@ -6,6 +6,8 @@ using System;
 
 namespace MysticJourney.UI.Guild
 {
+    // Executes mono behaviour operation.
+    // Validates input parameters against null or empty values.
     public class UIGuildMemberEntry : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI txtMemberName;
@@ -25,6 +27,7 @@ namespace MysticJourney.UI.Guild
         private FontStyles defaultNameStyle;
         private bool visualDefaultsCached;
 
+        // Process the supplied values: normalizes or validates the text before returning the derived result and maps the input discriminator to the corresponding domain value and fallback.
         public void Setup(
             GuildMemberResponseDto member,
             bool canKick = false,
@@ -84,7 +87,6 @@ namespace MysticJourney.UI.Guild
                 btnKick.onClick.RemoveAllListeners();
                 btnKick.onClick.AddListener(() =>
                 {
-                    // Confirmation popup before kicking
                     MysticJourney.UI.UIPopup.Instance.ShowConfirm(
                         "Kick Member",
                         $"Are you sure you want to kick {member.playerDisplayName}?",
@@ -95,6 +97,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes set kick mode operation.
         public void SetKickMode(bool isKickMode)
         {
             if (btnKick != null)
@@ -103,6 +106,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes ensure visual references operation.
         private void EnsureVisualReferences()
         {
             if (rowBackground == null)
@@ -129,6 +133,7 @@ namespace MysticJourney.UI.Guild
             visualDefaultsCached = true;
         }
 
+        // Executes set leader crown operation.
         private void SetLeaderCrown(bool visible)
         {
             Transform existing = transform.Find("LeaderCrown");

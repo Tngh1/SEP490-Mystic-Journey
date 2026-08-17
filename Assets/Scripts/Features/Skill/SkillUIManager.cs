@@ -10,13 +10,17 @@ using MysticJourney.API.Models.Response;
 using UnityEditor;
 #endif
 
+// Executes core business logic for mono behaviour.
 public class SkillUIManager : MonoBehaviour
 {
+    // Initializes internal component caches and dependencies for SkillUIManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         ConfigureSkillListLayout();
     }
 
+    // Executes core business logic for configure skill list layout.
     private void ConfigureSkillListLayout()
     {
         if (contentArea == null)
@@ -58,6 +62,7 @@ public class SkillUIManager : MonoBehaviour
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
 
+// Executes core business logic for finalize skill list layout.
 private void FinalizeSkillListLayout()
     {
         var contentRect = contentArea as RectTransform;
@@ -85,17 +90,17 @@ private void FinalizeSkillListLayout()
     [SerializeField] private ScrollRect skillScrollRect;
 
     [Header("Master Data")]
-    // Kéo toàn bộ file SkillData từ thư mục ScriptableObjects vào mảng này
     public SkillData[] allSkillsInGame;
 
     [Header("Slots")]
-    public SkillSlot[] skillSlots; // assign 3 slots in inspector
+    public SkillSlot[] skillSlots;
 
     [Header("Stone Counter UI")]
     public TMPro.TextMeshProUGUI stoneCountText;
 
 #if UNITY_EDITOR
     [ContextMenu("Load All Skills In Project")]
+    // Executes core business logic for load all skills in project.
     public void LoadAllSkillsInProject()
     {
         string[] guids = AssetDatabase.FindAssets("t:SkillData");
@@ -123,10 +128,10 @@ private void FinalizeSkillListLayout()
     }
 #endif
 
+    // Binds HUD skill slots, refreshes available skill loadouts, and queries upgrade stones.
     private void OnEnable()
     {
-        ConfigureSkillListLayout();
-        // --- BỎ CÁC Ô TRANG BỊ TRONG LIST VÀ CHỈ DÙNG HUD ---
+        ConfigureSkillListLayout(); // Setup grid layout parameters
         var allSlots = FindObjectsByType<SkillSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         var hudSlots = new List<SkillSlot>();
 
@@ -134,36 +139,32 @@ private void FinalizeSkillListLayout()
         {
             if (s.transform.IsChildOf(this.transform))
             {
-                // Ẩn các slot cũ (nếu còn) bên trong Panel
-                s.gameObject.SetActive(false);
+                s.gameObject.SetActive(false); // Hide template slots
             }
-            else if (s.name.Contains("Slot")) // Chỉ lấy các ô có chữ "Slot" (bỏ qua các nút bấm khác)
+            else if (s.name.Contains("Slot"))
             {
-                // Các slot nằm ngoài (tức là ở HUD)
-                hudSlots.Add(s);
+                hudSlots.Add(s); // Collect active HUD action slots
             }
         }
 
-        // Sắp xếp các ô HUD theo toạ độ X (trái sang phải) để gán Index chuẩn
-        hudSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
-        
-        // Giới hạn đúng 3 ô để không gửi slotIndex > 2 lên server gây lỗi "Invalid slot index"
+        hudSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x)); // Order from slot 1 to 3 (left to right)
+
         while (hudSlots.Count > 3)
         {
-            hudSlots.RemoveAt(hudSlots.Count - 1);
+            hudSlots.RemoveAt(hudSlots.Count - 1); // Limit to 3 skill slots
         }
 
         skillSlots = hudSlots.ToArray();
 
         for (int i = 0; i < skillSlots.Length; i++)
         {
-            if (skillSlots[i] != null) skillSlots[i].slotIndex = i;
+            if (skillSlots[i] != null) skillSlots[i].slotIndex = i; // Assign index 0, 1, 2
         }
-        
-        // Tự động gọi API mỗi khi Panel này được SetActive(true)
-        RefreshSkillList();
+
+        RefreshSkillList(); // Populate skill items in inventory grid
     }
 
+    // Queries player inventory to count Skill Upgrade Stones (ItemId 22).
     public void RefreshStoneCount()
     {
         EnsureStoneCountUI();
@@ -185,13 +186,13 @@ private void FinalizeSkillListLayout()
                         if (item != null && !string.IsNullOrEmpty(item.ItemName) &&
                             (item.ItemId == 22 || item.ItemName.Equals("Skill Upgrade Stone", System.StringComparison.OrdinalIgnoreCase) || (item.ItemName.Contains("Skill Upgrade") && item.ItemName.Contains("Stone"))))
                         {
-                            stones += item.Quantity;
+                            stones += item.Quantity; // Aggregate upgrade material count
                         }
                     }
                 }
                 if (stoneCountText != null)
                 {
-                    stoneCountText.text = stones.ToString();
+                    stoneCountText.text = stones.ToString(); // Display total upgrade stones in HUD header
                 }
             },
             onError: (err) =>
@@ -201,6 +202,7 @@ private void FinalizeSkillListLayout()
         );
     }
 
+    // Executes core business logic for ensure stone count ui.
     private void EnsureStoneCountUI()
     {
         if (stoneCountText == null)
@@ -209,13 +211,12 @@ private void FinalizeSkillListLayout()
         }
     }
 
+    // Executes core business logic for refresh skill list.
     public void RefreshSkillList()
     {
         ConfigureSkillListLayout();
         RefreshStoneCount();
 
-        // The catalog is local game data. Render it first so an empty owned-skill
-        // response (or a temporary API failure) never leaves the panel blank.
         PopulateUI(null);
 
         var skillApi = SkillApi.Instance;
@@ -237,19 +238,19 @@ private void FinalizeSkillListLayout()
         );
     }
 
+    // Executes core business logic for populate ui.
     private void PopulateUI(List<PlayerSkillResponse> playerSkills)
     {
         if (skillItemPrefab == null || contentArea == null) return;
 
-        // 1. DỌN DẸP UI TRIỆT ĐỂ (Chống bug nhân đôi hình)
         for (int i = contentArea.childCount - 1; i >= 0; i--)
         {
             Transform child = contentArea.GetChild(i);
-            child.SetParent(null); // Tách Object ra khỏi danh sách ngay lập tức để Layout group update
+            child.SetParent(null);
             Destroy(child.gameObject);
         }
 
-        // 2. LẤY CLASS HIỆN TẠI CỦA NGƯỜI CHƠI
+        // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
         string playerClass = GameStateService.Instance?.PlayerClass ?? "";
 
         var sortedSkillList = new List<(SkillData visual, PlayerSkillResponse server)>();
@@ -260,16 +261,15 @@ private void FinalizeSkillListLayout()
         {
             if (data == null || data.skillIcon == null) continue;
             if (processedSkillIds.Contains(data.skillId)) continue;
-            
+
             processedSkillIds.Add(data.skillId);
 
-            // 3. TÍNH NĂNG LỌC: Bỏ qua các kỹ năng không thuộc Class của mình (hoặc không phải All)
             bool isAllClass = string.IsNullOrWhiteSpace(data.classRequirement) || data.classRequirement.Equals("All", System.StringComparison.OrdinalIgnoreCase);
             bool isMyClass = string.IsNullOrWhiteSpace(playerClass) ||
                              data.classRequirement.Equals(playerClass, System.StringComparison.OrdinalIgnoreCase);
 
             if (!isAllClass && !isMyClass)
-                continue; // ⬅️ Nếu không hợp hệ, lập tức bỏ qua, không hiển thị lên UI
+                continue;
 
             PlayerSkillResponse owned = null;
             if (playerSkills != null)
@@ -279,7 +279,6 @@ private void FinalizeSkillListLayout()
             sortedSkillList.Add((data, owned));
         }
 
-        // 4. THỰC HIỆN SẮP XẾP DANH SÁCH (Đã lọc)
         sortedSkillList.Sort((a, b) =>
         {
             bool aUnlocked = a.server != null;
@@ -290,7 +289,6 @@ private void FinalizeSkillListLayout()
             return a.visual.skillId.CompareTo(b.visual.skillId);
         });
 
-        // 5. Tiến hành vẽ giao diện 
         foreach (var item in sortedSkillList)
         {
             GameObject newSkillObj = Instantiate(skillItemPrefab, contentArea);
@@ -301,8 +299,6 @@ private void FinalizeSkillListLayout()
         FinalizeSkillListLayout();
 
 
-        // =========================================================
-        // (Phần code xử lý skillSlots của bạn ở bên dưới GIỮ NGUYÊN)
         if (skillSlots != null)
         {
             foreach (var s in skillSlots)
@@ -310,12 +306,10 @@ private void FinalizeSkillListLayout()
                 if (s != null && s.equippedIcon != null)
                 {
                     s.equippedIcon.sprite = null;
-                    s.equippedIcon.color = new Color(1, 1, 1, 0); // hide
+                    s.equippedIcon.color = new Color(1, 1, 1, 0);
                 }
             }
 
-            // RefreshLockState làm đúng việc này (ổ khóa theo level) và còn cập nhật
-            // nhãn "Lv 5" / "Empty" — vòng lặp tự set lockImage ở đây sẽ để lại nhãn cũ.
             foreach (var s in skillSlots)
             {
                 if (s != null) s.RefreshLockState();
@@ -327,6 +321,7 @@ private void FinalizeSkillListLayout()
                 {
                     if (ps.EquippedSlot.HasValue && ps.EquippedSlot.Value >= 0 && ps.EquippedSlot.Value < skillSlots.Length)
                     {
+                        // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                         var slot = skillSlots[ps.EquippedSlot.Value];
                         var visual = System.Array.Find(allSkillsInGame, d => d.skillId == ps.SkillId);
                         if (visual != null && slot != null && slot.equippedIcon != null)
@@ -334,7 +329,6 @@ private void FinalizeSkillListLayout()
                             slot.equippedIcon.sprite = visual.skillIcon;
                             slot.equippedIcon.color = Color.white;
 
-                            // 👇 THÊM DÒNG NÀY: Phát loa để nạp dữ liệu cho HUD & Nhân vật lúc mới vào game
                             SkillSlot.BroadcastSkillEquipped(ps.EquippedSlot.Value, visual, ps);
                         }
                     }

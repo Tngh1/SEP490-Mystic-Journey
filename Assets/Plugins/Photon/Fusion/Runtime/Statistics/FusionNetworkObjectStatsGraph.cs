@@ -3,6 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
+  // Executes network object stat operation.
   [Flags]
   internal enum NetworkObjectStat{ 
     InBandwidth = 1 << 0,
@@ -13,16 +14,19 @@ using UnityEngine.UI;
     AverageOutPacketSize = 1 << 5
   }
 
+  // Executes fusion stats graph base operation.
   public class FusionNetworkObjectStatsGraph : FusionStatsGraphBase {
     [SerializeField] private Text _description;
     private NetworkId _id;
     private NetworkObjectStat _stat;
     private FusionNetworkObjectStatsGraphCombine _combineParentGraph;
 
+    // Executes update graph operation.
     public override void UpdateGraph(NetworkRunner runner, FusionStatisticsManager statisticsManager, ref DateTime now) {
       AddValueToBuffer(GetNetworkObjectStatValue(statisticsManager), ref now);
     }
 
+    // Executes get network object stat value operation.
     private float GetNetworkObjectStatValue(FusionStatisticsManager statisticsManager) {
       if (statisticsManager.ObjectStatisticsManager.GetNetworkObjectStatistics(_id, out var snapshot)) {
         switch (_stat) {
@@ -44,6 +48,7 @@ using UnityEngine.UI;
       return -1;
     }
 
+    // Executes setup network object stat operation.
     internal void SetupNetworkObjectStat(NetworkId id, NetworkObjectStat stat) {
       _id = id;
       _stat = stat;

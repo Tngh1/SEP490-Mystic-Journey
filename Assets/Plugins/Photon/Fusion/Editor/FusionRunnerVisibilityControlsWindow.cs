@@ -25,6 +25,7 @@ namespace Fusion.Editor {
 
     private const double REFRESH_RATE = 1f;
 
+    // Executes labels operation.
     private static class Labels {
       public const string NoActiveRunner = "No Active Runner";
       public const string NoRunners = "No Runners";
@@ -129,18 +130,26 @@ namespace Fusion.Editor {
       Instance       = (FusionRunnerVisibilityControlsWindow)window;
     }
 
+    // Initializes internal component caches and dependencies for FusionRunnerVisibilityControlsWindow upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake() {
       Instance = this;
     }
 
+    // Callback invoked when FusionRunnerVisibilityControlsWindow becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     private void OnEnable() {
       Instance = this;
     }
 
+    // Cleanup callback executed when FusionRunnerVisibilityControlsWindow is destroyed.
+    // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
     private void OnDestroy() {
       Instance = null;
     }
 
+    // Per-frame update loop for FusionRunnerVisibilityControlsWindow.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update() {
       // Force a repaint every x seconds in case runner count and runner settings have changed.
       if (Time.realtimeSinceStartup - _lastRepaintTime > REFRESH_RATE) {
@@ -148,6 +157,7 @@ namespace Fusion.Editor {
       }
     }
 
+    // Executes on gui operation.
     private void OnGUI() {
       _lastRepaintTime = Time.realtimeSinceStartup;
 
@@ -179,6 +189,7 @@ namespace Fusion.Editor {
       EditorGUILayout.EndScrollView();
     }
 
+    // Executes draw runner row operation.
     private void DrawRunnerRow(NetworkRunner runner, bool shortText, bool isWide, float currentViewWidth, ref bool runnerWithoutVisibilityEnabledDetected) {
       var runnerIsNull = !runner;
 
@@ -315,6 +326,7 @@ namespace Fusion.Editor {
       }
     }
     
+    // Executes create or update fusion stats operation.
     private void CreateOrUpdateFusionStats(NetworkRunner runner, CanvasAnchor anchor) {
       if (_stats.TryGetValue(runner, out var stats) == false) {
         stats = runner.gameObject.AddComponent<FusionStatistics>();
@@ -338,7 +350,7 @@ namespace Fusion.Editor {
     /// <param name="position">Position of the button.</param>
     private void ShowButton(Rect position) {
       // button style
-      if (_toolbarButtonStyle == null) {
+      if (_toolbarButtonStyle == null) {  // Entity not found — short-circuit with appropriate error result
         _toolbarButtonStyle = new GUIStyle(GUI.skin.button) { padding = new RectOffset() };
       }
     

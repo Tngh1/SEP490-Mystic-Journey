@@ -3,39 +3,26 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// View for a SINGLE party podium slot. Matches the current UI design:
-///   • Podium      — stone base (always visible while the slot exists).
-///   • Flag        — class banner; sprite swaps per class (Knight/Mage/Archer).
-///   • Name        — class name-plate IMAGE; sprite also swaps per class. Its TMP
-///                   child shows the player's display name + level.
-///   • LeaderIcon  — crown shown only on the host slot.
-///   • Avatar      — portrait of the member's equipped skin (hidden when unresolved).
-///   • Ready       — check badge shown when a member is ready (member slots only).
-///   • KickButton  — remove a member (shown to the host on member slots only).
-///
-/// It is a dumb renderer: <see cref="PartyPanel"/> calls one Render* method per roster
-/// change and this pushes values onto the widgets. It holds NO party logic — the kick
-/// click is forwarded via the callback passed in.
-///
-/// Empty fields are auto-resolved by child name in <see cref="ResolveReferences"/>.
-/// </summary>
+// Executes mono behaviour operation.
 public class UIPartySlot : MonoBehaviour
 {
     [Header("Widgets (auto-found by name if left empty)")]
-    [SerializeField] private Image flagImage;      // "Flag" — class banner
-    [SerializeField] private Image nameplateImage; // "Name" — class name label (image)
-    [SerializeField] private TMP_Text nameText;    // TMP under "Name"
-    [SerializeField] private Image avatarImage;    // optional portrait
+    [SerializeField] private Image flagImage;
+    [SerializeField] private Image nameplateImage;
+    [SerializeField] private TMP_Text nameText;
+    [SerializeField] private Image avatarImage;
     [SerializeField] private GameObject leaderIcon;
-    [SerializeField] private GameObject readyIcon; // "Ready" — check badge (member slots)
+    [SerializeField] private GameObject readyIcon;
     [SerializeField] private GameObject podium;
-    [SerializeField] private Button kickButton;    // "KickButton" — host removes a member
+    [SerializeField] private Button kickButton;
 
     private bool _resolved;
 
+    // Initializes internal component caches and dependencies for UIPartySlot upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake() => ResolveReferences();
 
+    // Executes resolve references operation.
     private void ResolveReferences()
     {
         if (_resolved) return;
@@ -48,8 +35,6 @@ public class UIPartySlot : MonoBehaviour
         }
         if (nameplateImage == null)
         {
-            // The visible name banner is "Name/Background" (drawn on top of the parent
-            // "Name" image). Prefer it so class art actually shows; fall back to "Name".
             var bg = transform.Find("Name/Background");
             var n = transform.Find("Name");
             if (bg != null) nameplateImage = bg.GetComponent<Image>();
@@ -87,26 +72,22 @@ public class UIPartySlot : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Render states — called by the controller
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Render the host (leader): class art + name, crown on, no ready badge / kick.</summary>
+    // Render or refresh host using display name, level, cls, and class flag; it builds references, updates navigation or visibility through show, updates class art, and updates name.
     public void RenderHost(string displayName, int level, CharacterClass cls,
                            Sprite classFlag, Sprite classNameplate, Sprite skinPortrait = null)
     {
         ResolveReferences();
         Show(podium, true);
         Show(leaderIcon, true);
-        Show(readyIcon, false);   // host has no ready badge (always ready implicitly)
+        Show(readyIcon, false);
         Show(kickButton, false);
         ClearListeners();
         SetClassArt(cls, classFlag, classNameplate, skinPortrait);
         SetName($"{displayName}\n<size=70%>Lv.{level}</size>");
     }
 
-    /// <summary>Render an occupied member slot: class art, ready badge, and a kick button
-    /// visible only when the local player is the host.</summary>
+    // Render or refresh member using display name, level, cls, and class flag; it builds references, updates navigation or visibility through show, updates class art, updates name, and creates listener and guards invalid or unavailable states.
     public void RenderMember(string displayName, int level, CharacterClass cls,
                              Sprite classFlag, Sprite classNameplate,
                              bool ready, bool canKick, Action onKick, Sprite skinPortrait = null)
@@ -128,7 +109,7 @@ public class UIPartySlot : MonoBehaviour
         }
     }
 
-    /// <summary>Render an empty slot: only the bare podium, everything else hidden.</summary>
+    // Executes render empty operation.
     public void RenderEmpty()
     {
         ResolveReferences();
@@ -143,17 +124,14 @@ public class UIPartySlot : MonoBehaviour
         ClearListeners();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes clear listeners operation.
     private void ClearListeners()
     {
         if (kickButton != null) kickButton.onClick.RemoveAllListeners();
     }
 
-    /// <summary>Swap the Flag + Name-plate sprites to the member's class art, and the
-    /// portrait to their equipped skin (same preview sprite the inventory shows).</summary>
+    // Executes set class art operation.
     private void SetClassArt(CharacterClass cls, Sprite classFlag, Sprite classNameplate, Sprite skinPortrait)
     {
         if (flagImage != null)
@@ -175,13 +153,12 @@ public class UIPartySlot : MonoBehaviour
             {
                 avatarImage.sprite = skinPortrait;
                 avatarImage.color = Color.white;
-                // Skin previews are tall character frames; without this they stretch
-                // to fill the square Avatar rect.
                 avatarImage.preserveAspect = true;
             }
         }
     }
 
+    // Executes hide avatar operation.
     private void HideAvatar()
     {
         if (avatarImage != null)
@@ -191,16 +168,19 @@ public class UIPartySlot : MonoBehaviour
         }
     }
 
+    // Executes set name operation.
     private void SetName(string text)
     {
         if (nameText != null) nameText.text = text;
     }
 
+    // Executes show operation.
     private static void Show(Component c, bool on)
     {
         if (c != null) c.gameObject.SetActive(on);
     }
 
+    // Executes show operation.
     private static void Show(GameObject go, bool on)
     {
         if (go != null) go.SetActive(on);

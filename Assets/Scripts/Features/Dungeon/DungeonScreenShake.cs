@@ -2,19 +2,11 @@ using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 
-/// <summary>
-/// Lightweight screen shake for the dungeon scene.
-/// Temporarily disables the CinemachineBrain so the direct camera offset is not overwritten.
-///
-/// Usage:
-///   DungeonScreenShake.Shake(duration: 0.9f, magnitude: 0.28f);
-///
-/// The singleton is created on demand and persists across scenes.
-/// </summary>
+// Executes mono behaviour operation.
 public class DungeonScreenShake : MonoBehaviour
 {
-    // ── Singleton ─────────────────────────────────────────────────────────────
     private static DungeonScreenShake _instance;
+    // Executes instance operation.
     private static DungeonScreenShake Instance
     {
         get
@@ -29,6 +21,8 @@ public class DungeonScreenShake : MonoBehaviour
         }
     }
 
+    // Initializes internal component caches and dependencies for DungeonScreenShake upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (_instance != null && _instance != this)
@@ -40,26 +34,16 @@ public class DungeonScreenShake : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PUBLIC API
-    // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Triggers a screen shake effect.
-    /// Temporarily disables the CinemachineBrain (if present) so the camera
-    /// offset is not overwritten by Cinemachine during the shake.
-    /// </summary>
-    /// <param name="duration">Total shake duration in seconds (e.g. 0.8f).</param>
-    /// <param name="magnitude">Peak offset in world units (e.g. 0.25f).</param>
+    // Executes shake operation.
     public static void Shake(float duration, float magnitude)
     {
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         Instance.StartCoroutine(Instance.ShakeRoutine(duration, magnitude));
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PRIVATE IMPLEMENTATION
-    // ═══════════════════════════════════════════════════════════════════════════
 
+    // Executes shake routine operation.
     private IEnumerator ShakeRoutine(float duration, float magnitude)
     {
         Camera cam = Camera.main;
@@ -69,7 +53,6 @@ public class DungeonScreenShake : MonoBehaviour
             yield break;
         }
 
-        // Disable CinemachineBrain so our offset isn't overwritten every LateUpdate
         CinemachineBrain brain = cam.GetComponent<CinemachineBrain>();
         if (brain != null) brain.enabled = false;
 
@@ -78,12 +61,13 @@ public class DungeonScreenShake : MonoBehaviour
 
         while (elapsed < duration)
         {
-            // Gradually reduce magnitude toward end for a smooth settle
             float decay  = 1f - (elapsed / duration);
             float offset = magnitude * decay;
 
             cam.transform.localPosition = originLocalPos + new Vector3(
+                // Randomize the eligible candidates before selecting this gameplay result.
                 Random.Range(-offset, offset),
+                // Randomize the eligible candidates before selecting this gameplay result.
                 Random.Range(-offset, offset),
                 0f
             );
@@ -92,7 +76,6 @@ public class DungeonScreenShake : MonoBehaviour
             yield return null;
         }
 
-        // Restore exact original position and re-enable Cinemachine
         cam.transform.localPosition = originLocalPos;
         if (brain != null) brain.enabled = true;
 

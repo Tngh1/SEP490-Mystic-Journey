@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class UIConfirmPurchase : MonoBehaviour
 {
     [Header("UI Elements")]
@@ -34,70 +35,75 @@ public class UIConfirmPurchase : MonoBehaviour
 
     public event Action<UIItemDisplayData, int> OnConfirmPurchase;
 
+    // Initializes buttons, layouts, and click listeners.
     private void Awake()
     {
-        InitializeUI();
+        InitializeUI(); // Auto-bind button transforms and currency icon
     }
 
+    // Refreshes pricing totals and balance validations upon modal display.
     private void OnEnable()
     {
         InitializeUI();
-        UpdateUI();
+        UpdateUI(); // Recalculate price and update total display
     }
 
+    // Configures UI layout and wires button events.
     private void InitializeUI()
     {
-        EnsureButtonsBound();
-        TryAutoBindCurrencyIcon();
+        EnsureButtonsBound(); // Auto-locate +/- and max buttons
+        TryAutoBindCurrencyIcon(); // Set Gold or Gem icon
         EnsureMaxButton();
         ArrangeQuantityGroup();
-        BindButtonListeners();
+        BindButtonListeners(); // Wire click callbacks
     }
 
+    // Binds click event handlers for quantity modifiers and confirm/cancel actions.
     private void BindButtonListeners()
     {
         if (minusButton != null)
         {
             minusButton.onClick.RemoveAllListeners();
-            minusButton.onClick.AddListener(DecreaseQuantity);
+            minusButton.onClick.AddListener(DecreaseQuantity); // Decrement buy count
         }
 
         if (plusButton != null)
         {
             plusButton.onClick.RemoveAllListeners();
-            plusButton.onClick.AddListener(IncreaseQuantity);
+            plusButton.onClick.AddListener(IncreaseQuantity); // Increment buy count
         }
 
         if (maxButton != null)
         {
             maxButton.onClick.RemoveAllListeners();
-            maxButton.onClick.AddListener(SetMaxQuantity);
+            maxButton.onClick.AddListener(SetMaxQuantity); // Fill maximum affordable quantity
         }
 
         if (confirmButton != null)
         {
             confirmButton.onClick.RemoveAllListeners();
-            confirmButton.onClick.AddListener(Confirm);
+            confirmButton.onClick.AddListener(Confirm); // Execute purchase API request
         }
 
         if (cancelButton != null)
         {
             cancelButton.onClick.RemoveAllListeners();
-            cancelButton.onClick.AddListener(Cancel);
+            cancelButton.onClick.AddListener(Cancel); // Dismiss dialog
         }
     }
 
+    // Populates item data, determines wallet affordability, and initializes quantity counters.
     public void Setup(UIItemDisplayData itemData)
     {
         InitializeUI();
-        currentItem = itemData;
+        currentItem = itemData; // Cache target shop item
         waitingForBalance = currentItem != null && !HasCachedBalance(currentItem);
         maxQuantity = waitingForBalance
             ? 0
-            : CalculateAffordableQuantity(currentItem, PlayerHUDUIManager.CachedGold, PlayerHUDUIManager.CachedGems);
+            : CalculateAffordableQuantity(currentItem, PlayerHUDUIManager.CachedGold, PlayerHUDUIManager.CachedGems); // Calculate buy limit based on current wallet balance
         currentQuantity = maxQuantity > 0 ? 1 : 0;
         if (waitingForBalance)
-            PlayerHUDUIManager.Instance?.RefreshCurrencyBalance();
+            PlayerHUDUIManager.Instance?.RefreshCurrencyBalance(); // Request wallet update if balance uncached
 
         if (titleText != null)
         {
@@ -152,6 +158,8 @@ public class UIConfirmPurchase : MonoBehaviour
         UpdateUI();
     }
 
+    // Per-frame update loop for UIConfirmPurchase.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (!waitingForBalance || currentItem == null || !HasCachedBalance(currentItem)) return;
@@ -161,6 +169,7 @@ public class UIConfirmPurchase : MonoBehaviour
         UpdateUI();
     }
 
+    // Executes increase quantity operation.
     private void IncreaseQuantity()
     {
         if (maxQuantity > 0 && currentQuantity >= maxQuantity) return;
@@ -168,6 +177,7 @@ public class UIConfirmPurchase : MonoBehaviour
         UpdateUI();
     }
 
+    // Executes decrease quantity operation.
     private void DecreaseQuantity()
     {
         if (currentQuantity <= 1) return;
@@ -175,6 +185,7 @@ public class UIConfirmPurchase : MonoBehaviour
         UpdateUI();
     }
 
+    // Executes set max quantity operation.
     private void SetMaxQuantity()
     {
         if (currentItem == null || maxQuantity <= 0) return;
@@ -183,6 +194,7 @@ public class UIConfirmPurchase : MonoBehaviour
         UpdateUI();
     }
 
+    // Executes calculate affordable quantity operation.
     public static int CalculateAffordableQuantity(UIItemDisplayData item, decimal gold, decimal gems)
     {
         if (item == null) return 0;
@@ -191,6 +203,7 @@ public class UIConfirmPurchase : MonoBehaviour
         decimal price = item.EffectiveUnitPrice;
         if (itemLimit <= 0 || price <= 0) return itemLimit;
 
+        // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
         string currency = (item.currency ?? "Gold").Trim();
         bool isGems = currency.Equals("Gem", StringComparison.OrdinalIgnoreCase) ||
                       currency.Equals("Gems", StringComparison.OrdinalIgnoreCase) ||
@@ -203,8 +216,10 @@ public class UIConfirmPurchase : MonoBehaviour
         return affordable >= itemLimit ? itemLimit : (int)affordable;
     }
 
+    // Executes has cached balance operation.
     private static bool HasCachedBalance(UIItemDisplayData item)
     {
+        // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
         string currency = item?.currency ?? "Gold";
         bool isGems = currency.Equals("Gem", StringComparison.OrdinalIgnoreCase) ||
                       currency.Equals("Gems", StringComparison.OrdinalIgnoreCase) ||
@@ -212,6 +227,7 @@ public class UIConfirmPurchase : MonoBehaviour
         return isGems ? PlayerHUDUIManager.CachedGems >= 0 : PlayerHUDUIManager.CachedGold >= 0;
     }
 
+    // Executes update ui operation.
     private void UpdateUI()
     {
         if (titleText != null)
@@ -263,6 +279,7 @@ public class UIConfirmPurchase : MonoBehaviour
         }
     }
 
+    // Executes confirm operation.
     private void Confirm()
     {
         if (currentItem == null || currentQuantity <= 0 || !currentItem.canPurchase) return;
@@ -270,8 +287,10 @@ public class UIConfirmPurchase : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    // Executes cancel operation.
     private void Cancel() => gameObject.SetActive(false);
 
+    // Executes auto bind all references operation.
     private void AutoBindAllReferences()
     {
         TMP_Text[] allTexts = GetComponentsInChildren<TMP_Text>(true);
@@ -312,6 +331,7 @@ public class UIConfirmPurchase : MonoBehaviour
         }
     }
 
+    // Executes ensure buttons bound operation.
     private void EnsureButtonsBound()
     {
         AutoBindAllReferences();
@@ -374,6 +394,7 @@ public class UIConfirmPurchase : MonoBehaviour
         }
     }
 
+    // Executes try auto bind currency icon operation.
     private void TryAutoBindCurrencyIcon()
     {
         if (currencyIconImage != null) return;
@@ -381,6 +402,7 @@ public class UIConfirmPurchase : MonoBehaviour
         if (icon != null) currencyIconImage = icon.GetComponent<Image>();
     }
 
+    // Executes update currency icon operation.
     private void UpdateCurrencyIcon()
     {
         TryAutoBindCurrencyIcon();
@@ -389,6 +411,7 @@ public class UIConfirmPurchase : MonoBehaviour
         Sprite icon = currentItem.currencyIcon;
         if (icon == null && ItemIconDatabase.Instance != null)
         {
+            // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
             string currency = currentItem.currency ?? "Gold";
             bool isGems = currency.Equals("Gem", StringComparison.OrdinalIgnoreCase) ||
                           currency.Equals("Gems", StringComparison.OrdinalIgnoreCase) ||
@@ -400,6 +423,7 @@ public class UIConfirmPurchase : MonoBehaviour
         currencyIconImage.enabled = icon != null;
     }
 
+    // Executes ensure max button operation.
     private void EnsureMaxButton()
     {
         if (maxButton == null && plusButton != null && plusButton.transform.parent != null)
@@ -438,7 +462,6 @@ public class UIConfirmPurchase : MonoBehaviour
                 maxRect.localScale = Vector3.one;
             }
 
-            // Force stretch all background images / frames inside Max button to full 100x44 size
             var childImages = maxButton.GetComponentsInChildren<Image>(true);
             foreach (var img in childImages)
             {
@@ -479,11 +502,13 @@ public class UIConfirmPurchase : MonoBehaviour
         }
     }
 
+    // Executes on validate operation.
     private void OnValidate()
     {
         ArrangeQuantityGroup();
     }
 
+    // Executes arrange quantity group operation.
     private void ArrangeQuantityGroup()
     {
         Transform groupTransform = plusButton != null ? plusButton.transform.parent : (minusButton != null ? minusButton.transform.parent : null);
@@ -522,6 +547,7 @@ public class UIConfirmPurchase : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(groupTransform as RectTransform);
     }
 
+    // Executes ensure layout element operation.
     private static void EnsureLayoutElement(GameObject go, float targetWidth, float targetHeight)
     {
         if (go == null) return;
@@ -550,6 +576,7 @@ public class UIConfirmPurchase : MonoBehaviour
         le.flexibleHeight = 0f;
     }
 
+    // Executes format display price operation.
     private static string FormatDisplayPrice(UIItemDisplayData item)
     {
         if (item == null) return FormatAmount(0);
@@ -558,6 +585,7 @@ public class UIConfirmPurchase : MonoBehaviour
         return $"<s><color=#9CA3AF>{FormatAmount(item.originalUnitPrice)}</color></s> <b><color=#FFD34D>{currentPrice}</color></b>";
     }
 
+    // Executes format amount operation.
     private static string FormatAmount(decimal amount)
         => amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");
 }

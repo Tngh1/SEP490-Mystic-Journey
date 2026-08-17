@@ -1,22 +1,20 @@
 using UnityEngine;
 
-/// <summary>
-/// Dữ liệu tĩnh NPC — không lưu DB, chỉ dùng trong Unity.
-/// npcId chỉ dùng để identify trong game, không cần khớp BE.
-/// </summary>
+// Executes scriptable object operation.
 [CreateAssetMenu(menuName = "Mystic Journey/NPC Data", fileName = "NewNPCData")]
 public class NPCData : ScriptableObject
 {
     [Header("Identity")]
     public int npcId;
     public string npcName;
-    public string role;         // Ví dụ: "Village Elder", "Blacksmith"
+    // Free-form NPC role label, such as Village Elder or Blacksmith; the code does not enforce a closed set of values.
+    public string role;
     public Sprite portrait;
 
     [Header("Greeting")]
     [TextArea(2, 4)]
-    public string greetingText; // Lời chào mặc định khi player nói chuyện
+    public string greetingText;
 
     [Header("Quests")]
-    public int[] availableQuestIds; // QuestId mà NPC này cung cấp / nhận hoàn thành
+    public int[] availableQuestIds;
 }

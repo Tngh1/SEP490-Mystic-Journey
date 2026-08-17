@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class MainMinimapToggleRuntime : MonoBehaviour
 {
     private GameObject miniMap;
 
+    // Performs startup initialization for MainMinimapToggleRuntime on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         miniMap = FindSceneObject("MiniMap");
@@ -26,9 +29,8 @@ public class MainMinimapToggleRuntime : MonoBehaviour
         }
     }
 
-    // Map hotkey handling lives in PlayerUIHotkeys (single reader of the Map
-    // action). This component only owns the on-screen minimap button toggle.
 
+    // Executes toggle operation.
     private void Toggle()
     {
         if (miniMap == null)
@@ -46,10 +48,9 @@ public class MainMinimapToggleRuntime : MonoBehaviour
         miniMap.SetActive(!miniMap.activeSelf);
     }
 
+    // Executes open map panel operation.
     private void OpenMapPanel()
     {
-        // Trong dungeon thì không mở: panel chỉ dùng để dịch chuyển map, mà dịch chuyển
-        // đang bị chặn. Im lặng bỏ qua, không báo gì.
         if (!MapUIManager.CanOpen) return;
 
         if (UIManager.Instance != null && UIManager.Instance.mapPanel != null)
@@ -58,6 +59,8 @@ public class MainMinimapToggleRuntime : MonoBehaviour
         }
     }
 
+    // Executes find scene object operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindSceneObject(string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();

@@ -5,16 +5,9 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════
-    // SKILL API - Kỹ năng
-    // ═══════════════════════════════════════════════════════════════
     public class SkillApi : BaseApiService<SkillApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
-
-        // ── Lấy skills của player ────────────────────────
+        // Executes get my skills operation.
         public void GetMySkills(Action<PlayerMeSkillsResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMySkills...");
@@ -33,7 +26,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Nâng cấp skill ──────────────────────────────
+        // Executes upgrade player skill operation.
         public void UpgradePlayerSkill(int playerSkillId, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"UpgradePlayerSkill → playerSkillId={playerSkillId}");
@@ -54,7 +47,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Trang bị skill ──────────────────────────────
+        // Executes equip player skill operation.
         public void EquipPlayerSkill(int playerSkillId, bool isEquipped, int? slotIndex, Action<PlayerSkillResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog($"EquipPlayerSkill → playerSkillId={playerSkillId}, isEquipped={isEquipped}, slotIndex={slotIndex}");
@@ -75,7 +68,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Ghi nhận lượt dùng skill ──────────────────────────────
+        // Executes record skill cast operation.
         public void RecordSkillCast(int playerSkillId, Action<PlayerSkillResponse> onSuccess = null, Action<ApiException> onError = null)
         {
             ApiClient.Instance.Post<object, PlayerSkillResponse>(

@@ -19,10 +19,14 @@ namespace Fusion {
     static float _lastCameraFindTime;
     static Camera _currentCam;
 
+    // Callback invoked when FusionBasicBillboard becomes enabled and active in the scene hierarchy.
+    // Subscribes to global game events and refreshes visible UI displays.
     private void OnEnable() {
       UpdateLookAt();
     }
 
+    // Callback invoked when FusionBasicBillboard becomes disabled in the scene hierarchy.
+    // Unregisters event listeners to prevent unintended callbacks while inactive.
     private void OnDisable() {
       transform.localRotation = default;
     }
@@ -46,15 +50,18 @@ namespace Fusion {
     }
 
 #if UNITY_EDITOR
+    // Executes on draw gizmos operation.
     private void OnDrawGizmos() {
       LateUpdate();
     }
 #endif
 
+    // Executes late update operation.
     private void LateUpdate() {
       UpdateLookAt();
     }
 
+    // Executes update look at operation.
     public void UpdateLookAt() {
 
       var cam = Camera ? Camera : MainCamera;
@@ -66,6 +73,7 @@ namespace Fusion {
       }
     }
 
+    // Executes reset statics operation.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() {
       _currentCam = default;

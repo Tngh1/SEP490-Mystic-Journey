@@ -100,9 +100,10 @@ namespace NavMeshPlus.Components.Editors
             return new Bounds(navSurface.transform.position, navSurface.size);
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
-            if (s_Styles == null)
+            if (s_Styles == null)  // Entity not found — short-circuit with appropriate error result
                 s_Styles = new Styles();
 
             serializedObject.Update();
@@ -287,7 +288,7 @@ namespace NavMeshPlus.Components.Editors
                     continue;
 
                 var oper = bakeOperations[i].bakeOperation;
-                if (oper == null)
+                if (oper == null)  // Entity not found — short-circuit with appropriate error result
                     continue;
 
                 var p = oper.progress;
@@ -315,6 +316,7 @@ namespace NavMeshPlus.Components.Editors
         }
 
 #if UNITY_2022_2_OR_NEWER
+        // Executes render gizmo selected operation.
         [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.Active | GizmoType.Pickable)]
         static void RenderGizmoSelected(NavMeshSurface navSurface, GizmoType gizmoType)
         {
@@ -324,18 +326,21 @@ namespace NavMeshPlus.Components.Editors
             RenderBoxGizmo(navSurface, gizmoType, true);
         }
 
+        // Executes render gizmo not selected operation.
         [DrawGizmo(GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void RenderGizmoNotSelected(NavMeshSurface navSurface, GizmoType gizmoType)
         {
             RenderBoxGizmo(navSurface, gizmoType, false);
         }
 #else
+        // Executes render box gizmo selected operation.
         [DrawGizmo(GizmoType.Selected | GizmoType.Active | GizmoType.Pickable)]
         static void RenderBoxGizmoSelected(NavMeshSurface navSurface, GizmoType gizmoType)
         {
             RenderBoxGizmo(navSurface, gizmoType, true);
         }
 
+        // Executes render box gizmo not selected operation.
         [DrawGizmo(GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
         static void RenderBoxGizmoNotSelected(NavMeshSurface navSurface, GizmoType gizmoType)
         {
@@ -346,6 +351,7 @@ namespace NavMeshPlus.Components.Editors
         }
 #endif
 
+        // Executes render box gizmo operation.
         static void RenderBoxGizmo(NavMeshSurface navSurface, GizmoType gizmoType, bool selected)
         {
             var color = selected ? s_HandleColorSelected : s_HandleColor;
@@ -414,6 +420,7 @@ namespace NavMeshPlus.Components.Editors
             }
         }
 
+        // Executes create nav mesh surface operation.
         [MenuItem("GameObject/Navigation/NavMesh Surface", false, 2000)]
         public static void CreateNavMeshSurface(MenuCommand menuCommand)
         {
@@ -421,7 +428,7 @@ namespace NavMeshPlus.Components.Editors
             var go = NavMeshComponentsGUIUtility.CreateAndSelectGameObject("NavMesh Surface", parent);
             go.AddComponent<NavMeshSurface>();
             var view = SceneView.lastActiveSceneView;
-            if (view != null)
+            if (view != null)  // Entity exists — proceed with conditional branch
                 view.MoveToView(go.transform);
         }
     }

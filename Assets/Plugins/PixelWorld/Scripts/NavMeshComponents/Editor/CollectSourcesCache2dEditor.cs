@@ -3,11 +3,13 @@ using UnityEditor;
 
 namespace NavMeshPlus.Extensions.Editors
 {
+    // Executes editor operation.
     [CanEditMultipleObjects]
     [CustomEditor(typeof(CollectSourcesCache2d))]
     internal class CollectSourcesCache2dEditor : Editor
     {
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();

@@ -1,25 +1,23 @@
 namespace MysticJourney.API.Models.Response
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // MAILBOX DTOs - Response models cho Mailbox API
-    // ═══════════════════════════════════════════════════════════════════════
 
-    // Maps MailboxSummaryDto – dùng trong danh sách mail (GET /api/mailboxes/me)
+    // Initializes a new default instance of the MailboxSummaryResponse class.
     [System.Serializable]
     public class MailboxSummaryResponse
     {
         public int MailboxId;
         public string Title;
-        public string Type;             // "System", "Event", "Gift"
+        // Mailbox type is a free-form category with System as the current default; the backend does not enforce a closed allowlist.
+        public string Type;
         public bool IsRead;
-        public bool HasClaimableReward; // có phần thưởng chưa claim
+        public bool HasClaimableReward;
         public bool IsClaimed;
-        public int? RemainingDays;      // null = không có hạn
+        public int? RemainingDays;
         public string SentAt;
         public string ExpiredAt;
     }
 
-    // Maps MailboxListPagedDto – trả về bởi GET /api/mailboxes/me
+    // Executes mailbox list paged response operation.
     [System.Serializable]
     public class MailboxListPagedResponse
     {
@@ -30,7 +28,7 @@ namespace MysticJourney.API.Models.Response
         public MailboxSummaryResponse[] Items;
     }
 
-    // Maps MailboxRewardItemDto – item đính kèm trong mail
+    // Executes mailbox reward item response operation.
     [System.Serializable]
     public class MailboxRewardItemResponse
     {
@@ -40,13 +38,14 @@ namespace MysticJourney.API.Models.Response
         public int Quantity;
     }
 
-    // Maps MailboxDetailDto – trả về bởi GET /api/mailboxes/{id}, POST /read, /claim
+    // Executes mailbox detail response operation.
     [System.Serializable]
     public class MailboxDetailResponse
     {
         public int MailboxId;
         public string Title;
         public string Content;
+        // Mailbox type is a free-form category with System as the current default; the backend does not enforce a closed allowlist.
         public string Type;
         public bool IsRead;
         public bool IsClaimed;

@@ -11,6 +11,7 @@ using UnityEngine.UI;
 
 namespace UI.Friend
 {
+    // Executes mono behaviour operation.
     public class UIFriendChatPanel : MonoBehaviour
     {
         [Header("Header")]
@@ -49,11 +50,12 @@ namespace UI.Friend
         private bool eventsBound;
         private Coroutine refreshCoroutine;
 
+        // Creates a dynamic runtime fallback UI instance for friend direct messaging if prefab is unlinked.
         public static UIFriendChatPanel CreateRuntime(Transform owner, UIChatMessage fallbackMessagePrefab)
         {
             Transform parent = owner != null && owner.GetComponentInParent<Canvas>() != null
                 ? owner.GetComponentInParent<Canvas>().transform
-                : owner;
+                : owner; // Find canvas root
 
             var root = CreateRect("FriendChatPanel_Runtime", parent);
             root.anchorMin = new Vector2(0.5f, 0.5f);
@@ -63,7 +65,7 @@ namespace UI.Friend
             root.anchoredPosition = Vector2.zero;
 
             var panelImage = root.gameObject.AddComponent<Image>();
-            panelImage.color = new Color(0.06f, 0.07f, 0.09f, 0.96f);
+            panelImage.color = new Color(0.06f, 0.07f, 0.09f, 0.96f); // Dark background tint
 
             var panel = root.gameObject.AddComponent<UIFriendChatPanel>();
             panel.messagePrefab = fallbackMessagePrefab;
@@ -122,18 +124,20 @@ namespace UI.Friend
             panel.sendButton = CreateButton("SendButton", root, "Send");
             SetRect(panel.sendButton.GetComponent<RectTransform>(), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-16f, 20f), new Vector2(84f, 40f));
 
-            panel.BindEvents();
+            panel.BindEvents(); // Attach submit and close callbacks
             root.gameObject.SetActive(false);
             return panel;
         }
 
+        // Initializes UI references and configures message input field.
         private void Awake()
         {
-            AutoFindReferences();
-            EnsureInputFieldConfigured();
-            BindEvents();
+            AutoFindReferences(); // Auto-bind close button and scroll rect
+            EnsureInputFieldConfigured(); // Limit characters and configure multiline wrapping
+            BindEvents(); // Attach send button listeners
         }
 
+        // Refresh visible state and subscribe the event handlers required while this component is active.
         private void OnEnable()
         {
             AutoFindReferences();
@@ -141,6 +145,7 @@ namespace UI.Friend
             BindEvents();
         }
 
+        // Executes bind events operation.
         private void BindEvents()
         {
             AutoFindReferences();
@@ -175,6 +180,7 @@ namespace UI.Friend
         }
 
 
+        // Executes auto find references operation.
         private void AutoFindReferences()
         {
             if (inputField == null)
@@ -203,6 +209,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes ensure input field configured operation.
         private void EnsureInputFieldConfigured()
         {
             if (inputField == null)
@@ -257,6 +264,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes find button by label operation.
+        // Validates input parameters against null or empty values.
         private Button FindButtonByLabel(params string[] labels)
         {
             foreach (var button in GetComponentsInChildren<Button>(true))
@@ -280,6 +289,7 @@ namespace UI.Friend
             return null;
         }
 
+        // Executes find child rect operation.
         private static RectTransform FindChildRect(Transform root, string childName)
         {
             if (root == null)
@@ -298,6 +308,7 @@ namespace UI.Friend
             return null;
         }
 
+        // Executes find input text operation.
         private static TMP_Text FindInputText(Transform root)
         {
             if (root == null)
@@ -317,6 +328,7 @@ namespace UI.Friend
             return null;
         }
 
+        // Executes find placeholder operation.
         private static TMP_Text FindPlaceholder(Transform root)
         {
             if (root == null)
@@ -335,11 +347,14 @@ namespace UI.Friend
             return null;
         }
 
+        // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDisable()
         {
             StopRefresh();
         }
 
+        // Executes open operation.
+        // Validates input parameters against null or empty values.
         public void Open(int targetFriendProfileId, string targetFriendName)
         {
             AutoFindReferences();
@@ -368,6 +383,7 @@ namespace UI.Friend
             FocusInput();
         }
 
+        // Update visibility for the current state; it updates sending, updates status, and updates active.
         public void Close()
         {
             StopRefresh();
@@ -381,6 +397,7 @@ namespace UI.Friend
             gameObject.SetActive(false);
         }
 
+        // Executes on send clicked operation.
         private void OnSendClicked()
         {
             AutoFindReferences();
@@ -431,6 +448,7 @@ namespace UI.Friend
                 });
         }
 
+        // Executes load history operation.
         private void LoadHistory()
         {
             if (isLoadingHistory || friendProfileId <= 0 || !isActiveAndEnabled)
@@ -444,6 +462,7 @@ namespace UI.Friend
             }
 
             isLoadingHistory = true;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             int safePageSize = Mathf.Clamp(historyPageSize, 1, 100);
 
             ChatApi.Instance.GetFriendMessages(
@@ -463,6 +482,7 @@ namespace UI.Friend
                 });
         }
 
+        // Executes populate history operation.
         private void PopulateHistory(PagedResultResponse<FriendChatMessageResponse> response)
         {
             if (response?.Items == null)
@@ -476,6 +496,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes add friend message operation.
+        // Validates input parameters against null or empty values.
         private void AddFriendMessage(FriendChatMessageResponse message)
         {
             if (message == null || message.IsHidden || string.IsNullOrWhiteSpace(message.Content))
@@ -492,11 +514,13 @@ namespace UI.Friend
             AddMessage(string.Empty, message.Content, isMe ? myNameColor : friendNameColor, message.ChatMessageId, message.SenderId, isMe, message.IsReported);
         }
 
+        // Executes add system message operation.
         private void AddSystemMessage(string message)
         {
             AddMessage("System", message, systemNameColor, 0, 0, true, false);
         }
 
+        // Create message using sender, message, sender color, and chat message id; it creates runtime message and starts the timed Unity sequence and guards invalid or unavailable states.
         private void AddMessage(
             string sender,
             string message,
@@ -513,9 +537,11 @@ namespace UI.Friend
             }
 
             CreateRuntimeMessage(sender, message, senderColor, chatMessageId, isMine, isReported);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(ScrollToBottom());
         }
 
+        // Process the supplied values: maps the input discriminator to the corresponding domain value and fallback.
         private void CreateRuntimeMessage(
             string sender,
             string message,
@@ -583,6 +609,7 @@ namespace UI.Friend
 
             var messageLayout = messageText.gameObject.AddComponent<LayoutElement>();
             messageLayout.minWidth = 24f;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             messageLayout.preferredWidth = Mathf.Clamp(messageText.GetPreferredValues(message, 250f, 0f).x, 24f, 250f);
             messageLayout.flexibleWidth = 0f;
 
@@ -612,6 +639,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes create report button operation.
         private Button CreateReportButton(Transform parent, bool isReported)
         {
             GameObject buttonObject;
@@ -668,6 +696,7 @@ namespace UI.Friend
             return button;
         }
 
+        // Executes create runtime report button operation.
         private Button CreateRuntimeReportButton(Transform parent)
         {
             var rect = CreateRect("ReportButton", parent);
@@ -680,6 +709,7 @@ namespace UI.Friend
             return button;
         }
 
+        // Executes apply report button state operation.
         private static void ApplyReportButtonState(Button button, bool isReported)
         {
             if (button == null)
@@ -699,6 +729,7 @@ namespace UI.Friend
             canvasGroup.blocksRaycasts = !isReported;
         }
 
+        // Executes handle friend report clicked operation.
         private void HandleFriendReportClicked(UIChatMessage item)
         {
             if (item == null || item.ChatMessageId <= 0)
@@ -709,6 +740,7 @@ namespace UI.Friend
             ReportFriendMessage(item.ChatMessageId, item.MarkReported);
         }
 
+        // Executes report friend message operation.
         private void ReportFriendMessage(int chatMessageId, Action markReported)
         {
             if (pendingReportIds.Contains(chatMessageId))
@@ -738,6 +770,7 @@ namespace UI.Friend
                     Debug.LogWarning($"[UIFriendChatPanel] ReportFriendMessage failed: {BuildErrorMessage(error)}");
                 });
         }
+        // Executes clear messages operation.
         private void ClearMessages()
         {
             if (messageContainer == null)
@@ -751,12 +784,15 @@ namespace UI.Friend
             }
         }
 
+        // Executes start refresh operation.
         private void StartRefresh()
         {
             StopRefresh();
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             refreshCoroutine = StartCoroutine(RefreshLoop());
         }
 
+        // Executes stop refresh operation.
         private void StopRefresh()
         {
             if (refreshCoroutine == null)
@@ -768,6 +804,7 @@ namespace UI.Friend
             refreshCoroutine = null;
         }
 
+        // Executes refresh loop operation.
         private IEnumerator RefreshLoop()
         {
             var wait = new WaitForSeconds(Mathf.Max(2f, refreshInterval));
@@ -778,6 +815,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes set sending operation.
         private void SetSending(bool sending)
         {
             isSending = sending;
@@ -787,6 +825,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes set status operation.
         private void SetStatus(string message)
         {
             if (statusText == null)
@@ -798,6 +837,7 @@ namespace UI.Friend
             statusText.gameObject.SetActive(!string.IsNullOrWhiteSpace(statusText.text));
         }
 
+        // Executes focus input operation.
         private void FocusInput()
         {
             if (inputField != null)
@@ -806,6 +846,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes scroll to bottom operation.
         private IEnumerator ScrollToBottom()
         {
             yield return new WaitForEndOfFrame();
@@ -821,6 +862,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes is current player operation.
         private static bool IsCurrentPlayer(int profileId)
         {
             int currentPlayerId = GameStateService.Instance != null
@@ -835,6 +877,8 @@ namespace UI.Friend
             return currentPlayerId > 0 && profileId == currentPlayerId;
         }
 
+        // Executes resolve sender name operation.
+        // Validates input parameters against null or empty values.
         private string ResolveSenderName(FriendChatMessageResponse message, bool isMe)
         {
             if (isMe)
@@ -861,6 +905,7 @@ namespace UI.Friend
                 : friendDisplayName;
         }
 
+        // Executes build error message operation.
         private static string BuildErrorMessage(ApiException error)
         {
             if (error == null)
@@ -885,6 +930,7 @@ namespace UI.Friend
                 : error.Message;
         }
 
+        // Executes create rect operation.
         private static RectTransform CreateRect(string name, Transform parent)
         {
             var obj = new GameObject(name, typeof(RectTransform));
@@ -897,6 +943,7 @@ namespace UI.Friend
             return rect;
         }
 
+        // Executes create text operation.
         private static TMP_Text CreateText(string name, Transform parent, string text, int size, FontStyles style, TextAlignmentOptions alignment)
         {
             var rect = CreateRect(name, parent);
@@ -910,6 +957,7 @@ namespace UI.Friend
             return label;
         }
 
+        // Executes create button operation.
         private static Button CreateButton(string name, Transform parent, string label)
         {
             var rect = CreateRect(name, parent);
@@ -923,6 +971,7 @@ namespace UI.Friend
             return button;
         }
 
+        // Executes create input operation.
         private static TMP_InputField CreateInput(string name, Transform parent)
         {
             var rect = CreateRect(name, parent);
@@ -933,7 +982,6 @@ namespace UI.Friend
 
             var textArea = CreateRect("Text Area", rect);
             SetRect(textArea, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(10f, 0f), new Vector2(-20f, -8f));
-            // TMP_InputField needs a RectMask2D viewport to clip text correctly.
             textArea.gameObject.AddComponent<RectMask2D>();
 
             var placeholder = CreateText("Placeholder", textArea, "Type a message...", 14, FontStyles.Italic, TextAlignmentOptions.Left);
@@ -943,7 +991,6 @@ namespace UI.Friend
             SetRect(placeholder.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
             var inputText = CreateText("Text", textArea, string.Empty, 14, FontStyles.Normal, TextAlignmentOptions.Left);
-            // The TMP text must receive raycasts so the input caret can be placed by click.
             inputText.raycastTarget = true;
             inputText.textWrappingMode = TextWrappingModes.NoWrap;
             inputText.overflowMode = TextOverflowModes.Overflow;
@@ -959,6 +1006,7 @@ namespace UI.Friend
             return input;
         }
 
+        // Executes set rect operation.
         private static void SetRect(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPosition, Vector2 sizeDelta)
         {
             rect.anchorMin = anchorMin;

@@ -6,6 +6,7 @@ using System.Collections;
 namespace TMPro.Examples
 {
 
+    // Executes i pointer exit handler operation.
     public class TMP_TextSelector_A : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         private TextMeshPro m_TextMeshPro;
@@ -140,6 +141,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes on pointer enter operation.
         public void OnPointerEnter(PointerEventData eventData)
         {
             Debug.Log("OnPointerEnter()");
@@ -147,6 +149,7 @@ namespace TMPro.Examples
         }
 
 
+        // Executes on pointer exit operation.
         public void OnPointerExit(PointerEventData eventData)
         {
             Debug.Log("OnPointerExit()");

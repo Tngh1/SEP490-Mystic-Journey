@@ -4,24 +4,18 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-/// <summary>
-/// Maps a <see cref="CharacterClass"/> to the art shown in a party slot: the class
-/// <see cref="ClassArt.flag"/> banner and the <see cref="ClassArt.nameplate"/> label
-/// behind the player's name. The party roster only replicates a player's CLASS, so a
-/// slot swaps to that class's art when a member sits down.
-///
-/// Place the asset in a <c>Resources</c> folder named "ClassAvatarDatabase" so it can be
-/// loaded at runtime without an Inspector reference (mirrors SkinDatabaseSO.LoadDefault).
-/// </summary>
+// Executes scriptable object operation.
 [CreateAssetMenu(fileName = "ClassAvatarDatabase", menuName = "Mystic Journey/Class Avatar Database")]
 public class ClassAvatarDatabaseSO : ScriptableObject
 {
+    // Executes class art operation.
     [System.Serializable]
     public struct ClassArt
     {
+        // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
         public CharacterClass characterClass;
-        public Sprite flag;      // class banner (the "Flag" image on a slot)
-        public Sprite nameplate; // class name label (the "Name" image on a slot)
+        public Sprite flag;
+        public Sprite nameplate;
     }
 
     [Tooltip("One entry per class (Knight / Mage / Archer). Drag the flag + name sprites for each.")]
@@ -29,6 +23,7 @@ public class ClassAvatarDatabaseSO : ScriptableObject
 
     private Dictionary<CharacterClass, ClassArt> _lookup;
 
+    // Executes load default operation.
     public static ClassAvatarDatabaseSO LoadDefault()
     {
         var db = Resources.Load<ClassAvatarDatabaseSO>("ClassAvatarDatabase");
@@ -46,30 +41,34 @@ public class ClassAvatarDatabaseSO : ScriptableObject
         return null;
     }
 
-    /// <summary>Class banner sprite (Flag), or null when unmapped.</summary>
+    // Executes get flag operation.
     public Sprite GetFlag(CharacterClass characterClass)
     {
         EnsureLookup();
         return _lookup.TryGetValue(characterClass, out var a) ? a.flag : null;
     }
 
-    /// <summary>Class name-label sprite (Name plate), or null when unmapped.</summary>
+    // Executes get nameplate operation.
     public Sprite GetNameplate(CharacterClass characterClass)
     {
         EnsureLookup();
         return _lookup.TryGetValue(characterClass, out var a) ? a.nameplate : null;
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable() => RebuildLookup();
 #if UNITY_EDITOR
+    // Executes on validate operation.
     private void OnValidate() => RebuildLookup();
 #endif
 
+    // Executes ensure lookup operation.
     private void EnsureLookup()
     {
         if (_lookup == null) RebuildLookup();
     }
 
+    // Executes rebuild lookup operation.
     private void RebuildLookup()
     {
         _lookup = new Dictionary<CharacterClass, ClassArt>();

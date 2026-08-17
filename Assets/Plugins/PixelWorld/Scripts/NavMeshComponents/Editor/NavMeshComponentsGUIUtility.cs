@@ -5,8 +5,10 @@ using UnityEngine.AI;
 
 namespace NavMeshPlus.Components.Editors
 {
+    // Initializes a new default instance of the NavMeshComponentsGUIUtility class.
     public static class NavMeshComponentsGUIUtility
     {
+        // Executes area popup operation.
         public static void AreaPopup(Rect rect, string labelName, SerializedProperty areaProperty)
         {
             var areaIndex = -1;
@@ -36,6 +38,7 @@ namespace NavMeshPlus.Components.Editors
             EditorGUI.EndProperty();
         }
 
+        // Executes is agent selection valid operation.
         public static bool IsAgentSelectionValid(SerializedProperty agentTypeID)
         {
             var count = NavMesh.GetSettingsCount();
@@ -49,6 +52,7 @@ namespace NavMeshPlus.Components.Editors
             return false;
         }
 
+        // Executes agent type popup operation.
         public static void AgentTypePopup(Rect rect, string labelName, SerializedProperty agentTypeID)
         {
             var index = -1;
@@ -145,6 +149,7 @@ namespace NavMeshPlus.Components.Editors
             EditorGUI.EndProperty();
         }
 
+        // Executes create and select game object operation.
         public static GameObject CreateAndSelectGameObject(string suggestedName, GameObject parent)
         {
             var parentTransform = parent != null ? parent.transform : null;
@@ -152,7 +157,7 @@ namespace NavMeshPlus.Components.Editors
             var child = new GameObject(uniqueName);
 
             Undo.RegisterCreatedObjectUndo(child, "Create " + uniqueName);
-            if (parentTransform != null)
+            if (parentTransform != null)  // Entity exists — proceed with conditional branch
                 Undo.SetTransformParent(child.transform, parentTransform, "Parent " + uniqueName);
 
             Selection.activeGameObject = child;
@@ -160,11 +165,13 @@ namespace NavMeshPlus.Components.Editors
             return child;
         }
 
+        // Executes is all operation.
         static bool IsAll(SerializedProperty agentMask)
         {
             return agentMask.arraySize == 1 && agentMask.GetArrayElementAtIndex(0).intValue == -1;
         }
 
+        // Executes toggle agent mask item operation.
         static void ToggleAgentMaskItem(object userData)
         {
             var args = (object[])userData;
@@ -175,6 +182,7 @@ namespace NavMeshPlus.Components.Editors
             ToggleAgentMaskItem(agentMask, agentTypeID, value);
         }
 
+        // Executes toggle agent mask item operation.
         static void ToggleAgentMaskItem(SerializedProperty agentMask, int agentTypeID, bool value)
         {
             if (agentMask.hasMultipleDifferentValues)
@@ -218,6 +226,7 @@ namespace NavMeshPlus.Components.Editors
             agentMask.serializedObject.ApplyModifiedProperties();
         }
 
+        // Executes set agent mask none operation.
         static void SetAgentMaskNone(object data)
         {
             var agentMask = (SerializedProperty)data;
@@ -225,6 +234,8 @@ namespace NavMeshPlus.Components.Editors
             agentMask.serializedObject.ApplyModifiedProperties();
         }
 
+        // Executes set agent mask all operation.
+        // Validates input parameters against null or empty values.
         static void SetAgentMaskAll(object data)
         {
             var agentMask = (SerializedProperty)data;
@@ -234,6 +245,8 @@ namespace NavMeshPlus.Components.Editors
             agentMask.serializedObject.ApplyModifiedProperties();
         }
 
+        // Executes get agent mask label name operation.
+        // Validates input parameters against null or empty values.
         static string GetAgentMaskLabelName(SerializedProperty agentMask)
         {
             if (agentMask.arraySize == 0)
@@ -249,7 +262,7 @@ namespace NavMeshPlus.Components.Editors
                 {
                     var elem = agentMask.GetArrayElementAtIndex(j);
                     var settingsName = NavMesh.GetSettingsNameFromID(elem.intValue);
-                    if (string.IsNullOrEmpty(settingsName))
+                    if (string.IsNullOrEmpty(settingsName))  // Mandatory string argument is null or empty — fail fast
                         continue;
 
                     if (labelName.Length > 0)
@@ -262,6 +275,7 @@ namespace NavMeshPlus.Components.Editors
             return "Mixed...";
         }
 
+        // Executes agent mask has selected agent type id operation.
         static bool AgentMaskHasSelectedAgentTypeID(SerializedProperty agentMask, int agentTypeID)
         {
             for (var j = 0; j < agentMask.arraySize; j++)

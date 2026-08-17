@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+// Executes i pointer click handler operation.
 public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 {
     [Header("Core UI Elements")]
@@ -15,9 +16,12 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
     [SerializeField] protected GameObject selectHighlight;
 
     public Action<UIBaseItemSlot> OnSlotClicked;
+    // Executes raw data operation.
     public object RawData { get; protected set; }
+    // Executes display data operation.
     public UIItemDisplayData DisplayData { get; protected set; }
 
+    // Executes setup core operation.
     public virtual void SetupCore(UIItemDisplayData data)
     {
         BindCore();
@@ -50,6 +54,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         SetRarityColor(data.rarity);
     }
 
+    // Executes clear slot operation.
     public virtual void ClearSlot()
     {
         BindCore();
@@ -68,16 +73,18 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         if (rarityBorder != null)
             rarityBorder.enabled = false;
         rarityEffect?.SetVisible(false);
-            
+
         SetHighlight(false);
     }
 
+    // Executes set highlight operation.
     public void SetHighlight(bool isActive)
     {
         if (selectHighlight != null)
             selectHighlight.SetActive(isActive);
     }
 
+    // Executes setup custom operation.
     public virtual void SetupCustom(string displayName, string amountText, Sprite icon)
     {
         BindCore();
@@ -103,9 +110,10 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         rarityEffect?.SetVisible(false);
     }
 
+    // Executes set rarity color operation.
     protected virtual void SetRarityColor(string rarity)
     {
-        bool isSkinSlot = this is UIInventorySkinSlot || 
+        bool isSkinSlot = this is UIInventorySkinSlot ||
                          (DisplayData != null && (DisplayData.isSkin || string.Equals(DisplayData.category, "Skin", StringComparison.OrdinalIgnoreCase))) ||
                          RawData is MysticJourney.API.Models.Response.PlayerSkinSummaryResponse;
 
@@ -119,9 +127,6 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         if (string.IsNullOrWhiteSpace(rarity))
             rarity = "Common";
 
-        // Determine target object for glow effect:
-        // Priority 1: rarityBorder if available
-        // Priority 2: slot root gameObject
         GameObject targetObj = rarityBorder != null ? rarityBorder.gameObject : gameObject;
 
         if (rarityEffect == null || rarityEffect.gameObject != targetObj)
@@ -135,15 +140,16 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
         rarityEffect.Configure(rarity, rarityBorder);
 
-        // Disable static rarityBorder image so it doesn't block or clash with multi-layer glow
         if (rarityBorder != null)
             rarityBorder.enabled = false;
 
-        // Ensure icon and quantity text always render ON TOP of the glow layers
         if (iconImage != null) iconImage.transform.SetAsLastSibling();
         if (quantityText != null) quantityText.transform.SetAsLastSibling();
     }
 
+    // Executes is consumable or non equip operation.
+    // Validates input parameters against null or empty values.
+    // Evaluates conditions and returns a boolean result.
     public static bool IsConsumableOrNonEquip(UIItemDisplayData data, object rawData)
     {
         if (data != null && (data.isSkin || string.Equals(data.category, "Skin", System.StringComparison.OrdinalIgnoreCase)))
@@ -212,16 +218,18 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
     }
 
 
+    // Executes on pointer click operation.
     public virtual void OnPointerClick(PointerEventData eventData)
     {
         if (RawData != null)
             OnSlotClicked?.Invoke(this);
     }
 
+    // Executes ensure icon centered operation.
     protected void EnsureIconCentered()
     {
         if (iconImage == null) return;
-        if (this is UIShopSlot) return; // Keep prefab's exact Y offset (27.8f) for Shop slots
+        if (this is UIShopSlot) return;
 
         RectTransform rect = iconImage.rectTransform;
         if (rect != null)
@@ -233,6 +241,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         }
     }
 
+    // Executes bind core operation.
     protected void BindCore()
     {
         if (iconImage == null)
@@ -249,6 +258,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         EnsureIconCentered();
     }
 
+    // Executes find child operation.
     private Transform FindChild(params string[] names)
     {
         var children = GetComponentsInChildren<Transform>(true);
@@ -264,6 +274,8 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         return null;
     }
 
+    // Executes rarity to color operation.
+    // Validates input parameters against null or empty values.
     private static Color RarityToColor(string rarity)
     {
         if (string.IsNullOrWhiteSpace(rarity))

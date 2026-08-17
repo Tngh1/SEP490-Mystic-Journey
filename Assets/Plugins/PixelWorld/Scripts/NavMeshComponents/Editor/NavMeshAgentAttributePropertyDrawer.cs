@@ -8,14 +8,17 @@ using UnityEngine;
 //***********************************************************************************
 namespace NavMeshPlus.Extensions.Editors
 {
+    // Executes property drawer operation.
     [CustomPropertyDrawer(typeof(NavMeshAgentAttribute))]
     public class NavMeshAgentAttributePropertyDrawer : PropertyDrawer
     {
+        // Executes on gui operation.
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             NavMeshComponentsGUIUtility.AgentTypePopup(position, label.text, property);
         }
 
+        // Executes get property height operation.
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => NavMeshComponentsGUIUtility.IsAgentSelectionValid(property) ? 20 : 40;
     }
 }

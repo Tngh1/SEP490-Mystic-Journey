@@ -4,6 +4,7 @@ using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.Video;
 
+// Executes mono behaviour operation.
 [RequireComponent(typeof(WorldInteractable))]
 public class OriginTreeInteractable : MonoBehaviour
 {
@@ -18,8 +19,6 @@ public class OriginTreeInteractable : MonoBehaviour
     [SerializeField] private float pulseScale = 1.04f;
 
     [Header("Video")]
-    // Clip nằm trong Resources nên load bằng tên, không cần gắn vào scene.
-    // Chưa có file thì bỏ qua video và chỉ chạy hiệu ứng tween như trước.
     [Tooltip("Tên VideoClip trong thư mục Resources.")]
     [SerializeField] private string videoResourceName = "The_Purification_of_the_Origi_Tree";
 
@@ -34,6 +33,8 @@ public class OriginTreeInteractable : MonoBehaviour
     private VideoPlayer _videoPlayer;
     private bool _videoFinished;
 
+    // Initializes internal component caches and dependencies for OriginTreeInteractable upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _interactable = GetComponent<WorldInteractable>();
@@ -41,6 +42,8 @@ public class OriginTreeInteractable : MonoBehaviour
         _baseScale = transform.localScale;
     }
 
+    // Performs startup initialization for OriginTreeInteractable on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         _interactable.ConfigureQuestItem(objectKey, displayName, linkedQuestId, 1, 3.5f);
@@ -48,6 +51,7 @@ public class OriginTreeInteractable : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged += RefreshVisibility;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshVisibility;
@@ -55,6 +59,7 @@ public class OriginTreeInteractable : MonoBehaviour
             _videoPlayer.loopPointReached -= OnVideoFinished;
     }
 
+    // Executes start heal operation.
     public void StartHeal()
     {
         if (_isHealing || _healed) return;
@@ -86,6 +91,7 @@ public class OriginTreeInteractable : MonoBehaviour
                     QuestUIManager.Instance?.ApplyServerQuestState(response.Quest);
                 InventoryUIManager.RefreshAny(refreshStats: false);
                 WorldRuntimeEvents.RaiseQuestsChanged();
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(HealingSequence());
             },
             error =>
@@ -97,10 +103,9 @@ public class OriginTreeInteractable : MonoBehaviour
             });
     }
 
+    // Executes healing sequence operation.
     private IEnumerator HealingSequence()
     {
-        // Video chạy sau khi API trả về OK, vì call đó tiêu 4 quyển sách và có thể fail.
-        // Phát cutscene trước rồi báo lỗi thiếu sách sẽ khó hiểu hơn là không phát.
         yield return PlayPurificationVideo();
 
         var startColor = _treeRenderer != null ? _treeRenderer.color : Color.white;
@@ -108,6 +113,7 @@ public class OriginTreeInteractable : MonoBehaviour
         while (elapsed < healingDuration)
         {
             elapsed += Time.deltaTime;
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             var t = Mathf.Clamp01(elapsed / healingDuration);
             var pulse = Mathf.Sin(t * Mathf.PI) * (pulseScale - 1f);
             transform.localScale = _baseScale * (1f + pulse);
@@ -125,6 +131,8 @@ public class OriginTreeInteractable : MonoBehaviour
         WorldRuntimeEvents.RaiseMessage("The Origin Tree is healing. Talk to Lyra.");
     }
 
+    // Executes play purification video operation.
+    // Validates input parameters against null or empty values.
     private IEnumerator PlayPurificationVideo()
     {
         if (string.IsNullOrEmpty(videoResourceName)) yield break;
@@ -132,8 +140,6 @@ public class OriginTreeInteractable : MonoBehaviour
         var clip = Resources.Load<VideoClip>(videoResourceName);
         if (clip == null)
         {
-            // ponytail: chưa có file video thì chỉ cảnh báo và chạy tween.
-            // Thêm Assets/UI/Videos/Resources/<videoResourceName>.mp4 là tự động chạy.
             Debug.LogWarning($"[OriginTreeInteractable] Không tìm thấy VideoClip '{videoResourceName}' trong Resources, bỏ qua cutscene.");
             yield break;
         }
@@ -145,7 +151,6 @@ public class OriginTreeInteractable : MonoBehaviour
             _videoPlayer.loopPointReached += OnVideoFinished;
         }
 
-        // Ẩn player trong lúc chiếu, giống IvyTree
         var player = GameObject.FindGameObjectWithTag("Player");
         SpriteRenderer[] playerSprites = null;
         if (player != null)
@@ -174,8 +179,10 @@ public class OriginTreeInteractable : MonoBehaviour
             foreach (var sp in playerSprites) sp.enabled = true;
     }
 
+    // Executes on video finished operation.
     private void OnVideoFinished(VideoPlayer vp) => _videoFinished = true;
 
+    // Executes refresh visibility operation.
     private void RefreshVisibility()
     {
         if (QuestUIManager.Instance == null) return;
@@ -193,6 +200,7 @@ public class OriginTreeInteractable : MonoBehaviour
         _interactable.UpdateOverheadUI();
     }
 
+    // Executes apply healed visual operation.
     private void ApplyHealedVisual()
     {
         transform.localScale = _baseScale;
@@ -200,6 +208,7 @@ public class OriginTreeInteractable : MonoBehaviour
             _treeRenderer.color = healedColor;
     }
 
+    // Executes set collider enabled operation.
     private void SetColliderEnabled(bool enabled)
     {
         var col2D = GetComponent<Collider2D>();

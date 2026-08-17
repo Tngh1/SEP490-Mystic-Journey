@@ -5,6 +5,7 @@ namespace Fusion.Editor {
 
   [ScriptedImporter(0, "editorconfig")]
   class FusionEditorConfigImporter : ScriptedImporter {
+    // Executes on import asset operation.
     public override void OnImportAsset(AssetImportContext ctx) {
       var path      = ctx.assetPath;
       var contents  = File.ReadAllText(path);

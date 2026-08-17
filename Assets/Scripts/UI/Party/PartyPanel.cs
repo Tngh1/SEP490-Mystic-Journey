@@ -7,33 +7,19 @@ using MysticJourney.API.Models;
 using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Utilities;
 
-/// <summary>
-/// The pre-dungeon party panel (VIEW). It renders the live party roster from
-/// <see cref="PartyLobby.Local"/> and translates user clicks into <see cref="PartyService"/>
-/// calls — it holds NO party business logic and NO local roster state; the authoritative
-/// state is the replicated PartyLobby.
-///
-/// Two modes share the same UI:
-///   • Solo  — no party yet. Slot 1 shows the local player; slots 2-4 show "+" invite
-///             buttons; Start enters the dungeon single-player (existing flow, untouched).
-///   • Party — the local player created/joined a party. Slots show real members
-///             (name / class / level / ready / host icon) and update in realtime via
-///             Fusion; Start/Ready/Kick/Leave route through PartyService.
-///
-/// Inviting the first friend lazily creates the party (PartyService.InviteByProfileId),
-/// so the solo→party transition is seamless.
-/// </summary>
+// Executes mono behaviour operation.
 public class PartyPanel : MonoBehaviour
 {
+    // Executes instance operation.
     public static PartyPanel Instance { get; private set; }
 
     [Header("Static References")]
     [SerializeField] private TMP_Text dungeonNameText;
     [SerializeField] private TMP_Text energyCostText;
     [SerializeField] private Button startButton;
-    [SerializeField] private Button readyButton;   // BottomSection/ReadyButton (member only)
+    [SerializeField] private Button readyButton;
     [SerializeField] private Sprite readyActiveSprite;
-    [SerializeField] private Button inviteButton;  // BottomSection/InviteButton (global → friend list)
+    [SerializeField] private Button inviteButton;
     [SerializeField] private Button closeButton;
 
     [Header("Party Slots (index 0 = host slot). Auto-found under 'Players' if empty.")]
@@ -48,15 +34,12 @@ public class PartyPanel : MonoBehaviour
     [Header("Dungeon Info UI")]
     [SerializeField] private TMP_Text descriptionText;
     [SerializeField] private Transform dropsContainer;
-    [SerializeField] private GameObject dropItemPrefab; // Optional prefab to instantiate for drop items
+    [SerializeField] private GameObject dropItemPrefab;
 
     [Header("Runtime Info")]
     private int selectedConfigId = 1;
     private int selectedMapId = MapProgressionRules.FirstMapId;
     private string selectedSceneName = "AbandonedMines";
-    // Không có tên mặc định: một cái tên cứng ở đây sẽ hiện ĐÚNG như thật cho dungeon sai
-    // (mọi cửa từng mặc định "Abandoned Mines", kể cả configId 2 = Dragon's Lair).
-    // Rỗng thì UpdateUI() hiện "Dungeon" — trung tính, không khẳng định điều gì sai.
     private string selectedDungeonName;
     private string selectedDescription = "";
     private System.Collections.Generic.List<ChestItemResponse> possibleDrops = new();
@@ -66,52 +49,51 @@ public class PartyPanel : MonoBehaviour
     private int goldMaxReward = 0;
     private int experienceReward = 0;
 
-    // Local player identity (for the host slot in solo mode + as fallback).
     private string localPlayerName = "Player";
     private int localPlayerLevel = 1;
 
     private GameObject dynamicCanvasObj;
     private GameObject friendModalObj;
 
-    // Currently hooked party (for instance-event subscription lifecycle).
     private PartyLobby _hookedParty;
     private Sprite _readyDefaultSprite;
 
+    // Initializes singleton reference and hooks party disband presence callback.
     private void Awake()
     {
         if (Instance == null)
         {
-            Instance = this;
+            Instance = this; // Cache singleton instance
         }
         else if (Instance != this)
         {
-            Destroy(this);
+            Destroy(this); // Prevent duplicate party panel
             return;
         }
 
-        // Đăng ký ở Awake (KHÔNG phải OnEnable): tin giải tán có thể tới lúc panel đang
-        // đóng, và OnDisable sẽ hủy đăng ký — thành viên nào đã đóng panel sẽ không bao
-        // giờ biết nhóm đã tan. Awake/OnDestroy phủ toàn bộ thời gian sống của panel.
-        PlayerPresence.OnPartyDisbanded += HandlePartyDisbanded;
+        PlayerPresence.OnPartyDisbanded += HandlePartyDisbanded; // Listen for host disbanding party
 
         if (readyButton != null && readyButton.image != null)
-            _readyDefaultSprite = readyButton.image.sprite;
+            _readyDefaultSprite = readyButton.image.sprite; // Cache unready button state sprite
 
-        gameObject.SetActive(false);
+        gameObject.SetActive(false); // Initially hidden
     }
 
+    // Subscribes local party roster changes and state updates.
     private void OnEnable()
     {
-        PartyLobby.OnLocalPartyChanged += HandleLocalPartyChanged;
-        RehookPartyEvents();
+        PartyLobby.OnLocalPartyChanged += HandleLocalPartyChanged; // Re-subscribe when joining new party lobby
+        RehookPartyEvents(); // Subscribe member roster changes
     }
 
+    // Unsubscribes lobby event listeners when panel is dismissed.
     private void OnDisable()
     {
         PartyLobby.OnLocalPartyChanged -= HandleLocalPartyChanged;
         UnhookPartyEvents();
     }
 
+    // Cleans up event listeners upon GameObject destruction.
     private void OnDestroy()
     {
         if (Instance == this)
@@ -121,39 +103,32 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Chủ phòng đã giải tán nhóm. Chỉ chạy trên máy THÀNH VIÊN (host không tự gửi cho
-    /// mình). Nếu không có hàm này, thành viên chỉ thấy danh sách trống đi rồi panel
-    /// nhảy về chế độ solo — không phân biệt được với việc bị host đuổi.
-    /// </summary>
+    // Displays notification alert and closes party window when host disbands the team.
     private void HandlePartyDisbanded(string hostName)
     {
         string message = string.IsNullOrWhiteSpace(hostName)
             ? "The party has been disbanded by the host."
             : $"{hostName} has disbanded the party.";
 
-        UIPopupBox.Notify(transform, "Party", message);
+        UIPopupBox.Notify(transform, "Party", message); // Notify player
 
-        // Party không còn tồn tại, nên đóng panel thay vì để nó tự vẽ lại ở chế độ solo.
-        Close();
+        Close(); // Close panel
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Party event wiring — keep instance-level subscriptions pointed at the
-    // current PartyLobby.Local (which changes as we join / leave / get disbanded).
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Subscribes roster and state change events from the active PartyLobby.
     private void RehookPartyEvents()
     {
         UnhookPartyEvents();
         _hookedParty = PartyLobby.Local;
         if (_hookedParty != null)
         {
-            _hookedParty.OnRosterChanged += UpdateUI;
-            _hookedParty.OnPartyStateChanged += HandlePartyState;
+            _hookedParty.OnRosterChanged += UpdateUI; // Redraw member slot cards
+            _hookedParty.OnPartyStateChanged += HandlePartyState; // Check ready / in-dungeon status
         }
     }
 
+    // Unsubscribes active lobby event handlers.
     private void UnhookPartyEvents()
     {
         if (_hookedParty != null)
@@ -164,32 +139,25 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
+    // Executes handle local party changed operation.
     private void HandleLocalPartyChanged()
     {
         RehookPartyEvents();
-        // The party is created lazily on the first invite — AFTER the host opened the
-        // panel (when PartyLobby.Local was still null, so the initial publish was a
-        // no-op). Republish now that we're seated as host so members' panels get the
-        // real dungeon config/name/scene instead of the empty networked defaults.
         PublishDungeonSelectionIfHost();
         if (gameObject.activeInHierarchy) UpdateUI();
     }
 
+    // Executes handle party state operation.
     private void HandlePartyState(PartyLobby.PartyState state)
     {
-        // Leaving the lobby (host pressed Start) closes this panel; the actual dungeon
-        // transition is driven by PartyManager (Step 5).
         if (state != PartyLobby.PartyState.Lobby)
         {
             Close();
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Open / data load
-    // ─────────────────────────────────────────────────────────────────────────
 
-    // Direct initialization from DungeonEntrance triggers
+    // Executes open for dungeon operation.
     public void OpenForDungeon(int configId, string sceneName, int cost, string displayName)
     {
         selectedConfigId = configId;
@@ -198,10 +166,6 @@ public class PartyPanel : MonoBehaviour
         energyCost = cost;
         selectedDungeonName = displayName;
 
-        // A member may open the panel BEFORE the host has published a real config id
-        // (arrives via PartyLobby networked props a frame later). configId <= 0 would
-        // hit DungeonApi.GetById(0) → 404, so skip the fetch and just show the panel;
-        // UpdateUI reads the host's published DungeonName once it replicates.
         if (configId <= 0)
         {
             gameObject.SetActive(true);
@@ -209,9 +173,6 @@ public class PartyPanel : MonoBehaviour
             return;
         }
 
-        // Fetch detailed config info via GetById to grab energy cost, description and drops.
-        // Level requirement KHÔNG đọc ở đây: DungeonEntrance tự fetch ngưỡng của chính nó
-        // và là nơi duy nhất gate, nên panel giữ thêm một bản copy chỉ tạo cơ hội lệch.
         DungeonApi.Instance.GetById(configId,
             response =>
             {
@@ -239,14 +200,14 @@ public class PartyPanel : MonoBehaviour
         );
     }
 
-    /// <summary>If the local player hosts a party, share the current selection so
-    /// every member's panel shows the same dungeon (24.2).</summary>
+    // Executes publish dungeon selection if host operation.
     private void PublishDungeonSelectionIfHost()
     {
         if (PartyService.IsHost)
             PartyService.SetDungeon(selectedConfigId, selectedSceneName, selectedDungeonName);
     }
 
+    // Executes fetch player energy operation.
     private void FetchPlayerEnergy()
     {
         PlayerApi.Instance.GetMyProfile(
@@ -260,7 +221,7 @@ public class PartyPanel : MonoBehaviour
             error =>
             {
                 Debug.LogWarning($"[PartyPanel] GetMyProfile failed: {error.Message}");
-                playerEnergy = 100; // Fallback
+                playerEnergy = 100;
                 localPlayerName = WorldState.PlayerName ?? "Player";
                 localPlayerLevel = Mathf.Max(1, WorldState.PlayerLevel);
                 UpdateUI();
@@ -268,10 +229,8 @@ public class PartyPanel : MonoBehaviour
         );
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Rendering
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes update ui operation.
     private void UpdateUI()
     {
         if (transform.Find("Players") == null)
@@ -287,14 +246,12 @@ public class PartyPanel : MonoBehaviour
             var party = PartyLobby.Local;
             bool nonHostMember = party != null && !party.IsLocalHost;
 
-            // Header dungeon name: a non-host member reads the host's published selection.
             string dungeonName = selectedDungeonName;
             if (nonHostMember && !string.IsNullOrEmpty(party.DungeonName.Value))
                 dungeonName = party.DungeonName.Value;
 
             if (dungeonNameText != null)
             {
-                // Tên chưa về (hoặc server trả rỗng): nhãn trung tính, KHÔNG đoán tên dungeon.
                 dungeonNameText.text = string.IsNullOrWhiteSpace(dungeonName) ? "Dungeon" : dungeonName;
                 dungeonNameText.textWrappingMode = TextWrappingModes.NoWrap;
                 dungeonNameText.enableAutoSizing = true;
@@ -313,6 +270,7 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
+    // Executes update dungeon info panel operation.
     private void UpdateDungeonInfoPanel()
     {
         if (descriptionText != null)
@@ -322,14 +280,11 @@ public class PartyPanel : MonoBehaviour
 
         if (dropsContainer != null)
         {
-            // Clear existing
             foreach (Transform child in dropsContainer)
             {
                 Destroy(child.gameObject);
             }
 
-            // Đếm trước để chia cột: grid phải vừa bề ngang container, nếu không
-            // cột cuối bị cắt và nhãn số lượng của nó mất một phần chữ.
             int dropCount = 0;
             if (goldMaxReward > 0) dropCount++;
             if (experienceReward > 0) dropCount++;
@@ -337,18 +292,13 @@ public class PartyPanel : MonoBehaviour
 
             ConfigureDropsGrid(dropCount);
 
-            // Spawn Gold if available
             if (goldMaxReward > 0)
             {
                 SpawnDropItem("Gold", goldMinReward, goldMaxReward, null);
             }
 
-            // Spawn Exp if available
             if (experienceReward > 0)
             {
-                // "Exp" — đúng key trong ItemIconDatabase. Trước đây truyền "Experience",
-                // không khớp key nào nên icon rơi về sprite mặc định của prefab (đồng vàng),
-                // làm ô Exp trông y hệt ô Gold.
                 SpawnDropItem("Exp", experienceReward, experienceReward, null);
             }
 
@@ -362,12 +312,8 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Chỉnh GridLayoutGroup của dropsContainer theo bề ngang thật của nó.
-    /// Cell trong scene là 125x70 trong khi prefab ItemSlot là 150x80, và 3 cột
-    /// (3*125 + 2*10 = 395) rộng hơn container (~377) — nên ô cuối bị cắt và
-    /// nhãn "x50-100" tràn sang ô kế bên.
-    /// </summary>
+    // Executes configure drops grid operation.
+    // Validates input parameters against null or empty values.
     private void ConfigureDropsGrid(int itemCount)
     {
         if (dropsContainer == null) return;
@@ -377,14 +323,14 @@ public class PartyPanel : MonoBehaviour
 
         var rt = dropsContainer as RectTransform;
         float available = rt != null ? rt.rect.width : 0f;
-        if (available <= 1f) return; // layout chưa tính xong — giữ nguyên cấu hình
+        if (available <= 1f) return;
 
         float spacingX = Mathf.Max(0f, grid.spacing.x);
         available -= grid.padding.left + grid.padding.right;
 
-        // Bao nhiêu cột vừa được với bề rộng ô mong muốn (bằng prefab: 150)
         const float preferredCellWidth = 150f;
         int columns = Mathf.FloorToInt((available + spacingX) / (preferredCellWidth + spacingX));
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         columns = Mathf.Clamp(columns, 1, Mathf.Max(1, itemCount));
 
         float cellWidth = (available - spacingX * (columns - 1)) / columns;
@@ -394,9 +340,9 @@ public class PartyPanel : MonoBehaviour
         grid.cellSize = new Vector2(Mathf.Floor(cellWidth), DropCellHeight);
     }
 
-    // Cao bằng prefab ItemSlot; cell 70 cắt mất khung nền 80 của nó.
     private const float DropCellHeight = 80f;
 
+    // Executes spawn drop item operation.
     private void SpawnDropItem(string itemName, int minQty, int maxQty, string iconUrl)
     {
         GameObject itemObj;
@@ -412,7 +358,6 @@ public class PartyPanel : MonoBehaviour
             rt.sizeDelta = new Vector2(40, 40);
         }
 
-        // Try to load icon
         Image image = null;
         var iconTransform = itemObj.transform.Find("Icon");
         if (iconTransform != null)
@@ -423,7 +368,7 @@ public class PartyPanel : MonoBehaviour
         {
             image = itemObj.GetComponentInChildren<Image>();
         }
-        
+
         if (image != null && !string.IsNullOrEmpty(itemName))
         {
             Sprite sprite = null;
@@ -437,7 +382,6 @@ public class PartyPanel : MonoBehaviour
                 sprite = Resources.Load<Sprite>(iconUrl);
             }
 
-            // Icon thật nằm ở Resources/Item/, không phải Resources/Icons/Items/.
             if (sprite == null)
             {
                 sprite = Resources.Load<Sprite>("Item/" + itemName);
@@ -451,14 +395,11 @@ public class PartyPanel : MonoBehaviour
             }
             else
             {
-                // Tắt hẳn thay vì để nguyên sprite mặc định của prefab (đồng vàng):
-                // giữ lại thì item thiếu icon sẽ hiện SAI icon chứ không lộ ra là thiếu.
                 image.enabled = false;
                 Debug.LogWarning($"[PartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
             }
         }
 
-        // Update quantity text if exists
         var qtyText = itemObj.GetComponentInChildren<TMPro.TMP_Text>();
         if (qtyText != null)
         {
@@ -471,17 +412,12 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Nhãn số lượng trong prefab là rect 120 rộng, đặt lệch phải 45 — tức tràn khỏi
-    /// ô grid và đè sang ô kế bên. Kèm wrap + Ellipsis nên "x50-100" bị xuống dòng
-    /// rồi cắt thành "x50-…". Ghim nhãn vào phần bên phải của ô và cho co chữ.
-    /// </summary>
+    // Executes fit quantity label operation.
     private void FitQuantityLabel(TMPro.TMP_Text label)
     {
         var rt = label.transform as RectTransform;
         if (rt != null)
         {
-            // Stretch ngang: từ sau khung icon (80) tới sát mép phải ô.
             rt.anchorMin = new Vector2(0f, 0.5f);
             rt.anchorMax = new Vector2(1f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
@@ -497,18 +433,19 @@ public class PartyPanel : MonoBehaviour
         label.fontSizeMax = 30f;
     }
 
+    // Executes update energy cost label operation.
     private void UpdateEnergyCostLabel()
     {
         if (energyCostText == null) return;
         energyCostText.text = $"-{energyCost}";
         energyCostText.color = playerEnergy >= energyCost
-            ? new Color(0.18f, 0.8f, 0.25f)   // green
-            : new Color(0.9f, 0.2f, 0.2f);    // red
+            ? new Color(0.18f, 0.8f, 0.25f)
+            : new Color(0.9f, 0.2f, 0.2f);
     }
 
+    // Executes find references operation.
     private void FindReferences()
     {
-        // 1. Header & Exit button
         Transform headerTrans = transform.Find("Header");
         if (headerTrans != null)
         {
@@ -531,7 +468,6 @@ public class PartyPanel : MonoBehaviour
             }
         }
 
-        // 2. BottomSection — StartButton, ReadyButton, InviteButton (global), EnergyCost.
         Transform bottomTrans = transform.Find("BottomSection");
         if (bottomTrans != null)
         {
@@ -570,7 +506,6 @@ public class PartyPanel : MonoBehaviour
             }
         }
 
-        // 3. Auto-find Description and Drops if null or wrong
         if (descriptionText == null)
         {
             var allTexts = GetComponentsInChildren<TMP_Text>(true);
@@ -617,10 +552,8 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Player slots (24.1 View Party List)
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes update players panel operation.
     private void UpdatePlayersPanel()
     {
         Transform playersTrans = transform.Find("Players");
@@ -632,7 +565,6 @@ public class PartyPanel : MonoBehaviour
         var party = PartyLobby.Local;
         bool localIsHost = party != null && party.IsLocalHost;
 
-        // ── Slot 0: host ─────────────────────────────────────────────────────
         if (slots.Length > 0 && slots[0] != null)
         {
             string hostName; int hostLevel; CharacterClass hostCls; int hostSkin;
@@ -654,7 +586,6 @@ public class PartyPanel : MonoBehaviour
             slots[0].RenderHost(hostName, hostLevel, hostCls, FlagFor(hostCls), NameplateFor(hostCls), SkinPortraitFor(hostSkin, hostCls));
         }
 
-        // ── Slots 1..N: other members / invite buttons ───────────────────────
         var others = new PartyLobby.Member[Mathf.Max(0, slots.Length - 1)];
         int otherCount = 0;
         if (party != null)
@@ -669,6 +600,7 @@ public class PartyPanel : MonoBehaviour
 
         for (int s = 1; s < slots.Length; s++)
         {
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = slots[s];
             if (slot == null) continue;
 
@@ -691,21 +623,17 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Confirms a kick through <c>Canvas/PopupLayer/UIPopup</c> in the Main Scene.
-    /// This used to call the legacy popup manager, which was the wrong popup: that is the shared
-    /// generic dialog, not the party-specific one the designers built.
-    /// </summary>
+    // Executes confirm kick operation.
     private void ConfirmKick(string memberName, Action onConfirm)
     {
         UIPopupBox.Show(transform, "Party", $"Kick {memberName} from the party?", onConfirm);
     }
 
+    // Executes ensure slots resolved operation.
     private void EnsureSlotsResolved()
     {
         if (slots != null && slots.Length > 0)
         {
-            // Fill any null entries by name (Player1..PlayerN under Players).
             bool anyNull = false;
             for (int i = 0; i < slots.Length; i++) if (slots[i] == null) anyNull = true;
             if (!anyNull) { EnsureAvatarDb(); return; }
@@ -714,9 +642,6 @@ public class PartyPanel : MonoBehaviour
         Transform playersTrans = transform.Find("Players");
         if (playersTrans != null)
         {
-            // Only the "Player*" podium children are real slots — a decorative child
-            // (e.g. a header Image) under Players has no UIPartySlot and is skipped.
-            // GetChild order == sibling order, so slots stay Player1..PlayerN.
             var resolved = new System.Collections.Generic.List<UIPartySlot>();
             for (int i = 0; i < playersTrans.childCount; i++)
             {
@@ -726,13 +651,11 @@ public class PartyPanel : MonoBehaviour
                 if (comp == null) comp = child.gameObject.AddComponent<UIPartySlot>();
                 resolved.Add(comp);
 
-                // Auto-scale down the huge PlayerHUD template
                 var rt = child.GetComponent<RectTransform>();
                 if (rt != null) rt.localScale = new Vector3(0.6f, 0.6f, 1f);
             }
             slots = resolved.ToArray();
 
-            // Auto-configure layout for the Players container
             var layout = playersTrans.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
             if (layout == null) layout = playersTrans.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
             layout.childControlWidth = false;
@@ -740,47 +663,48 @@ public class PartyPanel : MonoBehaviour
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
             layout.spacing = 10;
-            
+
             var playersRt = playersTrans.GetComponent<RectTransform>();
             if (playersRt != null)
             {
                 playersRt.anchorMin = new Vector2(0, 1);
                 playersRt.anchorMax = new Vector2(0, 1);
                 playersRt.pivot = new Vector2(0, 1);
-                // Position it below the main PlayerHUD
-                playersRt.anchoredPosition = new Vector2(20, -150); 
+                playersRt.anchoredPosition = new Vector2(20, -150);
             }
         }
 
         EnsureAvatarDb();
-        
-        // Safety check: ensure slots array is never null or empty
+
         if (slots == null || slots.Length == 0)
         {
             Debug.LogWarning("[PartyPanel] No party slots found under 'Players'. UI may not display correctly.");
         }
     }
 
+    // Executes ensure avatar db operation.
     private void EnsureAvatarDb()
     {
         if (avatarDatabase == null)
             avatarDatabase = ClassAvatarDatabaseSO.LoadDefault();
     }
 
+    // Executes flag for operation.
     private Sprite FlagFor(CharacterClass cls)
     {
         if (avatarDatabase == null) return null;
         return avatarDatabase.GetFlag(cls);
     }
 
+    // Executes nameplate for operation.
     private Sprite NameplateFor(CharacterClass cls)
     {
         if (avatarDatabase == null) return null;
         return avatarDatabase.GetNameplate(cls);
     }
 
-    /// <summary>Portrait for a member's equipped skin — the same preview sprite the
-    /// inventory's skin tab renders, so a slot matches what that player is wearing.</summary>
+    // Executes skin portrait for operation.
+    // Evaluates conditions and returns a boolean result.
     private Sprite SkinPortraitFor(int skinId, CharacterClass characterClass)
     {
         if (skinDatabase == null) skinDatabase = SkinDatabaseSO.LoadDefault();
@@ -789,6 +713,7 @@ public class PartyPanel : MonoBehaviour
         return equippedPreview != null ? equippedPreview : skinDatabase.GetDefaultPreviewSprite(characterClass);
     }
 
+    // Executes try get host member operation.
     private static bool TryGetHostMember(PartyLobby party, out PartyLobby.Member host)
     {
         for (int i = 0; i < PartyLobby.MaxMembers; i++)
@@ -804,24 +729,20 @@ public class PartyPanel : MonoBehaviour
         return false;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Bottom bar: Start (host / solo) or Ready toggle (member) — 24.8 + Start
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes update bottom bar operation.
     private void UpdateBottomBar()
     {
         var party = PartyLobby.Local;
         bool inParty = party != null;
         bool isHostOrSolo = party == null || party.IsLocalHost;
 
-        // Invite is available whenever the local player can host (solo or party host).
         if (inviteButton != null)
         {
             inviteButton.gameObject.SetActive(isHostOrSolo);
             inviteButton.interactable = isHostOrSolo;
         }
 
-        // ── Start button: host or solo only ──────────────────────────────────
         if (startButton != null)
         {
             startButton.gameObject.SetActive(isHostOrSolo);
@@ -831,18 +752,12 @@ public class PartyPanel : MonoBehaviour
                 var label = startButton.GetComponentInChildren<TMP_Text>(true);
                 if (label != null) label.text = "START";
 
-                // Năng lượng KHÔNG chặn ở đây nữa — chỉ kiểm tra khi mở rương trong dungeon
-                // (backend trừ energy ở claim-reward, BR-10). Nhãn EnergyCost vẫn tô đỏ để
-                // báo trước là sẽ không nhận được thưởng nếu không kịp hồi năng lượng.
-                // Keep the host button clickable so OnStartClick can explain which
-                // roster condition is missing instead of failing as a silent disabled button.
                 startButton.interactable = true;
 
                 startButton.onClick.AddListener(OnStartClick);
             }
         }
 
-        // ── Ready button: non-host member only ───────────────────────────────
         if (readyButton != null)
         {
             bool isMember = inParty && !party.IsLocalHost;
@@ -864,6 +779,7 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
+    // Executes is local member ready operation.
     private bool IsLocalMemberReady(PartyLobby party)
     {
         var runner = PhotonManager.Instance != null ? PhotonManager.Instance.Runner : null;
@@ -876,12 +792,12 @@ public class PartyPanel : MonoBehaviour
         return false;
     }
 
+    // Executes on start click operation.
     private void OnStartClick()
     {
         var party = PartyLobby.Local;
         if (party != null && party.IsLocalHost)
         {
-            // Party path — flip networked state; PartyManager (Step 5) drives the load.
             Debug.Log($"[PartyPanel] Start clicked: config={selectedConfigId}, scene='{selectedSceneName}', " +
                       $"state={party.State}, members={party.MemberCount}, ready={party.ReadyCount}, " +
                       $"pendingInvites={party.PendingInviteCount}.");
@@ -905,26 +821,18 @@ public class PartyPanel : MonoBehaviour
             return;
         }
 
-        // Solo path — unchanged existing single-player dungeon entry.
         Close();
         DungeonManager.Instance.StartDungeon(selectedConfigId, selectedSceneName, energyCost, selectedDungeonName);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Exit / leave (24.7)
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes on exit click operation.
     private void OnExitClick()
     {
         var party = PartyLobby.Local;
 
-        // Leaving the panel while in a party leaves the party too.
         if (party != null)
         {
-            // Đọc vai trò TRƯỚC khi rời: LeaveParty() despawn đối tượng party ngay trong
-            // frame này, Despawned() gán PartyLobby.Local = null, nên đọc lại
-            // PartyLobby.Local.IsLocalHost SAU lời gọi sẽ ném NullReferenceException và
-            // ăn luôn Close() phía dưới — panel của host kẹt lại trên màn hình.
             bool wasHost = party.IsLocalHost;
             int otherMembers = Mathf.Max(0, party.MemberCount - 1);
 
@@ -932,9 +840,6 @@ public class PartyPanel : MonoBehaviour
 
             if (wasHost)
             {
-                // Host đóng party = GIẢI TÁN cả nhóm (PartyLobby.LeaveAsHost), không phải
-                // đuổi từng người. Thành viên nhận thông báo riêng qua
-                // PlayerPresence.OnPartyDisbanded; ở đây chỉ xác nhận lại cho host.
                 if (otherMembers > 0)
                 {
                     UIPopupBox.Notify(transform, "Party", "You disbanded the party.");
@@ -948,6 +853,7 @@ public class PartyPanel : MonoBehaviour
         Close();
     }
 
+    // Executes close operation.
     public void Close()
     {
         if (UIManager.Instance != null && UIManager.Instance.dungeonPanel == gameObject)
@@ -971,10 +877,8 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Friend list modal (24.4 Invite Player)
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes open friend list modal operation.
     private void OpenFriendListModal()
     {
         if (friendModalObj != null) Destroy(friendModalObj);
@@ -1062,8 +966,6 @@ public class PartyPanel : MonoBehaviour
         ctRt.anchorMax = Vector2.one;
         ctRt.sizeDelta = Vector2.zero;
 
-        // Backend presence has a grace period after the last heartbeat. A dungeon invite
-        // additionally requires a live PlayerPresence in this Photon social lobby.
         FriendApi.GetFriendList(
             response =>
             {
@@ -1094,6 +996,7 @@ public class PartyPanel : MonoBehaviour
         );
     }
 
+    // Executes add friend row operation.
     private void AddFriendRow(Transform parent, FriendDto friend)
     {
         GameObject row = new GameObject($"FriendRow_{friend.FriendName}", typeof(RectTransform), typeof(Image));
@@ -1104,9 +1007,6 @@ public class PartyPanel : MonoBehaviour
         GameObject textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(row.transform, false);
         TextMeshProUGUI txt = textObj.GetComponent<TextMeshProUGUI>();
-        // Không prefix emoji: text object này tạo runtime nên dùng font mặc định của TMP
-        // (LiberationSans SDF), vốn không có glyph emoji và TMP Settings không khai fallback —
-        // emoji sẽ thành ô vuông □ kèm warning mỗi lần danh sách bạn render.
         txt.text = $"{friend.FriendName} (Lv.{friend.FriendLevel} {friend.Class})";
         txt.fontSize = 12;
         txt.color = Color.white;
@@ -1131,7 +1031,6 @@ public class PartyPanel : MonoBehaviour
         btnRt.anchoredPosition = new Vector2(-8, 0);
         btnRt.sizeDelta = new Vector2(60, 28);
 
-        // Already in the party?
         bool alreadyInParty = IsProfileInParty(friend.FriendProfileId);
         btnImg.color = alreadyInParty ? new Color(0.4f, 0.4f, 0.4f, 0.5f) : new Color(0.2f, 0.5f, 0.2f);
         btn.interactable = !alreadyInParty;
@@ -1166,8 +1065,6 @@ public class PartyPanel : MonoBehaviour
                 }
                 else
                 {
-                    // Report the real reason: blaming the friend for a local connection
-                    // problem sent players hunting a bug on the wrong side.
                     UIPopupBox.Notify(transform, "Notice", result switch
                     {
                         PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
@@ -1182,6 +1079,8 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
+    // Executes is profile in party operation.
+    // Evaluates conditions and returns a boolean result.
     private static bool IsProfileInParty(int profileId)
     {
         var party = PartyLobby.Local;
@@ -1194,6 +1093,7 @@ public class PartyPanel : MonoBehaviour
         return false;
     }
 
+    // Executes add no friends label operation.
     private void AddNoFriendsLabel(Transform parent)
     {
         GameObject txtObj = new GameObject("NoFriendsText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -1206,6 +1106,7 @@ public class PartyPanel : MonoBehaviour
         txtObj.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 40);
     }
 
+    // Executes add hover effect operation.
     private void AddHoverEffect(GameObject go)
     {
         if (go == null) return;

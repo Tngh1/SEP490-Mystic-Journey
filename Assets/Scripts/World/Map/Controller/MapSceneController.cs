@@ -5,36 +5,25 @@ using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// Executes mono behaviour operation.
 public class MapSceneController : MonoBehaviour
 {
     [SerializeField]
     private List<MapSceneConfig> mapConfigs;
 
-    /// <summary>
-    /// Đang trong dungeon thì không cho đổi map. Guard đặt ở đây (chứ không ở UI) để bịt MỌI
-    /// đường vào: map panel, cổng dịch chuyển, thuyền.
-    ///
-    /// Lý do phải chặn, không phải chỉ vì thiết kế: trong dungeon, WorldState.CurrentMapName là
-    /// tên scene dungeon và DungeonManager đã move player VÀO scene đó, nên ChangeMap sẽ unload
-    /// chính scene đang chứa player -> player bị destroy, tới map mới không còn nhân vật. Muốn
-    /// ra ngoài phải đi qua DungeonManager.ReturnToWorldMap (rời phòng Photon, trả player về
-    /// Main trước khi unload, tắt dungeon HUD, thu hồi rương thưởng).
-    /// </summary>
+    // Executes is travel blocked operation.
     public bool IsTravelBlocked
     {
         get { return IsTravelBlockedNow; }
     }
 
-    /// <summary>
-    /// Bản static của <see cref="IsTravelBlocked"/>, cho UI gọi mà không cần tìm instance:
-    /// map panel nằm ở Canvas của Main còn MapManager là một GameObject khác, và các đường
-    /// mở panel (phím M, nút MiniMap) chạy trước cả khi người chơi chọn map nào.
-    /// </summary>
+    // Executes is travel blocked now operation.
     public static bool IsTravelBlockedNow
     {
         get { return DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon; }
     }
 
+    // Executes enter map operation.
     public void EnterMap(MapData mapData, bool useCache = true, Vector3? specificSpawnPos = null)
     {
         if (IsTravelBlocked)
@@ -54,10 +43,12 @@ public class MapSceneController : MonoBehaviour
             return;
         }
 
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(
             ChangeMap(config.sceneName, useCache, specificSpawnPos));
     }
 
+    // Process the supplied values: normalizes or validates the text before returning the derived result.
     private IEnumerator ChangeMap(
         string targetScene, bool useCache = true, Vector3? specificSpawnPos = null)
     {
@@ -70,16 +61,11 @@ public class MapSceneController : MonoBehaviour
         var positionSync = FindPlayer()?.GetComponent<PlayerWorldPositionSync>();
         positionSync?.BeginMapTransition();
 
-        // Bật màn hình loading TRƯỚC khi unload: nếu bật sau, người chơi thấy một frame
-        // scene trống + player rơi ở toạ độ cũ.
         yield return LoadingScreen.Show();
 
         var previousScene = WorldState.CurrentMapName;
         if (!string.IsNullOrWhiteSpace(previousScene) && SceneManager.GetSceneByName(previousScene).isLoaded)
         {
-            // Luồng thường PlayerSpawner đã đặt player trong "Main" nên unload map cũ không
-            // đụng tới nó. Vẫn đưa về Main phòng khi một luồng khác gắn player vào scene map —
-            // unload nhầm là mất nhân vật, không phải chỉ sai vị trí.
             MovePlayerToMainScene();
 
             yield return SceneManager
@@ -114,7 +100,6 @@ public class MapSceneController : MonoBehaviour
         }
         else
         {
-            // First, try to find a PlayerSpawner in the newly loaded scene
             var spawners = Object.FindObjectsByType<PlayerSpawner>(FindObjectsSortMode.None);
             foreach (var spawner in spawners)
             {
@@ -149,10 +134,6 @@ public class MapSceneController : MonoBehaviour
 
         WorldRuntimeEvents.RaiseMapChanged(targetScene);
         WorldRuntimeEvents.RaiseQuestsChanged();
-        // KHÔNG LoadMyQuests() ở đây: BE chỉ tạo bản ghi quest NotStarted cho map bằng
-        // profile.LastMapName (PlayerQuestService.GetMyQuests), mà LastMapName chỉ được cập nhật
-        // bởi UpdatePosition bên dưới. Gọi sớm sẽ nhận lại quest của map CŨ -> vào map mới không
-        // có nhiệm vụ và không có mũi tên waypoint. Load sau khi lưu vị trí thành công.
 
         var player = FindPlayer();
         if (player == null)
@@ -169,7 +150,6 @@ public class MapSceneController : MonoBehaviour
             player.transform.position = spawnPosition;
             Physics2D.SyncTransforms();
 
-            // Set camera follow target for the newly loaded map scene
             var vcam = Object.FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
             if (vcam != null)
             {
@@ -181,7 +161,6 @@ public class MapSceneController : MonoBehaviour
                 }
             }
 
-            // Re-initialize minimap for the newly loaded map scene
             var minimapCam = Object.FindFirstObjectByType<MinimapCameraController>();
             if (minimapCam != null)
             {
@@ -191,8 +170,6 @@ public class MapSceneController : MonoBehaviour
 
         if (ApiClient.Instance.HasToken())
         {
-            // Wait briefly for a periodic save from the previous map. A lost callback must
-            // never keep the loading screen open forever.
             float pendingSaveDeadline = Time.realtimeSinceStartup + 8f;
             while (positionSync != null
                    && positionSync.HasPendingSave
@@ -235,7 +212,6 @@ public class MapSceneController : MonoBehaviour
             if (saveSucceeded)
                 WorldRuntimeEvents.RaiseMapChanged(targetScene);
 
-            // Server LastMapName is settled before quest data is requested.
             QuestUIManager.Instance?.LoadMyQuests();
         }
         else
@@ -243,15 +219,10 @@ public class MapSceneController : MonoBehaviour
             positionSync?.CompleteMapTransition(spawnPosition);
         }
 
-        // Keep loading visible until the authoritative map save completes or reaches its timeout.
         yield return LoadingScreen.Hide();
     }
 
-    /// <summary>
-    /// Local player object, luôn trả về ROOT của scene.
-    /// Ưu tiên NetworkPlayer.Local: trong multiplayer, PlayerMovement có thể khớp nhầm child
-    /// VISUAL của class prefab, mà child không phải scene root nên MoveGameObjectToScene ném lỗi.
-    /// </summary>
+    // Executes find player operation.
     private static GameObject FindPlayer()
     {
         GameObject found = NetworkPlayer.Local != null ? NetworkPlayer.Local.gameObject : null;
@@ -267,11 +238,7 @@ public class MapSceneController : MonoBehaviour
         return found != null ? found.transform.root.gameObject : null;
     }
 
-    /// <summary>
-    /// Đưa player về scene "Main" để nó sống sót qua lần unload map cũ. Nuốt lỗi có chủ đích:
-    /// MoveGameObjectToScene ném nếu object không phải scene root, và một lần move hỏng không
-    /// đáng để giết coroutine đổi map (sẽ kẹt màn hình loading).
-    /// </summary>
+    // Executes move player to main scene operation.
     private static void MovePlayerToMainScene()
     {
         var player = FindPlayer();

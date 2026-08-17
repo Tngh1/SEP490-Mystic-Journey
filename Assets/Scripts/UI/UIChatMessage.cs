@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+// Executes mono behaviour operation.
 public class UIChatMessage : MonoBehaviour
 {
     [Header("UI Elements")]
@@ -21,21 +22,28 @@ public class UIChatMessage : MonoBehaviour
     private bool senderListenerBound;
     private bool reportListenerBound;
 
+    // Executes chat message id operation.
     public int ChatMessageId { get; private set; }
+    // Executes can report operation.
     public bool CanReport { get; private set; }
+    // Executes sender profile id operation.
     public int SenderProfileId => currentSenderProfileId;
 
+    // Initializes internal component caches and dependencies for UIChatMessage upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         BindSenderButton();
         BindReportButton();
     }
 
+    // Executes setup operation.
     public void Setup(string sender, string message, Color senderColor, Color bgColor)
     {
         Setup(sender, message, senderColor, bgColor, 0, 0, true, false);
     }
 
+    // Update up using sender, message, sender color, and bg color and returns the computed result.
     public void Setup(
         string sender,
         string message,
@@ -48,6 +56,7 @@ public class UIChatMessage : MonoBehaviour
         Setup(sender, message, senderColor, bgColor, chatMessageId, 0, isMine, isReported);
     }
 
+    // Update up using sender, message, sender color, and bg color; it updates report button state and guards invalid or unavailable states.
     public void Setup(
         string sender,
         string message,
@@ -61,8 +70,7 @@ public class UIChatMessage : MonoBehaviour
         currentSender = sender;
         currentSenderProfileId = senderProfileId;
         ChatMessageId = chatMessageId;
-        
-        // Chỉ hiện nút Report cho tin nhắn của ng khác.
+
         CanReport = !isMine && !isReported;
 
         if (senderText != null)
@@ -86,12 +94,14 @@ public class UIChatMessage : MonoBehaviour
         UpdateReportButtonState(isReported);
     }
 
+    // Executes mark reported operation.
     public void MarkReported()
     {
         CanReport = false;
         UpdateReportButtonState(true);
     }
 
+    // Executes bind sender button operation.
     private void BindSenderButton()
     {
         if (senderListenerBound || senderButton == null)
@@ -103,6 +113,7 @@ public class UIChatMessage : MonoBehaviour
         senderButton.onClick.AddListener(HandleSenderClicked);
     }
 
+    // Executes bind report button operation.
     private void BindReportButton()
     {
         if (reportListenerBound || reportButton == null)
@@ -114,6 +125,7 @@ public class UIChatMessage : MonoBehaviour
         reportButton.onClick.AddListener(HandleReportClicked);
     }
 
+    // Executes handle sender clicked operation.
     private void HandleSenderClicked()
     {
         if (senderButton != null)
@@ -122,6 +134,7 @@ public class UIChatMessage : MonoBehaviour
         }
     }
 
+    // Executes handle report clicked operation.
     private void HandleReportClicked()
     {
         if (!CanReport)
@@ -132,6 +145,7 @@ public class UIChatMessage : MonoBehaviour
         OnReportClicked?.Invoke(this);
     }
 
+    // Executes ensure sender button operation.
     private void EnsureSenderButton()
     {
         if (senderButton != null)
@@ -145,21 +159,21 @@ public class UIChatMessage : MonoBehaviour
         var buttonObject = new GameObject("AutoSenderButton", typeof(RectTransform), typeof(Image), typeof(Button));
         var rect = buttonObject.GetComponent<RectTransform>();
         rect.SetParent(senderText.transform, false);
-        
-        // Căng tràn lên senderText
+
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
 
         var image = buttonObject.GetComponent<Image>();
-        image.color = new Color(0, 0, 0, 0); // Vô hình hoàn toàn
+        image.color = new Color(0, 0, 0, 0);
         image.raycastTarget = true;
 
         senderButton = buttonObject.GetComponent<Button>();
         BindSenderButton();
     }
 
+    // Executes ensure report button operation.
     private void EnsureReportButton()
     {
         if (reportButton != null)
@@ -181,7 +195,6 @@ public class UIChatMessage : MonoBehaviour
                     rt.localScale = Vector3.one;
                 }
 
-                // Giữ màu gốc của Sprite từ UIChatMessage_Prefab
                 foreach (var img in reportButton.GetComponentsInChildren<Image>(true))
                 {
                     img.enabled      = true;
@@ -196,10 +209,8 @@ public class UIChatMessage : MonoBehaviour
                     }
                 }
 
-                // Render trên cùng để không bị che bởi background
                 reportButton.transform.SetAsLastSibling();
 
-                // Kích hoạt chain cha nếu bị ẩn trong prefab
                 Transform t = reportButton.transform.parent;
                 while (t != null && t != transform)
                 {
@@ -258,6 +269,7 @@ public class UIChatMessage : MonoBehaviour
         BindReportButton();
     }
 
+    // Executes update report button state operation.
     private void UpdateReportButtonState(bool isReported)
     {
         if (reportButton == null)

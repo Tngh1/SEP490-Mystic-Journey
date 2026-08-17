@@ -150,6 +150,7 @@ using System.Collections.Generic;
     WordsReadSize = 1 << 27,
   }
   
+  // Executes mono behaviour operation.
   public class FusionStatsPanelHeader : MonoBehaviour {
     public event Action OnRenderStatsUpdate;
     
@@ -163,6 +164,7 @@ using System.Collections.Generic;
     private FusionStatistics _fusionStatistics;
     private RenderSimStats _statsToRender;
 
+    // Executes setup header operation.
     public void SetupHeader(string title, FusionStatistics fusionStatistics) {
       _statsHeaderTitle.text = title;
       _fusionStatistics = fusionStatistics;
@@ -170,6 +172,7 @@ using System.Collections.Generic;
       SetupDropdown();
     }
 
+    // Executes setup dropdown operation.
     private void SetupDropdown() {
       _defaultStatsGraph = new Dictionary<RenderSimStats, FusionStatsGraphDefault>();
       
@@ -186,6 +189,7 @@ using System.Collections.Generic;
       _statsDropdown.onValueChanged.AddListener(OnDropDownChanged);
     }
 
+    // Executes set stats to render operation.
     internal void SetStatsToRender(RenderSimStats stats) {
       // Early exit
       if (stats == _statsToRender) return;
@@ -212,22 +216,26 @@ using System.Collections.Generic;
       _statsToRender = stats;
     }
 
+    // Executes add stat operation.
     private void AddStat(RenderSimStats stat) {
       _statsToRender |= stat; // Set the flag
       InstantiateStatGraph(stat);
       InvokeRenderStatsUpdate();
     }
 
+    // Executes remove stat operation.
     private void RemoveStat(RenderSimStats stat) {
       _statsToRender &= ~stat; // Removed the flag
       DestroyStatGraph(stat);
       InvokeRenderStatsUpdate();
     }
 
+    // Executes invoke render stats update operation.
     private void InvokeRenderStatsUpdate() {
       OnRenderStatsUpdate?.Invoke();
     }
     
+    // Executes on drop down changed operation.
     private void OnDropDownChanged(int arg0) {
       if (arg0 <= 0) return; // No stat selected.
       arg0--; // Remove the first label
@@ -246,6 +254,7 @@ using System.Collections.Generic;
       _fusionStatistics.UpdateStatsEnabled(_statsToRender);
     }
 
+    // Executes instantiate stat graph operation.
     private void InstantiateStatGraph(RenderSimStats stat) {
       FusionStatsGraphDefault graph = Instantiate(_defaultGraphPrefab, ContentRect);
       graph.SetupDefaultGraph(stat);
@@ -253,12 +262,14 @@ using System.Collections.Generic;
       _defaultStatsGraph.Add(stat, graph);
     }
 
+    // Executes destroy stat graph operation.
     private void DestroyStatGraph(RenderSimStats stat) {
-      if (_defaultStatsGraph.Remove(stat, out var statsGraphDefault)) {
+      if (_defaultStatsGraph.Remove(stat, out var statsGraphDefault)) {  // Mark entity for deletion in the next SaveChanges call
         Destroy(statsGraphDefault.gameObject);
       }
     }
 
+    // Executes try apply custom stat config operation.
     private void TryApplyCustomStatConfig(FusionStatsGraphDefault graph) {
       // Need to do this way because unity cannot serialize a dictionary.
       foreach (var config in _fusionStatistics.StatsCustomConfig) {
@@ -268,10 +279,12 @@ using System.Collections.Generic;
       }
     }
 
+    // Executes apply custom stats config operation.
     private void ApplyCustomStatsConfig(FusionStatsGraphDefault graph, FusionStatistics.FusionStatisticsStatCustomConfig config) {
       graph.ApplyCustomStatsConfig(config);
     }
 
+    // Executes apply stats config operation.
     internal void ApplyStatsConfig(List<FusionStatistics.FusionStatisticsStatCustomConfig> statsConfig) {
       foreach (var config in statsConfig) {
         if (_defaultStatsGraph.TryGetValue(config.Stat, out var graph)) {

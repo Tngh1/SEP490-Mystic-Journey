@@ -6,6 +6,7 @@ using UnityEngine.Tilemaps;
 
 namespace NavMeshPlus.Extensions
 {
+    // Executes nav mesh extension operation.
     [ExecuteAlways]
     [AddComponentMenu("Navigation/Navigation CacheTilemapSources2d", 30)]
     public class CollectTilemapSourcesCache2d : NavMeshExtension
@@ -18,6 +19,8 @@ namespace NavMeshPlus.Extensions
         private Dictionary<Vector3Int, int> _lookup;
         private Dictionary<TileBase, NavMeshModifierTilemap.TileModifier> _modifierMap;
 
+        // Initializes internal component caches and dependencies for CollectTilemapSourcesCache2d upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         protected override void Awake()
         {
             _modifier ??= _tilemap.GetComponent<NavMeshModifier>();
@@ -28,6 +31,7 @@ namespace NavMeshPlus.Extensions
         }
 
 #if UNITY_EDITOR || UNITY_2022_2_OR_NEWER
+        // Executes on tilemap tile changed operation.
         private void OnTilemapTileChanged(Tilemap tilemap, Tilemap.SyncTile[] syncTiles)
         {
             if (tilemap == _tilemap)
@@ -55,20 +59,23 @@ namespace NavMeshPlus.Extensions
 #endif
 
 
+        // Executes update nav mesh operation.
         public AsyncOperation UpdateNavMesh(NavMeshData data)
         {
             return NavMeshBuilder.UpdateNavMeshDataAsync(data, NavMeshSurfaceOwner.GetBuildSettings(), _sources, data.sourceBounds);
         }
 
+        // Executes update nav mesh operation.
         public AsyncOperation UpdateNavMesh()
         {
             return UpdateNavMesh(NavMeshSurfaceOwner.navMeshData);
         }
 
+        // Executes post collect sources operation.
         public override void PostCollectSources(NavMeshSurface surface, List<NavMeshBuildSource> sources, NavMeshBuilderState navNeshState)
         {
             _sources = sources;
-            if (_lookup == null)
+            if (_lookup == null)  // Entity not found — short-circuit with appropriate error result
             {
                 _lookup = new Dictionary<Vector3Int, int>();
                 for (int i = 0; i < _sources.Count; i++)
@@ -84,6 +91,8 @@ namespace NavMeshPlus.Extensions
             #endif
         }
 
+        // Cleanup callback executed when CollectTilemapSourcesCache2d is destroyed.
+        // Unsubscribes from events, cancels active coroutines, and prevents memory leaks.
         protected override void OnDestroy()
         {
             #if UNITY_EDITOR || UNITY_2022_2_OR_NEWER

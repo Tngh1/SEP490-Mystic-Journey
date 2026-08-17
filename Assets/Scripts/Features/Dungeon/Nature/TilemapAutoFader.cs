@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 
+// Executes mono behaviour operation.
 public class TilemapAutoFader : MonoBehaviour
 {
     [Header("Settings")]
@@ -12,7 +13,6 @@ public class TilemapAutoFader : MonoBehaviour
     private bool m_IsFadingOut = false;
     private HashSet<PlayerEntity> m_PlayersBehind = new HashSet<PlayerEntity>();
 
-    // Cache Collider2D per player — tránh GetComponentInChildren mỗi frame
     private static Dictionary<PlayerEntity, Collider2D> s_ColliderCache = new Dictionary<PlayerEntity, Collider2D>();
 
     void Start()
@@ -20,15 +20,11 @@ public class TilemapAutoFader : MonoBehaviour
         m_Tilemap = GetComponent<Tilemap>();
     }
 
-    /// <summary>
-    /// Lấy Collider2D của player từ cache. Chỉ gọi GetComponentInChildren
-    /// lần đầu tiên hoặc khi cache bị invalidate (player null).
-    /// </summary>
+    // Executes get player collider operation.
     private static Collider2D GetPlayerCollider(PlayerEntity player)
     {
         if (s_ColliderCache.TryGetValue(player, out var col))
         {
-            // Nếu collider bị destroy (scene change, respawn...) thì refresh
             if (col != null) return col;
             s_ColliderCache.Remove(player);
         }
@@ -46,7 +42,6 @@ public class TilemapAutoFader : MonoBehaviour
             var player = allPlayers[i];
             if (player == null) continue;
 
-            // Dùng cached collider — không gọi GetComponentInChildren mỗi frame
             var col = GetPlayerCollider(player);
             float feetY = col != null ? col.bounds.min.y : player.transform.position.y - 0.5f;
             Vector3 feetPos = player.transform.position;
@@ -57,8 +52,6 @@ public class TilemapAutoFader : MonoBehaviour
 
             if (isBehind)
             {
-                // Chỉ tính là đứng sau wall nếu feet thực sự nằm trong tile
-                // và không có tile nào ngay bên dưới (base of wall)
                 Vector3 cellCenter = m_Tilemap.GetCellCenterWorld(playerCell);
                 if (feetY < cellCenter.y - 0.2f)
                 {
@@ -86,7 +79,6 @@ public class TilemapAutoFader : MonoBehaviour
                 }
             }
         }
-        // Cập nhật làm mờ — chỉ ghi color khi alpha thực sự thay đổi, tránh dirty TilemapRenderer mỗi frame
         Color color = m_Tilemap.color;
         float targetAlpha = m_IsFadingOut ? transparentAlpha : 1f;
         float newAlpha = Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * fadeSpeed);
@@ -96,10 +88,10 @@ public class TilemapAutoFader : MonoBehaviour
             m_Tilemap.color = new Color(color.r, color.g, color.b, newAlpha);
         }
     }
-    
+
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
-        // Cleanup overlaps nếu fader bị destroy
         foreach (var player in m_PlayersBehind)
         {
             if (player != null) player.RemoveWallOverlap();
@@ -107,10 +99,7 @@ public class TilemapAutoFader : MonoBehaviour
         m_PlayersBehind.Clear();
     }
 
-    /// <summary>
-    /// Gọi khi một PlayerEntity bị destroy để xoá cache tránh memory leak.
-    /// PlayerEntity.OnDisable sẽ gọi qua đây.
-    /// </summary>
+    // Executes invalidate player cache operation.
     public static void InvalidatePlayerCache(PlayerEntity player)
     {
         s_ColliderCache.Remove(player);

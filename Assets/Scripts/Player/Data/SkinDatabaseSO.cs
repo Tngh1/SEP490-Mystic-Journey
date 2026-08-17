@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+// Initializes a new default instance of the SkinPrefabMap class.
 [System.Serializable]
 public struct SkinPrefabMap
 {
@@ -11,6 +12,7 @@ public struct SkinPrefabMap
     public string skinName;
 
     [Tooltip("Class của nhân vật (Knight, Mage, Archer)")]
+    // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
     public CharacterClass characterClass;
 
     [Tooltip("Skin ID trên Database")]
@@ -25,6 +27,7 @@ public struct SkinPrefabMap
     public RuntimeAnimatorController controller;
 }
 
+// Executes scriptable object operation.
 [CreateAssetMenu(fileName = "SkinDatabase", menuName = "Mystic Journey/Skin Database")]
 public class SkinDatabaseSO : ScriptableObject
 {
@@ -33,6 +36,7 @@ public class SkinDatabaseSO : ScriptableObject
 
     private Dictionary<int, SkinPrefabMap> _lookup;
 
+    // Executes load default operation.
     public static SkinDatabaseSO LoadDefault()
     {
         var database = Resources.Load<SkinDatabaseSO>("SkinDatabase");
@@ -53,17 +57,20 @@ public class SkinDatabaseSO : ScriptableObject
         return null;
     }
 
+    // Executes try get skin data operation.
     public bool TryGetSkinData(int skinId, out SkinPrefabMap skinData)
     {
         EnsureLookup();
         return _lookup.TryGetValue(skinId, out skinData);
     }
 
+    // Executes get skin data operation.
     public SkinPrefabMap? GetSkinData(int skinId)
     {
         return TryGetSkinData(skinId, out var skinData) ? skinData : null;
     }
 
+    // Executes try get preview sprite operation.
     public bool TryGetPreviewSprite(int skinId, out Sprite previewSprite)
     {
         previewSprite = null;
@@ -75,11 +82,13 @@ public class SkinDatabaseSO : ScriptableObject
         return previewSprite != null;
     }
 
+    // Executes get preview sprite operation.
     public Sprite GetPreviewSprite(int skinId)
     {
         return TryGetPreviewSprite(skinId, out var previewSprite) ? previewSprite : null;
     }
 
+    // Executes get default preview sprite operation.
     public Sprite GetDefaultPreviewSprite(CharacterClass characterClass)
     {
         if (skinPrefabs == null) return null;
@@ -93,6 +102,7 @@ public class SkinDatabaseSO : ScriptableObject
         return null;
     }
 
+    // Executes resolve preview sprite operation.
     private static Sprite ResolvePreviewSprite(SkinPrefabMap skinData)
     {
         if (skinData.previewSprite != null)
@@ -111,8 +121,7 @@ public class SkinDatabaseSO : ScriptableObject
             var renderer = renderers[i];
             if (renderer == null || renderer.sprite == null)
                 continue;
-                
-            // Skip common non-visual or utility sprites
+
             string objName = renderer.gameObject.name.ToLower();
             if (objName.Contains("shadow") || objName.Contains("hitbox") || objName.Contains("bound") || objName.Contains("collider"))
                 continue;
@@ -134,24 +143,28 @@ public class SkinDatabaseSO : ScriptableObject
     }
 
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         RebuildLookup();
     }
 
 #if UNITY_EDITOR
+    // Executes on validate operation.
     private void OnValidate()
     {
         RebuildLookup();
     }
 #endif
 
+    // Executes ensure lookup operation.
     private void EnsureLookup()
     {
         if (_lookup == null)
             RebuildLookup();
     }
 
+    // Executes rebuild lookup operation.
     private void RebuildLookup()
     {
         _lookup = new Dictionary<int, SkinPrefabMap>();

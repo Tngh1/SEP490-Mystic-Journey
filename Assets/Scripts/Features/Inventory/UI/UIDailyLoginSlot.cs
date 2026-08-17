@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes ui base item slot operation.
 public class UIDailySlot : UIBaseItemSlot
 {
     [Header("Daily Specifics")]
@@ -14,6 +15,8 @@ public class UIDailySlot : UIBaseItemSlot
 
     private UIItemDisplayData currentData;
 
+    // Initializes internal component caches and dependencies for UIDailySlot upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         BindDailyReferences();
@@ -21,6 +24,7 @@ public class UIDailySlot : UIBaseItemSlot
             claimButton.onClick.AddListener(OnClaimButtonClicked);
     }
 
+    // Executes setup daily operation.
     public void SetupDaily(UIItemDisplayData data)
     {
         BindDailyReferences();
@@ -41,40 +45,33 @@ public class UIDailySlot : UIBaseItemSlot
         if (quantityText != null)
             quantityText.text = data.quantity > 1 ? data.quantity.ToString() : string.Empty;
 
-        // Trạng thái đã nhận thưởng
         if (claimedOverlay != null)
             claimedOverlay.SetActive(data.isClaimed);
 
-        // Trạng thái nhận bù (quên đăng nhập ngày trước)
         if (missedOverlay != null)
             missedOverlay.SetActive(data.isMissed && !data.isClaimed);
 
-        // Trạng thái ngày hôm nay (sẵn sàng nhận)
         if (todayOverlay != null)
             todayOverlay.SetActive(data.isAvailable && !data.isClaimed);
 
-        // Trạng thái bị khóa (các ngày tương lai)
         bool isLocked = !data.isClaimed && !data.isAvailable && !data.isMissed;
         if (lockOverlay != null)
             lockOverlay.SetActive(isLocked);
 
         if (claimButton != null)
         {
-            // Phải cho phép click (interactable = true) nếu là ngày hiện tại hoặc ngày đã lỡ
             bool canClick = (data.isAvailable || data.isMissed) && !data.isClaimed;
             claimButton.interactable = canClick;
 
-            // Nếu là ngày lỡ (missed), ta tự làm tối màu tay để giả lập trạng thái disable
             if (data.isMissed && !data.isClaimed)
             {
                 if (claimButton.targetGraphic != null)
-                    claimButton.targetGraphic.color = new Color(0.5f, 0.5f, 0.5f, 1f); // Xám tối
+                    claimButton.targetGraphic.color = new Color(0.5f, 0.5f, 0.5f, 1f);
                 if (iconImage != null)
                     iconImage.color = new Color(0.5f, 0.5f, 0.5f, 1f);
             }
             else
             {
-                // Reset lại màu bình thường cho các ngày khác
                 if (claimButton.targetGraphic != null)
                     claimButton.targetGraphic.color = Color.white;
                 if (iconImage != null)
@@ -83,6 +80,7 @@ public class UIDailySlot : UIBaseItemSlot
         }
     }
 
+    // Executes clear slot operation.
     public override void ClearSlot()
     {
         currentData = null;
@@ -102,12 +100,14 @@ public class UIDailySlot : UIBaseItemSlot
             claimButton.interactable = false;
     }
 
+    // Executes on claim button clicked operation.
     private void OnClaimButtonClicked()
     {
         if (currentData != null && (currentData.isAvailable || currentData.isMissed) && !currentData.isClaimed)
             OnSlotClicked?.Invoke(this);
     }
 
+    // Executes bind daily references operation.
     private void BindDailyReferences()
     {
         if (dayText == null)
@@ -124,6 +124,7 @@ public class UIDailySlot : UIBaseItemSlot
             claimButton = GetComponent<Button>() ?? FindChild("ClaimButton", "Button")?.GetComponent<Button>();
     }
 
+    // Executes find child operation.
     private Transform FindChild(params string[] names)
     {
         var children = GetComponentsInChildren<Transform>(true);

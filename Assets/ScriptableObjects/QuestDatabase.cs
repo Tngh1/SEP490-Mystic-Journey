@@ -1,10 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Runtime lookup database cho tất cả QuestData ScriptableObjects.
-/// Được khởi tạo một lần bởi QuestUIManager → O(1) lookup theo questId.
-/// </summary>
+// Executes scriptable object operation.
 [CreateAssetMenu(menuName = "Mystic Journey/Quest Database", fileName = "QuestDatabase")]
 public class QuestDatabase : ScriptableObject
 {
@@ -14,13 +11,13 @@ public class QuestDatabase : ScriptableObject
     private Dictionary<int, QuestData> _lookup;
     private bool _initialized;
 
-    /// <summary>Gọi một lần từ QuestUIManager.Awake() để build lookup dict.</summary>
+    // Executes initialize operation.
     public void Initialize()
     {
         _lookup = new Dictionary<int, QuestData>(allQuests.Count);
         foreach (var q in allQuests)
         {
-            if (q == null) continue;
+            if (q == null) continue;  // Entity not found — short-circuit with appropriate error result
             if (_lookup.ContainsKey(q.questId))
             {
                 Debug.LogWarning($"[QuestDatabase] Duplicate questId={q.questId}, bỏ qua '{q.name}'.");
@@ -32,19 +29,21 @@ public class QuestDatabase : ScriptableObject
         Debug.Log($"[QuestDatabase] Initialized {_lookup.Count} quests.");
     }
 
+    // Executes get by id operation.
     public QuestData GetById(int questId)
     {
         if (!_initialized) Initialize();
         return _lookup.TryGetValue(questId, out var q) ? q : null;
     }
 
+    // Executes exists operation.
     public bool Exists(int questId)
     {
         if (!_initialized) Initialize();
         return _lookup.ContainsKey(questId);
     }
 
-    /// <summary>Lấy toàn bộ quest theo chuỗi chain bắt đầu từ firstQuestId.</summary>
+    // Executes get chain operation.
     public List<QuestData> GetChain(int firstQuestId, int maxDepth = 100)
     {
         var chain = new List<QuestData>();
@@ -55,7 +54,7 @@ public class QuestDatabase : ScriptableObject
         {
             if (currentId <= 0 || visited.Contains(currentId)) break;
             var q = GetById(currentId);
-            if (q == null) break;
+            if (q == null) break;  // Entity not found — short-circuit with appropriate error result
 
             chain.Add(q);
             visited.Add(currentId);

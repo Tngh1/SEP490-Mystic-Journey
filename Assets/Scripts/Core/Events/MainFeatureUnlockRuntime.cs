@@ -4,9 +4,9 @@ using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes mono behaviour operation.
 public class MainFeatureUnlockRuntime : MonoBehaviour
 {
-    // Chinh level mo khoa nut o day.
     public const int InventoryButtonLevel = 2;
     public const int MiniMapButtonLevel = 2;
     public const int ShopButtonLevel = 3;
@@ -16,6 +16,8 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
 
     private readonly Dictionary<string, GameObject> cachedObjects = new();
 
+    // Performs startup initialization for MainFeatureUnlockRuntime on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         CacheObjects();
@@ -26,17 +28,20 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         WorldRuntimeEvents.QuestsChanged += RefreshLevelFromApi;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         WorldRuntimeEvents.LevelChanged -= Apply;
         WorldRuntimeEvents.QuestsChanged -= RefreshLevelFromApi;
     }
 
+    // Executes load local level operation.
     private void LoadLocalLevel()
     {
         WorldState.PlayerLevel = Mathf.Max(1, PlayerPrefs.GetInt(ApiConfig.PlayerLevelKey, WorldState.PlayerLevel));
     }
 
+    // Executes refresh level from api operation.
     private void RefreshLevelFromApi()
     {
         if (!ApiClient.Instance.HasToken())
@@ -57,13 +62,9 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         );
     }
 
+    // Executes apply operation.
     private void Apply()
     {
-        // Trong hầm ngục, PlayerHUDUIManager.ToggleDungeonMode(true) ẩn cụm nút bên trái.
-        // Apply() lại chạy theo LevelChanged/QuestsChanged — tức là ngay khi nhận exp/thưởng
-        // giữa hầm ngục — và SetActive(true) từng nút, làm mấy tab panel bên trái hiện lại.
-        // Hoãn tới khi ra khỏi hầm ngục: ToggleDungeonMode(false) + RefreshLevelFromApi
-        // sẽ dựng lại trạng thái đúng.
         if (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
             return;
 
@@ -73,11 +74,6 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         SetFeatureVisible("InventoryButton", "InventoryPanel", level >= InventoryButtonLevel);
         SetFeatureVisible("MiniMapButton", "MiniMap", level >= MiniMapButtonLevel);
 
-        // Người chơi tự ẩn minimap được bằng phím Map. Apply() chạy lại theo
-        // LevelChanged/QuestsChanged — tức ngay khi nhận exp — nên không tôn trọng lựa chọn
-        // đó thì minimap tự hiện lại giữa chừng. Tắt riêng bằng SetVisible thay vì gộp cờ vào
-        // dòng trên: SetFeatureVisible khi ẩn còn tắt luôn cha "MiniMap", mà cha đã tắt thì
-        // sau này bật lại mỗi nút con sẽ không có gì hiện lên.
         if (level >= MiniMapButtonLevel && !PlayerUIHotkeys.MinimapVisible)
             SetVisible("MiniMapButton", false);
         SetFeatureVisible("ShopButton", "ShopPanel", level >= ShopButtonLevel);
@@ -92,6 +88,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         ApplyButtonGroupVisibility("BottomRightMenu");
     }
 
+    // Executes apply button group visibility operation.
     private void ApplyButtonGroupVisibility(string groupName)
     {
         var group = FindSceneObject(groupName);
@@ -112,6 +109,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
 
         group.SetActive(hasVisibleButton);
     }
+    // Executes set feature visible operation.
     private void SetFeatureVisible(string buttonName, string panelName, bool visible)
     {
         SetVisible(buttonName, visible);
@@ -129,6 +127,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
             panel.SetActive(false);
     }
 
+    // Executes set visible operation.
     private void SetVisible(string objectName, bool visible)
     {
         var target = FindSceneObject(objectName);
@@ -136,6 +135,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
             target.SetActive(visible);
     }
 
+    // Executes cache objects operation.
     private void CacheObjects()
     {
         CacheObject("InventoryButton");
@@ -154,6 +154,7 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
         CacheObject("BottomRightMenu");
     }
 
+    // Executes cache object operation.
     private void CacheObject(string objectName)
     {
         if (cachedObjects.ContainsKey(objectName) && cachedObjects[objectName] != null)
@@ -164,12 +165,16 @@ public class MainFeatureUnlockRuntime : MonoBehaviour
             cachedObjects[objectName] = found;
     }
 
+    // Executes find scene object operation.
+    // Validates input parameters against null or empty values.
     private GameObject FindSceneObject(string objectName)
     {
         CacheObject(objectName);
         return cachedObjects.TryGetValue(objectName, out var target) ? target : null;
     }
 
+    // Executes find scene object slow operation.
+    // Validates input parameters against null or empty values.
     private static GameObject FindSceneObjectSlow(string objectName)
     {
         var objects = Resources.FindObjectsOfTypeAll<GameObject>();

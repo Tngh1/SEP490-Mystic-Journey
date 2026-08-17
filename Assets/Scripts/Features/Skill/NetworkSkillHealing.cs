@@ -1,15 +1,12 @@
 using UnityEngine;
 using Fusion;
 
-/// <summary>
-/// A healing skill that finds the closest allied PlayerEntity upon spawning 
-/// and heals them. If no target is found, it heals the caster.
-/// </summary>
+// Executes network behaviour operation.
 public class NetworkSkillHealing : NetworkBehaviour
 {
     [Tooltip("Amount of HP to heal. Will scale with caster ATK if scaleWithAtk is true.")]
     [SerializeField] private int baseHealAmount = 50;
-    
+
     [Tooltip("If true, actual heal = baseHealAmount + (Caster ATK * 1.5)")]
     [SerializeField] private bool scaleWithAtk = true;
 
@@ -23,6 +20,8 @@ public class NetworkSkillHealing : NetworkBehaviour
     [SerializeField] private AudioClip castSound;
     [SerializeField, Range(0f, 1f)] private float soundVolume = 1f;
 
+    // Fusion lifecycle callback invoked when this NetworkSkillHealing NetworkObject is spawned into the network session.
+    // Configures input/state authority handlers, sets singleton references if local player, and applies initial visuals.
     public override void Spawned()
     {
         if (Object.HasStateAuthority)
@@ -31,11 +30,11 @@ public class NetworkSkillHealing : NetworkBehaviour
         }
     }
 
+    // Performs startup initialization for NetworkSkillHealing on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // Khi chơi offline (không qua mạng), Fusion không gọi Spawned(), 
-        // Object sẽ null nên ta dùng Start() để chạy kỹ năng.
-        if (Object == null) 
+        if (Object == null)
         {
             ApplyHeal();
         }
@@ -43,6 +42,7 @@ public class NetworkSkillHealing : NetworkBehaviour
 
     private Transform _targetToFollow;
 
+    // Restores player health clamped to MaxHp and triggers combat popup visual effects.
     private void ApplyHeal()
     {
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
@@ -50,7 +50,6 @@ public class NetworkSkillHealing : NetworkBehaviour
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // Calculate final heal amount based on the caster's ATK
         int finalHeal = baseHealAmount;
         if (scaleWithAtk && PlayerEntity.Instance != null && PlayerEntity.Instance.GetComponent<PlayerCombat>() != null)
         {
@@ -58,10 +57,9 @@ public class NetworkSkillHealing : NetworkBehaviour
             finalHeal += Mathf.RoundToInt(casterAtk * 1.5f);
         }
 
-        // Find the targets to heal.
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, searchRadius);
         bool healedSomeone = false;
-        
+
         foreach (var hit in hits)
         {
             var pEntity = hit.GetComponentInParent<PlayerEntity>();
@@ -74,24 +72,22 @@ public class NetworkSkillHealing : NetworkBehaviour
                 {
                     networkPlayer.RPC_ApplyDebuffImmunity(3f);
                 }
-                else 
+                else
                 {
                     var combat = pEntity.GetComponent<PlayerCombat>();
                     if (combat != null)
                     {
-                        combat.AddDebuffImmunity(3f); // Buff kháng hiệu ứng 3 giây
+                        combat.AddDebuffImmunity(3f);
                     }
                 }
-                
-                // Track the healed player so the shield follows them
+
                 _targetToFollow = pEntity.transform;
                 healedSomeone = true;
                 Debug.Log($"[NetworkSkillHealing] Healed {pEntity.gameObject.name} for {finalHeal} HP and applied Immunity.");
-                break; // Chỉ cần bám theo 1 người
+                break;
             }
         }
 
-        // If no one is around, fallback to healing the caster
         if (!healedSomeone && PlayerEntity.Instance != null)
         {
             PlayerEntity.Instance.Heal(finalHeal);
@@ -101,7 +97,7 @@ public class NetworkSkillHealing : NetworkBehaviour
             {
                 networkPlayer.RPC_ApplyDebuffImmunity(3f);
             }
-            else 
+            else
             {
                 var combat = PlayerEntity.Instance.GetComponent<PlayerCombat>();
                 if (combat != null)
@@ -109,24 +105,25 @@ public class NetworkSkillHealing : NetworkBehaviour
                     combat.AddDebuffImmunity(3f);
                 }
             }
-            
+
             _targetToFollow = PlayerEntity.Instance.transform;
             Debug.Log($"[NetworkSkillHealing] Fallback: Healed {PlayerEntity.Instance.gameObject.name} for {finalHeal} HP and applied Immunity.");
         }
 
-        // Despawn after duration
         Invoke(nameof(DespawnSelf), duration);
     }
 
+    // Per-frame update loop for NetworkSkillHealing.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_targetToFollow != null)
         {
-            // Bám sát vào người chơi được hồi máu
-            transform.position = _targetToFollow.position + new Vector3(0, 0.5f, 0); // Lệch lên trên 1 chút nếu cần
+            transform.position = _targetToFollow.position + new Vector3(0, 0.5f, 0);
         }
     }
 
+    // Executes despawn self operation.
     private void DespawnSelf()
     {
         if (Object != null && Object.HasStateAuthority)

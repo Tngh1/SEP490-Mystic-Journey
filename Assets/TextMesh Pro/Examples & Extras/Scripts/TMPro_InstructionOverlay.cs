@@ -5,9 +5,11 @@ using System.Collections;
 namespace TMPro.Examples
 {
     
+    // Executes mono behaviour operation.
     public class TMPro_InstructionOverlay : MonoBehaviour
     {
 
+        // Executes fps counter anchor positions operation.
         public enum FpsCounterAnchorPositions { TopLeft, BottomLeft, TopRight, BottomRight };
 
         public FpsCounterAnchorPositions AnchorPosition = FpsCounterAnchorPositions.BottomLeft;

@@ -10,6 +10,8 @@ namespace MysticJourney.API.Endpoints
         private const int MaxWorldPageSize = 100;
         private const int MaxFriendPageSize = 100;
 
+        // ─── Player APIs ───────────────────────────────────────────────────────
+        // Load world messages using page, page size, on success, and on error; it sends the GET API request.
         public void GetWorldMessages(
             int page,
             int pageSize,
@@ -17,6 +19,7 @@ namespace MysticJourney.API.Endpoints
             Action<ApiException> onError)
         {
             int safePage = Math.Max(1, page);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             int safePageSize = Math.Max(1, Math.Min(pageSize, MaxWorldPageSize));
             string endpoint = $"{ApiConfig.ChatWorldMessages}?page={safePage}&pageSize={safePageSize}";
 
@@ -36,6 +39,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process world message using content, on success, and on error; it sends the POST API request.
         public void SendWorldMessage(
             string content,
             Action<WorldChatMessageResponse> onSuccess,
@@ -63,6 +67,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Load friend messages using friend profile id, page, page size, and on success; it sends the GET API request.
         public void GetFriendMessages(
             int friendProfileId,
             int page,
@@ -71,6 +76,7 @@ namespace MysticJourney.API.Endpoints
             Action<ApiException> onError)
         {
             int safePage = Math.Max(1, page);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             int safePageSize = Math.Max(1, Math.Min(pageSize, MaxFriendPageSize));
             string endpoint = $"{ApiConfig.ChatFriendMessages}?recipientId={friendProfileId}&page={safePage}&pageSize={safePageSize}";
 
@@ -90,6 +96,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process friend message using friend profile id, content, on success, and on error; it sends the POST API request.
         public void SendFriendMessage(
             int friendProfileId,
             string content,
@@ -119,6 +126,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process report world message using chat message id, reason, on success, and on error; it sends the POST API request.
         public void ReportWorldMessage(
             int chatMessageId,
             string reason,
@@ -148,6 +156,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
+        // Process report friend message using chat message id, reason, on success, and on error; it sends the POST API request.
         public void ReportFriendMessage(
             int chatMessageId,
             string reason,

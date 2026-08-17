@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes core business logic for mono behaviour.
 public class MenuUIManager : MonoBehaviour
 {
     [Header("UI Panels")]
@@ -18,6 +19,8 @@ public class MenuUIManager : MonoBehaviour
     [Header("Website")]
     public string websiteUrl = "https://mystic-journey.io.vn";
 
+    // Initializes internal component caches and dependencies for MenuUIManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (exitGameButton == null)
@@ -40,12 +43,15 @@ public class MenuUIManager : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (exitGameButton != null)
             exitGameButton.onClick.RemoveListener(ExitGame);
     }
 
+    // Executes core business logic for add hover effect.
+    // Logic details: validates required non-empty string arguments.
     private static void AddHoverEffect(GameObject go)
     {
         if (go == null) return;
@@ -53,6 +59,8 @@ public class MenuUIManager : MonoBehaviour
             go.AddComponent<UIHoverScaleEffect>();
     }
 
+    // Performs startup initialization for MenuUIManager on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         bool hasLogoutReason = !string.IsNullOrEmpty(MysticJourney.Core.Services.SessionService.PendingLogoutReason);
@@ -71,27 +79,31 @@ public class MenuUIManager : MonoBehaviour
         if (websitePanel != null) websitePanel.SetActive(true);
     }
 
-    // Login
+    // Executes core business logic for open login panel.
+    // Logic details: validates required non-empty string arguments.
     public void OpenLoginPanel()
     {
         if (startPanel != null) startPanel.SetActive(false);
         if (loginPanel != null) loginPanel.SetActive(true);
     }
 
-    // Register
+    // Executes core business logic for open register website.
+    // Logic details: validates required non-empty string arguments.
     public void OpenRegisterWebsite()
     {
         if (!string.IsNullOrEmpty(websiteUrl))
             Application.OpenURL(websiteUrl.TrimEnd('/') + "/register");
     }
 
-    // Website Button
+    // Executes core business logic for open website.
+    // Logic details: validates required non-empty string arguments.
     public void OpenWebsite()
     {
         if (!string.IsNullOrEmpty(websiteUrl))
             Application.OpenURL(websiteUrl);
     }
 
+    // Executes core business logic for exit game.
     public void ExitGame()
     {
         Debug.Log("[MenuUIManager] Exiting game...");
@@ -103,7 +115,7 @@ public class MenuUIManager : MonoBehaviour
 #endif
     }
 
-    // Back từ LoginPanel
+    // Executes core business logic for back to start.
     public void BackToStart()
     {
         if (startPanel != null) startPanel.SetActive(true);

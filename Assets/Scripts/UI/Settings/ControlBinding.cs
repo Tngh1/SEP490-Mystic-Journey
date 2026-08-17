@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 namespace MysticJourney.Screen.GameSetting
 {
+    // Initializes a new default instance of the ControlBinding class.
     [System.Serializable]
     public class ControlBinding
     {

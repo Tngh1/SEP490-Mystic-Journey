@@ -1,19 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Animator parameter driver for the player. Reads movement direction and life
-/// state from <see cref="NetworkPlayer"/> and writes them to the Animator and
-/// SpriteRenderer.
-///
-/// Scope: pure presentation. Runs on every client (each client animates every
-/// visible player independently). Driven by the NetworkPlayer.Render() callback
-/// once per Unity Update after the simulation has settled.
-///
-/// Trigger forwarding:
-///   - Attack / Skill1 / Skill2 / Skill3 triggers are forwarded from
-///     PlayerCombat via TriggerAttack / TriggerSkill. PlayerCombat owns the
-///     decision of when to trigger (Phase 7 will make these replicated via RPC).
-/// </summary>
+// Executes mono behaviour operation.
 [RequireComponent(typeof(Animator))]
 public class PlayerAnimation : MonoBehaviour
 {
@@ -25,7 +12,6 @@ public class PlayerAnimation : MonoBehaviour
     [Tooltip("Check this if the character's original sprite is drawn facing left (e.g. Southwest) instead of right.")]
     [SerializeField] private bool invertFlipX = false;
 
-    // Cached parameter hashes (faster than string lookups).
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
     private static readonly int HashMoveY = Animator.StringToHash("MoveY");
     private static readonly int HashSpeed = Animator.StringToHash("Speed");
@@ -37,13 +23,12 @@ public class PlayerAnimation : MonoBehaviour
 
     private bool _lastIsDead;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Unity lifecycle
-    // ─────────────────────────────────────────────────────────────────────────
 
     private Transform _firePoint;
     private float _firePointAbsX;
 
+    // Initializes internal component caches and dependencies for PlayerAnimation upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (animator == null) animator = GetComponent<Animator>();
@@ -56,16 +41,8 @@ public class PlayerAnimation : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Per-frame driver — called by NetworkPlayer.Render()
-    // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Update movement / facing / death animator parameters.
-    /// Called from <see cref="NetworkPlayer.Render"/>.
-    /// </summary>
-    /// <param name="move">Latest movement vector from the network (already normalized; can be zero when idle).</param>
-    /// <param name="isAlive">Whether the player is currently alive.</param>
+    // Executes set movement operation.
     public void SetMovement(Vector2 move, bool isAlive)
     {
         if (animator == null) return;
@@ -76,18 +53,15 @@ public class PlayerAnimation : MonoBehaviour
 
         if (sqrMag > 0.01f)
         {
-            // Prioritize animations based on diagonal direction:
             if (moveX > 0.1f && Mathf.Abs(moveY) > 0.1f)
             {
                 if (moveY < -0.1f)
                 {
-                    // Diagonal Down -> prioritize horizontal slide
                     moveX = 1f;
                     moveY = 0f;
                 }
                 else if (moveY > 0.1f)
                 {
-                    // Diagonal Up -> prioritize vertical up (North)
                     moveX = 0f;
                     moveY = 1f;
                 }
@@ -119,16 +93,14 @@ public class PlayerAnimation : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Trigger forwarding — called by PlayerCombat (single-player path) and
-    // eventually by replicated RPCs (multiplayer path, Phase 7).
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes trigger attack operation.
     public void TriggerAttack()
     {
         if (animator != null) animator.SetTrigger(HashAttack);
     }
 
+    // Executes trigger skill operation.
     public void TriggerSkill(int slotIndex)
     {
         if (animator == null) return;

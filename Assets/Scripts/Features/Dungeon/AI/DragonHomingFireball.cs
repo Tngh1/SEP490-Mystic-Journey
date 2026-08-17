@@ -1,10 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Quả cầu lửa truy đuổi (Homing Fireball) của Boss Rồng.
-/// Tự động chuyển animation giữa bay (fireballFly) và nổ (fireboom).
-/// Bay truy đuổi theo người chơi (Player). Khi va chạm gây 15 sát thương.
-/// </summary>
+// Executes mono behaviour operation.
 public class DragonHomingFireball : MonoBehaviour
 {
     [Header("Fireball Settings")]
@@ -39,45 +35,47 @@ public class DragonHomingFireball : MonoBehaviour
     private bool _isHit = false;
     private Animator _animator;
 
+    // Initializes internal component caches and dependencies for DragonHomingFireball upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _animator = GetComponent<Animator>();
     }
 
+    // Performs startup initialization for DragonHomingFireball on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // Phát âm thanh xuất hiện
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // Chạy animation bay
         if (_animator != null && !string.IsNullOrEmpty(flyAnimState))
         {
             _animator.Play(flyAnimState);
         }
 
-        // Tự động tìm mục tiêu Player nếu chưa gán
         if (_target == null)
         {
             FindTargetPlayer();
         }
 
-        // Hủy sau lifeTime nếu không trúng ai
         Destroy(gameObject, lifeTime);
     }
 
+    // Executes set target operation.
     public void SetTarget(Transform targetPlayer)
     {
         _target = targetPlayer;
     }
 
+    // Per-frame update loop for DragonHomingFireball.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (_isHit) return;
 
-        // Nếu mất mục tiêu thì cố gắng tìm lại Player gần nhất
         if (_target == null)
         {
             FindTargetPlayer();
@@ -85,24 +83,21 @@ public class DragonHomingFireball : MonoBehaviour
 
         if (_target != null)
         {
-            // Tính hướng bay tới vị trí Player
             Vector3 direction = (_target.position - transform.position).normalized;
 
-            // Xoay góc quả cầu lửa hướng về phía Player
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             Quaternion targetRotation = Quaternion.AngleAxis(angle, Vector3.forward);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotateSpeed * Time.deltaTime);
 
-            // Di chuyển tới trước theo hướng đã xoay
             transform.position += transform.right * speed * Time.deltaTime;
         }
         else
         {
-            // Nếu vẫn không có target, bay thẳng tới trước
             transform.position += transform.right * speed * Time.deltaTime;
         }
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (_isHit || col == null) return;
@@ -116,7 +111,6 @@ public class DragonHomingFireball : MonoBehaviour
             return;
         }
 
-        // Đâm vào tường / vật thể cản môi trường (không phải trigger) -> Kích hoạt nổ và huỷ cầu lửa
         if (!col.isTrigger)
         {
             _isHit = true;
@@ -124,6 +118,7 @@ public class DragonHomingFireball : MonoBehaviour
         }
     }
 
+    // Executes deal damage operation.
     private void DealDamage(GameObject playerObj)
     {
         if (EnemySkillVisualReplica.IsReplica(this))
@@ -152,6 +147,7 @@ public class DragonHomingFireball : MonoBehaviour
         TriggerExplosion();
     }
 
+    // Executes trigger explosion operation.
     private void TriggerExplosion()
     {
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
@@ -167,6 +163,7 @@ public class DragonHomingFireball : MonoBehaviour
         Destroy(gameObject, destroyDelay);
     }
 
+    // Executes find target player operation.
     private void FindTargetPlayer()
     {
         if (PlayerMovement.Instance != null)

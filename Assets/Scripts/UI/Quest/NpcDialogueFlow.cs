@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using MysticJourney.API.Models.Response;
 
-/// <summary>
-/// Selects the configured dialogue sequence for one NPC interaction.
-/// Advancing is intentionally explicit: callers must invoke TryAdvance in response to a choice.
-/// </summary>
+// Initializes a new default instance of the NpcDialogueFlow class.
 public static class NpcDialogueFlow
 {
+    // Process select sequence using dialogues, selected npc id, and linked quest id; it filters the eligible records, orders the resulting records, and materializes the query results and guards invalid or unavailable states.
     public static List<NPCDialogueResponse> SelectSequence(
         IEnumerable<NPCDialogueResponse> dialogues,
         int selectedNpcId,
@@ -31,6 +29,7 @@ public static class NpcDialogueFlow
             .ToList();
     }
 
+    // Attempt advance using configured sequence, current dialogue id, and next; it guards invalid or unavailable states and processes each matching entry.
     public static bool TryAdvance(
         IReadOnlyList<NPCDialogueResponse> configuredSequence,
         int currentDialogueId,
@@ -58,6 +57,7 @@ public static class NpcDialogueFlow
         return next != null;
     }
 
+    // Process the supplied values: maps the input discriminator to the corresponding domain value and fallback.
     public static NPCDialogueResponse FindChoice(
         IEnumerable<NPCDialogueResponse> dialogues,
         int selectedNpcId,

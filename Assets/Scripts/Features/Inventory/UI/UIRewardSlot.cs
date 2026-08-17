@@ -1,10 +1,12 @@
 using UnityEngine;
 
+// Executes ui base item slot operation.
 public class UIRewardSlot : UIBaseItemSlot
 {
     [Header("Reward Specifics")]
-    [SerializeField] private GameObject claimedOverlay; // M�ng ?en m? + Ch? "?� nh?n"
+    [SerializeField] private GameObject claimedOverlay;
 
+    // Executes setup reward operation.
     public void SetupReward(UIItemDisplayData data)
     {
         if (data == null)
@@ -15,15 +17,13 @@ public class UIRewardSlot : UIBaseItemSlot
 
         base.SetupCore(data);
 
-        // L�m m? � n?u ?� nh?n ph?n th??ng n�y (D�ng cho Quest)
         if (claimedOverlay != null)
         {
             claimedOverlay.SetActive(data.isClaimed);
         }
     }
 
-    // Quest rewards carry a formatted amount string ("+500", "x1") instead of an int quantity,
-    // so set icon/name/amount directly rather than going through the "xN" quantity path.
+    // Executes setup quest reward operation.
     public void SetupQuestReward(string rewardName, string amount, Sprite sprite, bool claimed)
     {
         BindCore();
@@ -50,6 +50,7 @@ public class UIRewardSlot : UIBaseItemSlot
             claimedOverlay.SetActive(claimed);
     }
 
+    // Executes clear slot operation.
     public override void ClearSlot()
     {
         base.ClearSlot();

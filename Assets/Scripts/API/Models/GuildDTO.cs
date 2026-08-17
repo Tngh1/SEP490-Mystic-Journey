@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace MysticJourney.API.Models
 {
+    // Initializes a new default instance of the GuildResponseDto class.
     [Serializable]
     public class GuildResponseDto
     {
@@ -29,12 +30,14 @@ namespace MysticJourney.API.Models
         public string createdAt;
     }
 
+    // Initializes a new default instance of the GuildResponseDto class.
     [Serializable]
     public class GuildDetailResponseDto : GuildResponseDto
     {
         public List<GuildMemberResponseDto> members = new List<GuildMemberResponseDto>();
     }
 
+    // Executes create guild request dto operation.
     [Serializable]
     public class CreateGuildRequestDto
     {
@@ -46,12 +49,14 @@ namespace MysticJourney.API.Models
         public int bannerId;
     }
 
+    // Executes change notice request operation.
     [Serializable]
     public class ChangeNoticeRequest
     {
         public string notice;
     }
 
+    // Executes change icon request operation.
     [Serializable]
     public class ChangeIconRequest
     {
@@ -59,6 +64,7 @@ namespace MysticJourney.API.Models
         public int? bannerId;
     }
 
+    // Executes guild member response dto operation.
     [Serializable]
     public class GuildMemberResponseDto
     {
@@ -69,7 +75,8 @@ namespace MysticJourney.API.Models
         public string playerDisplayName;
         public string playerAvatarUrl;
         public int playerLevel;
-        public string role; // "Leader", "Officer", "Member"
+        // Supported guild roles: Member, Officer, or Leader; the role determines guild-management permissions.
+        public string role;
         public int medals;
         public int feats;
         public int dailyContribution;
@@ -81,18 +88,21 @@ namespace MysticJourney.API.Models
         public string lastDonateAt;
     }
 
+    // Executes transfer leader request operation.
     [Serializable]
     public class TransferLeaderRequest
     {
         public int newLeaderProfileId;
     }
 
+    // Executes invite player request operation.
     [Serializable]
     public class InvitePlayerRequest
     {
         public int inviteeProfileId;
     }
 
+    // Executes guild join result dto operation.
     [Serializable]
     public class GuildJoinResultDto
     {
@@ -102,6 +112,7 @@ namespace MysticJourney.API.Models
         public string message;
     }
 
+    // Executes guild application dto operation.
     [Serializable]
     public class GuildApplicationDTO
     {
@@ -112,16 +123,20 @@ namespace MysticJourney.API.Models
         public int playerLevel;
         public int medals;
         public int feats;
+        // Supported guild request states: Pending, Accepted, Declined, or Expired; only Pending requests can transition to a final state.
         public string status;
         public string createdAt;
     }
 
+    // Executes donate request operation.
     public class DonateRequest
     {
+        // Supported currencies: Gold or Gems; the selected currency determines which player balance is charged or credited.
         public string currencyType;
         public int amount;
     }
 
+    // Executes guild donate result dto operation.
     [Serializable]
     public class GuildDonateResultDto
     {
@@ -139,6 +154,7 @@ namespace MysticJourney.API.Models
         public int medalsToNextLevel;
     }
 
+    // Executes guild message dto operation.
     [Serializable]
     public class GuildMessageDTO
     {
@@ -146,17 +162,19 @@ namespace MysticJourney.API.Models
         public int senderId;
         public string senderName;
         public string content;
-        public int messageType; // 0=Text, 1=System, 2=Join, 3=Leave, 4=Promotion
-        public int senderRole; // 0=Member, 1=Officer, 2=Leader
+        public int messageType;
+        public int senderRole;
         public string sentAt;
     }
 
+    // Executes send guild message request operation.
     [Serializable]
     public class SendGuildMessageRequest
     {
         public string content;
     }
 
+    // Executes guild log dto operation.
     [Serializable]
     public class GuildLogDto
     {
@@ -169,6 +187,7 @@ namespace MysticJourney.API.Models
     }
 }
 
+    // Executes guild rank response dto operation.
     [System.Serializable]
     public class GuildRankResponseDto
     {
@@ -182,4 +201,3 @@ namespace MysticJourney.API.Models
         public int memberCount;
         public int maxMembers;
     }
-

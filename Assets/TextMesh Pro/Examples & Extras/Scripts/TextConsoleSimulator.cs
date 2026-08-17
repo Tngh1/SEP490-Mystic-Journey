@@ -4,6 +4,7 @@ using System.Collections;
 
 namespace TMPro.Examples
 {
+    // Executes mono behaviour operation.
     public class TextConsoleSimulator : MonoBehaviour
     {
         private TMP_Text m_TextComponent;

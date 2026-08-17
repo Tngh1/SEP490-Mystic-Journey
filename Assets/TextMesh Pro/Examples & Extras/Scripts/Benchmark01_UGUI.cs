@@ -6,6 +6,7 @@ using UnityEngine.UI;
 namespace TMPro.Examples
 {
     
+    // Executes mono behaviour operation.
     public class Benchmark01_UGUI : MonoBehaviour
     {
 

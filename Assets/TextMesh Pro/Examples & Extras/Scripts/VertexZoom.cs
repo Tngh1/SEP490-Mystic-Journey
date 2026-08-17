@@ -7,6 +7,7 @@ using System.Collections.Generic;
 namespace TMPro.Examples
 {
 
+    // Executes mono behaviour operation.
     public class VertexZoom : MonoBehaviour
     {
         public float AngleMultiplier = 1.0f;

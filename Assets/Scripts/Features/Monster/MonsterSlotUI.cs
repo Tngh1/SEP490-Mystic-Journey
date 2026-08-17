@@ -4,6 +4,7 @@ using TMPro;
 using MysticJourney.API.Models.Response;
 using System;
 
+// Executes mono behaviour operation.
 public class MonsterSlotUI : MonoBehaviour
 {
     [SerializeField] private Image iconImage;
@@ -15,7 +16,7 @@ public class MonsterSlotUI : MonoBehaviour
 
     private PlayerMonsterCatalogItem _monsterData;
 
-    // Thêm tham số Sprite iconSprite vào hàm Init
+    // Executes init operation.
     public void Init(PlayerMonsterCatalogItem data, Action<PlayerMonsterCatalogItem> onClickAction, Sprite iconSprite)
     {
         _monsterData = data;
@@ -25,18 +26,15 @@ public class MonsterSlotUI : MonoBehaviour
             slotButton.onClick.RemoveAllListeners();
             slotButton.onClick.AddListener(() => onClickAction?.Invoke(_monsterData));
 
-            // Cùng hiệu ứng rê chuột mà HUD đang dùng
             if (slotButton.GetComponent<UIHoverScaleEffect>() == null)
                 slotButton.gameObject.AddComponent<UIHoverScaleEffect>();
         }
 
-        // nameText có thể null: slot mới chỉ hiện icon, không có nhãn tên
         if (nameText != null)
             nameText.text = _monsterData.IsDiscovered ? _monsterData.Name : "???";
 
         if (iconImage != null)
         {
-            // Chưa gặp thì hiện dưới dạng bóng đen
             iconImage.color = _monsterData.IsDiscovered ? Color.white : Color.black;
             if (iconSprite != null) iconImage.sprite = iconSprite;
         }
@@ -44,7 +42,7 @@ public class MonsterSlotUI : MonoBehaviour
         SetSelected(false);
     }
 
-    /// <summary>Bật/tắt viền sáng cho slot đang được chọn.</summary>
+    // Executes set selected operation.
     public void SetSelected(bool selected)
     {
         if (activeDeco != null) activeDeco.SetActive(selected);

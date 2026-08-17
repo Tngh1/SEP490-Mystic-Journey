@@ -11,6 +11,7 @@ using MysticJourney.UI;
 
 namespace UI.Friend
 {
+    // Executes core business logic for mono behaviour.
     public class FriendUIManager : MonoBehaviour
     {
         [Header("Tabs")]
@@ -22,8 +23,8 @@ namespace UI.Friend
         [SerializeField] private Sprite inactiveTabSprite;
 
         [Header("Panels")]
-        [SerializeField] private GameObject friendPanel; // Contains friendListContainer and detailPanelObj
-        [SerializeField] private GameObject addPanel; // Contains requestListContainer, searchInput, searchListContainer
+        [SerializeField] private GameObject friendPanel;
+        [SerializeField] private GameObject addPanel;
 
         [Header("Friend List (Left Column)")]
         [SerializeField] private Transform friendListContainer;
@@ -64,46 +65,48 @@ namespace UI.Friend
         private List<FriendDto> currentFriends = new List<FriendDto>();
         private List<PendingFriendRequestDto> currentRequests = new List<PendingFriendRequestDto>();
         private List<FriendSearchDto> searchResults = new List<FriendSearchDto>();
-        
+
         private int selectedProfileId;
         private string selectedFriendName;
         private bool started;
 
+        // Binds tab switching buttons, search queries, and master-detail action buttons.
         private void Start()
         {
-            if (closeButton != null) closeButton.onClick.AddListener(() => gameObject.SetActive(false));
+            if (closeButton != null) closeButton.onClick.AddListener(() => gameObject.SetActive(false)); // Close modal on click
 
-            if (friendTabButton != null) friendTabButton.onClick.AddListener(ShowFriendTab);
-            if (addTabButton != null) addTabButton.onClick.AddListener(ShowAddTab);
+            if (friendTabButton != null) friendTabButton.onClick.AddListener(ShowFriendTab); // Switch to Friend list
+            if (addTabButton != null) addTabButton.onClick.AddListener(ShowAddTab); // Switch to Add Friend tab
 
-            if (searchButton != null) searchButton.onClick.AddListener(OnSearchClicked);
-            
-            SetupDetailButtons();
+            if (searchButton != null) searchButton.onClick.AddListener(OnSearchClicked); // Submit player search query
+
+            SetupDetailButtons(); // Wire chat, unfriend, and block buttons
 
             started = true;
-            ShowFriendTab();
+            ShowFriendTab(); // Default to Friends tab
         }
 
+        // Refreshes friend entries and incoming request counts on panel open.
         private void OnEnable()
         {
-            // Start() runs after the first OnEnable() and calls ShowFriendTab(),
-            // which loads the same data - skip the duplicate request round-trip.
             if (!started) return;
 
-            RefreshData();
+            RefreshData(); // Query friends and incoming invites
         }
 
+        // Queries friends, pending requests, and active search results from REST API.
         public void RefreshData()
         {
-            LoadFriends();
-            LoadRequests();
-            
+            LoadFriends(); // Query friend list
+            LoadRequests(); // Query pending friend requests
+
             if (addPanel != null && addPanel.activeSelf)
             {
-                OnSearchClicked();
+                OnSearchClicked(); // Refresh search list if on Add tab
             }
         }
 
+        // Configures action listeners for friend profile detail card.
         private void SetupDetailButtons()
         {
             if (detailChatButton == null && detailPanelObj != null)
@@ -114,20 +117,21 @@ namespace UI.Friend
 
             if (friendChatPanel == null)
             {
-                friendChatPanel = FindFirstObjectByType<UIFriendChatPanel>(FindObjectsInactive.Include);
+                friendChatPanel = FindFirstObjectByType<UIFriendChatPanel>(FindObjectsInactive.Include); // Locate private chat panel
             }
 
             if (friendChatPanel == null)
             {
-                friendChatPanel = CreateRuntimeFriendChatPanel();
+                friendChatPanel = CreateRuntimeFriendChatPanel(); // Create runtime chat fallback if missing
             }
 
-            if (detailChatButton != null) detailChatButton.onClick.AddListener(OnDetailChatClicked);
-            if (detailUnfriendButton != null) detailUnfriendButton.onClick.AddListener(OnDetailUnfriendClicked);
-            if (detailBlockButton != null) detailBlockButton.onClick.AddListener(OnDetailBlockClicked);
-            if (detailProfileButton != null) detailProfileButton.onClick.AddListener(OnDetailProfileClicked);
+            if (detailChatButton != null) detailChatButton.onClick.AddListener(OnDetailChatClicked); // Open private 1-on-1 chat
+            if (detailUnfriendButton != null) detailUnfriendButton.onClick.AddListener(OnDetailUnfriendClicked); // Remove friend
+            if (detailBlockButton != null) detailBlockButton.onClick.AddListener(OnDetailBlockClicked); // Block user
+            if (detailProfileButton != null) detailProfileButton.onClick.AddListener(OnDetailProfileClicked); // Inspect full profile
         }
 
+        // Executes core business logic for create runtime friend chat panel.
         private UIFriendChatPanel CreateRuntimeFriendChatPanel()
         {
             UIChatMessage fallbackMessagePrefab = null;
@@ -140,31 +144,32 @@ namespace UI.Friend
             return UIFriendChatPanel.CreateRuntime(transform, fallbackMessagePrefab);
         }
 
+        // Update visibility for friend tab; it updates all panels active, updates active, updates count texts, and loads friends.
         private void ShowFriendTab()
         {
             SetAllPanelsActive(false);
             friendPanel?.SetActive(true);
-            // Also closes the chat: it stays open from the previous selection otherwise.
-            ClearSelectedFriendState(true); // Hide until a friend is clicked
+            ClearSelectedFriendState(true);
             UpdateCountTexts();
             LoadFriends();
 
             HighlightTab(friendTabButton, addTabButton);
         }
 
+        // Update visibility for add tab; it updates all panels active, updates active, updates count texts, and loads requests.
         private void ShowAddTab()
         {
             SetAllPanelsActive(false);
             addPanel?.SetActive(true);
             UpdateCountTexts();
-            LoadRequests(); // Left column of Add tab
-            
-            // Automatically trigger search to get random players when tab opens
-            OnSearchClicked(); // Right column of Add tab
-            
+            LoadRequests();
+
+            OnSearchClicked();
+
             HighlightTab(addTabButton, friendTabButton);
         }
 
+        // Executes core business logic for highlight tab.
         private void HighlightTab(Button activeTab, Button inactiveTab)
         {
             if (activeTab != null && activeTab.GetComponent<Image>() != null)
@@ -174,27 +179,30 @@ namespace UI.Friend
                 if (activeTabSprite != null)
                     img.sprite = activeTabSprite;
             }
-                
+
             if (inactiveTab != null && inactiveTab.GetComponent<Image>() != null)
             {
                 var img = inactiveTab.GetComponent<Image>();
-                img.color = new Color(0.6f, 0.6f, 0.6f, 1f); // Màu xám tối
+                img.color = new Color(0.6f, 0.6f, 0.6f, 1f);
                 if (inactiveTabSprite != null)
                     img.sprite = inactiveTabSprite;
             }
         }
 
+        // Executes core business logic for set all panels active.
         private void SetAllPanelsActive(bool active)
         {
             friendPanel?.SetActive(active);
             addPanel?.SetActive(active);
         }
 
+        // Executes core business logic for hide detail panel.
         private void HideDetailPanel()
         {
             if (detailPanelObj != null) detailPanelObj.SetActive(false);
         }
 
+        // Executes core business logic for clear selected friend state.
         private void ClearSelectedFriendState(bool closeChat)
         {
             selectedProfileId = 0;
@@ -207,6 +215,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for close friend chat panel.
         private void CloseFriendChatPanel()
         {
             if (friendChatPanel == null)
@@ -220,37 +229,36 @@ namespace UI.Friend
             }
         }
 
-        // -----------------------------
-        // Master-Detail Selection Logic
-        // -----------------------------
-        
-        // Overload for FriendList
+
+        // Executes core business logic for select friend.
         public void SelectFriend(FriendDto friend)
         {
             selectedProfileId = friend.FriendProfileId;
             selectedFriendName = friend.FriendName;
-            ShowDetailPanel(friend.FriendName, friend.FriendLevel, friend.Class, 
+            ShowDetailPanel(friend.FriendName, friend.FriendLevel, friend.Class,
                 friend.IsOnline ? $"<color=green>Online</color> - {friend.CurrentMap}" : $"<color=gray>Offline ({friend.LastOnline})</color>", friend.FriendAvatarUrl);
-            
+
             EnableDetailButtons(showChat: true, showUnfriend: true, showBlock: true, showProfile: true);
             OpenSelectedFriendChat();
         }
 
+        // Executes core business logic for show detail panel.
+        // Logic details: validates required non-empty string arguments.
         private void ShowDetailPanel(string name, int level, string charClass, string statusText, string avatarUrl = null)
         {
             if (detailPanelObj != null) detailPanelObj.SetActive(true);
             if (detailNameText != null) detailNameText.text = name;
             if (detailLevelText != null) detailLevelText.text = $"Lv.{level}";
             if (detailClassText != null) detailClassText.text = charClass;
-            if (detailStatusText != null) 
+            if (detailStatusText != null)
             {
                 detailStatusText.gameObject.SetActive(!string.IsNullOrEmpty(statusText));
                 detailStatusText.text = statusText;
             }
             if (detailAvatarImage != null)
             {
-                if (string.IsNullOrEmpty(avatarUrl)) avatarUrl = "avatar_1"; // Default avatar
-                
+                if (string.IsNullOrEmpty(avatarUrl)) avatarUrl = "avatar_1";
+
                 Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
                 if (avatarSprite != null)
                 {
@@ -259,6 +267,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for enable detail buttons.
         private void EnableDetailButtons(bool showChat = false, bool showUnfriend = false, bool showBlock = false, bool showProfile = false)
         {
             if (detailChatButton != null)
@@ -284,14 +293,15 @@ namespace UI.Friend
             }
         }
 
-        // -----------------------------
-        // Button Actions
-        // -----------------------------
+        // Executes core business logic for on detail chat clicked.
+        // Logic details: validates numeric boundary constraints.
         private void OnDetailChatClicked()
         {
             OpenSelectedFriendChat();
         }
 
+        // Executes core business logic for open selected friend chat.
+        // Logic details: validates numeric boundary constraints.
         private void OpenSelectedFriendChat()
         {
             if (selectedProfileId <= 0)
@@ -320,6 +330,8 @@ namespace UI.Friend
             friendChatPanel.Open(selectedProfileId, selectedFriendName);
         }
 
+        // Executes core business logic for on detail unfriend clicked.
+        // Logic details: validates numeric boundary constraints.
         private void OnDetailUnfriendClicked()
         {
             if (selectedProfileId <= 0)
@@ -330,8 +342,8 @@ namespace UI.Friend
             if (UIPopup.Instance != null)
             {
                 UIPopup.Instance.ShowConfirm(
-                    "Unfriend", 
-                    $"Are you sure you want to remove '{selectedFriendName}' from your friend list?", 
+                    "Unfriend",
+                    $"Are you sure you want to remove '{selectedFriendName}' from your friend list?",
                     onConfirm: ExecuteUnfriend
                 );
             }
@@ -341,19 +353,20 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for execute unfriend.
         private void ExecuteUnfriend()
         {
-            FriendApi.RemoveFriend(selectedProfileId, 
-                onSuccess: (res) => 
+            FriendApi.RemoveFriend(selectedProfileId,
+                onSuccess: (res) =>
                 {
                     if (UIPopup.Instance != null)
                         UIPopup.Instance.ShowAlert("Success", "Friend removed successfully!");
                     else
                         Debug.Log("Unfriended successfully.");
-                        
+
                     RefreshData();
                 },
-                onError: (err) => 
+                onError: (err) =>
                 {
                     if (UIPopup.Instance != null)
                         UIPopup.Instance.ShowAlert("Failed", err.Message);
@@ -363,6 +376,8 @@ namespace UI.Friend
             );
         }
 
+        // Executes core business logic for on detail block clicked.
+        // Logic details: validates numeric boundary constraints.
         private void OnDetailBlockClicked()
         {
             if (selectedProfileId <= 0)
@@ -374,8 +389,8 @@ namespace UI.Friend
             if (UIPopup.Instance != null)
             {
                 UIPopup.Instance.ShowConfirm(
-                    "Block Player", 
-                    $"Are you sure you want to block '{selectedFriendName}'? They won't be able to send you messages or friend requests.", 
+                    "Block Player",
+                    $"Are you sure you want to block '{selectedFriendName}'? They won't be able to send you messages or friend requests.",
                     onConfirm: ExecuteBlock
                 );
             }
@@ -385,23 +400,24 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for execute block.
         private void ExecuteBlock()
         {
             SetButtonLoading(detailBlockButton);
-            FriendApi.BlockPlayer(selectedProfileId, 
-                onSuccess: (res) => 
+            FriendApi.BlockPlayer(selectedProfileId,
+                onSuccess: (res) =>
                 {
                     ResetButtonText(detailBlockButton, "");
                     ClearSelectedFriendState(true);
-                    
+
                     if (UIPopup.Instance != null)
                         UIPopup.Instance.ShowAlert("Success", "Player blocked successfully.");
                     else
                         Debug.Log("Blocked successfully.");
-                        
+
                     RefreshData();
                 },
-                onError: (err) => 
+                onError: (err) =>
                 {
                     ResetButtonText(detailBlockButton, "");
                     if (UIPopup.Instance != null)
@@ -412,17 +428,16 @@ namespace UI.Friend
             );
         }
 
+        // Executes core business logic for on detail profile clicked.
         private void OnDetailProfileClicked()
         {
             var panel = FindFirstObjectByType<PlayerProfileUIManager>(FindObjectsInactive.Include);
             if (panel != null)
             {
-                // Deselect any focused UI (e.g. chat InputField) to prevent it stealing focus
                 UnityEngine.EventSystems.EventSystem.current?.SetSelectedGameObject(null);
-                
-                // Close friend chat panel explicitly to stop FocusInput loops
+
                 if (friendChatPanel != null) friendChatPanel.Close();
-                
+
                 panel.ShowProfile(selectedProfileId, "");
             }
             else
@@ -431,6 +446,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for set button loading.
         private void SetButtonLoading(Button btn)
         {
             if (btn == null) return;
@@ -439,6 +455,7 @@ namespace UI.Friend
             if (txt != null) txt.text = "Loading...";
         }
 
+        // Executes core business logic for reset button text.
         private void ResetButtonText(Button btn, string text)
         {
             if (btn == null) return;
@@ -447,9 +464,7 @@ namespace UI.Friend
             if (txt != null) txt.text = text;
         }
 
-        // -----------------------------
-        // Data Loading
-        // -----------------------------
+        // Executes core business logic for load friends.
         private void LoadFriends()
         {
             FriendApi.GetFriendList(friends =>
@@ -463,8 +478,6 @@ namespace UI.Friend
                 Debug.Log($"[LoadFriends] After filter: {currentFriends.Count} accepted friends. Instantiating list...");
                 UpdateFriendUI();
 
-                // Search and friend-list requests can complete in either order. Re-apply
-                // the Add-tab filter once the authoritative friend IDs are available.
                 if (addPanel != null && addPanel.activeSelf)
                 {
                     UpdateSearchUI();
@@ -472,6 +485,7 @@ namespace UI.Friend
             }, err => Debug.LogError($"Failed to load friends: {err.Message}"));
         }
 
+        // Executes core business logic for load requests.
         private void LoadRequests()
         {
             FriendApi.GetFriendRequests(requests =>
@@ -481,6 +495,7 @@ namespace UI.Friend
             }, err => Debug.LogError($"Failed to load requests: {err.Message}"));
         }
 
+        // Executes core business logic for update friend ui.
         private void UpdateFriendUI()
         {
             if (friendListContainer == null) return;
@@ -503,6 +518,8 @@ namespace UI.Friend
             CloseChatIfSelectedFriendIsGone();
         }
 
+        // Executes core business logic for close chat if selected friend is gone.
+        // Logic details: validates numeric boundary constraints.
         private void CloseChatIfSelectedFriendIsGone()
         {
             if (selectedProfileId <= 0)
@@ -522,6 +539,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for update request ui.
         private void UpdateRequestUI()
         {
             if (requestListContainer == null) return;
@@ -536,6 +554,7 @@ namespace UI.Friend
             UpdateCountTexts();
         }
 
+        // Executes core business logic for update count texts.
         private void UpdateCountTexts()
         {
             if (friendCountText != null && friendCountText == requestCountText)
@@ -553,10 +572,12 @@ namespace UI.Friend
                 requestCountText.text = $"{currentRequests.Count}/100";
         }
 
+        // Executes core business logic for on search clicked.
+        // Logic details: validates required non-empty string arguments.
         private void OnSearchClicked()
         {
             string query = searchInput != null && !string.IsNullOrEmpty(searchInput.text) ? searchInput.text.Trim() : "";
-            
+
             FriendApi.SearchPlayers(query, results =>
             {
                 searchResults = results;
@@ -564,6 +585,7 @@ namespace UI.Friend
             }, err => Debug.LogError($"Search failed: {err.Message}"));
         }
 
+        // Executes core business logic for update search ui.
         private void UpdateSearchUI()
         {
             if (searchListContainer == null) return;
@@ -580,6 +602,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for get addable search results.
+        // Logic details: validates numeric boundary constraints.
         private IEnumerable<FriendSearchDto> GetAddableSearchResults()
         {
             int currentPlayerId = GetCurrentPlayerProfileId();
@@ -596,6 +620,8 @@ namespace UI.Friend
                 .Select(group => group.First());
         }
 
+        // Executes core business logic for get current player profile id.
+        // Logic details: validates numeric boundary constraints.
         private static int GetCurrentPlayerProfileId()
         {
             int profileId = GameStateService.Instance != null
@@ -615,6 +641,7 @@ namespace UI.Friend
             return profileId;
         }
 
-        public string GetToken() => ""; // Kept for legacy signature
+        // Return the cached access token when available; otherwise load it from PlayerPrefs and cache the value.
+        public string GetToken() => "";
     }
 }

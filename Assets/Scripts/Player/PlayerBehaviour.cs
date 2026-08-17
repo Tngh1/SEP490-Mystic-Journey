@@ -1,8 +1,10 @@
 using System;
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class PlayerBehaviour : MonoBehaviour
 {
+    // Executes instance operation.
     public static PlayerBehaviour Instance { get; private set; }
     [SerializeField] private float movingSpeed = 4f;
 #pragma warning disable CS0067
@@ -23,9 +25,11 @@ public class PlayerBehaviour : MonoBehaviour
     [SerializeField] private float attackCooldown;
     [SerializeField] private int damageAmount;
 
-    
+
     private Vector2 inputVector;
 
+    // Initializes internal component caches and dependencies for PlayerBehaviour upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         Instance = this;
@@ -35,12 +39,16 @@ public class PlayerBehaviour : MonoBehaviour
         polyCollider = GetComponent<PolygonCollider2D>();
     }
 
+    // Performs startup initialization for PlayerBehaviour on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         PolyCollTurnOff();
     }
 
-    
+
+    // Per-frame update loop for PlayerBehaviour.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         inputVector = Vector2.zero;
@@ -52,7 +60,7 @@ public class PlayerBehaviour : MonoBehaviour
 
         isRunning = inputVector.magnitude > minMovingSpeed;
 
-        
+
         cooldownTimer += Time.deltaTime;
 
         if (Input.GetKey(KeyCode.Mouse0) && cooldownTimer > attackCooldown)
@@ -63,12 +71,14 @@ public class PlayerBehaviour : MonoBehaviour
         }
     }
 
-    
+
+    // Executes fixed update operation.
     private void FixedUpdate()
     {
         rb.MovePosition(rb.position + inputVector.normalized * (movingSpeed * Time.fixedDeltaTime));
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.transform.TryGetComponent(out EnemyEntity enemyEntity) && polyCollider.enabled == true)
@@ -82,12 +92,15 @@ public class PlayerBehaviour : MonoBehaviour
         }
     }
 
+    // Executes poly coll turn off operation.
     public void PolyCollTurnOff() { polyCollider.enabled = false; }
+    // Executes poly coll turn on operation.
     public void PolyCollTurnOn()
     {
         polyCollider.enabled = true;
         Debug.Log("PolyCollider");
     }
 
+    // Executes is running operation.
     public bool IsRunning() { return isRunning; }
 }

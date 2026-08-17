@@ -3,32 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-/// <summary>
-/// Fusion authority wrapper for a dungeon enemy.
-///
-/// The existing <see cref="EnemyEntity"/> / <see cref="EnemyBehaviour"/> /
-/// <see cref="EnemyAnimations"/> stay plain MonoBehaviours that own the *local*
-/// gameplay logic (HP maths, NavMesh AI, animation). This component makes that
-/// logic authoritative + replicated when a Photon session is running:
-///
-///   • The client that spawned the enemy (the Shared-Mode master client) holds
-///     StateAuthority. It ALONE runs the AI (NavMeshAgent) and the real HP maths
-///     in EnemyEntity, then copies the result into [Networked] fields each tick.
-///   • Every other client is a proxy: its EnemyBehaviour + NavMeshAgent are
-///     disabled (position arrives via NetworkTransform) and it mirrors the
-///     replicated HP / alive state into EnemyEntity so the health bar, hit
-///     flashes and death animation match the authority.
-///   • Damage requests from ANY client (its projectile / AoE / melee hit the
-///     enemy) are routed to the authority via RPC, so damage is applied exactly
-///     once and everyone sees the same HP and death.
-///
-/// Offline (no Runner / Photon not running) this component stays inert —
-/// Spawned() never fires, so EnemyEntity behaves exactly as before.
-/// </summary>
+// Executes i state authority changed operation.
 [RequireComponent(typeof(EnemyEntity))]
 public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
 {
-    // Authoritative, replicated state. Written only by the StateAuthority.
     [Networked] public int CurrentHp { get; set; }
     [Networked] public int MaxHp { get; set; }
     [Networked] public NetworkBool IsAlive { get; set; }
@@ -39,19 +17,16 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     private NavMeshAgent _agent;
     private readonly Dictionary<string, GameObject> _skillPrefabs = new(System.StringComparer.Ordinal);
 
-    // Proxy-side mirror bookkeeping so we only push changes into EnemyEntity.
     private int _lastMirroredHp = int.MinValue;
     private int _lastMirroredMaxHp = int.MinValue;
     private bool _lastMirroredAlive = true;
 
-    /// <summary>
-    /// True when this enemy is a live networked object inside a running session.
-    /// EnemyEntity uses this to decide between the networked damage route and the
-    /// offline local-damage path.
-    /// </summary>
+    // Executes is network active operation.
     public bool IsNetworkActive =>
         Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
 
+    // Initializes internal component caches and dependencies for NetworkEnemy upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _entity = GetComponent<EnemyEntity>();
@@ -60,15 +35,14 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         _agent = GetComponent<NavMeshAgent>();
     }
 
+    // Fusion lifecycle callback invoked when this NetworkEnemy NetworkObject is spawned into the network session.
+    // Configures input/state authority handlers, sets singleton references if local player, and applies initial visuals.
     public override void Spawned()
     {
-        // Let EnemyEntity know it is now networked so TakeDamage routes to us.
         _entity.BindNetwork(this);
 
         if (HasStateAuthority)
         {
-            // The authority runs the real EnemyEntity HP logic. Seed the mirror
-            // from its starting values (EnemyEntity.Start may set these from API).
             MaxHp = Mathf.Max(1, _entity.MaxHealth);
             CurrentHp = _entity.CurrentHealth > 0 ? _entity.CurrentHealth : MaxHp;
             IsAlive = true;
@@ -79,36 +53,24 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         Debug.Log($"[NetworkEnemy] Spawned '{name}' authority={HasStateAuthority} pos={transform.position} " +
                   $"scene='{gameObject.scene.name}'");
 
-        // Notify DungeonManager so UI tracks progress even on proxy clients
         if (DungeonManager.Instance != null)
         {
             DungeonManager.Instance.RegisterNetworkedEnemy(_entity);
         }
     }
 
-    /// <summary>
-    /// Fusion hands StateAuthority over this enemy to another client when the
-    /// previous authority leaves the session. Without re-running the AI enable/disable
-    /// here, the enemy kept its proxy setup on the new authority — EnemyBehaviour and
-    /// the NavMeshAgent stayed disabled and every enemy froze in place for the rest of
-    /// the run.
-    /// </summary>
+    // Executes state authority changed operation.
     public void StateAuthorityChanged()
     {
         if (HasStateAuthority)
         {
-            // Adopt whatever the replicated state says so the fresh authority does not
-            // publish a stale/default HP on its first tick.
             _entity.SyncNetworkedHealth(CurrentHp, MaxHp);
         }
 
         ApplyAuthorityRole();
     }
 
-    /// <summary>
-    /// AI + navmesh run on the StateAuthority only; proxies take position from
-    /// NetworkTransform instead, so local AI there would fight the replication.
-    /// </summary>
+    // Executes apply authority role operation.
     private void ApplyAuthorityRole()
     {
         bool authority = HasStateAuthority;
@@ -120,17 +82,20 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         SetAuthorityOnlyComponent<SwampDemonSlimeSpawner>(authority);
     }
 
+    // Executes behaviour operation.
     private void SetAuthorityOnlyComponent<T>(bool enabled) where T : UnityEngine.Behaviour
     {
         var component = GetComponent<T>();
         if (component != null) component.enabled = enabled;
     }
 
+    // Executes register skill prefab operation.
     public void RegisterSkillPrefab(GameObject prefab)
     {
         if (prefab != null) _skillPrefabs[prefab.name] = prefab;
     }
 
+    // Executes spawn enemy skill operation.
     public GameObject SpawnEnemySkill(GameObject prefab, Vector3 position, bool parentToEnemy = false)
     {
         if (prefab == null) return null;
@@ -145,15 +110,14 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         return instance;
     }
 
+    // Executes resolve skill prefab operation.
+    // Validates input parameters against null or empty values.
     private GameObject ResolveSkillPrefab(string prefabName)
     {
         if (string.IsNullOrEmpty(prefabName)) return null;
         if (_skillPrefabs.TryGetValue(prefabName, out var registered) && registered != null)
             return registered;
 
-        // Proxy clients do not execute the authority's spawner, so their local
-        // dictionary is empty. Scene-referenced prefab assets are still loaded and
-        // can be resolved by name for the visual replica.
         foreach (var candidate in Resources.FindObjectsOfTypeAll<GameObject>())
         {
             if (candidate != null && candidate.name == prefabName && !candidate.scene.IsValid())
@@ -166,6 +130,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         return null;
     }
 
+    // Create enemy projectile using prefab, position, direction, and speed; it creates enemy projectile and guards invalid or unavailable states.
     public GameObject SpawnEnemyProjectile(GameObject prefab, Vector3 position, Vector3 direction,
         float speed, int damage, bool isCrit, float critMultiplier)
     {
@@ -188,6 +153,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         return instance;
     }
 
+    // Create enemy projectile using prefab, position, direction, and speed; it instantiates the required Unity object, creates component, updates active, loads component, and updates up and guards invalid or unavailable states.
     private GameObject CreateEnemyProjectile(GameObject prefab, Vector3 position, Vector3 direction,
         float speed, int damage, bool isCrit, float critMultiplier, bool visualOnly)
     {
@@ -221,6 +187,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Process rpc spawn enemy projectile using prefab name, position, direction, and speed; it builds skill prefab and creates enemy projectile and guards invalid or unavailable states.
     private void RPC_SpawnEnemyProjectile(string prefabName, Vector3 position, Vector3 direction,
         float speed, NetworkBool isCrit, float critMultiplier)
     {
@@ -230,29 +197,34 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         CreateEnemyProjectile(prefab, position, direction, speed, 0, isCrit, critMultiplier, true);
     }
 
+    // Executes notify attack animation operation.
     public void NotifyAttackAnimation()
     {
         if (IsNetworkActive && HasStateAuthority) RPC_PlayAttackAnimation();
     }
 
+    // Executes notify skill animation operation.
     public void NotifySkillAnimation()
     {
         if (IsNetworkActive && HasStateAuthority) RPC_PlaySkillAnimation();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_play attack animation operation.
     private void RPC_PlayAttackAnimation()
     {
         if (!HasStateAuthority) _animations?.PlayAttackAnimation();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_play skill animation operation.
     private void RPC_PlaySkillAnimation()
     {
         if (!HasStateAuthority) _animations?.PlaySkillAnimation();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    // Executes rpc_spawn enemy skill operation.
     private void RPC_SpawnEnemySkill(string prefabName, Vector3 position, NetworkBool parentToEnemy)
     {
         if (HasStateAuthority) return;
@@ -270,17 +242,12 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         instance.SetActive(true);
     }
 
+    // Networked fixed-step simulation tick callback executed by Photon Fusion.
+    // Processes synchronized player input, applies physics velocities, and updates authoritative gameplay mechanics.
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
 
-        // Copy the authority's local EnemyEntity HP into the networked mirror so
-        // it replicates to every proxy. EnemyEntity remains the source of truth on
-        // the authority; we just publish it.
-        //
-        // Only write on change: assigning a [Networked] property marks it dirty even
-        // when the value is identical, so the old unconditional writes re-sent HP for
-        // every enemy every tick (idle enemies included).
         int maxHp = Mathf.Max(1, _entity.MaxHealth);
         int currentHp = Mathf.Max(0, _entity.CurrentHealth);
         bool alive = !_entity.IsDead;
@@ -290,13 +257,11 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         if (IsAlive != alive) IsAlive = alive;
     }
 
+    // Executes render operation.
     public override void Render()
     {
-        // The authority already shows its own local EnemyEntity state directly.
         if (HasStateAuthority) return;
 
-        // Proxy mirror: push replicated HP into EnemyEntity so the health bar and
-        // hit flash match the authority.
         if (CurrentHp != _lastMirroredHp || MaxHp != _lastMirroredMaxHp ||
             _entity.CurrentHealth != CurrentHp || _entity.MaxHealth != MaxHp)
         {
@@ -305,7 +270,6 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
             _lastMirroredMaxHp = MaxHp;
         }
 
-        // Replicated death → play death visuals on this proxy exactly once.
         if (!IsAlive && _lastMirroredAlive)
         {
             _lastMirroredAlive = false;
@@ -313,11 +277,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
         }
     }
 
-    /// <summary>
-    /// Request that this enemy takes damage. Safe to call on any client — it is
-    /// routed to the StateAuthority, which applies it once. Callers that are
-    /// certain they are offline should use <see cref="EnemyEntity.TakeDamage"/>.
-    /// </summary>
+    // Requests damage to be applied to this player, routing via RPC to the StateAuthority instance.
     public void RequestDamage(int amount)
     {
         if (amount <= 0) return;
@@ -328,22 +288,15 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
             RPC_RequestDamage(amount);
     }
 
-    // Any client (a player whose projectile/AoE hit this enemy) → the enemy's
-    // StateAuthority. Shared Mode allows RpcSources.All to target StateAuthority.
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    // Photon Fusion RPC receiving damage request on the StateAuthority and executing ApplyDamage().
     private void RPC_RequestDamage(int amount)
     {
         _entity.ApplyDamageAuthoritative(amount);
     }
 
-    /// <summary>
-    /// Broadcast a floating damage number to EVERY client. Any client may invoke it
-    /// (Shared Mode RpcSources.All → RpcTargets.All), and all clients — including the
-    /// caller — spawn the popup once. Used by melee, which (unlike the networked skill
-    /// projectiles) has no networked object of its own to broadcast from, so the damage
-    /// number would otherwise only appear on the attacker's screen.
-    /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All)]
+    // Executes rpc_show damage popup operation.
     public void RPC_ShowDamagePopup(Vector3 worldPos, int amount, NetworkBool isCrit)
     {
         if (DamagePopupManager.Instance != null)
@@ -351,8 +304,10 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     }
 }
 
+// Executes mono behaviour operation.
 public sealed class EnemySkillVisualReplica : MonoBehaviour
 {
+    // Executes is replica operation.
     public static bool IsReplica(Component component) =>
         component != null && component.GetComponentInParent<EnemySkillVisualReplica>() != null;
 }

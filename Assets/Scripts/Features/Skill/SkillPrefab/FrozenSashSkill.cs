@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// Executes mono behaviour operation.
 public class FrozenSashSkill : MonoBehaviour
 {
     [SerializeField] private float duration = 0.5f;
@@ -11,6 +12,7 @@ public class FrozenSashSkill : MonoBehaviour
     private float _damage;
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
 
+    // Executes setup operation.
     public void Setup(float damage)
     {
         _damage = damage;
@@ -22,6 +24,7 @@ public class FrozenSashSkill : MonoBehaviour
         }
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (PlayerSkillVisualReplica.IsReplica(this)) return;
@@ -33,6 +36,7 @@ public class FrozenSashSkill : MonoBehaviour
             {
                 if (enemy != null)
                 {
+                    // Randomize the eligible candidates before selecting this gameplay result.
                     bool isCrit = Random.Range(0f, 100f) <= 20f;
                     float finalDamage = isCrit ? _damage * 1.5f : _damage;
                     int damageInt = Mathf.RoundToInt(finalDamage);

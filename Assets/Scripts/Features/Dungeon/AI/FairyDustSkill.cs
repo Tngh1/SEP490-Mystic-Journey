@@ -1,9 +1,6 @@
 using UnityEngine;
 
-/// <summary>
-/// Skill Tấn Công Bụi Tiên (Fairy Dust) do IceFairy thi triển lên Player (mặc định 5s/lần trong tầm 8m).
-/// Xuất hiện tại vị trí Player, đi theo di chuyển của Player, gây sát thương và tự biến mất.
-/// </summary>
+// Executes mono behaviour operation.
 public class FairyDustSkill : MonoBehaviour
 {
     [Header("Damage Settings")]
@@ -24,11 +21,14 @@ public class FairyDustSkill : MonoBehaviour
     private bool _hasDealtDamage = false;
     private Transform _targetPlayer;
 
+    // Executes set target operation.
     public void SetTarget(Transform target)
     {
         _targetPlayer = target;
     }
 
+    // Performs startup initialization for FairyDustSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (EnemySkillVisualReplica.IsReplica(this))
@@ -47,13 +47,11 @@ public class FairyDustSkill : MonoBehaviour
             transform.position = new Vector3(_targetPlayer.position.x, _targetPlayer.position.y, 0f);
         }
 
-        // Phát âm thanh va chạm/tấn công
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
         }
 
-        // Gây sát thương cho Player nếu xuất hiện ngay trên Player
         if (_targetPlayer != null)
         {
             DealDamage(_targetPlayer.gameObject);
@@ -67,10 +65,11 @@ public class FairyDustSkill : MonoBehaviour
             }
         }
 
-        // Tự động xóa Prefab sau khi hiệu ứng hoàn tất
         Destroy(gameObject, lifeTime);
     }
 
+    // Per-frame update loop for FairyDustSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (followPlayer)
@@ -87,6 +86,7 @@ public class FairyDustSkill : MonoBehaviour
         }
     }
 
+    // Executes find player target operation.
     private void FindPlayerTarget()
     {
         if (PlayerMovement.Instance != null)
@@ -102,6 +102,7 @@ public class FairyDustSkill : MonoBehaviour
         }
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (_hasDealtDamage) return;
@@ -112,6 +113,7 @@ public class FairyDustSkill : MonoBehaviour
         }
     }
 
+    // Executes deal damage operation.
     private void DealDamage(GameObject target)
     {
         if (EnemySkillVisualReplica.IsReplica(this)) return;

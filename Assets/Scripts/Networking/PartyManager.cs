@@ -1,38 +1,22 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// Scene-side coordinator for the party feature, living on the existing "PartyManager"
-/// GameObject under Managers. It owns NO party state — that is the replicated
-/// <see cref="PartyLobby"/> — it only reacts to networked party events and drives
-/// scene-level concerns the networking layer should not know about:
-///   • Making sure the invite popup listener exists (24.4 receive side).
-///   • Auto-opening the party panel for a member the moment they join a party, so an
-///     invited friend sees the roster without manually opening any menu (24.6).
-///   • Bridging "host pressed Start" into the actual dungeon load + migration (Step 5).
-///
-/// This keeps <see cref="PartyPanel"/> a pure view and <see cref="PartyService"/>
-/// a pure command facade — the reactive glue lives here.
-/// </summary>
+// Executes core business logic for mono behaviour.
 public class PartyManager : MonoBehaviour
 {
+    // Executes core business logic for instance.
     public static PartyManager Instance { get; private set; }
 
-    /// <summary>
-    /// True from the moment a dungeon entry starts until the dungeon scene transition is
-    /// kicked off. In that window the PartyLobby has already despawned (the host tore the
-    /// lobby runner down) but the dungeon room is not up yet, so neither party transport
-    /// is live. Party-facing UI must not conclude "you are not in a party" here — the
-    /// party is intact, it is only mid-migration.
-    /// </summary>
+    // Executes core business logic for is entering dungeon.
     public static bool IsEnteringDungeon { get; private set; }
 
     private PartyLobby _hookedParty;
 
-    // Guards so the one-shot dungeon-entry work runs exactly once per transition.
     private bool _hostStartInProgress;
     private bool _dungeonEntryStarted;
 
+    // Initializes internal component caches and dependencies for PartyManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -43,37 +27,34 @@ public class PartyManager : MonoBehaviour
         Instance = this;
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
-        // Ensure the invite popup exists even if we entered Main without the bootstrap
-        // path (e.g. domain reload in editor).
         PartyInvitePopup.EnsureExists();
 
         PartyLobby.OnLocalPartyChanged += HandleLocalPartyChanged;
         RehookParty();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         PartyLobby.OnLocalPartyChanged -= HandleLocalPartyChanged;
         UnhookParty();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Party event wiring
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes core business logic for handle local party changed.
     private void HandleLocalPartyChanged()
     {
         RehookParty();
 
-        // A member who just joined a party (not the host, who opened the panel itself)
-        // should see the roster pop up automatically.
         var party = PartyLobby.Local;
         if (party != null && !party.IsLocalHost)
         {
@@ -81,6 +62,7 @@ public class PartyManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for rehook party.
     private void RehookParty()
     {
         UnhookParty();
@@ -92,12 +74,12 @@ public class PartyManager : MonoBehaviour
         }
         else
         {
-            // No local party (fresh, left, or migrated away) — arm for the next run.
             _hostStartInProgress = false;
             _dungeonEntryStarted = false;
         }
     }
 
+    // Executes core business logic for unhook party.
     private void UnhookParty()
     {
         if (_hookedParty != null)
@@ -108,16 +90,10 @@ public class PartyManager : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Member auto-open
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes core business logic for open party panel for member.
     private void OpenPartyPanelForMember()
     {
-        // Resolve the panel GameObject WITHOUT relying on PartyPanel.Instance: the
-        // panel starts inactive in the scene, so its Awake (which sets Instance) has not
-        // run yet for an invited member who never opened it manually. UIManager holds a
-        // direct reference regardless of active state.
         GameObject panelGo = null;
         if (PartyPanel.Instance != null) panelGo = PartyPanel.Instance.gameObject;
         else if (UIManager.Instance != null) panelGo = UIManager.Instance.dungeonPanel;
@@ -126,11 +102,8 @@ public class PartyManager : MonoBehaviour
             Debug.LogWarning("[PartyManager] Cannot open party panel for member — no panel reference (UIManager.dungeonPanel unset?).");
             return;
         }
-        if (panelGo.activeInHierarchy) return; // already open
+        if (panelGo.activeInHierarchy) return;
 
-        // Members don't pick the dungeon; the host publishes it. Open the panel so it
-        // renders the roster + the host's chosen dungeon (which arrives via networked
-        // properties). We route through UIManager so it behaves like any other panel.
         var party = PartyLobby.Local;
         int configId = party != null ? party.DungeonConfigId : 1;
         string scene = party != null ? party.DungeonSceneName.Value : string.Empty;
@@ -141,28 +114,17 @@ public class PartyManager : MonoBehaviour
         else
             panelGo.SetActive(true);
 
-        // Awake has now run → the component's Instance is set. Fetch it off the GameObject.
         var panel = panelGo.GetComponent<PartyPanel>();
         if (panel != null)
             panel.OpenForDungeon(configId, string.IsNullOrEmpty(scene) ? "HollowCryptDungeon" : scene, 0, string.IsNullOrEmpty(name) ? "Dungeon" : name);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Dungeon start bridge (Step 5)
-    //
-    // Flow:
-    //   Host: OnDungeonStartRequested (State just flipped to Loading)
-    //         → create backend session (Enter API, once)
-    //         → publish session id → State flips to InDungeon.
-    //   Everyone: OnPartyStateChanged(InDungeon)
-    //         → migrate Photon runner into the dungeon room (avatars spawn)
-    //         → wait for the local avatar, then load the dungeon scene.
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // Executes core business logic for handle dungeon start requested.
     private void HandleDungeonStartRequested(int configId, string sceneName)
     {
         var party = PartyLobby.Local;
-        if (party == null || !party.IsLocalHost) return; // only the host creates the session
+        if (party == null || !party.IsLocalHost) return;
         if (_hostStartInProgress) return;
         _hostStartInProgress = true;
 
@@ -174,7 +136,7 @@ public class PartyManager : MonoBehaviour
         }
 
         string dungeonName = party.DungeonName.Value;
-        int cost = 0; // energy already validated in the panel; party members share the run
+        int cost = 0;
 
         DungeonManager.Instance.CreatePartySession(
             configId, sceneName, cost, dungeonName, BuildPartyMemberIds(party),
@@ -182,9 +144,6 @@ public class PartyManager : MonoBehaviour
             {
                 if (sessionId <= 0)
                 {
-                    // Backend rejected the Enter call (e.g. insufficient energy, invalid
-                    // party composition). Revert PartyState so the host can retry instead
-                    // of orphaning the party in Loading forever.
                     Debug.LogWarning("[PartyManager] CreatePartySession failed — reverting party to Lobby.");
                     if (party != null && party.HasStateAuthority)
                     {
@@ -193,13 +152,12 @@ public class PartyManager : MonoBehaviour
                     _hostStartInProgress = false;
                     return;
                 }
-                // Publishing the session id flips PartyState → InDungeon, which drives
-                // the migration on EVERY client (including this host, via HandlePartyState).
                 party.HostPublishDungeonSession(sessionId);
                 _hostStartInProgress = false;
             });
     }
 
+    // Executes core business logic for handle party state.
     private void HandlePartyState(PartyLobby.PartyState state)
     {
         Debug.Log($"[PartyEntry] HandlePartyState({state}) fired. entryStarted={_dungeonEntryStarted} " +
@@ -209,20 +167,13 @@ public class PartyManager : MonoBehaviour
         var party = PartyLobby.Local;
         if (party == null)
         {
-            // Not seated (shouldn't happen for a real member). Leave the flag unset so a
-            // later state re-notification can still start the entry.
             Debug.LogWarning("[PartyEntry] InDungeon fired but PartyLobby.Local is null — cannot snapshot yet.");
             return;
         }
 
-        // Snapshot the networked target SYNCHRONOUSLY, right now. The PartyLobby object
-        // is owned by the host; the moment the host tears down its lobby runner to
-        // migrate, this object is despawned for everyone and PartyLobby.Local goes null.
-        // Reading it later inside the coroutine would abort the member's entry. Fusion
-        // delivers all networked props of a snapshot together, so when State==InDungeon
-        // is visible the session id / scene set in HostPublishDungeonSession are too.
         _dungeonEntryStarted = true;
         IsEnteringDungeon = true;
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(EnterDungeonRoutine(
             party.DungeonConfigId,
             party.DungeonSceneName.Value,
@@ -232,13 +183,7 @@ public class PartyManager : MonoBehaviour
             party.IsLocalHost));
     }
 
-    /// <summary>
-    /// Runs on every client once the party state reaches InDungeon: migrate the Photon
-    /// runner into the dungeon room, wait for the networked avatar to exist, then run
-    /// the scene transition (reusing the host's session id — no duplicate Enter API).
-    /// All target values are snapshotted by the caller so this never touches the
-    /// (possibly-despawned) PartyLobby.
-    /// </summary>
+    // Process the supplied values: normalizes or validates the text before returning the derived result.
     private IEnumerator EnterDungeonRoutine(int configId, string scene, string dungeonName,
                                             int sessionId, int hostProfileId, bool isHost)
     {
@@ -261,33 +206,13 @@ public class PartyManager : MonoBehaviour
             yield break;
         }
 
-        // Capture the world return point NOW, before migrating. Migration destroys the
-        // world avatar and spawns a fresh networked one elsewhere, so DungeonManager
-        // cannot read the real "where I was in the world" position afterwards.
-        // WorldState.LastPosition is kept current by PlayerWorldPositionSync while in
-        // the world, so it is the reliable pre-migration source.
         string returnMap = string.IsNullOrWhiteSpace(WorldState.CurrentMapName) ? "ElfForest" : WorldState.CurrentMapName;
         Vector3 returnPos = WorldState.LastPosition;
 
-        // Che màn hình NGAY từ đầu, không đợi tới TransitionToDungeon. Từ đây tới đó là
-        // 3s (host) hoặc tới 7s (member) chờ tear-down, rồi DestroyNonNetworkedPlayers()
-        // xoá avatar world, rồi tới 10s chờ avatar network — tức người chơi nhìn map cũ
-        // KHÔNG CÒN nhân vật suốt 3-17s. Đây là toàn bộ lý do phải Show ở đây.
-        //
-        // Scene "Loading" load additive và PassThroughSceneManager (scene manager của
-        // runner dungeon) không unload scene nào, nên nó sống qua migration.
-        // LoadingScreen.Show() trong TransitionToDungeon sau đó tự no-op vì scene đã loaded,
-        // và Hide() ở cuối TransitionToDungeon mới là chỗ tắt.
         yield return LoadingScreen.Show("Entering dungeon...");
 
         string dungeonRoom = $"DUNGEON_{hostProfileId}";
 
-        // Master-client election: whoever joins the fresh dungeon room FIRST becomes the
-        // Fusion Shared-Mode master client, which owns enemy AI (DungeonSpawner spawns
-        // only on PhotonManager.IsHost). We want the PARTY HOST to be that master, so the
-        // host migrates immediately and members only follow once the host is on its way.
-        // Both already snapshotted their target above, so the PartyLobby despawning
-        // mid-transition is harmless.
         if (!isHost)
         {
             Debug.Log($"[PartyEntry] Member waiting for host {hostProfileId} to tear down lobby runner...");
@@ -304,17 +229,9 @@ public class PartyManager : MonoBehaviour
         }
         else
         {
-            // Give Fusion time to propagate the InDungeon state to all members
-            // before tearing down the lobby runner. Without this, the host disconnects
-            // too quickly and members never receive the state change.
             yield return new WaitForSeconds(3.0f);
         }
 
-        // The lobby avatar is a NON-networked PlayerMovement left over from the world
-        // scene. It must be gone before we wait for the dungeon avatar, otherwise
-        // FindFirstObjectByType<PlayerMovement> below matches the stale one instantly
-        // and we transition before the real networked avatar spawns (host ends up in
-        // the scene with no camera-bound, correctly-placed character).
         DestroyNonNetworkedPlayers();
 
         var photon = PhotonManager.Instance;
@@ -340,9 +257,6 @@ public class PartyManager : MonoBehaviour
             Debug.LogWarning("[PartyEntry] PhotonManager.Instance is null — cannot migrate.");
         }
 
-        // 2. Wait for the local NETWORKED avatar (NetworkPlayer.Local) to be spawned by
-        //    PhotonManager on migration (or a short timeout as a safety net so we never
-        //    hang on the loading state).
         float timeout = 10f;
         while (timeout > 0f && NetworkPlayer.Local == null)
         {
@@ -355,8 +269,6 @@ public class PartyManager : MonoBehaviour
         else
             Debug.Log("[PartyEntry] NetworkPlayer.Local found! Entering Dungeon Scene.");
 
-        // 3. Perform the scene transition using the shared session id (no Enter API here).
-        // The dungeon room is up at this point, so party chat has a live transport again.
         IsEnteringDungeon = false;
 
         if (DungeonManager.Instance != null)
@@ -371,31 +283,16 @@ public class PartyManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Tắt màn hình loading và báo lỗi khi entry chết SAU khi đã Show. Bắt buộc phải có:
-    /// backdrop của scene Loading là full-screen alpha 1 nên nếu chỉ `yield break` thì
-    /// người chơi ngồi trước một màn che kín vĩnh viễn, không input nào thoát được — tệ
-    /// hơn hẳn so với lỗi gốc là thấy map trống.
-    ///
-    /// Đường thành công KHÔNG gọi hàm này: TransitionToDungeon tự Hide() ở cuối.
-    /// </summary>
+    // Executes core business logic for abort entry.
     private static IEnumerator AbortEntry(string message)
     {
         yield return LoadingScreen.Hide();
 
-        // Cùng kênh DungeonManager.NotifyBlocked dùng cho entry bị chặn.
-        // (WorldRuntimeEvents.RaiseMessage không có subscriber nào — sẽ im lặng.)
         if (MainQuestPanelRuntime.Instance != null)
             MainQuestPanelRuntime.Instance.ShowPaperPopup(message, UIPaperPopupView.PaperPopupKind.None);
     }
 
-    /// <summary>
-    /// Destroy any NON-networked player avatars (the world-scene player spawned by
-    /// PlayerSpawner) before dungeon migration. Networked avatars (with a Fusion
-    /// NetworkObject) are left untouched — Fusion owns their lifecycle. Without this,
-    /// the stale lobby avatar makes the "wait for avatar" check pass instantly and we
-    /// transition before the real dungeon avatar exists.
-    /// </summary>
+    // Executes core business logic for destroy non networked players.
     private static void DestroyNonNetworkedPlayers()
     {
         var movers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
@@ -407,12 +304,7 @@ public class PartyManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Non-host member names for the backend Enter call. The backend validates party
-    /// size as <c>1 + partyMembers.Count</c> (the "1" being the host/owner), so the host
-    /// must NOT be included here or it gets double-counted and Enter is rejected for
-    /// exceeding MaxMembers.
-    /// </summary>
+    // Executes core business logic for build party member ids.
     private static System.Collections.Generic.List<string> BuildPartyMemberIds(PartyLobby party)
     {
         var ids = new System.Collections.Generic.List<string>();

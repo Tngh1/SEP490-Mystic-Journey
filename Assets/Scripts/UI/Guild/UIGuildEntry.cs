@@ -6,14 +6,15 @@ using System;
 
 namespace MysticJourney.UI.Guild
 {
+    // Executes mono behaviour operation.
     public class UIGuildEntry : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI txtGuildName;
         [SerializeField] private TextMeshProUGUI txtLevel;
         [SerializeField] private TextMeshProUGUI txtMemberCount;
         [SerializeField] private Button btnApply;
-        [SerializeField] private Button btnEntry; // Có cái thì bỏ
-        
+        [SerializeField] private Button btnEntry;
+
         [Header("Rank Specific (Optional)")]
         [SerializeField] private TextMeshProUGUI txtRank;
         [SerializeField] private TextMeshProUGUI txtFeats;
@@ -22,6 +23,7 @@ namespace MysticJourney.UI.Guild
         private Action<int> onApplyCallback;
         private Action<int> onEntryCallback;
 
+        // Executes setup operation.
         public void Setup(GuildResponseDto data, Action<int> entryClicked, Action<int> applyClicked, int rank = 0)
         {
             guildId = data.guildId;
@@ -31,7 +33,7 @@ namespace MysticJourney.UI.Guild
             if (txtGuildName != null) txtGuildName.text = data.name;
             if (txtLevel != null) txtLevel.text = $"Lv. {data.level}";
             if (txtMemberCount != null) txtMemberCount.text = $"{data.memberCount}/{data.maxMembers}";
-            
+
             if (txtRank != null) txtRank.text = rank > 0 ? rank.ToString() : "-";
             if (txtFeats != null) txtFeats.text = data.totalMedals.ToString();
 
@@ -47,8 +49,7 @@ namespace MysticJourney.UI.Guild
                 }
 
                 int playerLevel = UnityEngine.PlayerPrefs.GetInt("mj_player_level", 1);
-                
-                // Bypass level requirement if invited
+
                 if (!data.isInvited && playerLevel < data.requiredLevel)
                 {
                     btnApply.interactable = false;
@@ -61,12 +62,11 @@ namespace MysticJourney.UI.Guild
 
                 btnApply.onClick.RemoveAllListeners();
                 btnApply.onClick.AddListener(() => onApplyCallback?.Invoke(guildId));
-                
-                // Highlight button color if invited
+
                 var img = btnApply.GetComponent<UnityEngine.UI.Image>();
                 if (img != null)
                 {
-                    img.color = data.isInvited ? new Color(0.2f, 0.8f, 0.2f, 1f) : Color.white; // Green if invited
+                    img.color = data.isInvited ? new Color(0.2f, 0.8f, 0.2f, 1f) : Color.white;
                 }
             }
 
@@ -77,6 +77,7 @@ namespace MysticJourney.UI.Guild
             }
         }
 
+        // Executes setup rank operation.
         public void SetupRank(GuildRankResponseDto data, Action<int> entryClicked, Action<int> applyClicked)
         {
             guildId = data.guildId;
@@ -89,7 +90,6 @@ namespace MysticJourney.UI.Guild
             if (txtMemberCount != null) txtMemberCount.text = $"{data.memberCount}/{data.maxMembers}";
             if (txtFeats != null) txtFeats.text = data.totalFeats.ToString();
 
-            // In rank view, we want to HIDE the Apply button
             if (btnApply != null)
             {
                 btnApply.gameObject.SetActive(false);

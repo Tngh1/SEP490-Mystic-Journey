@@ -7,25 +7,16 @@ using UnityEngine;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // AUTH API - Xác thực
-    // ═══════════════════════════════════════════════════════════════════════
     public class AuthApi : BaseApiService<AuthApi>
     {
-        // ═══════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════
-
-        // ── Đăng nhập ──────────────────────────────
+        // ─── Guest APIs ───────────────────────────────────────────────────────
+        // Send Game credentials without an existing session, save returned access and refresh tokens, persist profile and world state, then invoke the success or error callback.
         public void LoginGame(
             string emailOrUsername,
             string password,
             Action<LoginGameResponse> onSuccess,
             Action<ApiException> onError)
         {
-            // Một lần tắt game cưỡng bức không chạy logout nên token/socket cũ vẫn có thể
-            // được phục hồi ở màn hình login. Dọn phiên local cũ trước khi BE tạo session mới
-            // để callback SessionOverridden của socket cũ không thể xóa token mới.
             SessionService.PrepareForCredentialLogin();
 
             SafeDebugLog($"LoginGame -> emailOrUsername={emailOrUsername}");
@@ -44,7 +35,6 @@ namespace MysticJourney.API.Endpoints
                 {
                     ApiClient.Instance.SaveToken(response.AccessToken);
 
-                    // Lưu refresh token để tự động làm mới access token khi hết hạn
                     if (!string.IsNullOrEmpty(response.RefreshToken))
                         ApiClient.Instance.SaveRefreshToken(response.RefreshToken);
 
@@ -72,7 +62,7 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
-        // ── Lấy thông tin người dùng ─────────────
+        // Executes get me operation.
         public void GetMe(Action<MeResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMe...");
@@ -95,7 +85,7 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
-        // ── Đăng xuất ─────────────────────────────
+        // Revokes active refresh token for the calling client type and clears authentication session cookies.
         public void Logout(Action<SimpleResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("Logout...");
@@ -120,7 +110,7 @@ namespace MysticJourney.API.Endpoints
             );
         }
 
-        // ── Private: Lưu session profile ─────────
+        // Persist the profile id and clamped level, normalize the optional player class, and mirror all values into GameStateService.
         private static void SaveProfileSession(int? playerProfileId, int level, string playerClass)
         {
             if (GameStateService.Instance == null)
@@ -141,7 +131,7 @@ namespace MysticJourney.API.Endpoints
             PlayerPrefs.SetInt(ApiConfig.PlayerLevelKey, safeLevel);
             state.PlayerLevel = safeLevel;
 
-            if (string.IsNullOrWhiteSpace(playerClass))
+            if (string.IsNullOrWhiteSpace(playerClass))  // Mandatory string argument is blank — fail fast
             {
                 PlayerPrefs.DeleteKey(ApiConfig.PlayerClassKey);
                 state.PlayerClass = string.Empty;
@@ -154,7 +144,7 @@ namespace MysticJourney.API.Endpoints
             }
         }
 
-        // ── Private: Lưu session world ───────────
+        // Normalize the map name, convert the saved coordinates into a Vector3, and persist the world position in PlayerPrefs and GameStateService.
         private static void SaveWorldSession(string mapName, double positionX, double positionY)
         {
             if (GameStateService.Instance == null)

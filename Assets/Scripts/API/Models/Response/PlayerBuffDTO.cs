@@ -2,6 +2,7 @@ using System;
 
 namespace MysticJourney.API.Models.Response
 {
+    // Initializes a new default instance of the PlayerBuffDTO class.
     [Serializable]
     public class PlayerBuffDTO
     {

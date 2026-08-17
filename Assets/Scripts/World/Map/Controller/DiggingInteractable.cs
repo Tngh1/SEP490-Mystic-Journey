@@ -4,22 +4,12 @@ using MysticJourney.API.Endpoints;
 using UnityEngine;
 using UnityEngine.Video;
 
-/// <summary>
-/// Gắn script này vào các GameObject có thể "đào" trong map (ví dụ: TreeEvil8 ở AbandonedCastle).
-/// Khi quest liên quan đang InProgress:
-///   - Hiện dấu "?" phía trên vật thể.
-///   - Nhấn E → chiếu video đào → quest progress += 1 → vật phẩm vào túi (thông qua API InteractObject).
-/// Sau khi đào xong, collider bị tắt (không tương tác lại được).
-/// </summary>
+// Executes mono behaviour operation.
 [RequireComponent(typeof(WorldInteractable))]
 public class DiggingInteractable : MonoBehaviour
 {
-    // ─── Inspector ─────────────────────────────────────────────────────────────
 
     [Header("Quest Link")]
-    // Default trỏ tới quest "[Chapter 4] The Skull by the Well" (AbandonedCastle,
-    // ObjectiveTarget = "Skull"). KHÔNG ghi số quest vào tooltip: mỗi lần chèn quest mới là số lệch,
-    // và trước đây tooltip nói "Quest 24" trong khi field là 23 và quest thật lại là số khác nữa.
     [Tooltip("QuestId của nhiệm vụ cần đào. Scene sẽ override giá trị này.")]
     [SerializeField] private int linkedQuestId = 30;
 
@@ -40,22 +30,23 @@ public class DiggingInteractable : MonoBehaviour
     [Tooltip("Sau khi đào xong, tắt collider để không tương tác lại.")]
     [SerializeField] private bool disableAfterDig = true;
 
-    // ─── Private ───────────────────────────────────────────────────────────────
 
     private WorldInteractable _interactable;
     private bool _isDigging;
     private bool _dug;
 
-    // ─── Unity Lifecycle ───────────────────────────────────────────────────────
 
+    // Initializes internal component caches and dependencies for DiggingInteractable upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _interactable = GetComponent<WorldInteractable>();
     }
 
+    // Performs startup initialization for DiggingInteractable on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // Tự cấu hình WorldInteractable nếu chưa được set qua Inspector
         _interactable.ConfigureObject(
             key:           objectKey,
             objectName:    displayName,
@@ -65,9 +56,6 @@ public class DiggingInteractable : MonoBehaviour
             radius:        2.5f
         );
 
-        // Override kind sang QuestItem để hệ thống ? hoạt động
-        // (ConfigureObject đặt kind = Object, cần chuyển sang QuestItem để hiện ?)
-        // Dùng reflection-free workaround: gọi ConfigureQuestItem.
         _interactable.ConfigureQuestItem(objectKey, displayName, linkedQuestId, 1, 2.5f);
 
         RefreshVisibility();
@@ -80,6 +68,7 @@ public class DiggingInteractable : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         WorldRuntimeEvents.QuestsChanged -= RefreshVisibility;
@@ -87,15 +76,8 @@ public class DiggingInteractable : MonoBehaviour
             videoPlayer.loopPointReached -= OnVideoFinished;
     }
 
-    // ─── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Được gọi bởi WorldInteractable.OnSuccessfulInteraction() qua hook.
-    /// Thực ra chúng ta hook trực tiếp qua PlayerWorldInteractor flow:
-    /// PlayerWorldInteractor → InteractWithObject → WorldApi.InteractObject → callback → target.OnSuccessfulInteraction()
-    /// Nhưng vì cần chiếu video TRƯỚC KHI gửi API, ta override flow bằng cách
-    /// chặn interaction từ sớm thông qua component DiggingInteractable.
-    /// </summary>
+    // Executes start dig operation.
     public void StartDig()
     {
         if (_isDigging || _dug) return;
@@ -119,19 +101,20 @@ public class DiggingInteractable : MonoBehaviour
         BeginDigSequence();
     }
 
+    // Executes begin dig sequence operation.
     private void BeginDigSequence()
     {
         if (_dug) return;
         _isDigging = true;
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         StartCoroutine(DigSequence());
     }
 
 
-    // ─── Private ───────────────────────────────────────────────────────────────
 
+    // Executes dig sequence operation.
     private IEnumerator DigSequence()
     {
-        // 1. Ẩn player (tuỳ chọn)
         var player = GameObject.FindGameObjectWithTag("Player");
         SpriteRenderer[] playerSprites = null;
         if (player != null)
@@ -140,14 +123,12 @@ public class DiggingInteractable : MonoBehaviour
             foreach (var sp in playerSprites) sp.enabled = false;
         }
 
-        // 2. Chiếu video đào
         if (videoPlayer != null && videoPlayer.clip != null)
         {
             MysticJourney.Features.Quest.QuestVideoManager.NotifyVideoStarted(videoPlayer);
             videoPlayer.gameObject.SetActive(true);
             videoPlayer.Play();
 
-            // Chờ video xong hoặc hết thời gian tối đa
             float elapsed = 0f;
             while (!_videoFinished && elapsed < maxVideoWait)
             {
@@ -163,21 +144,20 @@ public class DiggingInteractable : MonoBehaviour
 
         else
         {
-            // Nếu không có video, chờ 1 giây giả lập
             yield return new WaitForSeconds(1f);
         }
 
-        // 3. Hiện lại player
         if (playerSprites != null)
             foreach (var sp in playerSprites) sp.enabled = true;
 
-        // 4. Gửi API InteractObject → quest progress + item vào túi
         SendInteractApi();
     }
 
     private bool _videoFinished;
+    // Executes on video finished operation.
     private void OnVideoFinished(VideoPlayer vp) => _videoFinished = true;
 
+    // Executes send interact api operation.
     private void SendInteractApi()
     {
         if (!ApiClient.Instance.HasToken())
@@ -215,6 +195,7 @@ public class DiggingInteractable : MonoBehaviour
         );
     }
 
+    // Executes finalize after dig operation.
     private void FinalizeAfterDig()
     {
         _isDigging = false;
@@ -222,20 +203,16 @@ public class DiggingInteractable : MonoBehaviour
 
         if (disableAfterDig)
         {
-            // Tắt collider để không tương tác lại
             var col2D = GetComponent<Collider2D>();
             if (col2D != null) col2D.enabled = false;
             var col = GetComponent<Collider>();
             if (col != null) col.enabled = false;
 
-            // Ẩn dấu ? trên đầu
             _interactable.UpdateOverheadUI();
         }
     }
 
-    /// <summary>
-    /// Hiện/ẩn dấu ? dựa vào trạng thái quest hiện tại.
-    /// </summary>
+    // Executes refresh visibility operation.
     private void RefreshVisibility()
     {
         if (QuestUIManager.Instance == null) return;

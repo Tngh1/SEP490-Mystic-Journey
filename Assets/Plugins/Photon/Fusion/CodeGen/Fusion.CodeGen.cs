@@ -21,15 +21,19 @@ namespace Fusion.CodeGen {
   using static ILWeaverOpCodes;
   using MethodBody = Mono.Cecil.Cil.MethodBody;
 
+  // Executes il processor macro operation.
   public readonly struct NewArrayWithLengthEqualToOtherArrayOrZero : ILProcessorMacro {
     public readonly Action<ILProcessor> GetArray;
     public readonly TypeReference       ArrayElementType;
 
+    // Initializes a new instance of NewArrayWithLengthEqualToOtherArrayOrZero with dependencies: arrayElementType, getArray.
+    // Assigns injected service and configuration instances to readonly fields for runtime operations.
     public NewArrayWithLengthEqualToOtherArrayOrZero(TypeReference arrayElementType, Action<ILProcessor> getArray) {
       GetArray         = getArray;
       ArrayElementType = arrayElementType;
     }
 
+    // Executes emit operation.
     public void Emit(ILProcessor il) {
       var brNotNul = Nop();
       var brNewArr = Nop();
@@ -49,13 +53,16 @@ namespace Fusion.CodeGen {
     }
   }
   
+  // Executes il processor macro operation.
   public readonly struct GetCollectionCountOrZero : ILProcessorMacro {
     public readonly TypeReference       CollectionType;
 
+    // Executes get collection count or zero operation.
     public GetCollectionCountOrZero(TypeReference collectionType) {
       CollectionType = collectionType;
     }
 
+    // Executes emit operation.
     public void Emit(ILProcessor il) {
       
       var brNotNul = Nop();
@@ -74,12 +81,14 @@ namespace Fusion.CodeGen {
     }
   }
   
+  // Executes il processor macro operation.
   public readonly struct ForLoopMacro : ILProcessorMacro {
     public readonly MethodBody                              Body;
     public readonly Action<ILProcessor, VariableDefinition> Generator;
     public readonly Action<ILProcessor>                     Start;
     public readonly Action<ILProcessor>                     Stop;
 
+    // Executes for loop macro operation.
     public ForLoopMacro(MethodBody body, Action<ILProcessor, VariableDefinition> generator, Action<ILProcessor> start, Action<ILProcessor> stop) {
       Body      = body;
       Generator = generator;
@@ -87,6 +96,7 @@ namespace Fusion.CodeGen {
       Stop      = stop;
     }
 
+    // Executes emit operation.
     public void Emit(ILProcessor il) {
       var varId         = Body.Variables.Count;
       var indexVariable = new VariableDefinition(Body.Method.Module.TypeSystem.Int32);
@@ -113,12 +123,14 @@ namespace Fusion.CodeGen {
     }
   }
   
+  // Executes il processor macro operation.
   public readonly struct DictionaryForEachMacro : ILProcessorMacro {
     public readonly MethodBody                              Body;
     public readonly Action<ILProcessor, VariableDefinition> Generator;
     public readonly TypeReference                           EnumerableType;
     public readonly ModuleDefinition                        Module;
 
+    // Executes dictionary for each macro operation.
     public DictionaryForEachMacro(ModuleDefinition module, MethodBody body, Action<ILProcessor, VariableDefinition> generator, TypeReference enumerableType) {
       Module         = module;
       Body           = body;
@@ -147,6 +159,7 @@ namespace Fusion.CodeGen {
       return (variableTypeRef, returnRef);
     }
     
+    // Executes emit operation.
     public void Emit(ILProcessor il) {
       
       var enumeratorType     = GetDependentType(typeof(Dictionary<,>.Enumerator), EnumerableType);
@@ -190,11 +203,15 @@ namespace Fusion.CodeGen {
   using System;
   using Mono.Cecil.Cil;
 
+  // Executes il processor macro operation.
+  // Throws an exception if precondition validations fail.
   internal struct ILMacroStruct : ILProcessorMacro {
     Action<ILProcessor> generator;
     Instruction[] instructions;
+    // Executes il macro struct operation.
+    // Throws an exception if precondition validations fail.
     public static implicit operator ILMacroStruct(Instruction[] instructions) {
-      if (instructions == null) {
+      if (instructions == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(instructions));
       }
       return new ILMacroStruct() {
@@ -202,8 +219,10 @@ namespace Fusion.CodeGen {
       };
     }
 
+    // Executes il macro struct operation.
+    // Throws an exception if precondition validations fail.
     public static implicit operator ILMacroStruct(Action<ILProcessor> generator) {
-      if (generator == null) {
+      if (generator == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(generator));
       }
       return new ILMacroStruct() {
@@ -211,8 +230,9 @@ namespace Fusion.CodeGen {
       };
     }
 
+    // Executes emit operation.
     public void Emit(ILProcessor il) {
-      if (generator != null) {
+      if (generator != null) {  // Entity exists — proceed with conditional branch
         generator(il);
       } else {
         foreach (var instruction in instructions) {
@@ -243,6 +263,7 @@ namespace Fusion.CodeGen {
 
   partial class ILWeaver {
 
+    // Executes make fixed buffer operation.
     private TypeReference MakeFixedBuffer(ILWeaverAssembly asm, int wordCount) {
 
       FieldDefinition CreateFixedBufferField (TypeDefinition type, string fieldName, TypeReference elementType, int elementCount) {
@@ -267,7 +288,7 @@ namespace Fusion.CodeGen {
 
       string typeName = $"FixedStorage@{wordCount}";
       var fixedBufferType = asm.CecilAssembly.MainModule.GetType("Fusion.CodeGen", typeName);
-      if (fixedBufferType == null) { 
+      if (fixedBufferType == null) {  // Entity not found — short-circuit with appropriate error result
         // fixed buffers could be included directly in structs, but then again it would be impossible to provide a custom drawer;
         // that's why there's this proxy struct
         var storageType = new TypeDefinition("Fusion.CodeGen", typeName,
@@ -299,6 +320,7 @@ namespace Fusion.CodeGen {
       return fixedBufferType;
     }
 
+    // Executes type name to identifier operation.
     private string TypeNameToIdentifier(TypeReference type, string prefix) {
       string result = type.FullName;
       result = result.Replace("`1", "");
@@ -309,6 +331,7 @@ namespace Fusion.CodeGen {
       return result;
     }
 
+    // Executes make unity surrogate operation.
     private TypeDefinition MakeUnitySurrogate(ILWeaverAssembly asm, PropertyDefinition property) {
       var type = property.PropertyType;
 
@@ -364,7 +387,7 @@ namespace Fusion.CodeGen {
       }
 
       var surrogateType = asm.CecilAssembly.MainModule.GetType("Fusion.CodeGen", surrogateName);
-      if (surrogateType == null) {
+      if (surrogateType == null) {  // Entity not found — short-circuit with appropriate error result
         surrogateType = new TypeDefinition("Fusion.CodeGen", surrogateName,
           TypeAttributes.NotPublic | TypeAttributes.AnsiClass | TypeAttributes.Serializable | TypeAttributes.BeforeFieldInit,
           baseType);
@@ -404,7 +427,7 @@ namespace Fusion.CodeGen {
         MovePropertyAttributesToBackingField(asm, property, dataField, addSerializeField: false);
 
         surrogateType.AddDefaultConstructor(il => {
-          if (initCall != null) {
+          if (initCall != null) {  // Entity exists — proceed with conditional branch
             il.Append(Ldarg_0());
             il.Append(initCall);
             il.Append(Stfld(dataField));
@@ -414,14 +437,18 @@ namespace Fusion.CodeGen {
       return surrogateType;
     }
 
+    // Executes get existing element reader writer operation.
+    // Throws an exception if precondition validations fail.
     public static TypeReference GetExistingElementReaderWriter(TypeDefinition declaringType, ICustomAttributeProvider member, NetworkTypeInfo typeInfo) {
       var result = TryGetExistingElementReaderWriter(declaringType, member, typeInfo);
-      if (result == null) {
+      if (result == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ILWeaverException($"No reader-writer found for {typeInfo.TypeRef}");
       }
       return result;
     }
 
+    // Executes try get existing element reader writer operation.
+    // Throws an exception if precondition validations fail.
     public static TypeReference TryGetExistingElementReaderWriter(TypeReference declaringType, ICustomAttributeProvider member, NetworkTypeInfo typeInfo) {
       var module = declaringType.Module;
       if (!typeInfo.CanBeUsedInStructs) {
@@ -478,6 +505,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get or make element reader writer operation.
     private TypeReference GetOrMakeElementReaderWriter(ILWeaverAssembly asm, TypeReference declaringType, ICustomAttributeProvider member, TypeReference elementType) {
 
       elementType = asm.Import(elementType);
@@ -485,7 +513,7 @@ namespace Fusion.CodeGen {
 
       var existing = TryGetExistingElementReaderWriter(declaringType, member, typeInfo);
 
-      if (existing != null) {
+      if (existing != null) {  // Entity exists — proceed with conditional branch
         return existing;
       }
 
@@ -648,6 +676,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes emit element reader writer load operation.
     private void EmitElementReaderWriterLoad(ILWeaverAssembly asm, ILProcessor il, TypeReference readerWriterType) {
       if (readerWriterType.Is<NetworkBehaviour>()) {
         il.Append(Ldarg_0());
@@ -682,6 +711,8 @@ namespace Fusion.CodeGen {
   using MethodAttributes = Mono.Cecil.MethodAttributes;
   using ParameterAttributes = Mono.Cecil.ParameterAttributes;
 
+  // Executes il weaver operation.
+  // Throws an exception if precondition validations fail.
   public unsafe partial class ILWeaver {
 
     Dictionary<TypeReference, int> _rpcCount = new Dictionary<TypeReference, int>(new MemberReferenceFullNameComparer());
@@ -690,19 +721,23 @@ namespace Fusion.CodeGen {
     internal readonly ILWeaverLog Log;
     internal readonly ILWeaverSettings Settings;
 
+    // Executes il weaver operation.
+    // Throws an exception if precondition validations fail.
     public ILWeaver(ILWeaverSettings settings, ILWeaverLog log) {
-      if (log == null) {
+      if (log == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(log));
       }
       Log = log;
       Settings = settings;
     }
 
+    // Executes il weaver operation.
     public ILWeaver(ILWeaverSettings settings, ILWeaverLogger logger) : this(settings, new ILWeaverLog(logger)) {
     }
 
+    // Executes ensure type registry operation.
     private void EnsureTypeRegistry(ILWeaverAssembly asm) {
-      if (TypeRegistry == null) {
+      if (TypeRegistry == null) {  // Entity not found — short-circuit with appropriate error result
         TypeRegistry = new NetworkTypeInfoRegistry(asm.CecilAssembly.MainModule, Settings, Log.Logger, typeRef => CalculateStructWordCount(typeRef));
       }
     }
@@ -810,9 +845,9 @@ namespace Fusion.CodeGen {
           }
 
           if (idx >= instructions.Count) {
-            throw new InvalidOperationException($"Expected {opCode}, but run out of instructions");
+            throw new InvalidOperationException($"Expected {opCode}, but run out of instructions");  // Unexpected runtime state — propagate to global error handler
           } else if (!instructions[idx].OpCode.Equals(opCode)) {
-            throw new InvalidOperationException($"Expected {opCode}, got {instructions[idx].OpCode} at {idx}. Full IL: {string.Join(", ", instructions)}");
+            throw new InvalidOperationException($"Expected {opCode}, got {instructions[idx].OpCode} at {idx}. Full IL: {string.Join(", ", instructions)}");  // Unexpected runtime state — propagate to global error handler
           }
           ++idx;
         }
@@ -905,14 +940,14 @@ namespace Fusion.CodeGen {
 
       // check getter ... it has to exist
       var getter = property.GetMethod;
-      if (getter == null) {
+      if (getter == null) {  // Entity not found — short-circuit with appropriate error result
         meta = default;
         return false;
       }
 
       // check setter ...
       var setter = property.SetMethod;
-      if (setter == null) {
+      if (setter == null) {  // Entity not found — short-circuit with appropriate error result
         // if it doesn't exist we allow either array or pointer
         if (property.PropertyType.IsByReference == false && property.PropertyType.IsPointer == false && !property.PropertyType.IsNetworkCollection()) {
           throw new ILWeaverException($"Simple properties need a setter.");
@@ -1105,7 +1140,7 @@ namespace Fusion.CodeGen {
             ins.Add(Initobj(ctx.RpcInvokeInfoVariable.VariableType));
 
             // fix each ret
-            var returns = il.Body.Instructions.Where(x => x.OpCode == OpCodes.Ret).ToList();
+            var returns = il.Body.Instructions.Where(x => x.OpCode == OpCodes.Ret).ToList();  // Filter records matching the predicate
             foreach (var retInstruction in returns) {
               // need to pop the original value and load our new one
               il.InsertBefore(retInstruction, Pop());
@@ -1191,7 +1226,7 @@ namespace Fusion.CodeGen {
           }
 
           // check if target is reachable or not
-          if (rpcTargetParameter != null) {
+          if (rpcTargetParameter != null) {  // Entity exists — proceed with conditional branch
             il.AppendMacro(ctx.LoadRunner());
 
             il.Append(Ldarg(rpcTargetParameter));
@@ -1340,7 +1375,7 @@ namespace Fusion.CodeGen {
           var afterSend = Nop();
 
           // if not targeted (already handled earlier) check if it can be sent at all
-          if (rpcTargetParameter == null) {
+          if (rpcTargetParameter == null) {  // Entity not found — short-circuit with appropriate error result
             var checkDone = Nop();
             il.AppendMacro(ctx.LoadRunner());
             il.Append(Call(asm.NetworkRunner.GetMethod(nameof(NetworkRunner.HasAnyActiveConnections))));
@@ -1424,7 +1459,7 @@ namespace Fusion.CodeGen {
 
           il.AppendMacro(ctx.LoadRunner());
 
-          if (rpcTargetParameter != null) {
+          if (rpcTargetParameter != null) {  // Entity exists — proceed with conditional branch
             il.Append(Ldloc(message));
             il.Append(Ldarg(rpcTargetParameter));
             il.Append(Call(asm.SimulationMessage.GetMethod(nameof(SimulationMessage.SetTarget))));
@@ -1463,7 +1498,7 @@ namespace Fusion.CodeGen {
           // .. hmm
           if (invokeLocal) {
 
-            if (targetedInvokeLocal != null) {
+            if (targetedInvokeLocal != null) {  // Entity exists — proceed with conditional branch
               il.Append(Br(ret));
               il.Append(targetedInvokeLocal);
             }
@@ -1623,6 +1658,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get instance rpc count operation.
     private int GetInstanceRpcCount(TypeReference type) {
       if (_rpcCount.TryGetValue(type, out int result)) {
         return result;
@@ -1637,14 +1673,15 @@ namespace Fusion.CodeGen {
       }
 
       result += typeDef.GetMethods()
-        .Where(x => !x.IsStatic)
-        .Where(x => x.HasAttribute<RpcAttribute>())
+        .Where(x => !x.IsStatic)  // Filter records matching the predicate
+        .Where(x => x.HasAttribute<RpcAttribute>())  // Filter records matching the predicate
         .Count();
 
       _rpcCount.Add(type, result);
       return result;
     }
 
+    // Executes is invoke only parameter operation.
     private bool IsInvokeOnlyParameter(ParameterDefinition para) {
       if (para.ParameterType.IsSame<RpcInfo>()) {
         return true;
@@ -1729,7 +1766,7 @@ namespace Fusion.CodeGen {
                   il.Append(Stelem(elementType));
                 }
               }
-              il.Remove(placeholder);
+              il.Remove(placeholder);  // Mark entity for deletion in the next SaveChanges call
               
             }
           )
@@ -1791,15 +1828,18 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes weave simulation operation.
+    // Evaluates conditions and returns a boolean result.
     public void WeaveSimulation(ILWeaverAssembly asm, TypeDefinition type) {
       EnsureTypeRegistry(asm);
       WeaveRpcs(asm, type, allowInstanceRpcs: false);
       WeaveUnityMessages(asm, type);
     }
 
+    // Executes is field operand operation.
     public static bool IsFieldOperand(Instruction instruction, FieldDefinition field, TypeReference declaringType) {
       var storeField = instruction.Operand as FieldReference;
-      if (storeField == null) {
+      if (storeField == null) {  // Entity not found — short-circuit with appropriate error result
         return false;
       }
       if (storeField == field) {
@@ -1811,11 +1851,13 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes get inline field init operation.
+    // Throws an exception if precondition validations fail.
     private Instruction[] GetInlineFieldInit(MethodDefinition constructor, FieldDefinition field, TypeDefinition declaringType) {
-      if (field == null) {
+      if (field == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(field));
       }
-      if (constructor == null) {
+      if (constructor == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(constructor));
       }
 
@@ -1828,10 +1870,10 @@ namespace Fusion.CodeGen {
           ldarg0Index = i;
         } else if (instruction.OpCode == OpCodes.Stfld && IsFieldOperand(instruction, field, declaringType)) {
           // regular init
-          return instructions.Skip(ldarg0Index).Take(i - ldarg0Index + 1).ToArray();
+          return instructions.Skip(ldarg0Index).Take(i - ldarg0Index + 1).ToArray();  // Apply pagination offset — skip already-seen records
         } else if (instruction.OpCode == OpCodes.Initobj && instruction.Previous?.OpCode == OpCodes.Ldflda && IsFieldOperand(instruction.Previous, field, declaringType)) {
           // init with default constructor
-          return instructions.Skip(ldarg0Index).Take(i - ldarg0Index + 1).ToArray();
+          return instructions.Skip(ldarg0Index).Take(i - ldarg0Index + 1).ToArray();  // Apply pagination offset — skip already-seen records
         } else if (instruction.IsBaseConstructorCall(constructor.DeclaringType)) {
           // base constructor init
           break;
@@ -1840,8 +1882,9 @@ namespace Fusion.CodeGen {
       return Array.Empty<Instruction>();
     }
 
+    // Executes remove inline field init operation.
     private Instruction[] RemoveInlineFieldInit(TypeDefinition type, FieldDefinition field) {
-      var constructors = type.GetConstructors().Where(x => !x.IsStatic);
+      var constructors = type.GetConstructors().Where(x => !x.IsStatic);  // Filter records matching the predicate
       if (!constructors.Any()) {
         return Array.Empty<Instruction>();
       }
@@ -1852,7 +1895,7 @@ namespace Fusion.CodeGen {
         Log.Debug($"Found {field} inline init: {(string.Join("; ", firstInlineInit.Cast<object>()))}");
       }
 
-      foreach (var constructor in constructors.Skip(1)) {
+      foreach (var constructor in constructors.Skip(1)) {  // Apply pagination offset — skip already-seen records
         var otherInlineInit = GetInlineFieldInit(constructor, field, type);
         if (!firstInlineInit.SequenceEqual(otherInlineInit, new InstructionEqualityComparer())) {
           throw new ILWeaverException($"Expect inline init of {field} to be the same in all constructors," +
@@ -1866,13 +1909,14 @@ namespace Fusion.CodeGen {
         var otherInlineInit = GetInlineFieldInit(constructor, field, type);
         foreach (var instruction in otherInlineInit.Reverse()) {
           Log.Debug($"Removing {instruction}");
-          il.Remove(instruction);
+          il.Remove(instruction);  // Mark entity for deletion in the next SaveChanges call
         }
       }
 
       return firstInlineInit;
     }
 
+    // Executes is make initializer call operation.
     private static bool IsMakeInitializerCall(Instruction instruction) {
       if (instruction.OpCode == OpCodes.Call && instruction.Operand is MethodReference method) {
         if (method.DeclaringType.IsSame<NetworkBehaviour>() && method.Name == nameof(NetworkBehaviour.MakeInitializer)) {
@@ -1882,6 +1926,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes is make ref or make ptr call operation.
     private static bool IsMakeRefOrMakePtrCall(Instruction instruction) {
       if (instruction.OpCode == OpCodes.Call && instruction.Operand is MethodReference method) {
         if (method.DeclaringType.IsSame<NetworkBehaviour>() && (
@@ -1893,6 +1938,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes check if make initializer implicit cast operation.
     private void CheckIfMakeInitializerImplicitCast(Instruction instruction) {
       if (instruction.OpCode == OpCodes.Call && (instruction.Operand as MethodReference)?.Name == "op_Implicit") {
         // all good
@@ -1901,13 +1947,14 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes replace backing field in inline init operation.
     private void ReplaceBackingFieldInInlineInit(ILWeaverAssembly asm, FieldDefinition backingField, FieldReference field, ILProcessor il, Instruction[] instructions) {
       bool nextImplicitCast = false;
       foreach (var instruction in instructions) {
         if (nextImplicitCast) {
           CheckIfMakeInitializerImplicitCast(instruction);
           nextImplicitCast = false;
-          il.Remove(instruction);
+          il.Remove(instruction);  // Mark entity for deletion in the next SaveChanges call
         } else if (IsFieldOperand(instruction, backingField, field.DeclaringType)) {
           instruction.Operand = field;
         } else if (IsMakeInitializerCall(instruction)) {
@@ -1921,13 +1968,14 @@ namespace Fusion.CodeGen {
           } else {
             // remove the op, it will be fine
             Log.Debug($"Inline init for {field}, removing {instruction}");
-            il.Remove(instruction);
+            il.Remove(instruction);  // Mark entity for deletion in the next SaveChanges call
           }
           nextImplicitCast = true;
         }
       }
     }
 
+    // Executes all type defs operation.
     static IEnumerable<TypeDefinition> AllTypeDefs(TypeDefinition definitions) {
       yield return definitions;
 
@@ -1938,10 +1986,13 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes all type defs operation.
+    // Throws an exception if precondition validations fail.
     static IEnumerable<TypeDefinition> AllTypeDefs(Collection<TypeDefinition> definitions) {
       return definitions.SelectMany(AllTypeDefs);
     }
 
+    // Executes weave operation.
     public bool Weave(ILWeaverAssembly asm) {
       // if we don't have the weaved assembly attribute, we need to do weaving and insert the attribute
       if (asm.CecilAssembly.HasAttribute<NetworkAssemblyWeavedAttribute>() != false) {
@@ -2039,6 +2090,8 @@ namespace Fusion.CodeGen {
     const int WordSize = Allocator.REPLICATE_WORD_SIZE;
     NetworkTypeInfoRegistry TypeRegistry;
 
+    // Executes calculate struct word count operation.
+    // Throws an exception if precondition validations fail.
     public int CalculateStructWordCount(TypeReference typeRef) {
       var type = typeRef.Resolve();
       Log.Assert(type.TryGetAttribute<NetworkStructWeavedAttribute>(out _) == false);
@@ -2075,6 +2128,7 @@ namespace Fusion.CodeGen {
       return wordCount;
     }
 
+    // Executes weave input operation.
     public bool WeaveInput(ILWeaverAssembly asm, TypeReference typeRef) {
       ILWeaverException.DebugThrowIf(!typeRef.Is<INetworkInput>(), $"Not a {nameof(INetworkInput)}");
 
@@ -2097,6 +2151,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes weave struct operation.
     public bool WeaveStruct(ILWeaverAssembly asm, TypeReference typeRef) {
       ILWeaverException.DebugThrowIf(!typeRef.Is<INetworkStruct>(), $"Not a {nameof(INetworkStruct)}");
 
@@ -2180,7 +2235,7 @@ namespace Fusion.CodeGen {
           getIL.Body.Variables.Clear();
 
           var setIL = property.SetMethod?.Body.GetILProcessor();
-          if (setIL != null) {
+          if (setIL != null) {  // Entity exists — proceed with conditional branch
             setIL.Clear();
             setIL.Body.Variables.Clear();
           }
@@ -2226,7 +2281,7 @@ namespace Fusion.CodeGen {
           };
 
           EmitRead(asm, getIL, property, addressGetter);
-          if (setIL != null) {
+          if (setIL != null) {  // Entity exists — proceed with conditional branch
             EmitWrite(asm, setIL, property, addressGetter, OpCodes.Ldarg_1);
           }
 
@@ -2307,6 +2362,7 @@ namespace Fusion.CodeGen {
       return field;
     }
 
+    // Executes move backing field attributes operation.
     private void MoveBackingFieldAttributes(ILWeaverAssembly asm, FieldDefinition backingField, FieldDefinition storageField) {
       if (backingField.IsNotSerialized) {
         storageField.IsNotSerialized = true;
@@ -2321,6 +2377,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes visit property movable attributes operation.
     private void VisitPropertyMovableAttributes(PropertyDefinition property, Action<MethodReference, byte[]> onAttribute) {
       foreach (var attribute in property.CustomAttributes) {
         if (attribute.AttributeType.IsSame<NetworkedAttribute>() ||
@@ -2356,6 +2413,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes move property attributes to backing field operation.
     private void MovePropertyAttributesToBackingField(ILWeaverAssembly asm, PropertyDefinition property, FieldDefinition field, bool addSerializeField = true) {
       bool hasNonSerialized = false;
 
@@ -2405,6 +2463,8 @@ namespace Fusion.CodeGen {
     //   return false;
     // }
     
+    // Executes get behaviour word count operation.
+    // Throws an exception if precondition validations fail.
     public int GetBehaviourWordCount(ILWeaverAssembly asm, TypeReference type) {
       int wordCount = 0;
       var outerType = type;
@@ -2449,6 +2509,7 @@ namespace Fusion.CodeGen {
       return wordCount;
     }
 
+    // Executes weave behaviour operation.
     public int WeaveBehaviour(ILWeaverAssembly asm, TypeDefinition type) {
       
       if (type.IsSame<NetworkBehaviour>()) {
@@ -2569,7 +2630,7 @@ namespace Fusion.CodeGen {
             InjectPtrNullCheck(asm, getIL, property);
             EmitRead(asm, getIL, property, addressGetter);
 
-            if (setIL != null) {
+            if (setIL != null) {  // Entity exists — proceed with conditional branch
               InjectPtrNullCheck(asm, setIL, property);
               EmitWrite(asm, setIL, property, addressGetter, OpCodes.Ldarg_1);
             }
@@ -2609,7 +2670,7 @@ namespace Fusion.CodeGen {
                 
                 if (storeIndex >= 0) {
                   Log.Assert(fieldInit[0].OpCode == OpCodes.Ldarg_0);
-                  fieldInit = fieldInit.Skip(1).Take(storeIndex - 1).ToArray();
+                  fieldInit = fieldInit.Skip(1).Take(storeIndex - 1).ToArray();  // Apply pagination offset — skip already-seen records
                 } else {
                   // keep as it is
                 }
@@ -2650,17 +2711,17 @@ namespace Fusion.CodeGen {
               {
                 FieldDefinition defaultFieldDef;
 
-                if (string.IsNullOrEmpty(propertyInfo.DefaultFieldName)) {
+                if (string.IsNullOrEmpty(propertyInfo.DefaultFieldName)) {  // Mandatory string argument is null or empty — fail fast
 
                   defaultFieldDef = AddNetworkBehaviourBackingField(property);
                   if (propertyInfo.BackingField != null) {
                     defaultFieldDef.InsertTo(type, backingFieldIndex);
                     MoveBackingFieldAttributes(asm, propertyInfo.BackingField, defaultFieldDef);
 
-                    if (lastAddedFieldWithKnownPosition == null) {
+                    if (lastAddedFieldWithKnownPosition == null) {  // Entity not found — short-circuit with appropriate error result
                       // fixup fields that have been added without knowing their index
                       foreach (var f in fieldsWithUncertainPosition) {
-                        type.Fields.Remove(f);
+                        type.Fields.Remove(f);  // Mark entity for deletion in the next SaveChanges call
                       }
 
                       var index = type.Fields.IndexOf(defaultFieldDef);
@@ -2673,7 +2734,7 @@ namespace Fusion.CodeGen {
                     lastAddedFieldWithKnownPosition = defaultFieldDef;
 
                   } else {
-                    if (lastAddedFieldWithKnownPosition == null) {
+                    if (lastAddedFieldWithKnownPosition == null) {  // Entity not found — short-circuit with appropriate error result
                       // not sure where to put this... append
                       defaultFieldDef.AddTo(type);
                       fieldsWithUncertainPosition.Add(defaultFieldDef);
@@ -2773,6 +2834,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes weave unity messages operation.
     private void WeaveUnityMessages(ILWeaverAssembly asm, TypeDefinition type) {
 
       WeaveUnityMessage("OnDestroy", asm.NetworkBehaviourUtils.GetMethod(nameof(NetworkBehaviourUtils.InternalOnDestroy)));
@@ -2787,7 +2849,7 @@ namespace Fusion.CodeGen {
 
         var instructions = method.Body.Instructions;
         bool hasCleanUp = instructions
-         .Where(x => x.OpCode == OpCodes.Call)
+         .Where(x => x.OpCode == OpCodes.Call)  // Filter records matching the predicate
          .Select(x => (MethodReference)x.Operand)
          .Any(m => m.Name == nameof(internalMethod.Name) && m.DeclaringType.Is(internalMethod.DeclaringType));
 
@@ -2804,16 +2866,18 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes weave changed handler operation.
+    // Throws an exception if precondition validations fail.
     private void WeaveChangedHandler(ILWeaverAssembly asm, PropertyDefinition property, string handlerName) {
 
       // find the handler
       {
         foreach (var declaringType in property.DeclaringType.GetHierarchy()) {
           var candidates = declaringType.GetMethods()
-            .Where(x => x.IsStatic)
-            .Where(x => x.Name == handlerName)
-            .Where(x => x.HasParameters && x.Parameters.Count == 1)
-            .Where(x => x.Parameters[0].ParameterType.IsSubclassOf<NetworkBehaviour>())
+            .Where(x => x.IsStatic)  // Filter records matching the predicate
+            .Where(x => x.Name == handlerName)  // Filter records matching the predicate
+            .Where(x => x.HasParameters && x.Parameters.Count == 1)  // Filter records matching the predicate
+            .Where(x => x.Parameters[0].ParameterType.IsSubclassOf<NetworkBehaviour>())  // Filter records matching the predicate
             .ToList();
 
           if (candidates.Count > 1) {
@@ -2845,6 +2909,7 @@ namespace Fusion.CodeGen {
       public VariableDefinition[] Variables;
     }
 
+    // Executes get read only property initializer operation.
     private ReadOnlyInitializer? GetReadOnlyPropertyInitializer(PropertyDefinition property) {
       if (property.PropertyType.IsPointer || property.PropertyType.IsByReference) {
         // need to check if there's MakeRef/Ptr before getter gets obliterated 
@@ -2856,7 +2921,7 @@ namespace Fusion.CodeGen {
           if (IsMakeRefOrMakePtrCall(instr)) {
             // found it!
             return new ReadOnlyInitializer() {
-              Instructions = instructions.Take(i).ToArray(),
+              Instructions = instructions.Take(i).ToArray(),  // Apply pagination limit — cap result set size
               Variables = property.GetMethod.Body.Variables.ToArray()
             };
           }
@@ -2865,6 +2930,7 @@ namespace Fusion.CodeGen {
       return null;
     }
 
+    // Executes private operation.
     private (Instruction[], VariableDefinition[]) CloneInstructions(Instruction[] source, VariableDefinition[] sourceVariables) {
 
       var constructor = typeof(Instruction).GetConstructor(
@@ -2916,15 +2982,17 @@ namespace Fusion.CodeGen {
       return (result, variableMapping.Values.ToArray());
     }
 
+    // Executes private operation.
+    // Throws an exception if precondition validations fail.
     private (MethodDefinition method, Instruction returnInstruction) CreateOverride(ILWeaverAssembly asm, TypeDefinition type, string name) {
       var rootMethod = asm.NetworkedBehaviour.GetMethod(name);
 
       var result = type.Methods.FirstOrDefault(x => x.Name == name);
-      if (result != null) {
+      if (result != null) {  // Entity exists — proceed with conditional branch
         // need to find the placeholder method
         var placeholderMethodName = asm.NetworkedBehaviour.GetMethod(nameof(NetworkBehaviour.InvokeWeavedCode)).FullName;
         var placeholders = result.Body.Instructions
-         .Where(x => x.OpCode == OpCodes.Call && (x.Operand as MethodReference)?.FullName == placeholderMethodName)
+         .Where(x => x.OpCode == OpCodes.Call && (x.Operand as MethodReference)?.FullName == placeholderMethodName)  // Filter records matching the predicate
          .ToList();
 
         if (placeholders.Count != 1) {
@@ -2932,7 +3000,7 @@ namespace Fusion.CodeGen {
         }
 
         var baseCalls = result.Body.Instructions
-         .Where(x => x.OpCode == OpCodes.Call && (x.Operand as MethodReference)?.Name == name)
+         .Where(x => x.OpCode == OpCodes.Call && (x.Operand as MethodReference)?.Name == name)  // Filter records matching the predicate
          .ToList();
 
         if (baseCalls.Count == 0 && !type.BaseType.IsSame<NetworkBehaviour>()) {
@@ -3015,6 +3083,7 @@ namespace Fusion.CodeGen {
 
   using Mono.Cecil;
 
+  // Executes il weaver imported type operation.
   public class ILWeaverImportedType {
     public Type                 ClrType;
     public ILWeaverAssembly     Assembly;
@@ -3026,8 +3095,10 @@ namespace Fusion.CodeGen {
     Dictionary<string, MethodReference> _propertiesGet = new Dictionary<string, MethodReference>();
     Dictionary<string, MethodReference> _propertiesSet = new Dictionary<string, MethodReference>();
 
+    // Executes type reference operation.
     public static implicit operator TypeReference(ILWeaverImportedType type) => type.Reference;
 
+    // Executes il weaver imported type operation.
     public ILWeaverImportedType(ILWeaverAssembly asm, Type type) {
       ClrType    = type;
       Assembly   = asm;
@@ -3043,12 +3114,14 @@ namespace Fusion.CodeGen {
       Reference = asm.CecilAssembly.MainModule.ImportReference(BaseDefinitions[0]);
     }
 
+    // Executes get field or throw operation.
+    // Throws an exception if precondition validations fail.
     public FieldReference GetFieldOrThrow(string name) {
       bool found = _fields.TryGetValue(name, out var fieldRef);
       if (found == false) {
         for (int i = 0; i < BaseDefinitions.Count; ++i) {
           FieldDefinition typeDef = BaseDefinitions[i].Fields.FirstOrDefault(x => x.Name == name);
-          if (typeDef != null) {
+          if (typeDef != null) {  // Entity exists — proceed with conditional branch
             fieldRef = Assembly.CecilAssembly.MainModule.ImportReference(typeDef);
             _fields.Add(name, fieldRef);
             return fieldRef;
@@ -3060,12 +3133,14 @@ namespace Fusion.CodeGen {
       return fieldRef;
     }
     
+    // Executes get getter or throw operation.
+    // Throws an exception if precondition validations fail.
     public MethodReference GetGetterOrThrow(string name) {
       bool found = _propertiesGet.TryGetValue(name, out var methRef);
       if (found == false) {
         for (int i = 0; i < BaseDefinitions.Count; ++i) {
           PropertyDefinition typeDef = BaseDefinitions[i].Properties.FirstOrDefault(x => x.Name == name);
-          if (typeDef != null) {
+          if (typeDef != null) {  // Entity exists — proceed with conditional branch
             methRef = Assembly.CecilAssembly.MainModule.ImportReference(typeDef.GetMethod);
             _propertiesGet.Add(name, methRef);
             return methRef;
@@ -3077,13 +3152,17 @@ namespace Fusion.CodeGen {
       return methRef;
     }
     
+    // Executes get method operation.
+    // Throws an exception if precondition validations fail.
     public MethodReference GetMethod(string name, int? argsCount = null, int? genericArgsCount = null) {
       if (!TryGetMethod(name, out var methRef, argsCount, genericArgsCount)) {
-        throw new InvalidOperationException($"Not found: {name}");
+        throw new InvalidOperationException($"Not found: {name}");  // Unexpected runtime state — propagate to global error handler
       }
       return methRef;
     }
     
+    // Executes try get method operation.
+    // Evaluates conditions and returns a boolean result.
     public bool TryGetMethod(string name, out MethodReference method, int? argsCount = null, int? genericArgsCount = null) {
       if (_methods.TryGetValue((name, argsCount), out method)) {
         return method != null;
@@ -3095,7 +3174,7 @@ namespace Fusion.CodeGen {
             (argsCount.HasValue == false || x.Parameters.Count == argsCount.Value) &&
             (genericArgsCount == null || x.GenericParameters.Count == genericArgsCount.Value));
 
-        if (typeDef != null) {
+        if (typeDef != null) {  // Entity exists — proceed with conditional branch
           method = Assembly.CecilAssembly.MainModule.ImportReference(typeDef);
           _methods.Add((name, argsCount), method);
           return true;
@@ -3107,6 +3186,7 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes get generic method operation.
     public GenericInstanceMethod GetGenericMethod(string name, int? argsCount = null, params TypeReference[] types) {
       var method  = GetMethod(name, argsCount);
       var generic = new GenericInstanceMethod(method);
@@ -3119,6 +3199,7 @@ namespace Fusion.CodeGen {
     }
   }
 
+  // Executes il weaver assembly operation.
   public class ILWeaverAssembly {
     public bool         Modified;
     public List<String> Errors = new List<string>();
@@ -3154,67 +3235,92 @@ namespace Fusion.CodeGen {
       return MakeImportedType(ref field, typeof(T));
     }
 
+    // Executes make imported type operation.
     private ILWeaverImportedType MakeImportedType(ref ILWeaverImportedType field, Type type) {
-      if (field == null) {
+      if (field == null) {  // Entity not found — short-circuit with appropriate error result
         field = new ILWeaverImportedType(this, type);
       }
       return field;
     }
 
+    // Executes word sized primitive operation.
     public ILWeaverImportedType WordSizedPrimitive => MakeImportedType<int>(ref _int);
 
+    // Executes void operation.
     public ILWeaverImportedType Void => MakeImportedType(ref _void, typeof(void));
 
+    // Executes object operation.
     public ILWeaverImportedType Object => MakeImportedType<object>(ref _object);
 
+    // Executes value type operation.
     public ILWeaverImportedType ValueType => MakeImportedType<ValueType>(ref _valueType);
 
+    // Executes float operation.
     public ILWeaverImportedType Float => MakeImportedType<float>(ref _float);
 
+    // Executes networked object operation.
     public ILWeaverImportedType NetworkedObject => MakeImportedType<NetworkObject>(ref _networkedObject);
 
+    // Executes simulation operation.
     public ILWeaverImportedType Simulation => MakeImportedType<Simulation>(ref _simulation);
 
+    // Executes simulation message operation.
     public ILWeaverImportedType SimulationMessage => MakeImportedType<SimulationMessage>(ref _simulationMessage);
 
+    // Executes networked behaviour operation.
     public ILWeaverImportedType NetworkedBehaviour  => MakeImportedType<NetworkBehaviour>(ref _networkedBehaviour);
 
+    // Executes simulation behaviour operation.
     public ILWeaverImportedType SimulationBehaviour => MakeImportedType<SimulationBehaviour>(ref _simulationBehaviour);
 
+    // Executes network id operation.
     public ILWeaverImportedType NetworkId => MakeImportedType<NetworkId>(ref _networkedObjectId);
 
+    // Executes networked behaviour id operation.
     public ILWeaverImportedType NetworkedBehaviourId => MakeImportedType<NetworkBehaviourId>(ref _networkedBehaviourId);
 
+    // Executes network runner operation.
     public ILWeaverImportedType NetworkRunner => MakeImportedType<NetworkRunner>(ref _networkRunner);
 
+    // Executes read write utils operation.
     public ILWeaverImportedType ReadWriteUtils => MakeImportedType(ref _readWriteUtils, typeof(ReadWriteUtilsForWeaver));
     
+    // Executes native operation.
     public ILWeaverImportedType Native => MakeImportedType(ref _nativeUtils, typeof(Native));
 
+    // Executes network behaviour utils operation.
     public ILWeaverImportedType NetworkBehaviourUtils => MakeImportedType(ref _networkBehaviourUtils, typeof(NetworkBehaviourUtils));
 
+    // Executes rpc header operation.
     public ILWeaverImportedType RpcHeader => MakeImportedType<RpcHeader>(ref _rpcHeader);
 
+    // Executes rpc info operation.
     public ILWeaverImportedType RpcInfo => MakeImportedType<RpcInfo>(ref _rpcInfo);
 
+    // Executes rpc invoke info operation.
     public ILWeaverImportedType RpcInvokeInfo => MakeImportedType<RpcInvokeInfo>(ref _rpcInvokeInfo);
 
+    // Executes import operation.
     public TypeReference Import(TypeReference type) {
       return CecilAssembly.MainModule.ImportReference(type);
     }
 
+    // Executes import operation.
     public MethodReference Import(MethodInfo method) {
       return CecilAssembly.MainModule.ImportReference(method);
     }
 
+    // Executes import operation.
     public MethodReference Import(MethodReference method) {
       return CecilAssembly.MainModule.ImportReference(method);
     }
 
+    // Executes import operation.
     public MethodReference Import(ConstructorInfo method) {
       return CecilAssembly.MainModule.ImportReference(method);
     }
 
+    // Executes import operation.
     public TypeReference Import(Type type) {
       if (_types.TryGetValue(type, out var reference) == false) {
         _types.Add(type, reference = CecilAssembly.MainModule.ImportReference(type));
@@ -3223,6 +3329,7 @@ namespace Fusion.CodeGen {
       return reference;
     }
 
+    // Executes dispose operation.
     public void Dispose() {
       CecilAssembly?.Dispose();
 
@@ -3251,6 +3358,7 @@ namespace Fusion.CodeGen {
   using System.Linq;
   using Mono.Cecil;
 
+  // Executes i assembly resolver operation.
   internal class ILWeaverAssemblyResolver : IAssemblyResolver {
     private List<string> _lookInDirectories;
     private Dictionary<string, string> _assemblyNameToPath;
@@ -3260,6 +3368,7 @@ namespace Fusion.CodeGen {
 
     public AssemblyDefinition WeavedAssembly;
 
+    // Executes il weaver assembly resolver operation.
     public ILWeaverAssemblyResolver(ILWeaverLog log, string compiledAssemblyName, string[] references, string[] weavedAssemblies) {
       _log                  = log;
       _compiledAssemblyName = compiledAssemblyName;
@@ -3278,20 +3387,25 @@ namespace Fusion.CodeGen {
       _lookInDirectories = references.Select(x => Path.GetDirectoryName(x)).Distinct().ToList();
     }
 
+    // Executes dispose operation.
     public void Dispose() {
     }
 
+    // Executes resolve operation.
+    // Validates input parameters against null or empty values.
     public AssemblyDefinition Resolve(AssemblyNameReference name) {
       return Resolve(name, new ReaderParameters(ReadingMode.Deferred));
     }
 
+    // Executes resolve operation.
+    // Validates input parameters against null or empty values.
     public AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters) {
       {
         if (name.Name == _compiledAssemblyName)
           return WeavedAssembly;
 
         var path = GetAssemblyPath(name);
-        if (string.IsNullOrEmpty(path))
+        if (string.IsNullOrEmpty(path))  // Mandatory string argument is null or empty — fail fast
           return null;
 
         if (_resolvedAssemblies.TryGetValue(path, out var result))
@@ -3310,6 +3424,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get assembly path operation.
     private string GetAssemblyPath(AssemblyNameReference name) {
       if (_assemblyNameToPath.TryGetValue(name.Name, out var path)) {
         return path;
@@ -3327,6 +3442,8 @@ namespace Fusion.CodeGen {
       return null;
     }
 
+    // Executes create assembly stream operation.
+    // Throws an exception if precondition validations fail.
     private static MemoryStream CreateAssemblyStream(string fileName) {
       var bytes = File.ReadAllBytes(fileName);
       return new MemoryStream(bytes);
@@ -3353,13 +3470,16 @@ namespace Fusion.CodeGen {
     Dictionary<string, ILWeaverAssembly> _assemblies;
     Dictionary<string, ILWeaverAssembly> _assembliesByPath;
 
+    // Executes assemblies operation.
     public IEnumerable<ILWeaverAssembly> Assemblies => _assemblies.Values;
 
+    // Executes il weaver assembly resolver operation.
     public ILWeaverAssemblyResolver() {
       _assemblies = new Dictionary<string, ILWeaverAssembly>(StringComparer.Ordinal);
       _assembliesByPath = new Dictionary<string, ILWeaverAssembly>();
     }
 
+    // Executes resolve operation.
     public sealed override AssemblyDefinition Resolve(AssemblyNameReference name) {
       if (_assemblies.TryGetValue(name.FullName, out var asm) == false) {
         asm = new ILWeaverAssembly();
@@ -3371,24 +3491,30 @@ namespace Fusion.CodeGen {
       return asm.CecilAssembly;
     }
 
+    // Executes clear operation.
     public void Clear() {
       _assemblies.Clear();
     }
 
+    // Executes contains operation.
     public bool Contains(CompilerAssembly compilerAssembly) {
       return _assembliesByPath.ContainsKey(compilerAssembly.outputPath);
     }
 
+    // Executes add assembly operation.
     public ILWeaverAssembly AddAssembly(string path, bool readWrite = true, bool readSymbols = true) {
       return AddAssembly(AssemblyDefinition.ReadAssembly(path, ReaderParameters(readWrite, readSymbols)), null);
     }
 
+    // Executes add assembly operation.
     public ILWeaverAssembly AddAssembly(CompilerAssembly compilerAssembly, bool readWrite = true, bool readSymbols = true) {
       return AddAssembly(AssemblyDefinition.ReadAssembly(compilerAssembly.outputPath, ReaderParameters(readWrite, readSymbols)), compilerAssembly);
     }
 
+    // Executes add assembly operation.
+    // Throws an exception if precondition validations fail.
     public ILWeaverAssembly AddAssembly(AssemblyDefinition assembly, CompilerAssembly compilerAssembly) {
-      if (assembly == null) {
+      if (assembly == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(assembly));
       }
 
@@ -3398,7 +3524,7 @@ namespace Fusion.CodeGen {
 
         _assemblies.Add(assembly.Name.FullName, asm);
 
-        if (compilerAssembly != null) {
+        if (compilerAssembly != null) {  // Entity exists — proceed with conditional branch
           Assert.Always(_assembliesByPath.ContainsKey(compilerAssembly.outputPath) == false);
           _assembliesByPath.Add(compilerAssembly.outputPath, asm);
         }
@@ -3407,6 +3533,7 @@ namespace Fusion.CodeGen {
       return asm;
     }
 
+    // Executes dispose operation.
     protected override void Dispose(bool disposing) {
       foreach (var asm in _assemblies.Values) {
         asm.CecilAssembly?.Dispose();
@@ -3469,6 +3596,9 @@ namespace Fusion.CodeGen {
     Lazy<(string, ConfigPathSource)> _configPath;
     Lazy<XDocument> _config;
 
+    // Executes il weaver bindings operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     public ILWeaverBindings() {
       _configPath = new Lazy<(string, ConfigPathSource)>(() => {
 
@@ -3489,10 +3619,10 @@ namespace Fusion.CodeGen {
         // last resort: grep
         string[] paths = Directory.GetFiles("Assets", "*.fusion", SearchOption.AllDirectories);
         if (paths.Length == 0) {
-          throw new InvalidOperationException($"No {nameof(NetworkProjectConfig)} file found (.fusion extension) in {Path.GetFullPath("Assets")}");
+          throw new InvalidOperationException($"No {nameof(NetworkProjectConfig)} file found (.fusion extension) in {Path.GetFullPath("Assets")}");  // Unexpected runtime state — propagate to global error handler
         }
         if (paths.Length > 1) {
-          throw new InvalidOperationException($"Multiple config files found: {string.Join(", ", paths)}");
+          throw new InvalidOperationException($"Multiple config files found: {string.Join(", ", paths)}");  // Unexpected runtime state — propagate to global error handler
         }
         return (paths[0], ConfigPathSource.Find);
       });
@@ -3506,10 +3636,12 @@ namespace Fusion.CodeGen {
       });
     }
 
+    // Executes get instance operation.
     public override ILPostProcessor GetInstance() {
       return this;
     }
 
+    // Executes process operation.
     public override ILPostProcessResult Process(ICompiledAssembly compiledAssembly) {
       // try to load the config
       ILWeaverSettings settings;
@@ -3609,6 +3741,7 @@ namespace Fusion.CodeGen {
       return new ILPostProcessResult(resultAssembly, logger.Messages);
     }
 
+    // Executes will process operation.
     public override bool WillProcess(ICompiledAssembly compiledAssembly) {
 
       string[] assembliesToWeave;
@@ -3632,6 +3765,7 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes create weaver assembly operation.
     static ILWeaverAssembly CreateWeaverAssembly(ILWeaverSettings settings, ILWeaverLog log, ICompiledAssembly compiledAssembly) {
       var resolver = new ILWeaverAssemblyResolver(log, compiledAssembly.Name, compiledAssembly.References, settings.AssembliesToWeave);
 
@@ -3655,11 +3789,12 @@ namespace Fusion.CodeGen {
       };
     }
 
+    // Executes read settings operation.
     static ILWeaverSettings ReadSettings(XDocument config, bool full = true) {
 
       void SetIfExists(ref bool field, string name) {
         var b = (bool?)config.Root.Element(name);
-        if (b != null) {
+        if (b != null) {  // Entity exists — proceed with conditional branch
           field = b.Value;
         }
       }
@@ -3684,10 +3819,13 @@ namespace Fusion.CodeGen {
     class ReflectionImporterProvider : IReflectionImporterProvider {
       private ILWeaverLog _log;
 
+      // Executes reflection importer provider operation.
       public ReflectionImporterProvider(ILWeaverLog log) {
         _log = log;
       }
       
+      // Executes get reflection importer operation.
+      // Throws an exception if precondition validations fail.
       public IReflectionImporter GetReflectionImporter(ModuleDefinition module) {
         return new ReflectionImporter(_log, module);
       }
@@ -3696,16 +3834,20 @@ namespace Fusion.CodeGen {
     class ReflectionImporter : DefaultReflectionImporter {
       private ILWeaverLog _log;
       
+      // Executes reflection importer operation.
+      // Throws an exception if precondition validations fail.
       public ReflectionImporter(ILWeaverLog log, ModuleDefinition module) : base(module) {
         _log = log;
       }
 
+      // Executes import reference operation.
+      // Throws an exception if precondition validations fail.
       public override AssemblyNameReference ImportReference(AssemblyName name) {
         if (name.Name == "System.Private.CoreLib") {
           // seems weaver is run with .net core,  but we need to stick to .net framework
           var candidates = module.AssemblyReferences
-            .Where(x => x.Name == "mscorlib" || x.Name == "netstandard")
-            .OrderBy(x => x.Name)
+            .Where(x => x.Name == "mscorlib" || x.Name == "netstandard")  // Filter records matching the predicate
+            .OrderBy(x => x.Name)  // Sort results oldest/lowest first
             .ThenByDescending(x => x.Version)
             .ToList();
 
@@ -3725,10 +3867,12 @@ namespace Fusion.CodeGen {
   }
 #else
   class ILWeaverBindings : ILPostProcessor {
+    // Executes get instance operation.
     public override ILPostProcessor GetInstance() {
       return this;
     }
 
+    // Executes process operation.
     public override ILPostProcessResult Process(ICompiledAssembly compiledAssembly) {
       return new ILPostProcessResult(null, new List<DiagnosticMessage>() {
         new DiagnosticMessage() {
@@ -3738,6 +3882,8 @@ namespace Fusion.CodeGen {
       });
     }
 
+    // Executes will process operation.
+    // Throws an exception if precondition validations fail.
     public override bool WillProcess(ICompiledAssembly compiledAssembly) {
       return compiledAssembly.Name == "Assembly-CSharp";
     }
@@ -3745,14 +3891,20 @@ namespace Fusion.CodeGen {
 #endif
 #else
   class ILWeaverBindings : ILPostProcessor {
+    // Executes get instance operation.
+    // Throws an exception if precondition validations fail.
     public override ILPostProcessor GetInstance() {
       return this;
     }
 
+    // Executes process operation.
+    // Throws an exception if precondition validations fail.
     public override ILPostProcessResult Process(ICompiledAssembly compiledAssembly) {
       throw new NotImplementedException();
     }
 
+    // Executes will process operation.
+    // Throws an exception if precondition validations fail.
     public override bool WillProcess(ICompiledAssembly compiledAssembly) {
       return false;
     }
@@ -3785,16 +3937,19 @@ namespace Fusion.CodeGen {
 
   class ILWeaverBindings {
 
+    // Executes is editor assembly path operation.
     public static bool IsEditorAssemblyPath(string path) {
       return path.Contains("-Editor") || path.Contains(".Editor");
     }
 
+    // Executes initialize on load operation.
     [UnityEditor.InitializeOnLoadMethod]
     public static void InitializeOnLoad() {
       CompilationPipeline.assemblyCompilationFinished += OnCompilationFinished;
       EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
     }
 
+    // Executes on play mode state changed operation.
     static void OnPlayModeStateChanged(PlayModeStateChange state) {
       var projectConfig = NetworkProjectConfig.Global;
 
@@ -3809,6 +3964,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes on compilation finished operation.
     static void OnCompilationFinished(string path, CompilerMessage[] messages) {
 #if FUSION_DEV
       Stopwatch sw = Stopwatch.StartNew();
@@ -3821,7 +3977,7 @@ namespace Fusion.CodeGen {
       }
 
       var projectConfig = NetworkProjectConfig.Global;
-      if (projectConfig != null) {
+      if (projectConfig != null) {  // Entity exists — proceed with conditional branch
         // name of assembly on disk
         var name = Path.GetFileNameWithoutExtension(path);
         if (!ILWeaverSettings.IsAssemblyWeavable(projectConfig.AssembliesToWeave, name)) {
@@ -3868,6 +4024,8 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes weave operation.
+    // Throws an exception if precondition validations fail.
     static void Weave(ILWeaver weaver, Assembly compilerAssembly) {
       using (weaver.Log.Scope("Processing")) {
 
@@ -3884,7 +4042,7 @@ namespace Fusion.CodeGen {
 
           // make sure we have the runtime dll loaded
           if (!ILWeaverSettings.ContainsRequiredReferences(compilerAssembly.allReferences)) {
-            throw new InvalidOperationException($"Weaving: Could not find required assembly references");
+            throw new InvalidOperationException($"Weaving: Could not find required assembly references");  // Unexpected runtime state — propagate to global error handler
           }
 
           ILWeaverAssembly asm;
@@ -3908,6 +4066,8 @@ namespace Fusion.CodeGen {
   }
 #else
   class ILWeaverBindings {
+    // Executes initialize on load operation.
+    // Throws an exception if precondition validations fail.
     [UnityEditor.InitializeOnLoadMethod]
     public static void InitializeOnLoad() {
       UnityEngine.Debug.LogError("Mono.Cecil not found, Fusion IL weaving is disabled. Make sure package com.unity.nuget.mono-cecil is installed.");
@@ -3926,14 +4086,20 @@ namespace Fusion.CodeGen {
   using System;
   using System.Diagnostics;
 
+  // Executes exception operation.
   public class ILWeaverException : Exception {
+    // Executes il weaver exception operation.
     public ILWeaverException(string error) : base(error) {
     }
 
+    // Executes il weaver exception operation.
+    // Throws an exception if precondition validations fail.
     public ILWeaverException(string error, Exception innerException) : base(error, innerException) {
     }
 
 
+    // Executes debug throw if operation.
+    // Throws an exception if precondition validations fail.
     [Conditional("UNITY_EDITOR")]
     public static void DebugThrowIf(bool condition, string message) {
       if (condition) {
@@ -3958,8 +4124,12 @@ namespace Fusion.CodeGen {
   using Mono.Cecil.Cil;
   using BindingFlags = System.Reflection.BindingFlags;
 
+  // Executes il weaver extensions operation.
+  // Evaluates conditions and returns a boolean result.
   public static class ILWeaverExtensions {
 
+    // Executes is integral operation.
+    // Evaluates conditions and returns a boolean result.
     public static bool IsIntegral(this TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -3976,6 +4146,8 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get primitive size operation.
+    // Throws an exception if precondition validations fail.
     public static int GetPrimitiveSize(this TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -3999,6 +4171,8 @@ namespace Fusion.CodeGen {
       }
     }
     
+    // Executes get primitive type operation.
+    // Throws an exception if precondition validations fail.
     public static Type GetPrimitiveType(this TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -4030,38 +4204,47 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes is string operation.
     public static bool IsString(this TypeReference type) {
       return type.MetadataType == MetadataType.String;
     }
 
+    // Executes is float operation.
     public static bool IsFloat(this TypeReference type) {
       return type.MetadataType == MetadataType.Single;
     }
 
+    // Executes is bool operation.
     public static bool IsBool(this TypeReference type) {
       return type.MetadataType == MetadataType.Boolean;
     }
 
+    // Executes is vector2 operation.
     public static bool IsVector2(this TypeReference type) {
       return type.FullName == "UnityEngine.Vector2";
     }
 
+    // Executes is vector3 operation.
     public static bool IsVector3(this TypeReference type) {
       return type.FullName == "UnityEngine.Vector3";
     }
 
+    // Executes is vector4 operation.
     public static bool IsVector4(this TypeReference type) {
       return type.FullName == "UnityEngine.Vector4";
     }
 
+    // Executes is quaternion operation.
     public static bool IsQuaternion(this TypeReference type) {
       return type.FullName == "UnityEngine.Quaternion";
     }
 
+    // Executes is void operation.
     public static bool IsVoid(this TypeReference type) {
       return type.MetadataType == MetadataType.Void;
     }
 
+    // Executes get element type with generics operation.
     public static TypeReference GetElementTypeWithGenerics(this TypeReference type) {
       if (type.IsPointer) {
         return ((Mono.Cecil.PointerType)type).ElementType;
@@ -4078,10 +4261,13 @@ namespace Fusion.CodeGen {
       return !IsSame<T>(type) && Is<T>(type);
     }
 
+    // Executes is network collection operation.
+    // Evaluates conditions and returns a boolean result.
     public static bool IsNetworkCollection(this TypeReference type) {
       return type.IsNetworkArray(out _) || type.IsNetworkList(out _) || type.IsNetworkDictionary(out _, out _);
     }
 
+    // Executes is network list operation.
     public static bool IsNetworkList(this TypeReference type, out TypeReference elementType) {
       if (!type.IsGenericInstance || type.GetElementTypeWithGenerics().FullName != typeof(NetworkLinkedList<>).FullName) {
         elementType = default;
@@ -4094,6 +4280,7 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes is network array operation.
     public static bool IsNetworkArray(this TypeReference type, out TypeReference elementType) {
       if (!type.IsGenericInstance || type.GetElementTypeWithGenerics().FullName != typeof(NetworkArray<>).FullName) {
         elementType = default;
@@ -4105,6 +4292,7 @@ namespace Fusion.CodeGen {
       return true;
     }
 
+    // Executes is network dictionary operation.
     public static bool IsNetworkDictionary(this TypeReference type, out TypeReference keyType, out TypeReference valueType) {
       if (!type.IsGenericInstance || type.GetElementTypeWithGenerics().FullName != typeof(NetworkDictionary<,>).FullName) {
         keyType = default;
@@ -4122,14 +4310,15 @@ namespace Fusion.CodeGen {
       return Is(type, typeof(T));
     }
 
+    // Executes is operation.
     public static bool Is(this TypeReference type, Type t) {
       if (IsSame(type, t)) {
         return true;
       }
 
       var resolvedType = type.Resolve();
-      if (resolvedType == null) {
-        throw new InvalidOperationException($"Failed to resolve {type}");
+      if (resolvedType == null) {  // Entity not found — short-circuit with appropriate error result
+        throw new InvalidOperationException($"Failed to resolve {type}");  // Unexpected runtime state — propagate to global error handler
       }
 
       if (t.IsInterface) {
@@ -4148,6 +4337,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes is operation.
     public static bool Is(this TypeReference type, TypeReference t) {
 
       if (IsSame(type, t)) {
@@ -4173,7 +4363,7 @@ namespace Fusion.CodeGen {
       }
 
       if (t.Resolve().IsInterface == true) {
-        if (resolvedType == null) {
+        if (resolvedType == null) {  // Entity not found — short-circuit with appropriate error result
           return false;
         }
 
@@ -4195,8 +4385,10 @@ namespace Fusion.CodeGen {
       return IsSame(type, typeof(T));
     }
 
+    // Executes is same operation.
+    // Throws an exception if precondition validations fail.
     public static bool IsSame(this TypeReference type, Type t) {
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
       if (type.IsByReference) {
@@ -4224,18 +4416,21 @@ namespace Fusion.CodeGen {
       return true;
     }
 
+    // Executes is same operation.
     public static bool IsSame(this TypeReference type, TypeOrTypeRef t) {
       if (t.Type != null) {
         return IsSame(type, t.Type);
       } else if (t.TypeReference != null) {
         return IsSame(type, t.TypeReference);
       } else {
-        throw new InvalidOperationException();
+        throw new InvalidOperationException();  // Unexpected runtime state — propagate to global error handler
       }
     }
 
+    // Executes is same operation.
+    // Throws an exception if precondition validations fail.
     public static bool IsSame(this TypeReference type, TypeReference t) {
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
       if (type.IsByReference) {
@@ -4251,6 +4446,7 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes get hierarchy operation.
     public static IEnumerable<TypeDefinition> GetHierarchy(this TypeDefinition type, TypeReference stopAtBaseType = null) {
       if (stopAtBaseType?.IsSame(type) == true) {
         yield break;
@@ -4265,10 +4461,13 @@ namespace Fusion.CodeGen {
       }
     }
     
+    // Executes remove operation.
+    // Throws an exception if precondition validations fail.
     public static bool Remove(this FieldDefinition field) {
-      return field.DeclaringType.Fields.Remove(field);
+      return field.DeclaringType.Fields.Remove(field);  // Mark entity for deletion in the next SaveChanges call
     }
 
+    // Executes get field or throw operation.
     public static FieldDefinition GetFieldOrThrow(this TypeDefinition type, string fieldName) {
       foreach (var field in type.Fields) {
         if ( field.Name == fieldName ) {
@@ -4278,6 +4477,7 @@ namespace Fusion.CodeGen {
       throw new ArgumentOutOfRangeException(nameof(fieldName), $"Field {fieldName} not found in {type}");
     }
 
+    // Executes get generic instance method or throw operation.
     public static MethodReference GetGenericInstanceMethodOrThrow(this GenericInstanceType type, string name) {
       var methodRef = type.Resolve().GetMethodOrThrow(name);
 
@@ -4299,9 +4499,10 @@ namespace Fusion.CodeGen {
       return newMethodRef;
     }
 
+    // Executes get callable operation.
     public static MethodReference GetCallable(this MethodReference methodRef, GenericInstanceType declaringType = null) {
 
-      if (declaringType == null) {
+      if (declaringType == null) {  // Entity not found — short-circuit with appropriate error result
         if (!methodRef.DeclaringType.HasGenericParameters) {
           return methodRef;
         }
@@ -4329,6 +4530,7 @@ namespace Fusion.CodeGen {
       return newMethodRef;
     }
 
+    // Executes get loadable operation.
     public static FieldReference GetLoadable(this FieldDefinition field) {
 
       if (!field.DeclaringType.HasGenericParameters) {
@@ -4346,6 +4548,7 @@ namespace Fusion.CodeGen {
       type.Interfaces.Add(new InterfaceImplementation(asm.Import(typeof(T))));
     }
 
+    // Executes attribute operation.
     public static bool RemoveAttribute<T>(this IMemberDefinition member, ILWeaverAssembly asm) where T : Attribute {
       for (int i = 0; i < member.CustomAttributes.Count; ++i) {
         var attr = member.CustomAttributes[i];
@@ -4357,6 +4560,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T>(this IMemberDefinition member, ILWeaverAssembly asm) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(asm));
@@ -4371,6 +4575,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0>(this IMemberDefinition member, ILWeaverAssembly asm, A0 arg0) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(asm, 1));
@@ -4379,6 +4584,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1>(this IMemberDefinition member, ILWeaverAssembly asm, A0 arg0, A1 arg1) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(asm, 2));
@@ -4388,6 +4594,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1, A2>(this IMemberDefinition member, ILWeaverAssembly asm, A0 arg0, A1 arg1, A2 arg2) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(asm, 3));
@@ -4398,6 +4605,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
     
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0>(this IMemberDefinition member, ModuleDefinition module, A0 arg0) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(module, 1));
@@ -4406,6 +4614,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1>(this IMemberDefinition member, ModuleDefinition module, A0 arg0, A1 arg1) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(module, 2));
@@ -4415,6 +4624,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1, A2>(this IMemberDefinition member, ModuleDefinition module, A0 arg0, A1 arg1, A2 arg2) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(module, 3));
@@ -4425,6 +4635,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
     
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1, A2, A3>(this IMemberDefinition member, ModuleDefinition module, A0 arg0, A1 arg1, A2 arg2, A3 arg3) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(module, 4));
@@ -4436,6 +4647,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
 
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1, A2, A3, A4>(this IMemberDefinition member, ModuleDefinition module, A0 arg0, A1 arg1, A2 arg2, A3 arg3, A4 arg4) where T : Attribute {
       CustomAttribute attr;
       attr = new CustomAttribute(typeof(T).GetConstructor(module, 5));
@@ -4448,6 +4660,7 @@ namespace Fusion.CodeGen {
       return attr;
     }
       
+    // Executes attribute operation.
     public static CustomAttribute AddAttribute<T, A0, A1, A2, A3>(this IMemberDefinition member, ILWeaverAssembly asm, A0 arg0, A1 arg1, A2 arg2, A3 arg3) where T : Attribute {
       CustomAttribute attr;
       
@@ -4478,6 +4691,8 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get constructor operation.
+    // Throws an exception if precondition validations fail.
     public static MethodReference GetConstructor(this Type type, ILWeaverAssembly asm, int argCount = 0) {
       foreach (var ctor in type.GetConstructors()) {
         if (ctor.GetParameters().Length == argCount) {
@@ -4488,6 +4703,8 @@ namespace Fusion.CodeGen {
       throw new ILWeaverException($"Could not find constructor with {argCount} arguments on {type.Name}");
     }
 
+    // Executes get constructor operation.
+    // Throws an exception if precondition validations fail.
     public static MethodReference GetConstructor(this Type type, ModuleDefinition module, int argCount = 0) {
       foreach (var ctor in type.GetConstructors()) {
         if (ctor.GetParameters().Length == argCount) {
@@ -4498,53 +4715,65 @@ namespace Fusion.CodeGen {
       throw new ILWeaverException($"Could not find constructor with {argCount} arguments on {type.Name}");
     }
 
+    // Executes add to operation.
     public static void AddTo(this MethodDefinition method, TypeDefinition type) {
       type.Methods.Add(method);
       method.AddAttribute<WeaverGeneratedAttribute>();
     }
 
+    // Executes add to operation.
     public static void AddTo(this PropertyDefinition property, TypeDefinition type) {
       type.Properties.Add(property);
       property.AddAttribute<WeaverGeneratedAttribute>();
     }
 
+    // Executes add to operation.
     public static FieldDefinition AddTo(this FieldDefinition field, TypeDefinition type) {
       type.Fields.Add(field);
       field.AddAttribute<WeaverGeneratedAttribute>();
       return field;
     }
 
+    // Executes insert to operation.
     public static void InsertTo(this FieldDefinition field, TypeDefinition type, int index) {
       type.Fields.Insert(index, field);
       field.AddAttribute<WeaverGeneratedAttribute>();
     }
 
+    // Executes add to operation.
     public static void AddTo(this TypeDefinition type, AssemblyDefinition assembly) {
       assembly.MainModule.Types.Add(type);
       type.AddAttribute<WeaverGeneratedAttribute>(assembly.MainModule);
     }
 
+    // Executes add to operation.
     public static void AddTo(this TypeDefinition type, TypeDefinition parentType) {
       parentType.NestedTypes.Add(type);
       type.AddAttribute<WeaverGeneratedAttribute>();
     }
 
+    // Executes append return operation.
     public static Instruction AppendReturn(this ILProcessor il, Instruction instruction) {
       il.Append(instruction);
       return instruction;
     }
 
+    // Executes clear operation.
     public static void Clear(this ILProcessor il) {
       var instructions = il.Body.Instructions;
       foreach (var instruction in instructions.Reverse()) {
-        il.Remove(instruction);
+        il.Remove(instruction);  // Mark entity for deletion in the next SaveChanges call
       }
     }
 
+    // Executes il processor macro operation.
+    // Throws an exception if precondition validations fail.
     public static void AppendMacro<T>(this ILProcessor il, in T macro) where T : struct, ILProcessorMacro {
       macro.Emit(il);
     }
 
+    // Executes attribute operation.
+    // Throws an exception if precondition validations fail.
     public static bool GetSingleOrDefaultMethodWithAttribute<T>(this TypeDefinition type, out CustomAttribute attribute, out MethodDefinition method) where T : Attribute {
 
       MethodDefinition resultMethod = null;
@@ -4552,7 +4781,7 @@ namespace Fusion.CodeGen {
 
       foreach (var m in type.Methods) {
         if (m.TryGetAttribute<T>(out var attr)) {
-          if (resultMethod != null) {
+          if (resultMethod != null) {  // Entity exists — proceed with conditional branch
             throw new ILWeaverException($"Only one method with attribute {typeof(T)} allowed per class: {type}");
           } else {
             resultMethod = m;
@@ -4567,6 +4796,8 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes throw if static operation.
+    // Throws an exception if precondition validations fail.
     public static PropertyDefinition ThrowIfStatic(this PropertyDefinition property) {
       if (property.GetMethod?.IsStatic == true ||
           property.SetMethod?.IsStatic == true) {
@@ -4575,6 +4806,8 @@ namespace Fusion.CodeGen {
       return property;
     }
 
+    // Executes throw if no getter operation.
+    // Throws an exception if precondition validations fail.
     public static PropertyDefinition ThrowIfNoGetter(this PropertyDefinition property) {
       if (property.GetMethod == null) {
         throw new ILWeaverException($"Property does not have a getter: {property.FullName}");
@@ -4582,6 +4815,8 @@ namespace Fusion.CodeGen {
       return property;
     }
 
+    // Executes throw if no setter operation.
+    // Throws an exception if precondition validations fail.
     public static PropertyDefinition ThrowIfNoSetter(this PropertyDefinition property) {
       if (property.GetMethod == null) {
         throw new ILWeaverException($"Property does not have a getter: {property.FullName}");
@@ -4590,6 +4825,8 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes throw if static operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfStatic(this MethodDefinition method) {
       if (method.IsStatic) {
         throw new ILWeaverException($"Method is static: {method.FullName}");
@@ -4597,6 +4834,8 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes throw if not static operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfNotStatic(this MethodDefinition method) {
       if (!method.IsStatic) {
         throw new ILWeaverException($"Method is not static: {method}");
@@ -4604,6 +4843,8 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes throw if not public operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfNotPublic(this MethodDefinition method) {
       if (!method.IsPublic) {
         throw new ILWeaverException($"Method is not public: {method}");
@@ -4611,6 +4852,8 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes throw if return type operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfReturnType(this MethodDefinition method, TypeOrTypeRef type) {
       if (!method.ReturnType.IsSame(type)) {
 
@@ -4619,6 +4862,8 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes throw if parameter count operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfParameterCount(this MethodDefinition method, int count) {
       if (method.Parameters.Count != count) {
         throw new ILWeaverException($"Method has invalid parameter count (expected {count}): {method}");
@@ -4626,6 +4871,8 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes throw if parameter count less than operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfParameterCountLessThan(this MethodDefinition method, int count) {
       if (method.Parameters.Count < count) {
         throw new ILWeaverException($"Method has invalid parameter count (expected at leaset {count}): {method}");
@@ -4633,6 +4880,8 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes throw if parameter operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition ThrowIfParameter(this MethodDefinition method, int index, TypeOrTypeRef type = null, bool isByReference = false, bool ignore = false) {
       if (ignore) {
         return method;
@@ -4651,6 +4900,7 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes is base constructor call operation.
     public static bool IsBaseConstructorCall(this Instruction instruction, TypeDefinition type) {
       if (instruction.OpCode == OpCodes.Call) {
         var m = ((MethodReference)instruction.Operand).Resolve();
@@ -4662,6 +4912,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes is ldloca operation.
     public static bool IsLdloca(this Instruction instruction, out VariableDefinition variable, out bool isShort) {
       if (instruction.OpCode == OpCodes.Ldloca) {
         variable = (VariableDefinition)instruction.Operand;
@@ -4679,6 +4930,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes is ldloc with index operation.
     public static bool IsLdlocWithIndex(this Instruction instruction, out int index) {
       if (instruction.OpCode == OpCodes.Ldloc_0) {
         index = 0;
@@ -4700,6 +4952,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes is stloc with index operation.
     public static bool IsStlocWithIndex(this Instruction instruction, out int index) {
       if (instruction.OpCode == OpCodes.Stloc_0) {
         index = 0;
@@ -4722,32 +4975,40 @@ namespace Fusion.CodeGen {
     }
   }
   
+  // Executes type or type ref operation.
   public class TypeOrTypeRef {
 
+    // Executes type operation.
     public Type Type { get; }
+    // Executes type reference operation.
     public TypeReference TypeReference { get; }
 
 
+    // Executes type or type ref operation.
     public TypeOrTypeRef(Type type, bool isOut = false) {
       Type = type;
     }
 
+    // Executes type or type ref operation.
     public TypeOrTypeRef(TypeReference type, bool isOut = false) {
       TypeReference = type;
     }
 
+    // Executes type or type ref operation.
     public static implicit operator TypeOrTypeRef(Type type) {
       return new TypeOrTypeRef(type);
     }
 
+    // Executes type or type ref operation.
     public static implicit operator TypeOrTypeRef(TypeReference type) {
       return new TypeOrTypeRef(type);
     }
 
+    // Executes to string operation.
     public override string ToString() {
-      if (Type != null) {
+      if (Type != null) {  // Entity exists — proceed with conditional branch
         return Type.FullName;
-      } else if (TypeReference != null) {
+      } else if (TypeReference != null) {  // Entity exists — proceed with conditional branch
         return TypeReference.ToString();
       } else {
         return "AnyType";
@@ -4755,6 +5016,10 @@ namespace Fusion.CodeGen {
     }
   }
 
+  // Executes il processor macro operation.
+  // Validates input parameters against null or empty values.
+  // Throws an exception if precondition validations fail.
+  // Evaluates conditions and returns a boolean result.
   public interface ILProcessorMacro {
     void Emit(ILProcessor il);
   }
@@ -4776,25 +5041,38 @@ namespace Fusion.CodeGen {
   using System.Runtime.CompilerServices;
   using Mono.Cecil;
 
+  // Executes il weaver logger operation.
+  // Validates input parameters against null or empty values.
+  // Throws an exception if precondition validations fail.
+  // Evaluates conditions and returns a boolean result.
   public interface ILWeaverLogger {
     void Log(LogLevel logType, string message, string filePath, int lineNumber);
     void Log(Exception ex);
   }
 
 
+  // Executes il weaver log operation.
+  // Throws an exception if precondition validations fail.
   public sealed class ILWeaverLog {
 
     private ILWeaverLogger _logger;
 
+    // Executes logger operation.
+    // Throws an exception if precondition validations fail.
     public ILWeaverLogger Logger => _logger;
 
+    // Executes il weaver log operation.
+    // Throws an exception if precondition validations fail.
     public ILWeaverLog(ILWeaverLogger logger) {
-      if (logger == null) {
+      if (logger == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(logger));
       }
       _logger = logger;
     }
 
+    // Executes assert message operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     public void AssertMessage(bool condition, string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       if (!condition) {
         _logger.Log(LogLevel.Error, $"Assert failed: {message}", filePath, lineNumber);
@@ -4802,6 +5080,9 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes assert operation.
+    // Validates input parameters against null or empty values.
+    // Throws an exception if precondition validations fail.
     public void Assert(bool condition, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       if (!condition) {
         _logger.Log(LogLevel.Error, $"Assert failed", filePath, lineNumber);
@@ -4809,6 +5090,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes debug operation.
     [Conditional("FUSION_WEAVER_DEBUG")]
     public void Debug(string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       _logger.Log(LogLevel.Debug, message, filePath, lineNumber);
@@ -4816,80 +5098,99 @@ namespace Fusion.CodeGen {
 
 
     
+    // Executes warn operation.
     public void Warn(MethodDefinition method, string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       TryOverrideLocation(method, ref filePath, ref lineNumber);
       _logger.Log(LogLevel.Warn, message, filePath, lineNumber);
     }
     
+    // Executes warn operation.
     public void Warn(PropertyDefinition property, string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       TryOverrideLocation(property.GetMethod, ref filePath, ref lineNumber);
       _logger.Log(LogLevel.Warn, message, filePath, lineNumber);
     }
     
+    // Executes warn operation.
     public void Warn(string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       _logger.Log(LogLevel.Warn, message, filePath, lineNumber);
     }
 
+    // Executes error operation.
     public void Error(string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       _logger.Log(LogLevel.Error, message, filePath, lineNumber);
     }
 
+    // Executes exception operation.
     public void Exception(Exception ex) {
       _logger.Log(ex);
     }
 
 #if !FUSION_WEAVER_DEBUG
+    // Executes i disposable operation.
     public struct LogScope : IDisposable {
+      // Executes dispose operation.
       public void Dispose() {
       }
     }
 
+    // Executes scope operation.
     public LogScope Scope(string name) {
       return default;
     }
 
+    // Executes scope assembly operation.
     public LogScope ScopeAssembly(AssemblyDefinition cecilAssembly) {
       return default;
     }
 
+    // Executes scope behaviour operation.
     public LogScope ScopeBehaviour(TypeDefinition type) {
       return default;
     }
 
+    // Executes scope input operation.
     public LogScope ScopeInput(TypeDefinition type) {
       return default;
     }
 
+    // Executes scope struct operation.
     public LogScope ScopeStruct(TypeDefinition type) {
       return default;
     }
 
 #else
+    // Executes scope operation.
     public LogScope Scope(string name, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       return new LogScope(this, name, filePath, lineNumber);
     }
 
+    // Executes scope assembly operation.
     public LogScope ScopeAssembly(AssemblyDefinition cecilAssembly, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       return new LogScope(this, $"Assembly: {cecilAssembly.FullName}", filePath, lineNumber);
     }
 
+    // Executes scope behaviour operation.
     public LogScope ScopeBehaviour(TypeDefinition type, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       return new LogScope(this, $"Behaviour: {type.FullName}", filePath, lineNumber);
     }
 
+    // Executes scope input operation.
     public LogScope ScopeInput(TypeDefinition type, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       return new LogScope(this, $"Input: {type.FullName}", filePath, lineNumber);
     }
 
+    // Executes scope struct operation.
     public LogScope ScopeStruct(TypeDefinition type, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) {
       return new LogScope(this, $"Struct: {type.FullName}", filePath, lineNumber);
     }
 
 #pragma warning disable CS0282 // There is no defined ordering between fields in multiple declarations of partial struct
+    // Executes i disposable operation.
     public partial struct LogScope : IDisposable {
 #pragma warning restore CS0282 // There is no defined ordering between fields in multiple declarations of partial struct
       public string Message;
 
+      // Executes elapsed operation.
       public TimeSpan Elapsed => _stopwatch.Elapsed;
 
       private ILWeaverLog _log;
@@ -4898,6 +5199,7 @@ namespace Fusion.CodeGen {
       public int LineNumber;
       public string FilePath;
 
+      // Executes log scope operation.
       public LogScope(ILWeaverLog log, string message, [CallerFilePath] string filePath = null, [CallerLineNumber] int lineNumber = default) : this() {
         _log = log;
         _stopwatch = Stopwatch.StartNew();
@@ -4907,6 +5209,7 @@ namespace Fusion.CodeGen {
         _log.Debug($"{Message} start", FilePath, LineNumber);
       }
 
+      // Executes dispose operation.
       public void Dispose() {
         _stopwatch.Stop();
         _log.Debug($"{Message} end {Elapsed}", FilePath, LineNumber);
@@ -4914,6 +5217,7 @@ namespace Fusion.CodeGen {
     }
 #endif
     
+    // Executes try override location operation.
     private static bool TryOverrideLocation(MethodDefinition method, ref string filePath, ref int lineNumber) {
       var debugInformation = method?.DebugInformation;
       if (debugInformation?.HasSequencePoints == true) {
@@ -4945,8 +5249,10 @@ namespace Fusion.CodeGen {
 
   class ILWeaverLoggerDiagnosticMessages : ILWeaverLogger {
 
+    // Executes messages operation.
     public List<DiagnosticMessage> Messages { get; } = new List<DiagnosticMessage>();
 
+    // Executes log operation.
     public void Log(LogLevel logType, string message, string filePath, int lineNumber) {
 
       DiagnosticType diagnosticType;
@@ -4973,6 +5279,7 @@ namespace Fusion.CodeGen {
       });
     }
 
+    // Executes log operation.
     public void Log(Exception ex) {
       var lines = ex.ToString().Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
       foreach (var line in lines) {
@@ -4980,6 +5287,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes fix new lines in messages operation.
     public void FixNewLinesInMessages() {
       // fix the messages
       foreach (var msg in Messages) {
@@ -5002,8 +5310,10 @@ namespace Fusion.CodeGen {
 
   using System;
 
+  // Executes il weaver logger operation.
   public class ILWeaverLoggerUnityDebug : ILWeaverLogger {
 
+    // Executes log operation.
     public void Log(LogLevel logType, string message, string filePath, int lineNumber) {
       switch (logType) {
         case LogLevel.Debug:
@@ -5019,6 +5329,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Queries the database to retrieve log records.
     public void Log(Exception ex) {
       UnityEngine.Debug.unityLogger.LogException(ex);
     }
@@ -5057,10 +5368,10 @@ namespace Fusion.CodeGen {
       Action<ILProcessor> addressGetter = null,
       Action<ILProcessor> valueGetter = null,
       Action<ILProcessor> valueAddrGetter = null) {
-      if (assembly == null) {
+      if (assembly == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(assembly));
       }
-      if (method == null) {
+      if (method == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(method));
       }
 
@@ -5072,23 +5383,32 @@ namespace Fusion.CodeGen {
       this._valueAddrGetter = valueAddrGetter;
     }
 
+    // Executes assembly operation.
     public ILWeaverAssembly Assembly { get; private set; }
+    // Executes has offset operation.
     public virtual bool HasOffset => false;
+    // Executes is write compact operation.
     public virtual bool IsWriteCompact => false;
+    // Executes method operation.
     public MethodDefinition Method { get; private set; }
 
+    // Executes add variable operation.
     public VariableDefinition AddVariable(TypeReference variableType) {
       var variable = new VariableDefinition(variableType);
       Method.Body.Variables.Add(variable);
       return variable;
     }
     
+    // Executes dispose operation.
     public void Dispose() {
     }
 
+    // Executes add offset operation.
     public AddOffsetMacro AddOffset() => new AddOffsetMacro(this, null);
+    // Executes add offset operation.
     public AddOffsetMacro AddOffset(int value) => new AddOffsetMacro(this, Ldc_I4(value), isAligned: (value % Allocator.REPLICATE_WORD_SIZE) == 0);
 
+    // Executes align to word size operation.
     public ILMacroStruct AlignToWordSize() => new[] {
       Ldc_I4(Allocator.REPLICATE_WORD_SIZE - 1),
       Add(),
@@ -5096,8 +5416,10 @@ namespace Fusion.CodeGen {
       And()
     };
 
+    // Executes for operation.
     public ForLoopMacro For(Action<ILProcessor> start, Action<ILProcessor> stop, Action<ILProcessor, VariableDefinition> body) => new ForLoopMacro(this, body, start, stop);
 
+    // Executes get or create variable operation.
     public VariableDefinition GetOrCreateVariable(string id, TypeReference type, ILProcessor il = null) {
       if (_fields.TryGetValue((id, type.FullName), out var val)) {
         return val;
@@ -5107,11 +5429,12 @@ namespace Fusion.CodeGen {
       return result;
     }
 
+    // Executes create variable operation.
     public VariableDefinition CreateVariable(TypeReference type, ILProcessor il = null, Instruction before = null) {
       var result = new VariableDefinition(type);
       Method.Body.Variables.Add(result);
-      if (il != null) {
-        if (before == null) {
+      if (il != null) {  // Entity exists — proceed with conditional branch
+        if (before == null) {  // Entity not found — short-circuit with appropriate error result
           if (type.IsValueType) {
             il.Append(Ldloca(result));
             il.Append(Initobj(type));
@@ -5132,10 +5455,13 @@ namespace Fusion.CodeGen {
       return result;
     }
 
+    // Executes load address operation.
     public virtual ILMacroStruct LoadAddress() => _addressGetter;
 
+    // Executes load element reader writer operation.
     public virtual ILMacroStruct LoadElementReaderWriter(TypeReference type, ICustomAttributeProvider member) => new Action<ILProcessor>(il => LoadElementReaderWriterImpl(il, type, member));
 
+    // Executes load fixed buffer address operation.
     public ILMacroStruct LoadFixedBufferAddress(FieldDefinition fixedBufferField) => new Action<ILProcessor>(il => {
 
       var elementField = fixedBufferField.FieldType.Resolve().Fields[0];
@@ -5154,24 +5480,32 @@ namespace Fusion.CodeGen {
       il.Append(Ldloc(il.Body, pointerLoc));
     });
 
+    // Executes load runner operation.
     public ILMacroStruct LoadRunner() {
       return _runnerIsLdarg0 ?
         new[] { Ldarg_0() } :
         new[] { Ldarg_0(), Call(Assembly.SimulationBehaviour.GetGetterOrThrow(nameof(SimulationBehaviour.Runner))) };
     }
 
+    // Executes load value operation.
     public virtual ILMacroStruct LoadValue() => _valueGetter;
+    // Executes load value addr operation.
     public virtual ILMacroStruct LoadValueAddr() => _valueAddrGetter;
+    // Executes has value getter operation.
     public bool HasValueGetter => _valueGetter != null;
+    // Executes has value addr getter operation.
     public bool HasValueAddrGetter => _valueAddrGetter != null;
 
+    // Executes value getter operation.
     public ValueGetterScope ValueGetter(Action<ILProcessor> valueGetter) => new ValueGetterScope(this, valueGetter);
 
+    // Executes value getter operation.
     public ValueGetterScope ValueGetter(Action<ILProcessor, Action<ILProcessor>> valueGetter) {
       var current = _valueGetter;
       return new ValueGetterScope(this, il => valueGetter(il, current));
     }
 
+    // Executes get target variable addr or temp operation.
     public LoadVariableAddressMacro GetTargetVariableAddrOrTemp(TypeReference type, ILProcessor il, out VariableDefinition variable, Instruction before = null) {
       if (_targetVariable.Variable == null || !_targetVariable.Type.IsSame(type)) {
         variable = CreateVariable(type, il, before);
@@ -5185,13 +5519,17 @@ namespace Fusion.CodeGen {
     }
 
 
+    // Executes target variable addr operation.
     public TargetVariableScope TargetVariableAddr(VariableDefinition variable) => new TargetVariableScope(this, new TargetVariableAddrInfo(variable));
+    // Executes target variable addr operation.
     public TargetVariableScope TargetVariableAddr(VariableDefinition arrayVariable, VariableDefinition indexVariable, TypeReference type) => new TargetVariableScope(this, new TargetVariableAddrInfo(arrayVariable, indexVariable, type));
 
 
+    // Executes target addr used operation.
     public bool TargetAddrUsed { get; set; }
 
 
+    // Executes verify raw network unwrap operation.
     public ILMacroStruct VerifyRawNetworkUnwrap(TypeReference type, int maxByteCount) => new[] {
       Ldc_I4(maxByteCount),
       Call(new GenericInstanceMethod(Assembly.ReadWriteUtils.GetMethod(nameof(ReadWriteUtilsForWeaver.VerifyRawNetworkUnwrap), genericArgsCount: 1)) {
@@ -5199,6 +5537,7 @@ namespace Fusion.CodeGen {
       }),
     };
 
+    // Executes verify raw network wrap operation.
     public ILMacroStruct VerifyRawNetworkWrap(TypeReference type, int maxByteCount) => new[] {
       Ldc_I4(maxByteCount),
       Call(new GenericInstanceMethod(Assembly.ReadWriteUtils.GetMethod(nameof(ReadWriteUtilsForWeaver.VerifyRawNetworkWrap), genericArgsCount: 1)) {
@@ -5206,33 +5545,38 @@ namespace Fusion.CodeGen {
       }),
     };
 
+    // Executes emit add offset after operation.
     protected virtual void EmitAddOffsetAfter(ILProcessor il) {
     }
 
+    // Executes emit add offset before operation.
     protected virtual void EmitAddOffsetBefore(ILProcessor il) {
     }
+    // Executes il processor macro operation.
     public readonly struct AddOffsetMacro : ILProcessorMacro {
       public readonly MethodContext Context;
       public readonly Instruction Instruction;
       public readonly bool IsAligned;
 
 
+      // Executes add offset macro operation.
       public AddOffsetMacro(MethodContext context, Instruction instruction = null, bool isAligned = false) {
         Context = context;
         Instruction = instruction;
         IsAligned = isAligned;
       }
 
+      // Executes emit operation.
       public void Emit(ILProcessor il) {
         if (Context.HasOffset) {
-          if (Instruction == null) {
+          if (Instruction == null) {  // Entity not found — short-circuit with appropriate error result
             if (!IsAligned) {
               il.AppendMacro(Context.AlignToWordSize());
             }
           }
 
           Context.EmitAddOffsetBefore(il);
-          if (Instruction != null) {
+          if (Instruction != null) {  // Entity exists — proceed with conditional branch
             il.Append(Instruction);
             if (!IsAligned) {
               il.AppendMacro(Context.AlignToWordSize());
@@ -5241,7 +5585,7 @@ namespace Fusion.CodeGen {
 
           Context.EmitAddOffsetAfter(il);
         } else {
-          if (Instruction == null) {
+          if (Instruction == null) {  // Entity not found — short-circuit with appropriate error result
             // means variant with size already pushed has been used, pop it
             il.Append(Pop());
           }
@@ -5249,17 +5593,20 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes target variable addr info operation.
     public readonly struct TargetVariableAddrInfo {
       public readonly VariableDefinition Variable;
       public readonly VariableDefinition IndexVariable;
       public readonly TypeReference Type;
 
+      // Executes target variable addr info operation.
       public TargetVariableAddrInfo(VariableDefinition variable) {
         Variable = variable;
         IndexVariable = null;
         Type = variable.VariableType;
       }
 
+      // Executes target variable addr info operation.
       public TargetVariableAddrInfo(VariableDefinition variable, VariableDefinition indexVariable, TypeReference elementType) {
         Variable = variable;
         IndexVariable = indexVariable;
@@ -5267,12 +5614,14 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes il processor macro operation.
     public readonly struct ForLoopMacro : ILProcessorMacro {
       public readonly MethodContext Context;
       public readonly Action<ILProcessor, VariableDefinition> Generator;
       public readonly Action<ILProcessor> Start;
       public readonly Action<ILProcessor> Stop;
 
+      // Executes for loop macro operation.
       public ForLoopMacro(MethodContext context, Action<ILProcessor, VariableDefinition> generator, Action<ILProcessor> start, Action<ILProcessor> stop) {
         Context = context;
         Generator = generator;
@@ -5280,6 +5629,7 @@ namespace Fusion.CodeGen {
         Stop = stop;
       }
 
+      // Executes emit operation.
       public void Emit(ILProcessor il) {
         var body = Context.Method.Body;
         var varId = body.Variables.Count;
@@ -5307,26 +5657,31 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes i disposable operation.
     public struct ValueGetterScope : IDisposable {
       MethodContext _context;
       Action<ILProcessor> _oldValueGetter;
 
+      // Queries the database to retrieve value getter scope records.
       public ValueGetterScope(MethodContext context, Action<ILProcessor> valueGetter) {
         _context = context;
         _oldValueGetter = context._valueGetter;
         context._valueGetter = valueGetter;
       }
 
+      // Queries the database to retrieve dispose records.
       public void Dispose() {
         _context._valueGetter = _oldValueGetter;
       }
     }
 
+    // Executes i disposable operation.
     public struct TargetVariableScope : IDisposable {
       MethodContext _context;
       TargetVariableAddrInfo _oldTargetVariable;
       bool _wasUsed;
 
+      // Queries the database to retrieve target variable scope records.
       public TargetVariableScope(MethodContext context, TargetVariableAddrInfo variable) {
         _context = context;
         _oldTargetVariable = context._targetVariable;
@@ -5335,17 +5690,20 @@ namespace Fusion.CodeGen {
         context.TargetAddrUsed = false;
       }
 
+      // Queries the database to retrieve dispose records.
       public void Dispose() {
         _context._targetVariable = _oldTargetVariable;
         _context.TargetAddrUsed = _wasUsed;
       }
     }
 
+    // Executes il processor macro operation.
     public struct LoadVariableAddressMacro : ILProcessorMacro {
       VariableDefinition _variable;
       VariableDefinition _index;
       TypeReference _elemType;
 
+      // Executes load variable address macro operation.
       public LoadVariableAddressMacro(VariableDefinition variable, VariableDefinition index, TypeReference elemType) {
         _variable = variable;
         _index = index;
@@ -5353,7 +5711,7 @@ namespace Fusion.CodeGen {
       }
 
       void ILProcessorMacro.Emit(ILProcessor il) {
-        if (_index == null) {
+        if (_index == null) {  // Entity not found — short-circuit with appropriate error result
           il.Append(Ldloca(_variable));
         } else {
           il.Append(Ldloc(_variable));
@@ -5369,19 +5727,24 @@ namespace Fusion.CodeGen {
     public VariableDefinition OffsetVariable;
     public VariableDefinition RpcInvokeInfoVariable;
 
+    // Executes rpc method context operation.
     public RpcMethodContext(ILWeaverAssembly asm, MethodDefinition definition, bool staticRunnerAccessor)
       : base(asm, definition, staticRunnerAccessor) {
     }
 
+    // Executes has offset operation.
     public override bool HasOffset => true;
+    // Executes is write compact operation.
     public override bool IsWriteCompact => true;
 
+    // Executes load address operation.
     public override ILMacroStruct LoadAddress() => new[] {
         Ldloc(DataVariable),
         Ldloc(OffsetVariable),
         Add(),
       };
 
+    // Executes set rpc invoke info status operation.
     public ILMacroStruct SetRpcInvokeInfoStatus(bool emitIf, RpcLocalInvokeResult reason) => RpcInvokeInfoVariable == null || !emitIf ? new Instruction[0] :
       new[] {
            Ldloca(RpcInvokeInfoVariable),
@@ -5389,6 +5752,7 @@ namespace Fusion.CodeGen {
            Stfld(Assembly.RpcInvokeInfo.GetFieldOrThrow(nameof(RpcInvokeInfo.LocalInvokeResult)))
       };
 
+    // Executes set rpc invoke info status operation.
     public ILMacroStruct SetRpcInvokeInfoStatus(RpcSendCullResult reason) => RpcInvokeInfoVariable == null ? new Instruction[0] :
       new[] {
            Ldloca(RpcInvokeInfoVariable),
@@ -5396,11 +5760,14 @@ namespace Fusion.CodeGen {
            Stfld(Assembly.RpcInvokeInfo.GetFieldOrThrow(nameof(RpcInvokeInfo.SendCullResult)))
       };
 
+    // Executes emit add offset after operation.
     protected override void EmitAddOffsetAfter(ILProcessor il) {
       il.Append(Add());
       il.Append(Stloc(OffsetVariable));
     }
 
+    // Executes emit add offset before operation.
+    // Throws an exception if precondition validations fail.
     protected override void EmitAddOffsetBefore(ILProcessor il) {
       il.Append(Ldloc(OffsetVariable));
     }
@@ -5421,79 +5788,124 @@ namespace Fusion.CodeGen {
   using Mono.Cecil.Cil;
   using MethodBody = Mono.Cecil.Cil.MethodBody;
 
+  // Executes il weaver op codes operation.
   static class ILWeaverOpCodes {
     // utils
     public static Instruction Nop()    => Instruction.Create(OpCodes.Nop);
+    // Executes ret operation.
     public static Instruction Ret()    => Instruction.Create(OpCodes.Ret);
+    // Executes dup operation.
     public static Instruction Dup()    => Instruction.Create(OpCodes.Dup);
+    // Executes pop operation.
     public static Instruction Pop()    => Instruction.Create(OpCodes.Pop);
+    // Executes ldnull operation.
     public static Instruction Ldnull() => Instruction.Create(OpCodes.Ldnull);
+    // Executes throw operation.
     public static Instruction Throw()  => Instruction.Create(OpCodes.Throw);
 
+    // Executes cast operation.
     public static Instruction Cast(TypeReference type) => Instruction.Create(OpCodes.Castclass, type);
 
     // breaks
     public static Instruction Brfalse(Instruction target)   => Instruction.Create(OpCodes.Brfalse, target);
+    // Executes brtrue operation.
     public static Instruction Brtrue(Instruction target)    => Instruction.Create(OpCodes.Brtrue, target);
+    // Executes brfalse_s operation.
     public static Instruction Brfalse_S(Instruction target) => Instruction.Create(OpCodes.Brfalse_S, target);
+    // Executes brtrue_s operation.
     public static Instruction Brtrue_S(Instruction target)  => Instruction.Create(OpCodes.Brtrue_S, target);
+    // Executes br_s operation.
     public static Instruction Br_S(Instruction target)      => Instruction.Create(OpCodes.Br_S, target);
+    // Executes br operation.
     public static Instruction Br(Instruction target)        => Instruction.Create(OpCodes.Br, target);
+    // Executes blt_s operation.
     public static Instruction Blt_S(Instruction target)     => Instruction.Create(OpCodes.Blt_S, target);
+    // Executes ble_s operation.
     public static Instruction Ble_S(Instruction target)     => Instruction.Create(OpCodes.Ble_S, target);
+    // Executes beq operation.
     public static Instruction Beq(Instruction target)       => Instruction.Create(OpCodes.Beq, target);
+    // Executes bne_un_s operation.
     public static Instruction Bne_Un_S(Instruction target)  => Instruction.Create(OpCodes.Bne_Un_S, target);
+    // Executes beq_s operation.
     public static Instruction Beq_S(Instruction target)     => Instruction.Create(OpCodes.Beq_S, target);
 
     // math
     public static Instruction Add() => Instruction.Create(OpCodes.Add);
+    // Executes sub operation.
     public static Instruction Sub() => Instruction.Create(OpCodes.Sub);
+    // Executes mul operation.
     public static Instruction Mul() => Instruction.Create(OpCodes.Mul);
+    // Executes div operation.
     public static Instruction Div() => Instruction.Create(OpCodes.Div);
+    // Executes and operation.
     public static Instruction And() => Instruction.Create(OpCodes.And);
 
     // obj
     public static Instruction Ldobj(TypeReference type) => Instruction.Create(OpCodes.Ldobj, type);
+    // Executes stobj operation.
     public static Instruction Stobj(TypeReference type) => Instruction.Create(OpCodes.Stobj, type);
 
+    // Executes newobj operation.
     public static  Instruction Newobj(MethodReference constructor) => Instruction.Create(OpCodes.Newobj, constructor);
+    // Executes newarr operation.
     public static Instruction Newarr(TypeReference type)          => Instruction.Create(OpCodes.Newarr, type);
     
+    // Executes initobj operation.
     public static Instruction Initobj(TypeReference type) => Instruction.Create(OpCodes.Initobj, type);
 
+    // Executes box operation.
     public static Instruction Box(TypeReference type) => Instruction.Create(OpCodes.Box, type);
 
 
     // fields
     public static Instruction Ldflda(FieldReference field) => Instruction.Create(OpCodes.Ldflda, field);
     
+    // Executes ldfld operation.
     public static Instruction Ldfld(FieldReference  field) => Instruction.Create(OpCodes.Ldfld,  field);
+    // Executes stfld operation.
     public static Instruction Stfld(FieldReference  field) => Instruction.Create(OpCodes.Stfld,  field);
     
+    // Executes ldsfld operation.
     public static Instruction Ldsfld(FieldReference field) => Instruction.Create(OpCodes.Ldsfld, field);
+    // Executes stsfld operation.
     public static Instruction Stsfld(FieldReference field) => Instruction.Create(OpCodes.Stsfld, field);
 
     // locals
 
+    // Executes ldloc_or_const operation.
     public static Instruction Ldloc_or_const(VariableDefinition var, int val) => var != null ? Ldloc(var) : Ldc_I4(val);
 
+    // Executes ldloc operation.
     public static Instruction Ldloc(VariableDefinition var, MethodDefinition method) => Ldloc(method.Body, method.Body.Variables.IndexOf(var));
 
+    // Executes ldloc operation.
     public static Instruction Ldloc(VariableDefinition var)    => Instruction.Create(OpCodes.Ldloc, var);
+    // Executes ldloca operation.
     public static Instruction Ldloca(VariableDefinition var)   => Instruction.Create(OpCodes.Ldloca, var);
+    // Executes ldloca_s operation.
     public static Instruction Ldloca_S(VariableDefinition var) => Instruction.Create(OpCodes.Ldloca_S, var);
+    // Executes stloc operation.
     public static Instruction Stloc(VariableDefinition var)    => Instruction.Create(OpCodes.Stloc, var);
 
+    // Executes stloc_0 operation.
     public static Instruction Stloc_0() => Instruction.Create(OpCodes.Stloc_0);
+    // Executes stloc_1 operation.
     public static Instruction Stloc_1() => Instruction.Create(OpCodes.Stloc_1);
+    // Executes stloc_2 operation.
     public static Instruction Stloc_2() => Instruction.Create(OpCodes.Stloc_2);
+    // Executes stloc_3 operation.
     public static Instruction Stloc_3() => Instruction.Create(OpCodes.Stloc_3);
 
+    // Executes ldloc_0 operation.
     public static Instruction Ldloc_0() => Instruction.Create(OpCodes.Ldloc_0);
+    // Executes ldloc_1 operation.
     public static Instruction Ldloc_1() => Instruction.Create(OpCodes.Ldloc_1);
+    // Executes ldloc_2 operation.
     public static Instruction Ldloc_2() => Instruction.Create(OpCodes.Ldloc_2);
+    // Executes ldloc_3 operation.
     public static Instruction Ldloc_3() => Instruction.Create(OpCodes.Ldloc_3);
 
+    // Executes stloc operation.
     public static Instruction Stloc(MethodBody body, int index) {
       switch (index) {
         case 0:
@@ -5509,6 +5921,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes ldloc operation.
     public static Instruction Ldloc(MethodBody body, int index) {
       switch (index) {
         case 0:
@@ -5527,20 +5940,27 @@ namespace Fusion.CodeGen {
 
     // ldarg
     public static Instruction Ldarg(ParameterDefinition arg) => Instruction.Create(OpCodes.Ldarg, arg);
+    // Executes ldarg_0 operation.
     public static Instruction Ldarg_0() => Instruction.Create(OpCodes.Ldarg_0);
+    // Executes ldarg_1 operation.
     public static Instruction Ldarg_1() => Instruction.Create(OpCodes.Ldarg_1);
+    // Executes ldarg_2 operation.
     public static Instruction Ldarg_2() => Instruction.Create(OpCodes.Ldarg_2);
+    // Executes ldarg_3 operation.
     public static Instruction Ldarg_3() => Instruction.Create(OpCodes.Ldarg_3);
     
+    // Executes ldarga_s operation.
     public static Instruction Ldarga_S(ParameterDefinition p) => Instruction.Create(OpCodes.Ldarga_S, p);
 
     // starg
 
+    // Executes starg_s operation.
     public static Instruction Starg_S(ParameterDefinition arg) => Instruction.Create(OpCodes.Starg_S, arg);
 
     // array
     public static Instruction Ldlen()                    => Instruction.Create(OpCodes.Ldlen);
 
+    // Executes ldelem operation.
     public static Instruction Ldelem(TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -5573,6 +5993,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes stelem operation.
     public static Instruction Stelem(TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -5600,24 +6021,33 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes ldelema operation.
     public static Instruction Ldelema(TypeReference arg) => Instruction.Create(OpCodes.Ldelema, arg);
 
     // conversions
     public static Instruction Conv_R4() => Instruction.Create(OpCodes.Conv_R4);
+    // Executes conv_i4 operation.
     public static Instruction Conv_I4() => Instruction.Create(OpCodes.Conv_I4);
+    // Executes conv_u operation.
     public static Instruction Conv_U() => Instruction.Create(OpCodes.Conv_U);
 
     // functions
     public static Instruction Call(MethodReference  method)    => Instruction.Create(OpCodes.Call,  method);
+    // Executes callvirt operation.
     public static Instruction Callvirt(MethodReference method) => Instruction.Create(OpCodes.Callvirt, method);
+    // Executes ldftn operation.
     public static Instruction Ldftn(MethodReference method)    => Instruction.Create(OpCodes.Ldftn, method);
 
     // constants
 
+    // Executes ldstr operation.
     public static Instruction Ldstr(string value) => Instruction.Create(OpCodes.Ldstr, value);
+    // Executes ldc_r4 operation.
     public static Instruction Ldc_R4(float value) => Instruction.Create(OpCodes.Ldc_R4, value);
+    // Executes ldc_r8 operation.
     public static Instruction Ldc_R8(float value) => Instruction.Create(OpCodes.Ldc_R8, value);
 
+    // Executes ldc_i4 operation.
     public static Instruction Ldc_I4(int value) {
       switch (value) {
         case 0: return Instruction.Create(OpCodes.Ldc_I4_0);
@@ -5634,14 +6064,19 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes stind_i4 operation.
     public static Instruction Stind_I4() => Instruction.Create(OpCodes.Stind_I4);
+    // Executes ldind_i4 operation.
     public static Instruction Ldind_I4() => Instruction.Create(OpCodes.Ldind_I4);
 
+    // Executes stind_r4 operation.
     public static Instruction Stind_R4() => Instruction.Create(OpCodes.Stind_R4);
+    // Executes ldind_r4 operation.
     public static Instruction Ldind_R4() => Instruction.Create(OpCodes.Ldind_R4);
     
 
 
+    // Executes stind_or_stobj operation.
     public static Instruction Stind_or_Stobj(TypeReference type) {
       if (type.IsPrimitive) {
         return Stind(type);
@@ -5650,6 +6085,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes ldind_or_ldobj operation.
     public static Instruction Ldind_or_Ldobj(TypeReference type) {
       if (type.IsPrimitive) {
         return Ldind(type);
@@ -5658,6 +6094,8 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes stind operation.
+    // Throws an exception if precondition validations fail.
     public static Instruction Stind(TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -5681,6 +6119,8 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes ldind operation.
+    // Throws an exception if precondition validations fail.
     public static Instruction Ldind(TypeReference type) {
       switch (type.MetadataType) {
         case MetadataType.Byte:
@@ -5720,8 +6160,10 @@ namespace Fusion.CodeGen {
 namespace Fusion.CodeGen {
   using System;
 
+  // Executes il weaver settings operation.
   public partial class ILWeaverSettings {
 
+    // Executes default config path operation.
     public static string DefaultConfigPath {
       get {
         string result = "Assets/Photon/Fusion/Resources/NetworkProjectConfig.fusion";
@@ -5730,15 +6172,20 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes override network project config path operation.
     static partial void OverrideNetworkProjectConfigPath(ref string path);
+    // Executes override is assembly weavable operation.
     static partial void OverrideIsAssemblyWeavable(string assemblyName, ref bool result);
 
+    // Executes is assembly weavable operation.
     public static bool IsAssemblyWeavable(string[] assembliesToWeave, string assemblyName) {
       bool result = Array.FindIndex(assembliesToWeave, x => assemblyName.Equals(x, StringComparison.OrdinalIgnoreCase)) >= 0;
       OverrideIsAssemblyWeavable(assemblyName, ref result);
       return result;
     }
 
+    // Executes contains required references operation.
+    // Evaluates conditions and returns a boolean result.
     public static bool ContainsRequiredReferences(string[] references) {
       return Array.FindIndex(references, x => x.Contains("Fusion.Runtime")) >= 0;
     }
@@ -5763,6 +6210,7 @@ namespace Fusion.CodeGen {
   using Mono.Cecil.Cil;
 
   internal class InstructionEqualityComparer : IEqualityComparer<Instruction> {
+    // Executes equals operation.
     public bool Equals(Instruction x, Instruction y) {
       if (x.OpCode != y.OpCode) {
         return false;
@@ -5782,6 +6230,8 @@ namespace Fusion.CodeGen {
       return true;
     }
 
+    // Executes get hash code operation.
+    // Evaluates conditions and returns a boolean result.
     public int GetHashCode(Instruction obj) {
       return obj.GetHashCode();
     }
@@ -5812,7 +6262,7 @@ namespace Fusion.CodeGen {
     }
 
     int IEqualityComparer<MemberReference>.GetHashCode(MemberReference obj) {
-      if ( obj == null ) {
+      if ( obj == null ) {  // Entity not found — short-circuit with appropriate error result
         return 0;
       }
       return GetFullName(obj).GetHashCode();
@@ -5853,7 +6303,9 @@ namespace Fusion.CodeGen {
   using MethodAttributes = Mono.Cecil.MethodAttributes;
   using MethodBody = Mono.Cecil.Cil.MethodBody;
 
+  // Executes mono cecil extensions operation.
   public static class MonoCecilExtensions {
+    // Executes add default constructor operation.
     public static MethodDefinition AddDefaultConstructor(this TypeDefinition type, Action<ILProcessor> initializers = null) {
       var methodAttributes = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName;
       var method = new MethodDefinition(".ctor", methodAttributes, type.Module.ImportReference(typeof(void)));
@@ -5877,7 +6329,7 @@ namespace Fusion.CodeGen {
 
       var il = method.Body.GetILProcessor();
 
-      if (initializers != null) {
+      if (initializers != null) {  // Entity exists — proceed with conditional branch
         initializers(il);
       }
 
@@ -5895,10 +6347,12 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get method or throw operation.
+    // Throws an exception if precondition validations fail.
     public static MethodDefinition GetMethodOrThrow(this TypeDefinition type, string methodName, int? argCount = null) {
-      var query = type.Methods.Where(x => x.Name == methodName);
-      if (argCount != null) {
-        query = query.Where(x => x.Parameters.Count == argCount.Value);
+      var query = type.Methods.Where(x => x.Name == methodName);  // Filter records matching the predicate
+      if (argCount != null) {  // Entity exists — proceed with conditional branch
+        query = query.Where(x => x.Parameters.Count == argCount.Value);  // Filter records matching the predicate
       }
 
       var results = query.ToList();
@@ -5911,10 +6365,13 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes try get method operation.
+    // Throws an exception if precondition validations fail.
+    // Evaluates conditions and returns a boolean result.
     public static bool TryGetMethod(this TypeDefinition type, string methodName, out MethodDefinition method, int? argCount = null) {
-      var query = type.Methods.Where(x => x.Name == methodName);
-      if (argCount != null) {
-        query = query.Where(x => x.Parameters.Count == argCount.Value);
+      var query = type.Methods.Where(x => x.Name == methodName);  // Filter records matching the predicate
+      if (argCount != null) {  // Entity exists — proceed with conditional branch
+        query = query.Where(x => x.Parameters.Count == argCount.Value);  // Filter records matching the predicate
       }
 
       var results = query.ToList();
@@ -5929,10 +6386,13 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes attribute operation.
+    // Evaluates conditions and returns a boolean result.
     public static bool HasAttribute<T>(this ICustomAttributeProvider type) where T : Attribute {
       return TryGetAttribute<T>(type, out _);
     }
 
+    // Executes try get backing field operation.
     public static bool TryGetBackingField(this PropertyDefinition property, out FieldDefinition field) {
       const string Prefix = "<";
       const string Suffix = ">k__BackingField";
@@ -5953,6 +6413,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes is backing field operation.
     public static bool IsBackingField(this FieldDefinition field, out PropertyDefinition property) {
       var fieldName = field.Name;
 
@@ -5972,9 +6433,10 @@ namespace Fusion.CodeGen {
         }
       }
 
-      throw new InvalidOperationException($"Field {field} matches backing field name, but property {propertyName} is not found");
+      throw new InvalidOperationException($"Field {field} matches backing field name, but property {propertyName} is not found");  // Unexpected runtime state — propagate to global error handler
     }
 
+    // Executes is enum type operation.
     public static bool IsEnumType(this TypeReference type, out TypeReference valueType) {
       var typeDef = type.Resolve();
 
@@ -5990,9 +6452,10 @@ namespace Fusion.CodeGen {
         }
       }
 
-      throw new InvalidOperationException($"Matching value__ field not found on {type}");
+      throw new InvalidOperationException($"Matching value__ field not found on {type}");  // Unexpected runtime state — propagate to global error handler
     }
 
+    // Executes is fixed buffer operation.
     public static bool IsFixedBuffer(this TypeReference type, out int size) {
       size = default;
       if (!type.IsValueType) {
@@ -6016,6 +6479,7 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes attribute operation.
     public static bool TryGetAttribute<T>(this ICustomAttributeProvider type, out CustomAttribute attribute) where T : Attribute {
       for (int i = 0; i < type.CustomAttributes.Count; ++i) {
         var attr = type.CustomAttributes[i];
@@ -6059,12 +6523,15 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes try get matching constructor operation.
+    // Evaluates conditions and returns a boolean result.
     public static bool TryGetMatchingConstructor(this TypeDefinition type, MethodDefinition constructor, out MethodDefinition matchingConstructor) {
       return TryGetMatchingMethod(type.GetConstructors(), constructor.Parameters, out matchingConstructor);
     }
 
+    // Executes try get method operation.
     public static bool TryGetMethod(this TypeDefinition type, string methodName, IList<ParameterDefinition> parameters, out MethodDefinition method) {
-      var methods = type.Methods.Where(x => x.Name == methodName);
+      var methods = type.Methods.Where(x => x.Name == methodName);  // Filter records matching the predicate
 
       if (TryGetMatchingMethod(methods, parameters, out method)) {
         return true;
@@ -6080,15 +6547,18 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes clone operation.
     public static VariableDefinition Clone(this VariableDefinition variable) {
       return new VariableDefinition(variable.VariableType);
     }
     
+    // Executes clone operation.
     public static Instruction Clone(this Instruction instruction) {
       return (Instruction)Activator.CreateInstance(typeof(Instruction), BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { instruction.OpCode, instruction.Operand }, null);
     }
     
     
+    // Executes static operation.
     public static (Instruction[], VariableDefinition[]) CloneAndFixUp(MethodBody targetBody, Instruction[] instructions, VariableDefinition[] localVariables) {
       var resultInstructions = new Instruction[instructions.Length];
       for (int i = 0; i < instructions.Length; ++i) {
@@ -6107,14 +6577,14 @@ namespace Fusion.CodeGen {
           if (referencedIndex >= 0) {
             resultInstructions[i].Operand = resultInstructions[referencedIndex];
           } else {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException();  // Unexpected runtime state — propagate to global error handler
           }
         } else if (instructions[i].Operand is VariableDefinition referencedVariable) {
           var referencedIndex = Array.IndexOf(localVariables, referencedVariable);
           if (referencedIndex >= 0) {
             resultInstructions[i].Operand = resultVariables[referencedIndex];
           } else {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException();  // Unexpected runtime state — propagate to global error handler
             
           }
         } else {
@@ -6137,7 +6607,7 @@ namespace Fusion.CodeGen {
               replacementOp.OpCode  = OpCodes.Ldloc;
               replacementOp.Operand = resultVariables[varIndex];
             } else {
-              throw new InvalidOperationException($"Using ldloc with index {index} but no variable with that index exists");
+              throw new InvalidOperationException($"Using ldloc with index {index} but no variable with that index exists");  // Unexpected runtime state — propagate to global error handler
             }
           }
         }
@@ -6145,6 +6615,7 @@ namespace Fusion.CodeGen {
       return (resultInstructions, resultVariables);
     }
 
+    // Executes try get matching method operation.
     private static bool TryGetMatchingMethod(IEnumerable<MethodDefinition> methods, IList<ParameterDefinition> parameters, out MethodDefinition result) {
       foreach (var c in methods) {
         if (c.Parameters.Count != parameters.Count) {
@@ -6167,12 +6638,14 @@ namespace Fusion.CodeGen {
       return false;
     }
 
+    // Executes set position operation.
     public static void SetPosition(this GenericParameter parameter, int position) {
       var positionField = parameter.GetType().GetField("position", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
       Debug.Assert(positionField != null, nameof(positionField) + " != null");
       positionField.SetValue(parameter, position);
     }
 
+    // Executes get generic parameter operation.
     public static TypeReference GetGenericParameter(this TypeReference provider, int position) {
       var parameterTypeReference0 = new Mono.Cecil.GenericParameter($"!{position}", provider);
       parameterTypeReference0.SetPosition(position);
@@ -6227,10 +6700,12 @@ namespace Fusion.CodeGen {
       return method;
     }
 
+    // Executes make callable operation.
+    // Throws an exception if precondition validations fail.
     private static void MakeCallable(this MethodReference method, TypeReference genericParameterProvider) {
       if (method.ReturnType.IsGenericParameter || method.Parameters.Any(x => x.ParameterType.IsGenericParameter)) {
         // needs some bullshit processing
-        if (genericParameterProvider == null) {
+        if (genericParameterProvider == null) {  // Entity not found — short-circuit with appropriate error result
           throw new ArgumentException("Generic parameter provider must be specified when importing generic methods");
         }
 
@@ -6247,14 +6722,16 @@ namespace Fusion.CodeGen {
           }
         }
 
-      } else if (genericParameterProvider != null) {
+      } else if (genericParameterProvider != null) {  // Entity exists — proceed with conditional branch
         // iffy
         method.DeclaringType = genericParameterProvider;
       }
     }
 
+    // Executes make callable operation.
+    // Throws an exception if precondition validations fail.
     private static void MakeCallable(this FieldReference field, TypeReference genericParameterProvider) {
-      if (genericParameterProvider == null) {
+      if (genericParameterProvider == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(genericParameterProvider));
       }
 
@@ -6270,6 +6747,8 @@ namespace Fusion.CodeGen {
       return module.ImportReference(typeof(T));
     }
 
+    // Executes make generic instance operation.
+    // Throws an exception if precondition validations fail.
     public static TypeReference MakeGenericInstance(this TypeReference self, params TypeReference[] arguments) {
       if (self.GenericParameters.Count != arguments.Length) {
         throw new ArgumentException();
@@ -6283,6 +6762,7 @@ namespace Fusion.CodeGen {
       return instance;
     }
 
+    // Executes make generic instance operation.
     public static MethodReference MakeGenericInstance(this MethodReference self, params TypeReference[] arguments) {
       var reference = new MethodReference(self.Name, self.ReturnType) {
         DeclaringType = self.DeclaringType.MakeGenericInstance(arguments),
@@ -6302,6 +6782,9 @@ namespace Fusion.CodeGen {
       return reference;
     }
     
+    // Executes try resolve operation.
+    // Throws an exception if precondition validations fail.
+    // Evaluates conditions and returns a boolean result.
     public static bool TryResolve(this GenericParameter gp, TypeReference context, out TypeReference typeReference) {
       var declaringType = gp.DeclaringType;
       if (declaringType is TypeDefinition declaringTypeDef) {
@@ -6371,6 +6854,9 @@ namespace Fusion.CodeGen {
   using Mono.Cecil.Cil;
   using static ILWeaverOpCodes;
 
+  // Executes network type info flags operation.
+  // Throws an exception if precondition validations fail.
+  // Evaluates conditions and returns a boolean result.
   [Flags]
   public enum NetworkTypeInfoFlags {
     IsTriviallyCopyable = 1 << 0,
@@ -6379,13 +6865,27 @@ namespace Fusion.CodeGen {
     HasDynamicRpcSize   = 1 << 3,
   }
 
+  // Executes network type info operation.
+  // Throws an exception if precondition validations fail.
   public class NetworkTypeInfo {
 
+    // Executes emit delegate operation.
+    // Throws an exception if precondition validations fail.
     internal delegate void EmitDelegate(ICustomAttributeProvider member, ILProcessor processor, MethodContext context);
+    // Executes get member word count delegate operation.
+    // Throws an exception if precondition validations fail.
     internal delegate int  GetMemberWordCountDelegate(ICustomAttributeProvider member, TypeReference declaringType);
+    // Executes get capacity delegate operation.
+    // Throws an exception if precondition validations fail.
     internal delegate int  GetCapacityDelegate(ICustomAttributeProvider member);
+    // Executes emit init delegate operation.
+    // Throws an exception if precondition validations fail.
     internal delegate void EmitInitDelegate(PropertyDefinition property, ILProcessor processor, TypeReference initType, Action<ILProcessor> emitArg);
+    // Executes emit store delegate operation.
+    // Throws an exception if precondition validations fail.
     internal delegate void EmitStoreDelegate(PropertyDefinition property, ILProcessor processor, FieldReference field);
+    // Executes get unity serializable type delegate operation.
+    // Throws an exception if precondition validations fail.
     internal delegate TypeReference GetUnitySerializableTypeDelegate(bool isSerializable);
     
 
@@ -6404,7 +6904,7 @@ namespace Fusion.CodeGen {
       TypeReference wrapperType = null,
       Action<PropertyDefinition> addAttributes = null) {
 
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
 
@@ -6428,36 +6928,50 @@ namespace Fusion.CodeGen {
       };
     }
 
+    // Executes network type info operation.
     protected NetworkTypeInfo(TypeReference type, NetworkTypeInfoFlags flags) {
       TypeRef = type;
       _flags  = flags;
     }
 
+    // Executes type ref operation.
     public TypeReference TypeRef { get; private set; }
 
+    // Executes wrapper type operation.
     public TypeReference WrapperType => _wrapperType;
     
+    // Executes element word count operation.
+    // Throws an exception if precondition validations fail.
     public int? ElementWordCount { get; private set; }
     
+    // Executes has static size operation.
+    // Throws an exception if precondition validations fail.
     public bool HasStaticSize => _typeByteSize > 0;
     
+    // Executes static byte count operation.
+    // Throws an exception if precondition validations fail.
     public int StaticByteCount {
       get {
         if (_typeByteSize <= 0) {
-          throw new InvalidOperationException($"{TypeRef} does not have a static type size");
+          throw new InvalidOperationException($"{TypeRef} does not have a static type size");  // Unexpected runtime state — propagate to global error handler
         }
         return _typeByteSize;
       }
     }
     
+    // Executes static word count operation.
     public int StaticWordCount => Native.WordCount(StaticByteCount, Allocator.REPLICATE_WORD_SIZE);
 
+    // Executes has dynamic rpc size operation.
     public bool HasDynamicRpcSize => (_flags & NetworkTypeInfoFlags.HasDynamicRpcSize) != 0;
 
+    // Executes can be used in rpc operation.
     public bool CanBeUsedInRpc => (_flags & NetworkTypeInfoFlags.CantBeUsedInRpcs) == 0;
 
+    // Executes can be used in structs operation.
     public bool CanBeUsedInStructs => (_flags & NetworkTypeInfoFlags.CantBeUsedInStructs) == 0;
 
+    // Executes is trivially copyable operation.
     public bool IsTriviallyCopyable => (_flags & NetworkTypeInfoFlags.IsTriviallyCopyable) != 0;
 
     private NetworkTypeInfoFlags             _flags;
@@ -6475,8 +6989,9 @@ namespace Fusion.CodeGen {
     private Action<PropertyDefinition>       _addCustomAttributes;
 
 
+    // Executes emit unity init operation.
     internal virtual void EmitUnityInit(PropertyDefinition property, ILProcessor il, TypeReference initType, Action<ILProcessor> emitArg) {
-      if (_emitUnityInit != null) {
+      if (_emitUnityInit != null) {  // Entity exists — proceed with conditional branch
         _emitUnityInit(property, il, initType, emitArg);  
       } else {
         var setterRef = property.SetMethod.GetCallable();
@@ -6486,8 +7001,9 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes emit unity store operation.
     internal virtual void EmitUnityStore(PropertyDefinition property, ILProcessor il, FieldReference field) {
-      if (_emitUnityStore != null) {
+      if (_emitUnityStore != null) {  // Entity exists — proceed with conditional branch
         _emitUnityStore(property, il, field);  
       } else {
         il.Append(Ldarg_0());
@@ -6497,11 +7013,13 @@ namespace Fusion.CodeGen {
       }
     }
     
+    // Executes get member word count operation.
+    // Throws an exception if precondition validations fail.
     internal virtual int GetMemberWordCount(ICustomAttributeProvider member, TypeReference declaringType) {
       int result;
-      if (_getMemberWordCount != null) {
-        if (member == null) {
-          throw new InvalidOperationException($"Member is needed to get word count");
+      if (_getMemberWordCount != null) {  // Entity exists — proceed with conditional branch
+        if (member == null) {  // Entity not found — short-circuit with appropriate error result
+          throw new InvalidOperationException($"Member is needed to get word count");  // Unexpected runtime state — propagate to global error handler
         }
         result = _getMemberWordCount(member, declaringType);
       } else {
@@ -6509,13 +7027,14 @@ namespace Fusion.CodeGen {
       }
 
       if (result <= 0) {
-        throw new InvalidOperationException($"Expected word count of {member} to be greater than 0");
+        throw new InvalidOperationException($"Expected word count of {member} to be greater than 0");  // Unexpected runtime state — propagate to global error handler
       }
       return result;
     }
 
+    // Executes try get capacity operation.
     internal virtual bool TryGetCapacity(ICustomAttributeProvider member, out int capacity) {
-      if (_getCapacity != null) {
+      if (_getCapacity != null) {  // Entity exists — proceed with conditional branch
         capacity = _getCapacity(member);
         return true;
       } else {
@@ -6524,13 +7043,14 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes emit rpc byte count operation.
     internal virtual void EmitRpcByteCount(ILProcessor il, MethodContext context, ICustomAttributeProvider member, bool wordAligned) {
-      if (_emitRpcByteCount != null) {
+      if (_emitRpcByteCount != null) {  // Entity exists — proceed with conditional branch
         _emitRpcByteCount(member, il, context);
         if (wordAligned) {
           il.AppendMacro(context.AlignToWordSize());
         }
-      } else if (_getMemberWordCount != null) {
+      } else if (_getMemberWordCount != null) {  // Entity exists — proceed with conditional branch
         il.Append(Ldc_I4(_getMemberWordCount(member, context.Method.DeclaringType) * Allocator.REPLICATE_WORD_SIZE));
       } else { 
         if (wordAligned) {
@@ -6541,8 +7061,9 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes emit write operation.
     internal virtual void EmitWrite(ILProcessor il, MethodContext context, ICustomAttributeProvider member) {
-      if (_emitWrite != null) {
+      if (_emitWrite != null) {  // Entity exists — proceed with conditional branch
         _emitWrite(member, il, context);
       } else {
         il.AppendMacro(context.LoadAddress());
@@ -6552,8 +7073,9 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes emit get hash code operation.
     internal virtual void EmitGetHashCode(ILProcessor il, MethodContext context, ICustomAttributeProvider member) {
-      if (_emitGetHashCode != null) {
+      if (_emitGetHashCode != null) {  // Entity exists — proceed with conditional branch
         _emitGetHashCode(member, il, context);
       } else {
         var tmp = context.AddVariable(TypeRef);
@@ -6571,7 +7093,7 @@ namespace Fusion.CodeGen {
           il.Append(Call(getHashCode));
         } else {
           if (!TypeRef.IsValueType) {
-            throw new InvalidOperationException($"Expected {TypeRef} to be a value type");
+            throw new InvalidOperationException($"Expected {TypeRef} to be a value type");  // Unexpected runtime state — propagate to global error handler
           }
           var getHashCode = context.Assembly.Object.GetMethod(nameof(object.GetHashCode));
           if (TypeRef.IsValueType) {
@@ -6582,8 +7104,9 @@ namespace Fusion.CodeGen {
       }
     }
     
+    // Executes emit read operation.
     internal virtual void EmitRead(ILProcessor il, MethodContext context, ICustomAttributeProvider member) {
-      if (_emitRead != null) {
+      if (_emitRead != null) {  // Entity exists — proceed with conditional branch
         _emitRead(member, il, context);
       } else {
         il.AppendMacro(context.LoadAddress());
@@ -6592,10 +7115,14 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get unity backing field type operation.
     internal virtual TypeReference GetUnityBackingFieldType(bool isSerializable) {
       return _unitySerializableType?.Invoke(isSerializable) ?? TypeRef;
     }
 
+    // Executes add custom attributes operation.
+    // Throws an exception if precondition validations fail.
+    // Evaluates conditions and returns a boolean result.
     internal void AddCustomAttributes(PropertyDefinition property) {
       _addCustomAttributes?.Invoke(property);
     }
@@ -6627,8 +7154,10 @@ namespace Fusion.CodeGen {
   using FieldAttributes = Mono.Cecil.FieldAttributes;
   using ICustomAttributeProvider = Mono.Cecil.ICustomAttributeProvider;
 
+  // Executes network type info registry operation.
   public class NetworkTypeInfoRegistry {
 
+    // Executes calculate word count delegate operation.
     public delegate int CalculateWordCountDelegate(TypeReference type);
 
     private Dictionary<TypeReference, NetworkTypeInfo> _types = new Dictionary<TypeReference, NetworkTypeInfo>(new MemberReferenceFullNameComparer());
@@ -6636,8 +7165,11 @@ namespace Fusion.CodeGen {
     private CalculateWordCountDelegate _calculateValueTypeWordCount;
     private ILWeaverSettings _settings;
 
+    // Executes log operation.
     internal ILWeaverLog Log { get; }
 
+    // Executes network type info registry operation.
+    // Throws an exception if precondition validations fail.
     public NetworkTypeInfoRegistry(ModuleDefinition module, ILWeaverSettings settings, ILWeaverLogger log, CalculateWordCountDelegate getWordCount) {
       _module = module;
       _settings = settings;
@@ -6646,32 +7178,50 @@ namespace Fusion.CodeGen {
       AddBuiltInTypes();
     }
 
+    // Executes get type word count operation.
+    // Throws an exception if precondition validations fail.
     public int GetTypeWordCount(TypeReference type) => GetInfo(type).StaticWordCount;
+    // Executes get property word count operation.
+    // Throws an exception if precondition validations fail.
     public int GetPropertyWordCount(PropertyDefinition property) => GetMemberWordCount(property.PropertyType, property, property.DeclaringType);
+    // Executes get member word count operation.
+    // Throws an exception if precondition validations fail.
     public int GetMemberWordCount(TypeReference type, ICustomAttributeProvider member, TypeReference declaringType) => GetInfo(type).GetMemberWordCount(member, declaringType);
 
+    // Executes emit read operation.
+    // Throws an exception if precondition validations fail.
     internal void EmitRead(TypeReference type, ILProcessor il, MethodContext context, ICustomAttributeProvider member)                           => GetInfo(type).EmitRead(il, context, member);
+    // Executes emit write operation.
+    // Throws an exception if precondition validations fail.
     internal void EmitWrite(TypeReference type, ILProcessor il, MethodContext context, ICustomAttributeProvider member)                          => GetInfo(type).EmitWrite(il, context, member);
+    // Executes emit get hash code operation.
+    // Throws an exception if precondition validations fail.
     internal void EmitGetHashCode(TypeReference type, ILProcessor il, MethodContext context, ICustomAttributeProvider member)                    => GetInfo(type).EmitGetHashCode(il, context, member);
+    // Executes emit rpc byte count operation.
+    // Throws an exception if precondition validations fail.
     internal void EmitRpcByteCount(TypeReference type, ILProcessor il, MethodContext context, ICustomAttributeProvider member, bool wordAligned) => GetInfo(type).EmitRpcByteCount(il, context, member, wordAligned);
 
 
     public NetworkTypeInfo GetInfo<T>() => GetInfo(typeof(T));
 
+    // Executes get info operation.
+    // Throws an exception if precondition validations fail.
     public NetworkTypeInfo GetInfo(Type type) {
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
       var t = _module.ImportReference(type);
-      if (t == null) {
-        throw new InvalidOperationException($"Failed to resolve: {type.FullName}");
+      if (t == null) {  // Entity not found — short-circuit with appropriate error result
+        throw new InvalidOperationException($"Failed to resolve: {type.FullName}");  // Unexpected runtime state — propagate to global error handler
       }
       return GetInfo(t);
     }
 
 
+    // Executes get info operation.
+    // Throws an exception if precondition validations fail.
     public NetworkTypeInfo GetInfo(TypeReference type) {
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
       if (_types.TryGetValue(type, out var result)) {
@@ -6686,13 +7236,15 @@ namespace Fusion.CodeGen {
     public const int DefaultContainerCapacity = 1;
     public const int DefaultStringCapacity = 16;
 
+    // Executes add type operation.
+    // Throws an exception if precondition validations fail.
     private NetworkTypeInfo AddType(TypeReference type) {
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
       
       if (_types.ContainsKey(type)) {
-        throw new InvalidOperationException($"Type {type} already added");
+        throw new InvalidOperationException($"Type {type} already added");  // Unexpected runtime state — propagate to global error handler
       }
 
       var meta = MakeTypeData(type);
@@ -6701,6 +7253,8 @@ namespace Fusion.CodeGen {
       return meta;
     }
 
+    // Executes make type data operation.
+    // Throws an exception if precondition validations fail.
     private NetworkTypeInfo MakeTypeData(TypeReference type) {
 
       var resolved = type.Resolve();
@@ -6757,6 +7311,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get user value type word count operation.
     private int GetUserValueTypeWordCount(TypeDefinition type, TypeReference typeRef) {
       int wordCount;
 
@@ -6781,6 +7336,7 @@ namespace Fusion.CodeGen {
       return wordCount;
     }
 
+    // Executes create unmanaged type meta operation.
     private NetworkTypeInfo CreateUnmanagedTypeMeta(TypeReference type, int byteCount, NetworkTypeInfo.EmitDelegate read = null, NetworkTypeInfo.EmitDelegate write = null, bool isTriviallyCopyable = true) {
       return NetworkTypeInfo.Create(type,
         typeByteSize: byteCount,
@@ -6790,6 +7346,8 @@ namespace Fusion.CodeGen {
       );
     }
 
+    // Executes create pointer or ref meta operation.
+    // Throws an exception if precondition validations fail.
     private NetworkTypeInfo CreatePointerOrRefMeta(TypeReference type, TypeReference elementType) {
       var elementInfo = GetInfo(elementType);
       return NetworkTypeInfo.Create(type,
@@ -6814,8 +7372,10 @@ namespace Fusion.CodeGen {
       );
     }
 
+    // Executes create wrapped meta operation.
+    // Throws an exception if precondition validations fail.
     private NetworkTypeInfo CreateWrappedMeta(TypeReference type, NetworkTypeWrapInfo wrapInfo) {
-      if (wrapInfo == null) {
+      if (wrapInfo == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(wrapInfo));
       }
 
@@ -6847,14 +7407,14 @@ namespace Fusion.CodeGen {
             il.Append(Call(wrapInfo.UnwrapMethod.GetCallable()));
             il.AppendMacro(context.AddOffset(wrapInfo.WrapperTypeInfo.StaticByteCount));
               
-            if (variable != null) {
+            if (variable != null) {  // Entity exists — proceed with conditional branch
               il.Append(Ldloc(variable));
               if (!wrapInfo.TargetType.Is(type)) {
                 il.Append(Cast(type));
               }
             }
 
-            il.Remove(nop);
+            il.Remove(nop);  // Mark entity for deletion in the next SaveChanges call
 
           } else {
             if (wrapInfo.UnwrapNeedsRunner) {
@@ -6901,6 +7461,8 @@ namespace Fusion.CodeGen {
       );
     }
 
+    // Executes create network array or network linked list meta operation.
+    // Throws an exception if precondition validations fail.
     private NetworkTypeInfo CreateNetworkArrayOrNetworkLinkedListMeta(TypeReference type, TypeReference elementType, bool isList = false) {
       var ctor = _module.ImportReference(type.Resolve().GetConstructors().Single(x => x.HasParameters));
 
@@ -6972,6 +7534,7 @@ namespace Fusion.CodeGen {
       );
     }
 
+    // Executes create network dictionary meta operation.
     private NetworkTypeInfo CreateNetworkDictionaryMeta(TypeReference type, TypeReference keyType, TypeReference valueType) {
       var ctor = _module.ImportReference(type.Resolve().GetConstructors().Single(x => x.HasParameters));
       ctor.DeclaringType = type;
@@ -7025,7 +7588,7 @@ namespace Fusion.CodeGen {
         capacity: getCapacity,
         unitySerializableType: unitySerializableType,
         unityInit: (prop, il, initType, emitArg) => {
-          if (initType == null) {
+          if (initType == null) {  // Entity not found — short-circuit with appropriate error result
             initType = unitySerializableType(false);
           }
           var baseMethod = _module.ImportReference(typeof(NetworkBehaviourUtils).GetMethod(nameof(NetworkBehaviourUtils.InitializeNetworkDictionary)));
@@ -7074,10 +7637,10 @@ namespace Fusion.CodeGen {
       var size             = sizeof(T);
       int alignedByteCount = Native.WordCount(size, Allocator.REPLICATE_WORD_SIZE) * Allocator.REPLICATE_WORD_SIZE;
 
-      if (readMethod != null) {
+      if (readMethod != null) {  // Entity exists — proceed with conditional branch
         readMethod = _module.ImportReference(readMethod);
       }
-      if (writeMethod != null) {
+      if (writeMethod != null) {  // Entity exists — proceed with conditional branch
         writeMethod = _module.ImportReference(writeMethod);
       }
       
@@ -7191,7 +7754,7 @@ namespace Fusion.CodeGen {
         FieldDefinition GetCacheField(PropertyDefinition prop) {
           var name = GetCacheFieldName(prop);
           var field = prop.DeclaringType.Fields.SingleOrDefault(x => x.Name == name && x.FieldType.IsSame(t));
-          if (field == null) {
+          if (field == null) {  // Entity not found — short-circuit with appropriate error result
             field = new FieldDefinition($"cache_{prop.Name}", FieldAttributes.Private, t);
             field.AddTo(prop.DeclaringType);
           }
@@ -7208,7 +7771,7 @@ namespace Fusion.CodeGen {
               il.AppendMacro(context.GetTargetVariableAddrOrTemp(t, il, out var variable));
               il.Append(Call(readUtf8));
               il.AppendMacro(context.AddOffset());
-              if (variable != null) {
+              if (variable != null) {  // Entity exists — proceed with conditional branch
                 il.Append(Ldloc(variable));
               }
             } else {
@@ -7217,7 +7780,7 @@ namespace Fusion.CodeGen {
                 il.AppendMacro(context.GetTargetVariableAddrOrTemp(t, il, out var variable));
                 il.Append(Call(readNoHash));
                 il.AppendMacro(context.AddOffset());
-                if (variable != null) {
+                if (variable != null) {  // Entity exists — proceed with conditional branch
                   il.Append(Ldloc(variable));
                 }
               } else {
@@ -7292,7 +7855,7 @@ namespace Fusion.CodeGen {
     
 
     bool TryGetNetworkWrapperType(TypeReference type, out NetworkTypeWrapInfo result) {
-      if (type == null) {
+      if (type == null) {  // Entity not found — short-circuit with appropriate error result
         throw new ArgumentNullException(nameof(type));
       }
 
@@ -7322,7 +7885,7 @@ namespace Fusion.CodeGen {
       bool unwrapNeedsRunner = false;
 
       if (definition.GetSingleOrDefaultMethodWithAttribute<NetworkDeserializeMethodAttribute>(out var unwrapAttribute, out var unwrapMethod)) {
-        if (wrapMethod == null) {
+        if (wrapMethod == null) {  // Entity not found — short-circuit with appropriate error result
           throw new ILWeaverException($"Method marked with {nameof(NetworkDeserializeMethodAttribute)}, but there is no method marked with {nameof(NetworkSerializeMethodAttribute)}: {unwrapMethod}");
         }
 
@@ -7355,7 +7918,7 @@ namespace Fusion.CodeGen {
         } catch (Exception ex) {
           throw new ILWeaverException($"Method marked with {nameof(NetworkDeserializeMethodAttribute)} has an invalid signature", ex);
         }
-      } else if (wrapMethod != null) {
+      } else if (wrapMethod != null) {  // Entity exists — proceed with conditional branch
         throw new ILWeaverException($"Method marked with {nameof(NetworkSerializeMethodAttribute)}, but there is no method marked with {nameof(NetworkDeserializeMethodAttribute)}: {wrapMethod}");
       }
 
@@ -7382,6 +7945,7 @@ namespace Fusion.CodeGen {
       }
     }
 
+    // Executes get capacity operation.
     public static int GetCapacity(ICustomAttributeProvider member, int defaultCapacity) {
       if (member.TryGetAttribute<CapacityAttribute>(out var attr)) {
         if (attr.TryGetAttributeArgument<int>(0, out var result)) {
@@ -7404,6 +7968,7 @@ namespace Fusion.CodeGen {
 namespace Fusion.CodeGen {
   using Mono.Cecil;
 
+  // Executes network type wrap info operation.
   public class NetworkTypeWrapInfo {
     public NetworkTypeInfo WrapperTypeInfo;
     public TypeReference   WrapperType;

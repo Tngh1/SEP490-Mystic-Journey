@@ -1,20 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// Executes skill projectile operation.
 public class BloodySlashSkill : SkillProjectile
 {
-    [SerializeField] private float duration = 0.5f; // Thời gian tồn tại của nhát chém (chỉnh cho khớp độ dài animation)
-    
-    // Lưu danh sách quái đã chém trúng để không bị trừ máu nhiều lần trong 1 nhát chém
+    [SerializeField] private float duration = 0.5f;
+
     private HashSet<Collider2D> _damagedEnemies = new HashSet<Collider2D>();
 
     private Transform _casterTransform;
     private Vector3 _offsetFromCaster;
 
+    // Executes setup operation.
     public override void Setup(float damage)
     {
         base.Setup(damage);
-        // Thay vì 2s như đạn bay, nhát chém sẽ tự huỷ rất nhanh (tùy theo animation duration)
         Destroy(gameObject, duration);
 
         Transform replicaOwner = PlayerSkillVisualReplica.GetOwner(this);
@@ -28,15 +28,17 @@ public class BloodySlashSkill : SkillProjectile
         }
     }
 
+    // Per-frame update loop for BloodySlashSkill.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     protected override void Update()
     {
-        // Di chuyển nhát chém bám theo người chơi khi người chơi di chuyển
         if (_casterTransform != null)
         {
             transform.position = _casterTransform.position + _offsetFromCaster;
         }
     }
 
+    // Executes on trigger enter2 d operation.
     protected override void OnTriggerEnter2D(Collider2D collision)
     {
         if (PlayerSkillVisualReplica.IsReplica(this)) return;
@@ -44,18 +46,17 @@ public class BloodySlashSkill : SkillProjectile
         EnemyEntity enemy = collision.GetComponentInParent<EnemyEntity>();
         if (enemy != null || collision.CompareTag("Monster"))
         {
-            // Nếu con quái này chưa nhận sát thương từ nhát chém này
             if (!_damagedEnemies.Contains(collision))
             {
                 if (enemy != null)
                 {
+                    // Randomize the eligible candidates before selecting this gameplay result.
                     bool isCrit = Random.Range(0f, 100f) <= 20f;
                     float finalDamage = isCrit ? _damage * 1.5f : _damage;
                     int damageInt = Mathf.RoundToInt(finalDamage);
 
                     enemy.TakeDamage(damageInt);
-                    
-                    // Thêm vào danh sách để không chém 1 con quái 2 lần
+
                     _damagedEnemies.Add(collision);
 
                     if (DamagePopupManager.Instance != null)

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Video;
 using MysticJourney.Features.Quest;
 
+// Executes mono behaviour operation.
 public class Quest26VideoTrigger : MonoBehaviour
 {
     private VideoPlayer _videoPlayer;
@@ -11,6 +12,7 @@ public class Quest26VideoTrigger : MonoBehaviour
     private bool _wasAlreadyFinishedOnLoad;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    // Executes init operation.
     private static void Init()
     {
         if (FindFirstObjectByType<Quest26VideoTrigger>() != null) return;
@@ -19,6 +21,8 @@ public class Quest26VideoTrigger : MonoBehaviour
         go.AddComponent<Quest26VideoTrigger>();
     }
 
+    // Per-frame update loop for Quest26VideoTrigger.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (!_hasSubscribed && QuestUIManager.Instance != null)
@@ -29,6 +33,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         CheckQuestStatus();
     }
 
+    // Executes subscribe to quest manager operation.
     private void SubscribeToQuestManager()
     {
         if (QuestUIManager.Instance == null) return;
@@ -39,6 +44,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         CheckInitialState();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (QuestUIManager.Instance != null)
@@ -53,6 +59,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         }
     }
 
+    // Executes check initial state operation.
     private void CheckInitialState()
     {
         if (_initialStateChecked || QuestUIManager.Instance == null) return;
@@ -60,7 +67,6 @@ public class Quest26VideoTrigger : MonoBehaviour
         if (state != null)
         {
             _initialStateChecked = true;
-            // If it was already Claimed when logging in, mark as finished on load so we don't replay on game start
             if (state.status == "Claimed")
             {
                 _wasAlreadyFinishedOnLoad = true;
@@ -68,12 +74,14 @@ public class Quest26VideoTrigger : MonoBehaviour
         }
     }
 
+    // Executes on quests loaded operation.
     private void OnQuestsLoaded()
     {
         CheckInitialState();
         CheckQuestStatus();
     }
 
+    // Executes on quest changed operation.
     private void OnQuestChanged(int questId)
     {
         if (questId == 26 || questId == -1)
@@ -82,6 +90,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         }
     }
 
+    // Executes on quest claimed operation.
     private void OnQuestClaimed(int questId)
     {
         if (questId == 26)
@@ -90,6 +99,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         }
     }
 
+    // Executes check quest status operation.
     private void CheckQuestStatus()
     {
         if (_hasPlayed || _wasAlreadyFinishedOnLoad || QuestUIManager.Instance == null) return;
@@ -108,6 +118,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         }
     }
 
+    // Executes play video operation.
     private void PlayVideo()
     {
         if (_videoPlayer == null)
@@ -121,7 +132,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         {
             _videoPlayer.clip = clip;
             _videoPlayer.loopPointReached += OnVideoFinished;
-            
+
             QuestVideoManager.NotifyVideoStarted(_videoPlayer);
             _videoPlayer.gameObject.SetActive(true);
             _videoPlayer.Play();
@@ -133,6 +144,7 @@ public class Quest26VideoTrigger : MonoBehaviour
         }
     }
 
+    // Executes on video finished operation.
     private void OnVideoFinished(VideoPlayer vp)
     {
         if (vp == _videoPlayer)

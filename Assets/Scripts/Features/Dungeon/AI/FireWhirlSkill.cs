@@ -1,11 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Skill Vòng Lửa (Fire Whirl) do Boss Rồng (DragonBoss) triệu hồi.
-/// Gây 40 sát thương ngay lập tức khi chạm vào người chơi và áp dụng hiệu ứng Thiêu đốt 
-/// trong 3 giây (mỗi giây mất 3% máu tối đa).
-/// </summary>
+// Executes mono behaviour operation.
 public class FireWhirlSkill : MonoBehaviour
 {
     [Header("Damage Settings")]
@@ -36,6 +32,8 @@ public class FireWhirlSkill : MonoBehaviour
 
     private HashSet<Collider2D> _hitPlayers = new HashSet<Collider2D>();
 
+    // Performs startup initialization for FireWhirlSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
@@ -43,10 +41,10 @@ public class FireWhirlSkill : MonoBehaviour
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // Tự động xóa vòng lửa sau thời gian lifeTime
         Destroy(gameObject, lifeTime);
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D col)
     {
         if (col.CompareTag("Player"))
@@ -64,16 +62,15 @@ public class FireWhirlSkill : MonoBehaviour
         }
     }
 
+    // Executes deal damage and apply burn operation.
     private void DealDamageAndApplyBurn(GameObject target)
     {
         if (EnemySkillVisualReplica.IsReplica(this)) return;
-        // 1. Phát âm thanh khi trúng
         if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
         {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
         }
 
-        // 2. Gây 40 sát thương tức thì cho Player
         var networkPlayer = target.GetComponent<NetworkPlayer>();
         if (networkPlayer != null && networkPlayer.Object != null && networkPlayer.Object.IsValid)
         {
@@ -92,7 +89,6 @@ public class FireWhirlSkill : MonoBehaviour
             }
         }
 
-        // 3. Áp dụng hiệu ứng Thiêu đốt 3s (mỗi 1s mất 3% máu tối đa)
         BurnDebuff.ApplyPercentTo(target, burnPercentPerTick, burnTickInterval, burnDuration);
     }
 }

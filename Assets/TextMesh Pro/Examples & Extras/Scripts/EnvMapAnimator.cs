@@ -2,6 +2,7 @@
 using System.Collections;
 using TMPro;
 
+// Executes mono behaviour operation.
 public class EnvMapAnimator : MonoBehaviour {
 
     //private Vector3 TranslationSpeeds;

@@ -5,16 +5,10 @@ using MysticJourney.API.Models.Response;
 
 namespace MysticJourney.API.Endpoints
 {
-    // ═══════════════════════════════════════════════════════════════════════
-    // INVENTORY API - Hành trang
-    // ═══════════════════════════════════════════════════════════════════════
     public class InventoryApi : BaseApiService<InventoryApi>
     {
-        // ═══════════════════════════════════════════════════════════════════════
-        // GAME APIs (Người chơi)
-        // ═══════════════════════════════════════════════════════════════════════
 
-        // ── Lấy inventory ────────────────────────
+        // Executes get inventory operation.
         public void GetInventory(Action<InventorySummaryResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetInventory → GET /api/inventory/me");
@@ -33,7 +27,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Trang bị item ───────────────────────
+        // Equips an inventory item to the appropriate equipment slot and updates player combat stats.
         public void EquipItem(int inventoryItemId, Action<InventoryActionResultResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new EquipItemRequest { InventoryItemId = inventoryItemId };
@@ -53,7 +47,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Gỡ trang bị item ───────────────────
+        // Unequips an equipped item back into player inventory and recalculates player combat stats.
         public void UnequipItem(int inventoryItemId, Action<InventoryActionResultResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new UnequipItemRequest { InventoryItemId = inventoryItemId };
@@ -73,7 +67,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Tiêu thụ item ──────────────────────
+        // Executes consume item operation.
         public void ConsumeItem(int inventoryItemId, int quantity, Action<ConsumeItemResultResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new ConsumeItemRequest { InventoryItemId = inventoryItemId, Quantity = quantity };
@@ -93,7 +87,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Trang bị skin ───────────────────────
+        // Executes equip skin operation.
         public void EquipSkin(int playerSkinId, Action<PlayerSkinResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new EquipSkinRequest { PlayerSkinId = playerSkinId, IsEquipped = true };
@@ -113,7 +107,7 @@ namespace MysticJourney.API.Endpoints
                 requiresAuth: true);
         }
 
-        // ── Gỡ trang bị skin ───────────────────
+        // Executes unequip skin operation.
         public void UnequipSkin(int playerSkinId, Action<SimpleResponse> onSuccess, Action<ApiException> onError)
         {
             var body = new UnequipSkinRequest { PlayerSkinId = playerSkinId };

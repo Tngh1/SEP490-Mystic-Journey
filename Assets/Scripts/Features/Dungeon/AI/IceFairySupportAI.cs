@@ -1,18 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// Script AI thông minh hỗ trợ riêng cho Boss IceFairy.
-/// Các tính năng chính:
-/// 1. Bay ngẫu nhiên quanh tâm thân người GolemBoss khi bình thường.
-/// 2. Khi Player tiến lại gần (tầm 8m): IceFairy chủ động bay nấp đằng sau GolemBoss 
-///    (lấy GolemBoss làm bức tường che chắn các đòn đánh của Player).
-/// 3. Tự động điều chỉnh Sorting Order (Order in Layer): Khi nấp phía sau GolemBoss, GolemBoss sẽ đè lên che mất IceFairy.
-/// 4. ĐỨNG YÊN HOÀN TOÀN khi đang thi triển skill (Tấn công Player hoặc Hồi máu cho Boss).
-/// 5. Cứ 5s/lần tấn công trực tiếp Player bằng chiêu Bụi Tiên (FairyDust Prefab) trong phạm vi 8m.
-/// 6. Định kỳ hồi máu cho GolemBoss khi GolemBoss bị mất HP.
-/// 7. Khi bị hạ gục -> Chuyển ngay sang Animation "Die" và tắt collider.
-/// </summary>
+// Executes mono behaviour operation.
 public class IceFairySupportAI : MonoBehaviour
 {
     [Header("Leader Settings (GolemBoss)")]
@@ -80,6 +69,8 @@ public class IceFairySupportAI : MonoBehaviour
     private bool _isCastingSkill = false;
     private bool _hasDied = false;
 
+    // Initializes internal component caches and dependencies for IceFairySupportAI upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         _myEntity = GetComponent<EnemyEntity>();
@@ -89,7 +80,6 @@ public class IceFairySupportAI : MonoBehaviour
         networkEnemy?.RegisterSkillPrefab(fairyDustPrefab);
         networkEnemy?.RegisterSkillPrefab(healBossPrefab);
 
-        // Tắt NavMeshAgent và EnemyBehaviour nếu có trên IceFairy để tránh xung đột di chuyển 2D trên không
         var navAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
         if (navAgent != null) navAgent.enabled = false;
 
@@ -100,6 +90,7 @@ public class IceFairySupportAI : MonoBehaviour
         if (enemyAnim != null) enemyAnim.enabled = false;
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         if (_myEntity != null)
@@ -108,6 +99,7 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (_myEntity != null)
@@ -116,6 +108,8 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Performs startup initialization for IceFairySupportAI on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (_myEntity != null)
@@ -132,6 +126,7 @@ public class IceFairySupportAI : MonoBehaviour
     }
 
     [ContextMenu("Snap To Boss Position")]
+    // Executes snap to boss position operation.
     public void SnapToBossPosition()
     {
         if (_golemTransform == null)
@@ -145,9 +140,10 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Per-frame update loop for IceFairySupportAI.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
-        // Nếu IceFairy đã chết thì lập tức ngưng xử lý
         if (_hasDied || (_myEntity != null && _myEntity.IsDead))
         {
             if (!_hasDied) HandleDeath(this, System.EventArgs.Empty);
@@ -159,21 +155,18 @@ public class IceFairySupportAI : MonoBehaviour
             FindGolemBoss();
         }
 
-        // Tự động điều chỉnh Sorting Order (Đứng sau GolemBoss sẽ bị GolemBoss che đè lên)
         UpdateSortingOrder();
 
         Transform playerTransform = FindPlayerTarget();
 
-        // 1. Quản lý di chuyển (Bay ngẫu nhiên hoặc Nấp sau GolemBoss)
         HandleSmartMovement(playerTransform);
 
-        // 2. Tấn công Player bằng FairyDust (mỗi 5s trong tầm 8m)
         HandleAttackSupport(playerTransform);
 
-        // 3. Hồi máu cho GolemBoss nếu GolemBoss bị mất máu
         HandleHealSupport();
     }
 
+    // Executes update sorting order operation.
     private void UpdateSortingOrder()
     {
         if (_spriteRenderer == null || _golemTransform == null) return;
@@ -185,7 +178,6 @@ public class IceFairySupportAI : MonoBehaviour
 
         int golemOrder = _golemSpriteRenderer != null ? _golemSpriteRenderer.sortingOrder : 10;
 
-        // Nếu IceFairy đứng phía sau GolemBoss (Y cao hơn GolemBoss) -> Sorting Order nhỏ hơn GolemBoss để GolemBoss che khuất IceFairy
         if (transform.position.y > _golemTransform.position.y + 0.1f)
         {
             _spriteRenderer.sortingOrder = golemOrder - 1;
@@ -196,6 +188,7 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Executes handle death operation.
     private void HandleDeath(object sender, System.EventArgs e)
     {
         if (_hasDied) return;
@@ -217,6 +210,7 @@ public class IceFairySupportAI : MonoBehaviour
         this.enabled = false;
     }
 
+    // Executes get golem center pos operation.
     private Vector3 GetGolemCenterPos()
     {
         if (_golemTransform == null) return transform.position;
@@ -227,9 +221,9 @@ public class IceFairySupportAI : MonoBehaviour
 
     private Vector3 _wanderOffset = Vector3.zero;
 
+    // Executes handle smart movement operation.
     private void HandleSmartMovement(Transform playerTransform)
     {
-        // Khi đang thi triển skill -> ĐỨNG YÊN HOÀN TOÀN không di chuyển!
         if (_isCastingSkill)
         {
             SetRunningAnim(false);
@@ -248,7 +242,6 @@ public class IceFairySupportAI : MonoBehaviour
 
         Vector3 golemCenterPos = GetGolemCenterPos();
 
-        // Nếu vị trí xa GolemBoss (trên 8m, ví dụ vị trí đặt prefab gốc tít trên cao (163, 104)), lập tức tự biến về bên cạnh Boss
         float distToGolem = Vector3.Distance(transform.position, golemCenterPos);
         if (distToGolem > 8f)
         {
@@ -271,25 +264,22 @@ public class IceFairySupportAI : MonoBehaviour
 
         if (isPlayerInCombatRange && playerTransform != null)
         {
-            // === CHẾ ĐỘ THÔNG MINH: Lấy GolemBoss làm bức tường che chắn ===
             Vector3 playerToGolemDir = (golemCenterPos - playerTransform.position).normalized;
             targetPos = golemCenterPos + playerToGolemDir * coverDistance;
         }
         else
         {
-            // === CHẾ ĐỘ BÌNH THƯỜNG: Bay lượn ngẫu nhiên quanh tâm GolemBoss (dùng Offset tương đối) ===
             if (Time.time >= _nextWanderTime || _wanderOffset == Vector3.zero)
             {
+                // Randomize the eligible candidates before selecting this gameplay result.
                 _nextWanderTime = Time.time + Random.Range(2.0f, 3.5f);
                 Vector2 randomCircle = Random.insideUnitCircle * wanderRadius;
                 _wanderOffset = new Vector3(randomCircle.x, randomCircle.y, 0f);
             }
-            
-            // targetPos liên tục di chuyển THEO GolemBoss mỗi frame
+
             targetPos = golemCenterPos + _wanderOffset;
         }
 
-        // Di chuyển mượt mà tới targetPos
         Vector3 moveDir = (targetPos - transform.position);
         if (moveDir.magnitude > 0.15f)
         {
@@ -309,6 +299,7 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Executes handle attack support operation.
     private void HandleAttackSupport(Transform playerTransform)
     {
         if (!canAttackPlayer || _isCastingSkill || playerTransform == null || fairyDustPrefab == null) return;
@@ -317,10 +308,12 @@ public class IceFairySupportAI : MonoBehaviour
         if (distToPlayer <= attackRange && Time.time >= _nextAttackTime)
         {
             _nextAttackTime = Time.time + fairyDustCooldown;
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(PerformFairyDustAttackRoutine(playerTransform));
         }
     }
 
+    // Executes perform fairy dust attack routine operation.
     private IEnumerator PerformFairyDustAttackRoutine(Transform playerTransform)
     {
         _isCastingSkill = true;
@@ -360,6 +353,7 @@ public class IceFairySupportAI : MonoBehaviour
         ReturnToMoveAnimation();
     }
 
+    // Executes handle heal support operation.
     private void HandleHealSupport()
     {
         if (!canHealLeader || _isCastingSkill || _golemEntity == null || _golemEntity.IsDead) return;
@@ -367,10 +361,12 @@ public class IceFairySupportAI : MonoBehaviour
         if (_golemEntity.CurrentHealth > 0 && _golemEntity.CurrentHealth < _golemEntity.MaxHealth - 5 && Time.time >= _nextHealTime)
         {
             _nextHealTime = Time.time + healCooldown;
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(PerformHealRoutine());
         }
     }
 
+    // Executes perform heal routine operation.
     private IEnumerator PerformHealRoutine()
     {
         _isCastingSkill = true;
@@ -405,6 +401,7 @@ public class IceFairySupportAI : MonoBehaviour
         ReturnToMoveAnimation();
     }
 
+    // Executes play attack animation operation.
     private void PlayAttackAnimation()
     {
         if (_animator == null) return;
@@ -416,6 +413,7 @@ public class IceFairySupportAI : MonoBehaviour
         if (_animator.HasParameter("CastSkill")) _animator.SetTrigger("CastSkill");
     }
 
+    // Executes return to move animation operation.
     private void ReturnToMoveAnimation()
     {
         if (_animator != null)
@@ -425,6 +423,7 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Executes set running anim operation.
     private void SetRunningAnim(bool isRunning)
     {
         if (_animator != null && !_isCastingSkill)
@@ -440,6 +439,7 @@ public class IceFairySupportAI : MonoBehaviour
         }
     }
 
+    // Executes find player target operation.
     private Transform FindPlayerTarget()
     {
         if (PlayerMovement.Instance != null)
@@ -451,9 +451,9 @@ public class IceFairySupportAI : MonoBehaviour
         return player != null ? player.transform : null;
     }
 
+    // Executes find golem boss operation.
     private void FindGolemBoss()
     {
-        // 1. Kiểm tra nếu targetBossTransform được gán và thực sự nằm trong Scene (không phải Prefab Asset dưới cửa sổ Project)
         if (targetBossTransform != null && targetBossTransform.gameObject.scene.IsValid())
         {
             _golemTransform = targetBossTransform;
@@ -469,11 +469,9 @@ public class IceFairySupportAI : MonoBehaviour
             return;
         }
 
-        // Nếu targetBossTransform bị null hoặc bị kéo nhầm Prefab từ cửa sổ Project -> Tự tìm con Golem Boss ĐANG ĐỨNG TRONG HIERARCHY
         _golemTransform = null;
         _golemEntity = null;
 
-        // 2. Thử tìm qua EnemyEntity đang nằm trong Scene
         EnemyEntity[] enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
         string cleanTargetName = string.IsNullOrEmpty(targetBossName) ? "" : targetBossName.Replace("(Clone)", "").Replace(" ", "").Trim();
 
@@ -508,7 +506,6 @@ public class IceFairySupportAI : MonoBehaviour
             }
         }
 
-        // 3. Fallback: Tìm GameObject trực tiếp trong Hierarchy/Scene theo tên nếu EnemyEntity chưa đăng ký
         GameObject bossObj = GameObject.Find("Golem Boss") ?? GameObject.Find("GolemBoss") ?? GameObject.Find("Golem");
         if (bossObj == null)
         {

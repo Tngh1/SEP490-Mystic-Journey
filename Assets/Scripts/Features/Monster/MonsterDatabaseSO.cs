@@ -6,12 +6,13 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+// Executes scriptable object operation.
 [CreateAssetMenu(fileName = "MonsterDatabase", menuName = "ScriptableObjects/Monster Database")]
 public class MonsterDatabaseSO : ScriptableObject
 {
     public List<MonsterClientData> allMonsters = new List<MonsterClientData>();
 
-    // Hàm tiện ích để lấy hình ảnh/prefab dựa vào ID
+    // Executes get monster data operation.
     public MonsterClientData GetMonsterData(int id)
     {
         return allMonsters.Find(m => m != null && m.MonsterId == id);
@@ -19,6 +20,7 @@ public class MonsterDatabaseSO : ScriptableObject
 
 #if UNITY_EDITOR
     [ContextMenu("Load All Monsters In Project")]
+    // Executes load all monsters in project operation.
     public void LoadAllMonstersInProject()
     {
         allMonsters.Clear();
@@ -33,7 +35,6 @@ public class MonsterDatabaseSO : ScriptableObject
             }
         }
 
-        // Sắp xếp lại theo MonsterId tăng dần cho đẹp
         allMonsters.Sort((a, b) => a.MonsterId.CompareTo(b.MonsterId));
 
         EditorUtility.SetDirty(this);

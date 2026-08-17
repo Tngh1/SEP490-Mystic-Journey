@@ -5,37 +5,40 @@ using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 using UnityEngine;
 
+// Executes mono behaviour operation.
 public class WorldNpcSpawnerRuntime : MonoBehaviour
 {
     [Header("Settings")]
     [Tooltip("Database chứa mapping giữa Type (trong DB) và Prefab")]
     [SerializeField] private NpcDatabaseSO npcDatabase;
-    
+
     [Tooltip("Nơi chứa các GameObject NPC sau khi đẻ ra (để Hierarchy gọn gàng).")]
     [SerializeField] private Transform npcContainer;
-    
-    // Lưu danh sách NPC đã sinh ra để dọn dẹp khi đổi Map
+
     private readonly List<GameObject> spawnedNpcs = new List<GameObject>();
 
+    // Performs startup initialization for WorldNpcSpawnerRuntime on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
-        // Nếu có sự kiện đổi map trong cùng 1 scene thì gọi lại hàm này
         WorldRuntimeEvents.MapChanged += OnMapChanged;
-        
-        // Sinh NPC ngay khi object này được load
+
         SpawnNpcsForCurrentMap();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
     }
 
+    // Executes on map changed operation.
     private void OnMapChanged(string mapName)
     {
         SpawnNpcsForCurrentMap();
     }
 
+    // Executes spawn npcs for current map operation.
     public void SpawnNpcsForCurrentMap()
     {
         if (!ApiClient.Instance.HasToken())
@@ -44,9 +47,8 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
             return;
         }
 
-        // Gọi API lấy trạng thái World hiện tại (có chứa danh sách Npcs của Map đó)
         WorldApi.Instance.GetState(
-            state => 
+            state =>
             {
                 if (this == null) return;
                 if (state != null && state.Npcs != null)
@@ -55,7 +57,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
                     SpawnNpcList(state.Npcs);
                 }
             },
-            error => 
+            error =>
             {
                 if (this == null) return;
                 Debug.LogError($"[WorldNpcSpawner] Lỗi tải NPC: {error.Message}");
@@ -63,6 +65,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
         );
     }
 
+    // Executes spawn npc list operation.
     private void SpawnNpcList(List<NPCResponse> npcList)
     {
         if (this == null) return;
@@ -74,16 +77,14 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
             if (hideNatalie && string.Equals(npc.Name, "Natalie", System.StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            // 1. Tìm Prefab từ NpcDatabaseSO
             GameObject prefab = npcDatabase != null ? npcDatabase.GetPrefab(npc.Name) : null;
-            
-            // Xử lý cứng cho Valiant Warrior để tránh việc nó bị nhầm thành Quái (Enemy)
+
             if (prefab != null && prefab.name == "VikingRobber" && npc.Name == "Valiant Warrior")
             {
                 var overridePrefab = Resources.Load<GameObject>("NPCs/QuestGiver");
                 if (overridePrefab == null)
-                    overridePrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(g => g.name == "Lieutenant" && g.scene.name == null); // search prefab
-                
+                    overridePrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(g => g.name == "Lieutenant" && g.scene.name == null);
+
                 if (overridePrefab != null)
                 {
                     prefab = overridePrefab;
@@ -97,16 +98,11 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
                 continue;
             }
 
-            // 2. Tọa độ (PositionX, PositionY) trong DB là localPosition tương đối so với NPC Container/Map
             Vector3 localPos = new Vector3((float)npc.PositionX, (float)npc.PositionY, 0f);
 
-            // 3. Đẻ ra NPC và gán localPosition chuẩn xác
             GameObject npcObj = Instantiate(prefab, parentTransform);
             npcObj.name = npc.Name;
 
-            // Gỡ NavMeshAgent + AI quái TRƯỚC khi gán vị trí. Bắt buộc đúng thứ tự này —
-            // xem StripEnemyAi: agent giữ quyền điều khiển transform nên gán localPosition
-            // sau khi agent đã bật thì bị agent ghi đè, NPC trôi về chỗ khác.
             StripEnemyAi(npcObj);
 
             npcObj.transform.localPosition = localPos;
@@ -115,16 +111,15 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
 
             spawnedNpcs.Add(npcObj);
 
-            // 4. Ghi đè cấu hình cho NPC bằng dữ liệu từ Backend
             WorldInteractable interactable = npcObj.GetComponent<WorldInteractable>();
             if (interactable == null)
             {
                 interactable = npcObj.AddComponent<WorldInteractable>();
             }
 
-            var linkedQuests = npc.Dialogues != null 
+            var linkedQuests = npc.Dialogues != null
                 ? System.Linq.Enumerable.Select(
-                    System.Linq.Enumerable.Where(npc.Dialogues, d => d != null && d.LinkedQuestId.HasValue), 
+                    System.Linq.Enumerable.Where(npc.Dialogues, d => d != null && d.LinkedQuestId.HasValue),
                     d => d.LinkedQuestId.Value)
                 : null;
 
@@ -136,53 +131,24 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
                 npc.InteractionRadius > 0 ? npc.InteractionRadius : 2.5f,
                 linkedQuests
             );
-            
+
             Debug.Log($"[WorldNpcSpawner] Đã spawn NPC {npc.Name} (ID: {npc.NPCId}) tại localPosition {localPos}");
         }
-        
-        // NPC Spawner completed
+
     }
 
 
-    /// <summary>
-    /// Gỡ NavMeshAgent + AI quái khỏi một NPC vừa spawn, TRƯỚC khi gán localPosition.
-    ///
-    /// Triệu chứng nó chữa: mọi NPC trên map dồn về gần như cùng một chỗ, không đứng đúng toạ độ
-    /// trong DB (báo cáo ở FrozenMountain 2026-07-31).
-    ///
-    /// Nguyên nhân: 12/14 prefab trong NpcDatabase là prefab QUÁI của PixelWorld — có
-    /// NavMeshAgent + EnemyEntity + EnemyBehaviour + EnemyAnimations (chỉ Witch/Zephyr và
-    /// ElfGuardIdle/Elf Guard là sạch). Khi NavMeshAgent đang bật, NÓ nắm quyền điều khiển
-    /// transform: gán transform.localPosition sau đó bị agent ghi đè ở lần update kế tiếp, và
-    /// agent còn tự warp object về điểm gần nhất trên NavMesh đã bake. Kết quả là NPC nằm ở chỗ
-    /// agent quyết định (quanh gốc container + offset sẵn trong prefab — nhiều prefab dùng chung
-    /// đúng một offset), không phải chỗ ta gán.
-    ///
-    /// Lưu ý: KHÔNG phải do AI đuổi người chơi. Cả 3 prefab đã kiểm đều có isChasingEnemy = 0 và
-    /// isAttackingEnemy = 0 nên không bao giờ vào State.Chasing. Nhưng EnemyBehaviour vẫn chạy
-    /// Roaming (BlueGuard/Lieutenant có startingState = 1 = Roaming) nên vẫn tự đi lang thang —
-    /// gỡ luôn cho chắc.
-    ///
-    /// Phải gỡ CẢ BỘ, không gỡ lẻ: EnemyAnimations.Update() deref enemyBehaviour/enemyEntity mà
-    /// không kiểm null, nên gỡ EnemyBehaviour một mình sẽ đổi "NPC tự đi" thành
-    /// NullReferenceException mỗi frame. Gỡ ở runtime, KHÔNG sửa prefab: các prefab này vẫn đang
-    /// được dùng làm quái thật ở chỗ khác.
-    /// </summary>
+    // Executes strip enemy ai operation.
     private static void StripEnemyAi(GameObject npcObj)
     {
-        // Thứ tự quan trọng: EnemyAnimations nằm trên GameObject con ("Graphics") và giữ tham chiếu
-        // tới EnemyBehaviour/EnemyEntity ở root, nên phải gỡ nó TRƯỚC hai cái kia.
         RemoveAll<EnemyAnimations>(npcObj);
         RemoveAll<EnemyBehaviour>(npcObj);
         RemoveAll<EnemyEntity>(npcObj);
 
-        // Cái này mới là thủ phạm chính của việc NPC sai vị trí.
         RemoveAll<UnityEngine.AI.NavMeshAgent>(npcObj);
     }
 
-    // Tắt trước rồi mới Destroy: Destroy chỉ xoá component ở cuối frame, nên nếu không tắt thì
-    // Start()/Update() của AI vẫn kịp chạy một nhịp và đẩy NPC đi một đoạn.
-    // Không dùng DestroyImmediate — Unity khuyến cáo không gọi nó ở runtime.
+    // Executes behaviour operation.
     private static void RemoveAll<T>(GameObject root) where T : Behaviour
     {
         foreach (var component in root.GetComponentsInChildren<T>(true))
@@ -193,24 +159,9 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
         }
     }
 
-    // Natalie chỉ biến mất SAU khi được an nghỉ — quest "[Chapter 4] Lay Natalie to Rest"
-    // (AbandonedCastle, ObjectiveTarget = "Ivy Tree").
-    //
-    // Trước đây hằng này là 23, một quest ở FrozenMountain ("Dragons of Snow") hoàn toàn không liên
-    // quan: Natalie bị ẩn ngay khi người chơi hạ rồng băng ở map khác, còn quest an nghỉ của cô thì
-    // không ẩn được ai. Số cũ đã lệch từ trước lần chèn quest này.
     private const int NatalieRestQuestId = 33;
 
-    // Chỉ ẩn khi "Claimed", KHÔNG phải "Completed".
-    //
-    // Quest 33 có ObjectiveTarget = "Ivy Tree" nhưng QuestGiverName = "Natalie": mục tiêu hoàn
-    // thành ở Ivy Tree, còn phần TRẢ nhiệm vụ (AutoClaimCompletedQuest trong MainNpcPanel)
-    // vẫn phải nói chuyện với Natalie. BatchUpdateProgress flip Status = "Completed" ngay lúc chạm
-    // Ivy Tree, nên gate theo "Completed" sẽ bỏ qua việc spawn Natalie TRƯỚC khi người chơi kịp trả
-    // nhiệm vụ → "làm xong nhiệm vụ của NPC thì không interact được với NPC đó nữa".
-    //
-    // "Claimed" chỉ được set sau khi đã trả nhiệm vụ, nên gate này giữ Natalie sống đúng một lượt
-    // nói chuyện cuối rồi mới cho cô an nghỉ.
+    // Executes should hide natalie operation.
     private static bool ShouldHideNatalie()
     {
         var quests = QuestUIManager.Instance?.GetMainQuests();
@@ -219,6 +170,7 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
             string.Equals(q.Status, "Claimed", System.StringComparison.OrdinalIgnoreCase));
     }
 
+    // Executes clear current npcs operation.
     private void ClearCurrentNpcs()
     {
         foreach (var npc in spawnedNpcs)

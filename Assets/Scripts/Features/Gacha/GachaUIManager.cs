@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 
+// Executes core business logic for mono behaviour.
 public class GachaUIManager : MonoBehaviour
 {
     [Header("--- Banner Info ---")]
@@ -103,12 +104,15 @@ public class GachaUIManager : MonoBehaviour
     private int _pityLimit = 90;
     private List<GachaBannerItemResponse> _cachedBannerItems = new List<GachaBannerItemResponse>();
 
+    // Initializes internal component caches and dependencies for GachaUIManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         DisableDecorativeRaycasts();
         SetupHoverEffects();
     }
 
+    // Executes core business logic for disable decorative raycasts.
     private void DisableDecorativeRaycasts()
     {
         Transform decorationRoot = transform.Find("Deco");
@@ -121,10 +125,7 @@ public class GachaUIManager : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// Gắn hiệu ứng phóng to khi rê chuột cho toàn bộ nút của GachaPanel,
-    /// dùng đúng component UIHoverScaleEffect mà HUD đang dùng.
-    /// </summary>
+    // Update up hover effects; it creates hover effect.
     private void SetupHoverEffects()
     {
         AddHoverEffect(btnCloseMain);
@@ -143,6 +144,7 @@ public class GachaUIManager : MonoBehaviour
         AddHoverEffect(btnNextPage);
     }
 
+    // Executes core business logic for add hover effect.
     private static void AddHoverEffect(Button btn)
     {
         if (btn == null) return;
@@ -150,96 +152,95 @@ public class GachaUIManager : MonoBehaviour
             btn.gameObject.AddComponent<UIHoverScaleEffect>();
     }
 
+    // Wires up all button click listeners and triggers banner data fetching.
     private void OnEnable()
     {
         if (btnCloseMain == null)
         {
             Transform mainCloseTr = transform.Find("Header/CloseButton");
-            if (mainCloseTr != null) btnCloseMain = mainCloseTr.GetComponent<Button>();
+            if (mainCloseTr != null) btnCloseMain = mainCloseTr.GetComponent<Button>(); // Auto-locate main close button
         }
 
         if (btnCloseMain != null)
         {
             btnCloseMain.onClick.RemoveAllListeners();
-            btnCloseMain.onClick.AddListener(CloseMainPanel);
+            btnCloseMain.onClick.AddListener(CloseMainPanel); // Wire close modal trigger
             AddHoverEffect(btnCloseMain);
         }
 
         if (btnPull1 != null)
         {
             btnPull1.onClick.RemoveAllListeners();
-            btnPull1.onClick.AddListener(() => PerformPull(1));
+            btnPull1.onClick.AddListener(() => PerformPull(1)); // Wire 1x pull trigger
         }
-        
+
         if (btnPull10 != null)
         {
             btnPull10.onClick.RemoveAllListeners();
-            btnPull10.onClick.AddListener(() => PerformPull(10));
+            btnPull10.onClick.AddListener(() => PerformPull(10)); // Wire 10x pull trigger
         }
-        
-        if (btnCloseResult != null) 
+
+        if (btnCloseResult != null)
         {
             btnCloseResult.onClick.RemoveAllListeners();
-            btnCloseResult.onClick.AddListener(CloseResultPopup);
+            btnCloseResult.onClick.AddListener(CloseResultPopup); // Wire result popup dismissal
             btnCloseResult.transform.SetAsLastSibling();
         }
 
-        if (btnOpenDetail != null) 
+        if (btnOpenDetail != null)
         {
             btnOpenDetail.onClick.RemoveAllListeners();
-            btnOpenDetail.onClick.AddListener(OpenDetailPanel);
+            btnOpenDetail.onClick.AddListener(OpenDetailPanel); // Wire drop rates detail modal
         }
-        
-        if (btnCloseDetail != null) 
+
+        if (btnCloseDetail != null)
         {
             btnCloseDetail.onClick.RemoveAllListeners();
-            btnCloseDetail.onClick.AddListener(() => detailPanel.SetActive(false));
+            btnCloseDetail.onClick.AddListener(() => detailPanel.SetActive(false)); // Close drop rate modal
             btnCloseDetail.transform.SetAsLastSibling();
         }
 
-        if (btnOpenHistory != null) 
+        if (btnOpenHistory != null)
         {
             btnOpenHistory.onClick.RemoveAllListeners();
-            btnOpenHistory.onClick.AddListener(OpenHistoryPanel);
+            btnOpenHistory.onClick.AddListener(OpenHistoryPanel); // Wire pull history modal
         }
-        
-        if (btnCloseHistory != null) 
+
+        if (btnCloseHistory != null)
         {
             btnCloseHistory.onClick.RemoveAllListeners();
-            btnCloseHistory.onClick.AddListener(() => 
+            btnCloseHistory.onClick.AddListener(() =>
             {
                 Debug.Log("[GachaUIManager] History CloseButton clicked!");
-                if (historyPanel != null) historyPanel.SetActive(false);
+                if (historyPanel != null) historyPanel.SetActive(false); // Close history modal
             });
-            // Giúp nút close không bị các element khác đè lên (nếu có)
             btnCloseHistory.transform.SetAsLastSibling();
         }
 
-        if (btnPrevPage != null) 
+        if (btnPrevPage != null)
         {
             btnPrevPage.onClick.RemoveAllListeners();
             btnPrevPage.onClick.AddListener(() => ChangeHistoryPage(-1));
         }
-        
-        if (btnNextPage != null) 
+
+        if (btnNextPage != null)
         {
             btnNextPage.onClick.RemoveAllListeners();
             btnNextPage.onClick.AddListener(() => ChangeHistoryPage(1));
         }
 
-        if (btnDetailPrevPage != null) 
+        if (btnDetailPrevPage != null)
         {
             btnDetailPrevPage.onClick.RemoveAllListeners();
             btnDetailPrevPage.onClick.AddListener(() => ChangeDetailPage(-1));
         }
-        
-        if (btnDetailNextPage != null) 
+
+        if (btnDetailNextPage != null)
         {
             btnDetailNextPage.onClick.RemoveAllListeners();
             btnDetailNextPage.onClick.AddListener(() => ChangeDetailPage(1));
         }
 
-        // Ẩn tất cả các bảng phụ
         if (resultPopupPanel != null) resultPopupPanel.SetActive(false);
         if (detailPanel != null) detailPanel.SetActive(false);
         if (historyPanel != null) historyPanel.SetActive(false);
@@ -249,6 +250,7 @@ public class GachaUIManager : MonoBehaviour
         LoadFreePullState();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         if (btnCloseMain != null) btnCloseMain.onClick.RemoveAllListeners();
@@ -266,6 +268,7 @@ public class GachaUIManager : MonoBehaviour
         if (btnSkipVideo != null) btnSkipVideo.onClick.RemoveAllListeners();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (_videoTexture != null)
@@ -276,6 +279,7 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for close main panel.
     private void CloseMainPanel()
     {
         if (UIManager.Instance != null)
@@ -288,6 +292,7 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for load banner data.
     private void LoadBannerData(int bannerId)
     {
         SetButtonsInteractable(false);
@@ -296,7 +301,7 @@ public class GachaUIManager : MonoBehaviour
             onSuccess: (response) =>
             {
                 if (bannerNameText != null) bannerNameText.text = response.Name;
-                if (pull1CostText != null) 
+                if (pull1CostText != null)
                 {
                     _pull1CostCache = response.PullCost;
                     pull1CostText.text = response.PullCost.ToString();
@@ -313,6 +318,7 @@ public class GachaUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for load user ticket count.
     private void LoadUserTicketCount()
     {
         if (ticketCountText == null) return;
@@ -346,12 +352,16 @@ public class GachaUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for is gacha ticket item.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private bool IsGachaTicketItem(InventoryItemResponse item)
     {
         if (item == null || string.IsNullOrEmpty(item.ItemName)) return false;
         return item.ItemName.Contains("Lucky Ticket", System.StringComparison.OrdinalIgnoreCase);
     }
 
+    // Executes core business logic for open detail panel.
     private void OpenDetailPanel()
     {
         if (detailPanel == null || detailItemContainer == null || detailItemPrefab == null)
@@ -365,27 +375,27 @@ public class GachaUIManager : MonoBehaviour
         RenderDetailPage(_detailPage);
     }
 
+    // Executes core business logic for change detail page.
+    // Logic details: validates required non-empty string arguments.
     private void ChangeDetailPage(int delta)
     {
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         int target = Mathf.Clamp(_detailPage + delta, 1, _detailTotalPages);
         if (target == _detailPage) return;
         _detailPage = target;
         RenderDetailPage(_detailPage);
     }
 
-    /// <summary>
-    /// Tỉ lệ rơi đã nằm sẵn trong _cachedBannerItems nên phân trang hoàn toàn ở client,
-    /// không gọi lại API như bên lịch sử.
-    /// </summary>
+    // Executes core business logic for render detail page.
     private void RenderDetailPage(int page)
     {
         foreach (Transform child in detailItemContainer) Destroy(child.gameObject);
 
         int totalCount = _cachedBannerItems.Count;
         _detailTotalPages = Mathf.Max(1, (totalCount + detailPageSize - 1) / detailPageSize);
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         _detailPage = Mathf.Clamp(page, 1, _detailTotalPages);
 
-        // Bảng tỉ lệ xếp theo độ hiếm giảm dần, vật phẩm nổi bật lên đầu.
         var ordered = new List<GachaBannerItemResponse>(_cachedBannerItems);
         ordered.Sort((a, b) =>
         {
@@ -448,6 +458,7 @@ public class GachaUIManager : MonoBehaviour
         SetDetailButtonsInteractable(true);
     }
 
+    // Executes core business logic for set detail buttons interactable.
     private void SetDetailButtonsInteractable(bool state)
     {
         if (btnDetailPrevPage != null) btnDetailPrevPage.interactable = state && _detailPage > 1;
@@ -455,6 +466,8 @@ public class GachaUIManager : MonoBehaviour
         if (detailPageNumberText != null) detailPageNumberText.text = $"{_detailPage}/{_detailTotalPages}";
     }
 
+    // Executes core business logic for get rarity rank.
+    // Logic details: validates required non-empty string arguments.
     private int GetRarityRank(string rarity)
     {
         if (string.IsNullOrEmpty(rarity)) return 0;
@@ -470,6 +483,7 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for open history panel.
     private void OpenHistoryPanel()
     {
         if (historyPanel == null || historyItemContainer == null || historyItemPrefab == null)
@@ -483,15 +497,20 @@ public class GachaUIManager : MonoBehaviour
         LoadHistoryPage(_historyPage);
     }
 
+    // Executes core business logic for change history page.
+    // Logic details: validates required non-empty string arguments.
     private void ChangeHistoryPage(int delta)
     {
         if (_isLoadingHistory) return;
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         int target = Mathf.Clamp(_historyPage + delta, 1, _historyTotalPages);
         if (target == _historyPage) return;
         _historyPage = target;
         LoadHistoryPage(_historyPage);
     }
 
+    // Executes core business logic for load history page.
+    // Logic details: validates required non-empty string arguments.
     private void LoadHistoryPage(int page)
     {
         _isLoadingHistory = true;
@@ -514,6 +533,7 @@ public class GachaUIManager : MonoBehaviour
                 int totalCount = response.TotalCount;
                 int totalPages = Mathf.Max(1, (totalCount + historyPageSize - 1) / historyPageSize);
                 if (_historyTotalPages != totalPages) _historyTotalPages = totalPages;
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 _historyPage = Mathf.Clamp(page, 1, _historyTotalPages);
 
                 int shown = 0;
@@ -562,6 +582,7 @@ public class GachaUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for set history buttons interactable.
     private void SetHistoryButtonsInteractable(bool state)
     {
         if (btnPrevPage != null) btnPrevPage.interactable = state && _historyPage > 1;
@@ -569,6 +590,8 @@ public class GachaUIManager : MonoBehaviour
         if (pageNumberText != null) pageNumberText.text = $"{_historyPage}/{_historyTotalPages}";
     }
 
+    // Executes core business logic for get rarity icon.
+    // Logic details: validates required non-empty string arguments.
     private Sprite GetRarityIcon(string rarity)
     {
         if (string.IsNullOrEmpty(rarity)) return iconCommon;
@@ -584,10 +607,8 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Khung nền của thẻ kết quả đổi theo độ hiếm.
-    /// Sprite lấy từ các ô kéo trong Inspector nên đổi ảnh không cần sửa code.
-    /// </summary>
+    // Executes core business logic for get rarity background.
+    // Logic details: validates required non-empty string arguments.
     private Sprite GetRarityBackground(string rarity)
     {
         if (string.IsNullOrEmpty(rarity)) return bgCommon;
@@ -603,6 +624,7 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for load current pity from history.
     private void LoadCurrentPityFromHistory()
     {
         GachaApi.Instance.GetHistory(1, 100,
@@ -642,11 +664,13 @@ public class GachaUIManager : MonoBehaviour
         );
     }
 
+    // Update the current state; it updates free pull ui.
     private void Update()
     {
         UpdateFreePullUI();
     }
 
+    // Executes core business logic for update free pull ui.
     private void UpdateFreePullUI()
     {
         if (pull1CostText == null || _pull1CostCache == 0 || !_freePullStateLoaded) return;
@@ -673,11 +697,14 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for is free pull available.
+    // Returns a boolean indicating operation success.
     private bool IsFreePullAvailable()
     {
         return System.DateTime.Now >= GetNextFreePullTime();
     }
 
+    // Executes core business logic for get next free pull time.
     private System.DateTime GetNextFreePullTime()
     {
         return _lastFreePullUtc == System.DateTime.MinValue
@@ -685,12 +712,16 @@ public class GachaUIManager : MonoBehaviour
             : _lastFreePullUtc.AddHours(24);
     }
 
+    // Executes core business logic for use free pull.
+    // Logic details: validates required non-empty string arguments.
     private void UseFreePull()
     {
         _previousFreePullUtc = _lastFreePullUtc;
         _lastFreePullUtc = System.DateTime.UtcNow;
     }
 
+    // Executes core business logic for load free pull state.
+    // Logic details: validates required non-empty string arguments.
     private void LoadFreePullState()
     {
         _freePullStateLoaded = false;
@@ -715,14 +746,13 @@ public class GachaUIManager : MonoBehaviour
             },
             error =>
             {
-                // Keep the panel usable if profile refresh fails; the pull API
-                // remains authoritative and will reject an invalid free pull.
                 Debug.LogWarning($"[GachaUI] Failed to load free-pull state: {error.Message}");
                 _freePullStateLoaded = true;
                 UpdateFreePullUI();
             });
     }
 
+    // Executes core business logic for perform pull.
     private void PerformPull(int amount)
     {
         bool isFreePull = false;
@@ -749,7 +779,6 @@ public class GachaUIManager : MonoBehaviour
             {
                 Debug.LogWarning("[GachaUI] Pull failed: " + error.Message);
 
-                // Nếu có lỗi, hoàn lại lượt free
                 if (isFreePull)
                 {
                     _lastFreePullUtc = _previousFreePullUtc;
@@ -762,6 +791,7 @@ public class GachaUIManager : MonoBehaviour
         );
     }
 
+    // Executes core business logic for resolve video clip.
     private VideoClip ResolveVideoClip(int amount)
     {
         VideoClip clip = (amount >= 10) ? videoClipX10 : videoClipX1;
@@ -783,6 +813,7 @@ public class GachaUIManager : MonoBehaviour
         return clip;
     }
 
+    // Executes core business logic for play gacha video.
     private void PlayGachaVideo(VideoClip clip, System.Action onComplete)
     {
         if (clip == null)
@@ -794,7 +825,6 @@ public class GachaUIManager : MonoBehaviour
 
         EnsureVideoComponents();
 
-        // Reparent videoPanel lên Canvas gốc của màn hình để đảm bảo tràn viền FULL SCREEN 100%
         Canvas rootCanvas = GetComponentInParent<Canvas>();
         if (rootCanvas == null)
         {
@@ -843,7 +873,6 @@ public class GachaUIManager : MonoBehaviour
             Destroy(_videoTexture);
         }
 
-        // Tự động điều chỉnh độ phân giải RenderTexture theo video gốc hoặc màn hình máy người chơi
         int texW = (clip != null && clip.width > 0) ? (int)clip.width : Screen.width;
         int texH = (clip != null && clip.height > 0) ? (int)clip.height : Screen.height;
         if (texW <= 0) texW = 1920;
@@ -862,8 +891,6 @@ public class GachaUIManager : MonoBehaviour
             rawRt.sizeDelta = new Vector2(Screen.width, Screen.height);
             rawRt.localScale = Vector3.one;
 
-            // AspectRatioFitter EnvelopeParent giúp video tự động co giãn vừa khít 100% mọi tỉ lệ màn hình
-            // (16:9, 16:10, 21:9 Ultrawide...) mà không bị méo hình hay hở viền đen
             var fitter = videoRawImage.GetComponent<AspectRatioFitter>();
             if (fitter == null) fitter = videoRawImage.gameObject.AddComponent<AspectRatioFitter>();
             fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
@@ -901,16 +928,19 @@ public class GachaUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for on video loop point reached.
     private void OnVideoLoopPointReached(VideoPlayer vp)
     {
         FinishGachaVideo();
     }
 
+    // Executes core business logic for skip gacha video.
     private void SkipGachaVideo()
     {
         FinishGachaVideo();
     }
 
+    // Executes core business logic for finish gacha video.
     private void FinishGachaVideo()
     {
         if (!_isVideoPlaying && (videoPanel == null || !videoPanel.activeSelf)) return;
@@ -929,6 +959,7 @@ public class GachaUIManager : MonoBehaviour
         callback?.Invoke();
     }
 
+    // Executes core business logic for ensure video components.
     private void EnsureVideoComponents()
     {
         if (videoPanel == null)
@@ -947,7 +978,6 @@ public class GachaUIManager : MonoBehaviour
 
         if (videoPanel != null)
         {
-            // Bắt buộc Canvas con overrideSorting = 9998 phủ KÍN TOÀN MÀN HÌNH (Full Screen)
             var canvas = videoPanel.GetComponent<Canvas>();
             if (canvas == null) canvas = videoPanel.AddComponent<Canvas>();
             canvas.overrideSorting = true;
@@ -1039,6 +1069,7 @@ public class GachaUIManager : MonoBehaviour
             btnSkipVideo.transform.SetAsLastSibling();
         }
     }
+    // Executes core business logic for show warning popup.
     private void ShowWarningPopup(string message)
     {
         UIPopupBox.Notify(transform, "Gacha", message);
@@ -1046,6 +1077,7 @@ public class GachaUIManager : MonoBehaviour
 
 
 
+    // Executes core business logic for show result popup.
     private void ShowResultPopup(MultiPullResultResponse result)
     {
         foreach (Transform child in resultItemContainer) Destroy(child.gameObject);
@@ -1054,13 +1086,11 @@ public class GachaUIManager : MonoBehaviour
 
         if (result.PulledItems != null)
         {
-            // Gộp item trùng thành 1 card + badge xN, giữ đúng thứ tự quay được
             var order = new List<GachaPullResultResponse>();
             var counts = new Dictionary<int, int>();
 
             foreach (var item in result.PulledItems)
             {
-                // PulledItemId <= 0 là lần quay backend trả lỗi -> để riêng, không gộp
                 if (item.PulledItemId > 0 && counts.ContainsKey(item.PulledItemId))
                 {
                     counts[item.PulledItemId]++;
@@ -1071,7 +1101,6 @@ public class GachaUIManager : MonoBehaviour
                     order.Add(item);
                 }
 
-                // Ưu tiên dùng pity trả về từ backend
                 if (item.CurrentPity >= 0)
                 {
                     currentPity = item.CurrentPity;
@@ -1089,7 +1118,6 @@ public class GachaUIManager : MonoBehaviour
                 }
                 else
                 {
-                    // Khung nền đổi theo độ hiếm của vật phẩm vừa quay được
                     if (ui.typeBgImage != null)
                     {
                         Sprite bg = GetRarityBackground(item.PulledItemRarity);
@@ -1115,7 +1143,6 @@ public class GachaUIManager : MonoBehaviour
 
                     ui.ApplyRarityVisuals(item.PulledItemRarity, hexColor);
 
-                    // Prefab hiện tại không còn TMP tên vật phẩm, để trống thì bỏ qua
                     if (ui.itemNameText != null)
                     {
                         ui.itemNameText.text = $"<color={hexColor}>{item.PulledItemName}</color>";
@@ -1127,47 +1154,51 @@ public class GachaUIManager : MonoBehaviour
             }
         }
 
-        // Cập nhật lên UI bằng giá trị thật từ backend
         UpdatePityUI(currentPity);
         resultPopupPanel.SetActive(true);
     }
 
+    // Update visibility for result popup; it updates active and updates buttons interactable.
     private void CloseResultPopup()
     {
         resultPopupPanel.SetActive(false);
         SetButtonsInteractable(true);
     }
 
+    // Executes core business logic for update pity ui.
     private void UpdatePityUI(int currentPity)
     {
         if (pityText == null) return;
 
         int pullsLeft = _pityLimit - currentPity;
 
-        // Càng gần số 0 thì màu càng đỏ rực lên
         string colorTag = pullsLeft <= 10 ? "<color=red>" : "<color=yellow>";
 
         pityText.text = $"Guaranteed great item in: {colorTag}{pullsLeft}</color> pulls";
     }
 
+    // Executes core business logic for set buttons interactable.
+    // Logic details: validates required non-empty string arguments.
     private void SetButtonsInteractable(bool state)
     {
         if (btnPull1 != null) btnPull1.interactable = state;
         if (btnPull10 != null) btnPull10.interactable = state;
     }
 
+    // Executes core business logic for get rarity color hex.
+    // Logic details: validates required non-empty string arguments.
     private string GetRarityColorHex(string rarity)
     {
         if (string.IsNullOrEmpty(rarity)) return "#C0C7D1";
         switch (rarity.Trim().ToLower())
         {
-            case "mythic": return "#FF3340";    // Crimson Red
-            case "legendary": return "#FFC726"; // Gold
-            case "epic": return "#B847FF";      // Purple
-            case "rare": return "#26A6FF";      // Cyan Blue
-            case "uncommon": return "#40E066";  // Green
+            case "mythic": return "#FF3340";
+            case "legendary": return "#FFC726";
+            case "epic": return "#B847FF";
+            case "rare": return "#26A6FF";
+            case "uncommon": return "#40E066";
             case "common":
-            default: return "#C0C7D1";          // Silver
+            default: return "#C0C7D1";
         }
     }
 }

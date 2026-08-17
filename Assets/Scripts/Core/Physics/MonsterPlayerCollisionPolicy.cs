@@ -1,13 +1,10 @@
 using UnityEngine;
 
-/// <summary>
-/// Keeps enemy body colliders from transferring physics motion to player bodies.
-/// Combat uses explicit range checks/physics queries, so disabling body contacts does
-/// not change melee targeting or projectile collision layers.
-/// </summary>
+// Initializes a new default instance of the MonsterPlayerCollisionPolicy class.
 public static class MonsterPlayerCollisionPolicy
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    // Executes apply operation.
     private static void Apply()
     {
         int monsterLayer = LayerMask.NameToLayer("Monster");

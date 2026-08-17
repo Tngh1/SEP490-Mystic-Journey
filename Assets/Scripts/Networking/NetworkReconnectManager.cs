@@ -7,17 +7,13 @@ using MysticJourney.Core.Services;
 
 namespace MysticJourney.Networking
 {
-    /// <summary>
-    /// Handles automatic network reconnection during short connectivity drops.
-    /// Shows a "Reconnecting..." UIPopup with a "Return to Menu" button both inside and outside dungeons.
-    /// After successful reconnection:
-    /// - If in dungeon: Shows UIPopup to "Resume Dungeon" or "Return to Menu".
-    /// - If outside dungeon: Dismisses popup and resumes normal gameplay.
-    /// </summary>
+    // Executes core business logic for mono behaviour.
     public class NetworkReconnectManager : MonoBehaviour
     {
+        // Executes core business logic for instance.
         public static NetworkReconnectManager Instance { get; private set; }
 
+        // Executes core business logic for is reconnecting.
         public bool IsReconnecting { get; private set; } = false;
 
         private bool _wasInDungeon = false;
@@ -26,6 +22,7 @@ namespace MysticJourney.Networking
         private const float PING_INTERVAL = 2.5f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        // Executes core business logic for auto start.
         private static void AutoStart()
         {
             if (Instance != null) return;
@@ -34,6 +31,8 @@ namespace MysticJourney.Networking
             Instance = go.AddComponent<NetworkReconnectManager>();
         }
 
+        // Initializes internal component caches and dependencies for NetworkReconnectManager upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -45,12 +44,9 @@ namespace MysticJourney.Networking
             DontDestroyOnLoad(gameObject);
         }
 
-        /// <summary>
-        /// Call when an API or network operation fails due to connection error.
-        /// </summary>
+        // Executes core business logic for report network error.
         public void ReportNetworkError()
         {
-            // Do not report if user isn't logged in, or already reconnecting, or already clicked Return to Menu
             if (!ApiClient.Instance.HasToken() || IsReconnecting || _userClickedReturnToMenu)
                 return;
 
@@ -63,12 +59,11 @@ namespace MysticJourney.Networking
 
             if (_reconnectCoroutine != null)
                 StopCoroutine(_reconnectCoroutine);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             _reconnectCoroutine = StartCoroutine(AutoReconnectCoroutine());
         }
 
-        /// <summary>
-        /// Call when an API request or heartbeat succeeds while in reconnecting state.
-        /// </summary>
+        // Executes core business logic for report network success.
         public void ReportNetworkSuccess()
         {
             if (!IsReconnecting)
@@ -85,13 +80,11 @@ namespace MysticJourney.Networking
                 _reconnectCoroutine = null;
             }
 
-            // Dismiss the "Reconnecting..." popup
             if (UIPopup.Instance != null)
             {
                 UIPopup.Instance.HidePopup();
             }
 
-            // If disconnected while inside a dungeon, prompt the player to Resume Dungeon or Return to Menu
             if (_wasInDungeon && DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon)
             {
                 ShowResumeDungeonPopup();
@@ -103,6 +96,7 @@ namespace MysticJourney.Networking
             }
         }
 
+        // Update visibility for reconnecting popup; it updates navigation or visibility through show.
         private void ShowReconnectingPopup()
         {
             UIPopupBox.Show(
@@ -115,6 +109,7 @@ namespace MysticJourney.Networking
             );
         }
 
+        // Update visibility for resume dungeon popup; it updates navigation or visibility through show.
         private void ShowResumeDungeonPopup()
         {
             UIPopupBox.Show(
@@ -128,6 +123,8 @@ namespace MysticJourney.Networking
             );
         }
 
+        // Executes core business logic for auto reconnect coroutine.
+        // Logic details: validates required non-empty string arguments.
         private IEnumerator AutoReconnectCoroutine()
         {
             while (IsReconnecting && !_userClickedReturnToMenu)
@@ -143,7 +140,6 @@ namespace MysticJourney.Networking
                     yield break;
                 }
 
-                // Attempt ping / heartbeat to verify network connection
                 string url = ApiConfig.PlayerHeartbeat;
                 ApiClient.Instance.PostEmpty<object>(url,
                     onSuccess: _ =>
@@ -152,17 +148,11 @@ namespace MysticJourney.Networking
                     },
                     onError: err =>
                     {
-                        // Still disconnected, keep retrying in loop unless error is 401/session expired
                         if (err != null && (err.StatusCode == 401 || err.ErrorCode == "SESSION_EXPIRED" || err.ErrorCode == "SESSION_OVERRIDDEN"))
                         {
                             IsReconnecting = false;
                             if (UIPopup.Instance != null) UIPopup.Instance.HidePopup();
 
-                            // ApiClient đã tự logout với message CỦA SERVER trước khi gọi onError
-                            // này (401/SESSION_OVERRIDDEN), và nó chạy xong đồng bộ nên cờ chống
-                            // gọi 2 lần trong SessionService đã mở lại — gọi Logout vô điều kiện ở
-                            // đây sẽ ghi đè "đăng nhập ở thiết bị khác" thành câu chung chung.
-                            // Chỉ tự logout khi ApiClient chưa làm (vd SESSION_EXPIRED không kèm 401).
                             if (string.IsNullOrEmpty(SessionService.PendingLogoutReason))
                                 SessionService.Logout("Your session has ended. Please log in again.");
                         }
@@ -176,6 +166,7 @@ namespace MysticJourney.Networking
             }
         }
 
+        // Executes core business logic for on resume dungeon clicked.
         private void OnResumeDungeonClicked()
         {
             Debug.Log("[NetworkReconnectManager] Player chose to Resume Dungeon.");
@@ -187,6 +178,7 @@ namespace MysticJourney.Networking
             }
         }
 
+        // Executes core business logic for on return to menu clicked.
         private void OnReturnToMenuClicked()
         {
             Debug.Log("[NetworkReconnectManager] Player clicked Return to Menu.");
@@ -208,6 +200,7 @@ namespace MysticJourney.Networking
             SessionService.Logout();
         }
 
+        // Executes core business logic for reset state.
         public void ResetState()
         {
             IsReconnecting = false;

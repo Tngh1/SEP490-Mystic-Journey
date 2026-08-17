@@ -6,6 +6,7 @@ namespace MysticJourney.API.Endpoints
 {
     public class CurrencyApi : BaseApiService<CurrencyApi>
     {
+        // Executes get my balance operation.
         public void GetMyBalance(Action<CurrencyBalanceResponse> onSuccess, Action<ApiException> onError)
         {
             SafeDebugLog("GetMyBalance -> GET /api/currencies/me/balance");

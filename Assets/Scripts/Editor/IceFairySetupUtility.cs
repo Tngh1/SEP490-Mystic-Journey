@@ -3,9 +3,11 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
+// Initializes a new default instance of the IceFairySetupUtility class.
 public static class IceFairySetupUtility
 {
     [MenuItem("Tools/Fix IceFairy Components")]
+    // Executes fix ice fairy operation.
     public static void FixIceFairy()
     {
         GameObject[] gameObjects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
@@ -22,7 +24,6 @@ public static class IceFairySetupUtility
             {
                 Undo.RegisterFullObjectHierarchyUndo(go, "Fix IceFairy Components");
 
-                // 1. Ensure EnemyEntity component
                 var entity = go.GetComponent<EnemyEntity>();
                 if (entity == null)
                 {
@@ -32,7 +33,6 @@ public static class IceFairySetupUtility
                 entity.SetSpawnData(21, 0);
 
 
-                // 2. Ensure IceFairySupportAI component
                 var supportAI = go.GetComponent<IceFairySupportAI>();
                 if (supportAI == null)
                 {
@@ -40,7 +40,6 @@ public static class IceFairySetupUtility
                     Debug.Log($"[IceFairySetupUtility] Added missing IceFairySupportAI to '{go.name}'");
                 }
 
-                // 3. Fix Target Boss Transform to point to Scene object instead of Project Prefab Asset
                 if (sceneGolem != null)
                 {
                     var serializedAI = new SerializedObject(supportAI);

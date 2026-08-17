@@ -5,6 +5,7 @@ using NavMeshPlus.Extensions;
 
 namespace NavMeshPlus.Components
 {
+    // Executes mono behaviour operation.
     [ExecuteInEditMode]
     [DefaultExecutionOrder(-101)]
     [AddComponentMenu("Navigation/Navigation Link", 33)]
@@ -13,34 +14,42 @@ namespace NavMeshPlus.Components
     {
         [SerializeField, NavMeshAgent]
         int m_AgentTypeID;
+        // Executes agent type id operation.
         public int agentTypeID { get { return m_AgentTypeID; } set { m_AgentTypeID = value; UpdateLink(); } }
 
         [SerializeField]
         Vector3 m_StartPoint = new Vector3(0.0f, 0.0f, -2.5f);
+        // Executes start point operation.
         public Vector3 startPoint { get { return m_StartPoint; } set { m_StartPoint = value; UpdateLink(); } }
 
         [SerializeField]
         Vector3 m_EndPoint = new Vector3(0.0f, 0.0f, 2.5f);
+        // Executes end point operation.
         public Vector3 endPoint { get { return m_EndPoint; } set { m_EndPoint = value; UpdateLink(); } }
 
         [SerializeField]
         float m_Width;
+        // Executes width operation.
         public float width { get { return m_Width; } set { m_Width = value; UpdateLink(); } }
 
         [SerializeField]
         int m_CostModifier = -1;
+        // Executes cost modifier operation.
         public int costModifier { get { return m_CostModifier; } set { m_CostModifier = value; UpdateLink(); } }
 
         [SerializeField]
         bool m_Bidirectional = true;
+        // Executes bidirectional operation.
         public bool bidirectional { get { return m_Bidirectional; } set { m_Bidirectional = value; UpdateLink(); } }
 
         [SerializeField]
         bool m_AutoUpdatePosition;
+        // Executes auto update operation.
         public bool autoUpdate { get { return m_AutoUpdatePosition; } set { SetAutoUpdate(value); } }
 
         [SerializeField, NavMeshArea]
         int m_Area;
+        // Executes area operation.
         public int area { get { return m_Area; } set { m_Area = value; UpdateLink(); } }
 
         NavMeshLinkInstance m_LinkInstance = new NavMeshLinkInstance();
@@ -60,15 +69,17 @@ namespace NavMeshPlus.Components
         void OnDisable()
         {
             RemoveTracking(this);
-            m_LinkInstance.Remove();
+            m_LinkInstance.Remove();  // Mark entity for deletion in the next SaveChanges call
         }
 
+        // Executes update link operation.
         public void UpdateLink()
         {
-            m_LinkInstance.Remove();
+            m_LinkInstance.Remove();  // Mark entity for deletion in the next SaveChanges call
             AddLink();
         }
 
+        // Executes add tracking operation.
         static void AddTracking(NavMeshLink link)
         {
 #if UNITY_EDITOR
@@ -85,9 +96,10 @@ namespace NavMeshPlus.Components
             s_Tracked.Add(link);
         }
 
+        // Executes remove tracking operation.
         static void RemoveTracking(NavMeshLink link)
         {
-            s_Tracked.Remove(link);
+            s_Tracked.Remove(link);  // Mark entity for deletion in the next SaveChanges call
 
             if (s_Tracked.Count == 0)
                 NavMesh.onPreUpdate -= UpdateTrackedInstances;
@@ -142,6 +154,7 @@ namespace NavMeshPlus.Components
             UpdateLink();
         }
 
+        // Executes update tracked instances operation.
         static void UpdateTrackedInstances()
         {
             foreach (var instance in s_Tracked)

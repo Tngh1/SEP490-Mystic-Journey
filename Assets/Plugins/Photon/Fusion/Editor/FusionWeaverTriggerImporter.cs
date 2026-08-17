@@ -5,6 +5,7 @@ namespace Fusion.Editor {
   using UnityEditor.AssetImporters;
   using UnityEngine;
 
+  // Executes scripted importer operation.
   [ScriptedImporter(1, ExtensionWithoutDot, NetworkProjectConfigImporter.ImportQueueOffset + 1)]
   public class FusionWeaverTriggerImporter : ScriptedImporter {
     public const string Extension = "." + ExtensionWithoutDot;
@@ -13,6 +14,7 @@ namespace Fusion.Editor {
     [Tooltip("If enabled, runs the weaver when weaving-related changes are detected in the config file.")]
     public bool RunWeaverOnConfigChanges = true;
 
+    // Executes on import asset operation.
     public override void OnImportAsset(AssetImportContext ctx) {
       ctx.DependsOnCustomDependency(DependencyHash.Name);
       if (RunWeaverOnConfigChanges && !Application.isBatchMode) {
@@ -27,7 +29,7 @@ namespace Fusion.Editor {
 
       var configPath = NetworkProjectConfigUtilities.GetGlobalConfigPath();
 
-      if (string.IsNullOrEmpty(configPath)) {
+      if (string.IsNullOrEmpty(configPath)) {  // Mandatory string argument is null or empty — fail fast
         return default;
       }
 
@@ -51,7 +53,9 @@ namespace Fusion.Editor {
       }
     });
     
+    // Executes asset postprocessor operation.
     private class Postprocessor : AssetPostprocessor {
+      // Executes on postprocess all assets operation.
       private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
         foreach (var path in importedAssets) {
           if (path.EndsWith(NetworkProjectConfigImporter.Extension)) {

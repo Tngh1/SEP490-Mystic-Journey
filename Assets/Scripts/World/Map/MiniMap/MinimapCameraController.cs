@@ -1,17 +1,10 @@
 using UnityEngine;
 
-/// <summary>
-/// Drives the minimap camera. It follows the local player from far above with a
-/// zoomed-out orthographic view (a map, not a second gameplay view) and renders
-/// into RT_Minimap. While the map panel is open it stops following and frames the
-/// whole level into the wider full-map texture instead, so the level is not
-/// letterboxed inside the panel frame. Player icons are drawn as UI on top of that
-/// texture by <see cref="MinimapMarkerLayer"/> — this component only owns the camera.
-/// </summary>
+// Executes mono behaviour operation.
 [RequireComponent(typeof(Camera))]
 public class MinimapCameraController : MonoBehaviour
 {
-    /// <summary>Active minimap camera, used by the marker layer to project world positions.</summary>
+    // Executes instance operation.
     public static MinimapCameraController Instance { get; private set; }
 
     [Header("View")]
@@ -37,21 +30,20 @@ public class MinimapCameraController : MonoBehaviour
 
     [SerializeField] private float cameraZOffset = -20f;
 
+    // Executes camera operation.
     public Camera Camera { get; private set; }
 
-    /// <summary>The transform the minimap is centered on (the local player).</summary>
+    // Executes target operation.
     public Transform Target { get; private set; }
 
-    // Full-map mode: the camera stops following and frames the whole level so the
-    // map panel can show every player at once.
     private bool _fullMap;
     private Vector3 _fullMapCenter;
     private float _fullMapZoom;
 
-    // Texture the camera renders into while following the player. Restored when the
-    // map panel closes, so the HUD minimap keeps its own square texture.
     private RenderTexture _minimapTexture;
 
+    // Initializes internal component caches and dependencies for MinimapCameraController upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         Instance = this;
@@ -62,49 +54,35 @@ public class MinimapCameraController : MonoBehaviour
         Camera.cullingMask &= ~hiddenLayers.value;
         _minimapTexture = Camera.targetTexture;
 
-        // The gameplay camera owns audio; a second listener spams warnings and
-        // breaks 2D spatial panning.
         var listener = GetComponent<AudioListener>();
         if (listener != null) listener.enabled = false;
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
     }
 
-    /// <summary>
-    /// Bind the minimap to a player transform. Called by the spawn paths
-    /// (PlayerSpawner / NetworkPlayer / MapSceneController / DungeonManager)
-    /// whenever the local avatar changes.
-    /// </summary>
+    // Executes initialize minimap operation.
     public void InitializeMinimap(Transform targetTransform)
     {
         Target = targetTransform;
         if (Target == null) return;
 
-        // Snap immediately so the map does not slide in from the previous scene.
         transform.position = FocusPosition();
     }
 
-    /// <summary>
-    /// Frame the whole level instead of following the player, so the map panel can
-    /// show every player at once. Falls back to normal follow if nothing renderable
-    /// is loaded.
-    /// </summary>
+    // Executes show full map operation.
     public void ShowFullMap()
     {
         if (!TryComputeWorldBounds(out Bounds b)) return;
 
-        // Render into the wide panel texture first: the fit below must use the
-        // aspect the player will actually see, not the square minimap one.
         if (fullMapTexture != null && Camera.targetTexture != fullMapTexture)
             Camera.targetTexture = fullMapTexture;
 
         _fullMapCenter = new Vector3(b.center.x, b.center.y, cameraZOffset);
 
-        // Orthographic size is half the vertical extent; also fit the width through
-        // the aspect ratio, then pad so the level edges are not flush with the frame.
         float aspect = CurrentAspect();
         _fullMapZoom = Mathf.Max(b.extents.y, b.extents.x / aspect) * Mathf.Max(1f, fullMapPadding);
 
@@ -113,7 +91,7 @@ public class MinimapCameraController : MonoBehaviour
         Camera.orthographicSize = _fullMapZoom;
     }
 
-    /// <summary>Go back to following the local player at minimap zoom.</summary>
+    // Executes show minimap operation.
     public void ShowMinimap()
     {
         _fullMap = false;
@@ -125,17 +103,13 @@ public class MinimapCameraController : MonoBehaviour
         if (Target != null) transform.position = FocusPosition();
     }
 
-    /// <summary>
-    /// Texture the camera is rendering into right now. The map panel binds its
-    /// RawImage to this so it follows the full-map/minimap swap.
-    /// </summary>
+    // Executes active texture operation.
     public RenderTexture ActiveTexture
     {
         get { return Camera != null ? Camera.targetTexture : null; }
     }
 
-    // Camera.aspect only picks up a new target texture on the next render, so read
-    // the texture directly — ShowFullMap needs the value in the same frame.
+    // Executes current aspect operation.
     private float CurrentAspect()
     {
         var rt = Camera.targetTexture;
@@ -145,9 +119,7 @@ public class MinimapCameraController : MonoBehaviour
         return Camera.aspect > 0.0001f ? Camera.aspect : 1f;
     }
 
-    // ponytail: bounds are derived from whatever renderers are loaded when the panel
-    // opens — good enough for one-scene-per-map. Author explicit bounds on MapData
-    // if maps ever stream in pieces or contain far-away decor that skews the frame.
+    // Executes try compute world bounds operation.
     private bool TryComputeWorldBounds(out Bounds bounds)
     {
         bounds = default;
@@ -168,9 +140,9 @@ public class MinimapCameraController : MonoBehaviour
         return any;
     }
 
+    // Executes late update operation.
     private void LateUpdate()
     {
-        // Full-map view is static: nothing to follow, and the zoom must not snap back.
         if (_fullMap)
         {
             transform.position = _fullMapCenter;
@@ -186,10 +158,10 @@ public class MinimapCameraController : MonoBehaviour
             ? wanted
             : Vector3.Lerp(transform.position, wanted, 1f - Mathf.Exp(-followSmoothing * Time.deltaTime));
 
-        // Keep zoom live-editable while playing.
         if (!Mathf.Approximately(Camera.orthographicSize, zoom)) Camera.orthographicSize = zoom;
     }
 
+    // Executes focus position operation.
     private Vector3 FocusPosition()
     {
         Vector3 p = Target.position;

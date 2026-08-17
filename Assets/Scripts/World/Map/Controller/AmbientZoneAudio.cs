@@ -2,11 +2,7 @@ using System.Collections;
 using UnityEngine;
 using MysticJourney.Core.Services;
 
-/// <summary>
-/// Phát một đoạn âm thanh lặp đi lặp lại (mặc định 10s/lần) khi người chơi bước vào khu vực điểm khám phá.
-/// Tự động dừng phát khi người chơi đi ra khỏi khu vực.
-/// Hỗ trợ cả 2 cách phát hiện: Dùng Collider 2D (isTrigger = true) HOẶC Bán kính khoảng cách (Distance Check).
-/// </summary>
+// Executes mono behaviour operation.
 public class AmbientZoneAudio : MonoBehaviour
 {
     [Header("Audio Settings")]
@@ -32,6 +28,8 @@ public class AmbientZoneAudio : MonoBehaviour
     private Coroutine _audioCoroutine;
     private bool _isPlayerInside = false;
 
+    // Per-frame update loop for AmbientZoneAudio.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update()
     {
         if (useDistanceCheck)
@@ -40,6 +38,7 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes check player distance operation.
     private void CheckPlayerDistance()
     {
         Transform playerTransform = GetPlayerTransform();
@@ -58,6 +57,7 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes on trigger enter2 d operation.
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (useDistanceCheck) return;
@@ -68,6 +68,7 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes on trigger exit2 d operation.
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (useDistanceCheck) return;
@@ -78,6 +79,7 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes on player enter operation.
     private void OnPlayerEnter()
     {
         if (_isPlayerInside) return;
@@ -87,9 +89,11 @@ public class AmbientZoneAudio : MonoBehaviour
         {
             StopCoroutine(_audioCoroutine);
         }
+        // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
         _audioCoroutine = StartCoroutine(PlayRepeatingAudioRoutine());
     }
 
+    // Executes on player exit operation.
     private void OnPlayerExit()
     {
         _isPlayerInside = false;
@@ -101,16 +105,15 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes play repeating audio routine operation.
     private IEnumerator PlayRepeatingAudioRoutine()
     {
-        // Lần phát đầu tiên khi bước vào khu vực
         if (playImmediatelyOnEnter)
         {
             PlaySound();
             yield return new WaitForSeconds(intervalSeconds);
         }
 
-        // Lặp lại định kỳ mỗi intervalSeconds (10 giây) chừng nào người chơi còn ở trong vùng
         while (_isPlayerInside)
         {
             if (!playImmediatelyOnEnter)
@@ -127,6 +130,7 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes play sound operation.
     private void PlaySound()
     {
         if (audioClip == null) return;
@@ -137,6 +141,7 @@ public class AmbientZoneAudio : MonoBehaviour
         }
     }
 
+    // Executes get player transform operation.
     private Transform GetPlayerTransform()
     {
         if (PlayerEntity.Instance != null)
@@ -153,6 +158,7 @@ public class AmbientZoneAudio : MonoBehaviour
         return null;
     }
 
+    // Executes on draw gizmos selected operation.
     private void OnDrawGizmosSelected()
     {
         if (useDistanceCheck)

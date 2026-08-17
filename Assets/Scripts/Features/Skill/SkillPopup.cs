@@ -6,24 +6,25 @@ using UnityEngine.UI;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models.Response;
 
+// Executes mono behaviour operation.
 public class SkillPopup : MonoBehaviour
 {
     [Header("UI References - Main")]
     public Image popupIcon;
     public TextMeshProUGUI popupName;
     public TextMeshProUGUI popupDesc;
-    public TextMeshProUGUI popupStats; // Header of review section (Background2/UpgradeReview)
-    public TextMeshProUGUI errorMessageText; // Error / Info text above Upgrade button
+    public TextMeshProUGUI popupStats;
+    public TextMeshProUGUI errorMessageText;
     public Button upgradeButton;
 
     [Header("UI References - Stone Count & Cost")]
-    public TextMeshProUGUI ownedStoneText;    // Top-right corner of DetailPopup
-    public TextMeshProUGUI requiredStoneText; // Above Upgrade button (Upgrade Cost: 8 / 14)
+    public TextMeshProUGUI ownedStoneText;
+    public TextMeshProUGUI requiredStoneText;
 
     [Header("UI References - Top Section (Background1 & ClassBg)")]
-    public TextMeshProUGUI topLevelBadgeText; // ClassBg/SkillLevel
-    public TextMeshProUGUI topDamageText;     // Background1/Dame/DameNumber
-    public TextMeshProUGUI topCooldownText;   // Background1/Cooldown/CooldownNumber
+    public TextMeshProUGUI topLevelBadgeText;
+    public TextMeshProUGUI topDamageText;
+    public TextMeshProUGUI topCooldownText;
 
     [Header("UI References - Review Section (Background2)")]
     public TextMeshProUGUI oldLevelText;
@@ -38,15 +39,19 @@ public class SkillPopup : MonoBehaviour
     private PlayerSkillResponse currentServerData;
     private int currentOwnedStones = 0;
 
+    // Executes current player level operation.
     private static int CurrentPlayerLevel => Mathf.Max(
         WorldState.PlayerLevel,
         PlayerPrefs.GetInt(MysticJourney.API.Core.ApiConfig.PlayerLevelKey, 1));
 
+    // Initializes internal component caches and dependencies for SkillPopup upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         AutoBindComponents();
     }
 
+    // Executes auto bind components operation.
     public void AutoBindComponents()
     {
         if (popupIcon == null) popupIcon = transform.Find("Popup_Icon")?.GetComponent<Image>();
@@ -59,12 +64,10 @@ public class SkillPopup : MonoBehaviour
         }
         if (upgradeButton == null) upgradeButton = transform.Find("Upgrade")?.GetComponent<Button>();
 
-        // Auto-bind Top Section components
         if (topLevelBadgeText == null) topLevelBadgeText = transform.Find("ClassBg/SkillLevel")?.GetComponent<TextMeshProUGUI>();
         if (topDamageText == null) topDamageText = transform.Find("Background1/Dame/DameNumber")?.GetComponent<TextMeshProUGUI>();
         if (topCooldownText == null) topCooldownText = transform.Find("Background1/Cooldown/CooldownNumber")?.GetComponent<TextMeshProUGUI>();
 
-        // Auto-bind Review section components under Background2
         if (oldLevelText == null) oldLevelText = transform.Find("Background2/OldLevelToNewLevel/OldLevel")?.GetComponent<TextMeshProUGUI>();
         if (newLevelText == null) newLevelText = transform.Find("Background2/OldLevelToNewLevel/NewLevel")?.GetComponent<TextMeshProUGUI>();
         if (oldDamageText == null) oldDamageText = transform.Find("Background2/Dame/OldDameToNewDame/OldDame")?.GetComponent<TextMeshProUGUI>();
@@ -78,7 +81,6 @@ public class SkillPopup : MonoBehaviour
 
         EnsureStoneUI();
 
-        // Keep Background2 active
         Transform bg2 = transform.Find("Background2");
         if (bg2 != null)
         {
@@ -86,6 +88,7 @@ public class SkillPopup : MonoBehaviour
         }
     }
 
+    // Executes ensure stone ui operation.
     private void EnsureStoneUI()
     {
         if (ownedStoneText == null)
@@ -99,6 +102,7 @@ public class SkillPopup : MonoBehaviour
         }
     }
 
+    // Executes clear error operation.
     private void ClearError()
     {
         if (errorMessageText != null)
@@ -108,11 +112,13 @@ public class SkillPopup : MonoBehaviour
         }
     }
 
+    // Executes get required stones for level operation.
     private int GetRequiredStonesForLevel(int level)
     {
         return Mathf.Max(1, level);
     }
 
+    // Executes private operation.
     private (double nextDamage, int nextCooldown) CalculateNextLevelStats(PlayerSkillResponse server)
     {
         if (server == null) return (0, 0);
@@ -141,6 +147,7 @@ public class SkillPopup : MonoBehaviour
         return (nextDamage, nextCooldown);
     }
 
+    // Executes update review section operation.
     private void UpdateReviewSection(PlayerSkillResponse server)
     {
         if (server == null) return;
@@ -162,13 +169,11 @@ public class SkillPopup : MonoBehaviour
 
         if (popupStats != null)
         {
-            // Không dùng emoji: font UI của game (Silver/ThaleahFat SDF) và LiberationSans SDF
-            // đều không có glyph emoji, và TMP Settings không khai fallback nào — emoji sẽ ra ô
-            // vuông □ kèm warning mỗi lần render.
             popupStats.text = "<b><color=#B22222>Skill Upgrade Preview</color></b>";
         }
     }
 
+    // Executes update upgrade button state operation.
     private void UpdateUpgradeButtonState(int currentLevel, int playerLevel, int ownedStones)
     {
         int requiredStones = GetRequiredStonesForLevel(currentLevel);
@@ -185,16 +190,18 @@ public class SkillPopup : MonoBehaviour
         }
         else if (ownedStones < requiredStones)
         {
-            if (upgradeButton != null) upgradeButton.interactable = false; // Làm mờ nút upgrade, không bấm được
-            if (requiredStoneText != null) requiredStoneText.color = new Color(1f, 0.4f, 0.4f, 1f); // Màu đỏ nhẹ thể hiện thiếu đá
+            if (upgradeButton != null) upgradeButton.interactable = false;
+            if (requiredStoneText != null) requiredStoneText.color = new Color(1f, 0.4f, 0.4f, 1f);
         }
         else
         {
-            if (upgradeButton != null) upgradeButton.interactable = true; // Đủ đá -> bình thường & bấm được
+            if (upgradeButton != null) upgradeButton.interactable = true;
             if (requiredStoneText != null) requiredStoneText.color = Color.white;
         }
     }
 
+    // Executes fetch stones and update ui operation.
+    // Validates input parameters against null or empty values.
     private void FetchStonesAndUpdateUI(System.Action onDone = null)
     {
         InventoryApi.Instance.GetInventory(
@@ -234,13 +241,13 @@ public class SkillPopup : MonoBehaviour
         );
     }
 
+    // Executes show popup operation.
     public void ShowPopup(SkillData visual, PlayerSkillResponse server)
     {
         currentServerData = server;
         AutoBindComponents();
         ClearError();
 
-        // Ensure Background2 is active
         Transform bg2 = transform.Find("Background2");
         if (bg2 != null) bg2.gameObject.SetActive(true);
 
@@ -264,15 +271,12 @@ public class SkillPopup : MonoBehaviour
             if (popupDesc != null) popupDesc.text = $"<color=#4A3B32><i>\"{server.SkillDescription}\"</i></color>";
             if (topDesc != null) topDesc.text = $"\"{server.SkillDescription}\"";
 
-            // 1. Top Section Stats
             if (topLevelBadgeText != null) topLevelBadgeText.text = $"Lv. {currentLevel}";
             if (topDamageText != null) topDamageText.text = $"Damage: {server.EffectiveDamage:0.#}";
             if (topCooldownText != null) topCooldownText.text = $"Cooldown: {server.CooldownSeconds}s";
 
-            // 2. Review Section Stats (Background2)
             UpdateReviewSection(server);
 
-            // 3. Fetch owned stones and update button gating
             FetchStonesAndUpdateUI();
         }
         else
@@ -307,6 +311,7 @@ public class SkillPopup : MonoBehaviour
         gameObject.SetActive(true);
     }
 
+    // Executes hide popup operation.
     public void HidePopup()
     {
         ClearError();
@@ -318,6 +323,7 @@ public class SkillPopup : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    // Executes on click upgrade operation.
     public void OnClickUpgrade()
     {
         if (currentServerData == null) return;
@@ -333,15 +339,12 @@ public class SkillPopup : MonoBehaviour
 
                 currentServerData = updatedSkill;
 
-                // Directly update stats on top section
                 if (topLevelBadgeText != null) topLevelBadgeText.text = $"Lv. {updatedSkill.Level}";
                 if (topDamageText != null) topDamageText.text = $"Damage: {updatedSkill.EffectiveDamage:0.#}";
                 if (topCooldownText != null) topCooldownText.text = $"Cooldown: {updatedSkill.CooldownSeconds}s";
 
-                // Directly update review section stats (Background2)
                 UpdateReviewSection(updatedSkill);
 
-                // Refresh stone count and update upgrade button state
                 FetchStonesAndUpdateUI();
 
                 var panelManager = FindFirstObjectByType<SkillUIManager>(FindObjectsInactive.Include);

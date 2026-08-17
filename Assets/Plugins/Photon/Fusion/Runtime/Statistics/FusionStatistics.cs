@@ -7,10 +7,12 @@ using UnityEngine.EventSystems;
 using UnityEngine.Profiling;
   using UnityEngine.Serialization;
   
+  // Executes i spawned operation.
   [RequireComponent(typeof(NetworkRunner))]
   [DisallowMultipleComponent]
   [AddComponentMenu("Fusion/Statistics/Fusion Statistics")]
   public class FusionStatistics : SimulationBehaviour, ISpawned {
+    // Executes active graphs operation.
     internal List<FusionStatsGraphBase> ActiveGraphs => _statsGraph;
     
     // Setup prefabs
@@ -39,6 +41,7 @@ using UnityEngine.Profiling;
     [Header("Custom configuration to override default values.\nSelect only one stat flag per configuration.")]
     private List<FusionStatisticsStatCustomConfig> _statsCustomConfig = new List<FusionStatisticsStatCustomConfig>();
 
+    // Executes stats custom config operation.
     internal List<FusionStatisticsStatCustomConfig> StatsCustomConfig => _statsCustomConfig;
 
     /// <summary>
@@ -46,6 +49,7 @@ using UnityEngine.Profiling;
     /// </summary>
     public bool IsPanelActive => _statsPanelObject != false;
 
+    // Executes fusion statistics stat custom config operation.
     [System.Serializable]
     public struct FusionStatisticsStatCustomConfig {
       public RenderSimStats Stat;
@@ -57,6 +61,8 @@ using UnityEngine.Profiling;
       public int AccumulateTimeMs;
     }
     
+    // Initializes internal component caches and dependencies for FusionStatistics upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake() {
       _statsGraph = new List<FusionStatsGraphBase>();
       _statsCanvasPrefab = Resources.Load<GameObject>(STATS_CANVAS_PREFAB_PATH);
@@ -96,6 +102,7 @@ using UnityEngine.Profiling;
       _statsCanvas.SetCanvasAnchor(anchor);
     }
 
+    // Executes apply custom config operation.
     private void ApplyCustomConfig() {
       if (!_header) return;
       _header.ApplyStatsConfig(_statsCustomConfig);
@@ -111,11 +118,13 @@ using UnityEngine.Profiling;
       SetCanvasAnchor(_canvasAnchor);
     }
     
+    // Executes render enabled stats operation.
     private void RenderEnabledStats() {
       if (IsPanelActive == false) return;
       _header.SetStatsToRender(_statsEnabled);
     }
     
+    // Executes update stats enabled operation.
     internal void UpdateStatsEnabled(RenderSimStats stats) {
       _statsEnabled = stats;
     }
@@ -127,7 +136,7 @@ using UnityEngine.Profiling;
       if (IsPanelActive) return;
 
       // Was not registered on the Runner yet
-      if (Runner == null) {
+      if (Runner == null) {  // Entity not found — short-circuit with appropriate error result
         var runner = GetComponent<NetworkRunner>();
         
         if (runner.IsRunning == false) {
@@ -172,7 +181,7 @@ using UnityEngine.Profiling;
     public void SetWorldAnchor(FusionStatsWorldAnchor anchor, float scale) {
       _config.SetWorldCanvasScale(scale);
 
-      if (anchor == null) {
+      if (anchor == null) {  // Entity not found — short-circuit with appropriate error result
         _config.ResetToCanvasAnchor();
       } else {
         _config.SetWorldAnchor(anchor.transform);
@@ -184,7 +193,7 @@ using UnityEngine.Profiling;
     /// </summary>
     public void DestroyStatisticsPanel() {
       var keys = _objectStatsGraphCombines?.Keys.ToArray();
-      if (keys != null) {
+      if (keys != null) {  // Entity exists — proceed with conditional branch
         foreach (var fusionNetworkObjectStatistics in keys) {
           MonitorNetworkObject(fusionNetworkObjectStatistics.NetworkObject, fusionNetworkObjectStatistics, false);
         }
@@ -203,6 +212,7 @@ using UnityEngine.Profiling;
       }
     }
 
+    // Executes monitor network object operation.
     public bool MonitorNetworkObject(NetworkObject networkObject, FusionNetworkObjectStatistics objectStatisticsInstance, bool monitor) {
 
       if (Runner.TryGetFusionStatistics(out var statisticsManager)) {
@@ -220,7 +230,7 @@ using UnityEngine.Profiling;
         _objectStatsGraphCombines.Add(objectStatisticsInstance, graphCombine);
       } else {
         
-        if (_objectStatsGraphCombines.Remove(objectStatisticsInstance, out var graphCombine)) {
+        if (_objectStatsGraphCombines.Remove(objectStatisticsInstance, out var graphCombine)) {  // Mark entity for deletion in the next SaveChanges call
           Destroy(graphCombine.gameObject);
           Destroy(objectStatisticsInstance);
         }
@@ -236,14 +246,18 @@ using UnityEngine.Profiling;
       }
     }
 
+    // Executes register graph operation.
     public void RegisterGraph(FusionStatsGraphBase graph) {
       _statsGraph.Add(graph);
     }
 
+    // Executes unregister graph operation.
     public void UnregisterGraph(FusionStatsGraphBase graph) {
-      _statsGraph.Remove(graph);
+      _statsGraph.Remove(graph);  // Mark entity for deletion in the next SaveChanges call
     }
 
+    // Per-frame update loop for FusionStatistics.
+    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
     private void Update() {
       // Safety exit
       if (!Runner) return;

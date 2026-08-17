@@ -1,21 +1,18 @@
 namespace MysticJourney.API.Models.Request
 {
-    // POST /api/accounts/login-game
     [System.Serializable]
     public class LoginGameRequest
     {
         public string EmailOrUsername { get; set; }
         public string Password { get; set; }
 
-        // Server phân biệt client game với web admin portal qua trường này: chỉ client game
-        // bị chặn khi tài khoản đang được chơi ở máy khác, và chỉ client game ghi mốc online.
+        // Supported client types: Web or Game (selects independent refresh-token slot and session behavior)
         public string ClientType { get; set; } = "Game";
     }
 }
 
 namespace MysticJourney.API.Models.Response
 {
-    // Response: POST /api/accounts/login-game
     [System.Serializable]
     public class LoginGameResponse
     {
@@ -24,7 +21,7 @@ namespace MysticJourney.API.Models.Response
         public string EmailAddress { get; set; }
         public int RoleId { get; set; }
         public bool HasCharacter { get; set; }
-        public int? PlayerProfileId { get; set; }      // null nếu chưa tạo profile
+        public int? PlayerProfileId { get; set; }
         public string PlayerDisplayName { get; set; }
         public string PlayerClass { get; set; }
         public int Level { get; set; }
@@ -33,11 +30,11 @@ namespace MysticJourney.API.Models.Response
         public double PositionY { get; set; }
         public string AccessToken { get; set; }
         public string AccessTokenExpiresAt { get; set; }
+        // Refresh token rotated on each session exchange
         public string RefreshToken { get; set; }
         public string RefreshTokenExpiresAt { get; set; }
     }
 
-    // Response: GET /api/accounts/me  (cần auth)
     [System.Serializable]
     public class MeResponse
     {

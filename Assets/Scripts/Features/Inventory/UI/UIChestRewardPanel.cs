@@ -5,8 +5,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using MysticJourney.API.Models.Response;
 
+// Executes mono behaviour operation.
 public class UIChestRewardPanel : MonoBehaviour
 {
+    // Executes instance operation.
     public static UIChestRewardPanel Instance { get; private set; }
 
     [Header("Static References")]
@@ -18,6 +20,8 @@ public class UIChestRewardPanel : MonoBehaviour
     private readonly List<UIQuestRewardSlot> slots = new();
     private Action onConfirmCallback;
 
+    // Initializes internal component caches and dependencies for UIChestRewardPanel upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         Instance = this;
@@ -25,6 +29,7 @@ public class UIChestRewardPanel : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    // Executes bind references operation.
     private void BindReferences()
     {
         if (titleText == null)
@@ -32,7 +37,6 @@ public class UIChestRewardPanel : MonoBehaviour
 
         if (rewardListContent == null)
         {
-            // Search in children for the Scroll View Content
             rewardListContent = transform.Find("RewaimList/Scroll View/Viewport/Content");
             if (rewardListContent == null)
                 rewardListContent = transform.Find("RewaimList/Content");
@@ -40,7 +44,6 @@ public class UIChestRewardPanel : MonoBehaviour
                 rewardListContent = transform.Find("RewaimList");
         }
 
-        // Configure Layout Group on Content if it doesn't have one
         if (rewardListContent != null)
         {
             var layout = rewardListContent.GetComponent<HorizontalLayoutGroup>();
@@ -81,6 +84,8 @@ public class UIChestRewardPanel : MonoBehaviour
         }
     }
 
+    // Executes show rewards operation.
+    // Validates input parameters against null or empty values.
     public void ShowRewards(string chestName, int gold, int xp, DungeonRewardItemResponse[] items, Action onConfirm)
     {
         BindReferences();
@@ -109,7 +114,6 @@ public class UIChestRewardPanel : MonoBehaviour
             }
         }
 
-        // Deactivate old slots
         foreach (var slot in slots)
         {
             if (slot != null)
@@ -118,31 +122,30 @@ public class UIChestRewardPanel : MonoBehaviour
 
         int slotIndex = 0;
 
-        // Add Gold
         if (gold > 0)
         {
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = GetOrCreateSlot(slotIndex++);
             slot.Setup("Gold", $"+{gold}", GetDefaultSprite("Gold"));
         }
 
-        // Add XP
         if (xp > 0)
         {
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             var slot = GetOrCreateSlot(slotIndex++);
             slot.Setup("Experience", $"+{xp}", GetDefaultSprite("EXP"));
         }
 
-        // Add Items
         if (items != null)
         {
             foreach (var item in items)
             {
                 if (item == null) continue;
 
+                // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                 var slot = GetOrCreateSlot(slotIndex++);
                 Sprite itemSprite = null;
 
-                // Resolve item icon: name first, type as fallback
                 if (ItemIconDatabase.Instance != null)
                 {
                     itemSprite = ItemIconDatabase.Instance.GetIcon(item.ItemName, item.ItemType);
@@ -152,7 +155,6 @@ public class UIChestRewardPanel : MonoBehaviour
             }
         }
 
-        // Refresh layout
         if (rewardListContent != null)
         {
             var rect = rewardListContent.GetComponent<RectTransform>();
@@ -161,6 +163,7 @@ public class UIChestRewardPanel : MonoBehaviour
         }
     }
 
+    // Executes get or create slot operation.
     private UIQuestRewardSlot GetOrCreateSlot(int index)
     {
         if (index < slots.Count)
@@ -174,17 +177,17 @@ public class UIChestRewardPanel : MonoBehaviour
 
         if (rewardSlotPrefab == null)
         {
-            // Fallback find in scene
             rewardSlotPrefab = FindFirstObjectByType<UIQuestRewardSlot>();
         }
 
         if (rewardSlotPrefab == null)
         {
-            // Create a fallback slot UI programmatically
             GameObject fallbackObj = new GameObject("RewardSlotFallback", typeof(RectTransform));
             fallbackObj.transform.SetParent(rewardListContent, false);
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             UIQuestRewardSlot slot = fallbackObj.AddComponent<UIQuestRewardSlot>();
             slots.Add(slot);
+            // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
             return slot;
         }
 
@@ -194,12 +197,13 @@ public class UIChestRewardPanel : MonoBehaviour
         return newSlot;
     }
 
+    // Executes get default sprite operation.
     private Sprite GetDefaultSprite(string type)
     {
-        // Return resource icon if exists, else null
         return Resources.Load<Sprite>($"Icons/{type}") ?? Resources.Load<Sprite>(type);
     }
 
+    // Executes on confirm click operation.
     private void OnConfirmClick()
     {
         gameObject.SetActive(false);

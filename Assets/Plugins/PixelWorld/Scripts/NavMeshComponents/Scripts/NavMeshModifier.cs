@@ -4,6 +4,7 @@ using NavMeshPlus.Extensions;
 
 namespace NavMeshPlus.Components
 {
+    // Executes mono behaviour operation.
     [ExecuteInEditMode]
     [AddComponentMenu("Navigation/Navigation Modifier", 32)]
     [HelpURL("https://github.com/Unity-Technologies/NavMeshComponents#documentation-draft")]
@@ -11,14 +12,17 @@ namespace NavMeshPlus.Components
     {
         [SerializeField]
         bool m_OverrideArea;
+        // Executes override area operation.
         public bool overrideArea { get { return m_OverrideArea; } set { m_OverrideArea = value; } }
 
         [SerializeField, NavMeshArea]
         int m_Area;
+        // Executes area operation.
         public int area { get { return m_Area; } set { m_Area = value; } }
 
         [SerializeField]
         bool m_IgnoreFromBuild;
+        // Executes ignore from build operation.
         public bool ignoreFromBuild { get { return m_IgnoreFromBuild; } set { m_IgnoreFromBuild = value; } }
 
         // List of agent types the modifier is applied for.
@@ -28,6 +32,7 @@ namespace NavMeshPlus.Components
 
         static readonly List<NavMeshModifier> s_NavMeshModifiers = new List<NavMeshModifier>();
 
+        // Executes active modifiers operation.
         public static List<NavMeshModifier> activeModifiers
         {
             get { return s_NavMeshModifiers; }
@@ -41,9 +46,10 @@ namespace NavMeshPlus.Components
 
         void OnDisable()
         {
-            s_NavMeshModifiers.Remove(this);
+            s_NavMeshModifiers.Remove(this);  // Mark entity for deletion in the next SaveChanges call
         }
 
+        // Executes affects agent type operation.
         public bool AffectsAgentType(int agentTypeID)
         {
             if (m_AffectedAgents.Count == 0)

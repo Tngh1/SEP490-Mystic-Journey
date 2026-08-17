@@ -12,6 +12,7 @@ using MysticJourney.API.Models.Response;
 
 namespace UI.Friend
 {
+    // Executes core business logic for mono behaviour.
     public class PlayerProfileUIManager : MonoBehaviour
     {
         [Header("UI References")]
@@ -29,7 +30,6 @@ namespace UI.Friend
         [Header("Class Art")]
         [Tooltip("Huy hiệu class nhỏ (LeftPanel/Bg_Class/Deco/ClassIcon).")]
         [SerializeField] private Image classIconImage;
-        // Sprite gán tay: 3 file này nằm ngoài Assets/Resources nên không Resources.Load được.
         [SerializeField] private Sprite knightIcon;
         [SerializeField] private Sprite mageIcon;
         [SerializeField] private Sprite archerIcon;
@@ -38,7 +38,7 @@ namespace UI.Friend
         [SerializeField] private Button editAvatarButton;
         [SerializeField] private UIAvatarSelectionPanel avatarSelectionPanel;
         [SerializeField] private Button editNameButton;
-        
+
         [Header("Name Change Panel")]
         [SerializeField] private GameObject nameChangePanel;
         [SerializeField] private TMP_InputField nameChangeInput;
@@ -58,7 +58,6 @@ namespace UI.Friend
         [SerializeField] private GameObject noAchievementText;
 
         [Header("Achievement Rarity Badges")]
-        // Gán tay: mấy file Gacha*.png nằm ngoài Assets/Resources nên không Resources.Load được.
         [SerializeField] private Sprite commonBadgeIcon;
         [SerializeField] private Sprite uncommonBadgeIcon;
         [SerializeField] private Sprite rareBadgeIcon;
@@ -104,75 +103,72 @@ namespace UI.Friend
         private PlayerMeAchievementsResponse _currentAchievements;
         private PlayerAchievementResponse _selectedAchievement;
         private bool _isCurrentPlayerProfile;
-        
+
+        // Initializes references, attaches UI hover scale animations, and binds profile action triggers.
         private void Awake()
         {
-            DisableBlockingBackgroundRaycast();
-            BindCloseButtons();
-            BindProfileActions();
-            AddHoverEffects();
+            DisableBlockingBackgroundRaycast(); // Prevent transparent background raycast obstruction
+            BindCloseButtons(); // Bind close triggers
+            BindProfileActions(); // Hook name change and avatar edit buttons
+            AddHoverEffects(); // Add hover scale feedback
         }
 
+        // Refreshes profile action bindings and ensures input passthrough.
         private void OnEnable()
         {
             DisableBlockingBackgroundRaycast();
-            // UIManager toggles this panel instead of recreating it. Rebind on
-            // every enable so scene/prefab variants with missing Inspector
-            // references still get working edit controls.
             BindProfileActions();
         }
 
+        // Disables raycast targeting on background artwork to avoid blocking click inputs.
         private void DisableBlockingBackgroundRaycast()
         {
-            // This full-panel decoration is rendered above the avatar/name edit
-            // buttons in Main.unity. It must not consume their pointer events.
             var background = transform.Find("Background")?.GetComponent<Graphic>();
             if (background != null)
                 background.raycastTarget = false;
         }
 
+        // Binds achievement list pagination, detail view popups, and name change dialog listeners.
         private void Start()
         {
             if (viewAchievementListButton != null)
-                viewAchievementListButton.onClick.AddListener(ShowAchievementListView);
+                viewAchievementListButton.onClick.AddListener(ShowAchievementListView); // Open achievement catalog
 
             if (achievementListCloseButton != null)
                 achievementListCloseButton.onClick.AddListener(() =>
                 {
                     if (achievementListPanel != null)
-                        achievementListPanel.SetActive(false);
+                        achievementListPanel.SetActive(false); // Close achievement list
                 });
 
             if (achievementPrevButton != null)
-                achievementPrevButton.onClick.AddListener(OnPrevAchievementPage);
+                achievementPrevButton.onClick.AddListener(OnPrevAchievementPage); // Previous page
 
             if (achievementNextButton != null)
-                achievementNextButton.onClick.AddListener(OnNextAchievementPage);
+                achievementNextButton.onClick.AddListener(OnNextAchievementPage); // Next page
 
             if (achievementDetailCloseButton != null)
-                achievementDetailCloseButton.onClick.AddListener(CloseAchievementPopup);
+                achievementDetailCloseButton.onClick.AddListener(CloseAchievementPopup); // Close achievement reward popup
 
             if (achievementDetailPanel != null)
                 achievementDetailPanel.SetActive(false);
 
-            // Scene để panel này activeSelf=true; chỉ ShowAchievementListView mới được mở nó.
             if (achievementListPanel != null)
                 achievementListPanel.SetActive(false);
 
             if (nameChangeSaveButton != null)
-                nameChangeSaveButton.onClick.AddListener(OnNameChangeSaveClicked);
+                nameChangeSaveButton.onClick.AddListener(OnNameChangeSaveClicked); // Save new player username
 
             if (nameChangeCancelButton != null)
-                nameChangeCancelButton.onClick.AddListener(CloseNameChangePanel);
+                nameChangeCancelButton.onClick.AddListener(CloseNameChangePanel); // Cancel name change
 
             if (nameChangePanel != null)
                 nameChangePanel.SetActive(false);
         }
 
+        // Auto-locates avatar picker and name editor components in the UI tree.
         private void BindProfileActions()
         {
-            // Bind in Awake so the first click works immediately after this initially
-            // inactive panel is enabled. RemoveListener keeps the binding idempotent.
             if (editAvatarButton == null)
                 editAvatarButton = transform.Find("LeftPanel/EditAvatarButton")?.GetComponent<Button>();
             if (avatarSelectionPanel == null)
@@ -195,19 +191,20 @@ namespace UI.Friend
             if (editAvatarButton != null)
             {
                 editAvatarButton.onClick.RemoveListener(OpenAvatarSelection);
-                editAvatarButton.onClick.AddListener(OpenAvatarSelection);
+                editAvatarButton.onClick.AddListener(OpenAvatarSelection); // Open avatar selection modal
             }
 
             if (editNameButton != null)
             {
                 editNameButton.onClick.RemoveListener(OpenNameChangePanel);
-                editNameButton.onClick.AddListener(OpenNameChangePanel);
+                editNameButton.onClick.AddListener(OpenNameChangePanel); // Open name change modal
             }
         }
 
+        // Opens the local player's profile card and queries personal achievements.
         public void ShowMyProfile()
         {
-            int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId;
+            int myProfileId = MysticJourney.Core.Services.GameStateService.Instance.PlayerProfileId; // Get local profile ID
             if (myProfileId > 0)
             {
                 ShowProfile(myProfileId, null);
@@ -218,14 +215,15 @@ namespace UI.Friend
             }
         }
 
-        public void ShowProfile(int profileId, string token) // Token kept here for legacy signature if called from elsewhere, though unused in API
+        // Executes core business logic for show profile.
+        public void ShowProfile(int profileId, string token)
         {
             Debug.Log("[PlayerProfileUIManager] ShowProfile called for " + profileId);
             if (transform.parent != null) {
                 Debug.Log($"[PlayerProfileUIManager] Parent is {transform.parent.name}, activeInHierarchy: {transform.parent.gameObject.activeInHierarchy}");
             }
             gameObject.SetActive(true);
-            transform.SetAsLastSibling(); // Ensure it renders on top of FriendPanel
+            transform.SetAsLastSibling();
             ClearAchievementList();
             SetLoadingState();
 
@@ -247,13 +245,15 @@ namespace UI.Friend
                     if (achievementSummaryText != null) achievementSummaryText.text = "Achievements: private";
                     ClearAchievementDetail();
                 }
-            }, err => 
+            }, err =>
             {
                 Debug.LogError($"Failed to load profile: {err.Message}");
                 if (nameText != null) nameText.text = "Error loading profile.";
             });
         }
 
+        // Executes core business logic for set loading state.
+        // Logic details: validates required non-empty string arguments.
         private void SetLoadingState()
         {
             if (nameText != null) nameText.text = "Loading...";
@@ -269,10 +269,13 @@ namespace UI.Friend
 
 
 
+        // Executes core business logic for apply profile.
+        // Logic details: validates required non-empty string arguments.
         private void ApplyProfile(FriendProfileDto profile)
         {
             if (nameText != null) nameText.text = profile.CharacterName;
             if (levelText != null) levelText.text = profile.Level.ToString();
+            // Supported player classes: Knight, Archer, or Mage; the class selects base stats, compatible skills, skins, and combat scaling.
             string className = string.IsNullOrEmpty(profile.Class) ? "Knight" : profile.Class;
             if (classText != null) classText.text = className;
             ApplyClassArt(className);
@@ -289,12 +292,11 @@ namespace UI.Friend
             if (editNameButton != null)
                 editNameButton.gameObject.SetActive(_isCurrentPlayerProfile);
 
-            // Achievement List button: hiện khi đang xem profile của chính mình.
             if (viewAchievementListButton != null)
                 viewAchievementListButton.gameObject.SetActive(_isCurrentPlayerProfile);
         }
 
-        /// <summary>Đổi huy hiệu class nhỏ. BE trả về string nên so sánh không phân biệt hoa/thường, không khớp thì về Knight.</summary>
+        // Executes core business logic for apply class art.
         private void ApplyClassArt(string className)
         {
             Sprite icon = knightIcon;
@@ -311,6 +313,7 @@ namespace UI.Friend
             if (classIconImage != null && icon != null) classIconImage.sprite = icon;
         }
 
+        // Executes core business logic for open name change panel.
         public void OpenNameChangePanel()
         {
             if (nameChangePanel != null)
@@ -318,8 +321,7 @@ namespace UI.Friend
                 nameChangePanel.transform.SetAsLastSibling();
                 if (nameChangeInput != null) nameChangeInput.text = "";
                 if (nameChangeMessageText != null) nameChangeMessageText.text = "";
-                
-                // Cập nhật text của nút save dựa theo việc đổi tên có tốn phí hay không
+
                 if (nameChangeSaveButton != null)
                 {
                     var btnText = nameChangeSaveButton.GetComponentInChildren<TMP_Text>();
@@ -334,12 +336,16 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for close name change panel.
+        // Logic details: validates required non-empty string arguments.
         private void CloseNameChangePanel()
         {
             if (nameChangePanel != null)
                 nameChangePanel.SetActive(false);
         }
 
+        // Executes core business logic for on name change save clicked.
+        // Logic details: validates required non-empty string arguments.
         private void OnNameChangeSaveClicked()
         {
             if (nameChangeInput == null) return;
@@ -361,7 +367,6 @@ namespace UI.Friend
                 {
                     if (nameChangeSaveButton != null) nameChangeSaveButton.interactable = true;
                     if (nameText != null) nameText.text = response.DisplayName;
-                    // Cập nhật lại current profile
                     if (_currentProfile != null) _currentProfile.HasChangedName = true;
                     CloseNameChangePanel();
                 },
@@ -373,12 +378,14 @@ namespace UI.Friend
                 });
         }
 
+        // Executes core business logic for apply profile avatar.
+        // Logic details: validates required non-empty string arguments.
         private void ApplyProfileAvatar(string avatarUrl)
         {
             if (avatarImage == null) return;
 
             if (string.IsNullOrEmpty(avatarUrl))
-                avatarUrl = "avatar_1"; // Default avatar
+                avatarUrl = "avatar_1";
 
             Sprite avatarSprite = Resources.Load<Sprite>($"Avatars/{avatarUrl}");
             if (avatarSprite != null)
@@ -387,6 +394,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for open avatar selection.
+        // Logic details: validates required non-empty string arguments; validates numeric boundary constraints.
         public void OpenAvatarSelection()
         {
             if (avatarSelectionPanel == null)
@@ -409,6 +418,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for update avatar image.
         public void UpdateAvatarImage(string avatarUrl)
         {
             if (_currentProfile != null)
@@ -416,12 +426,11 @@ namespace UI.Friend
 
             ApplyProfileAvatar(avatarUrl);
 
-            // Avatar còn hiện ở HUD (TopBar). HUD chỉ tự tải lại mỗi 15 giây nên nếu không đẩy
-            // sang đây, người chơi đổi avatar xong vẫn thấy ảnh cũ ở góc màn hình.
             if (_isCurrentPlayerProfile)
                 PlayerHUDUIManager.Instance?.ApplyAvatar(avatarUrl);
         }
 
+        // Executes core business logic for load friends count.
         private void LoadFriendsCount()
         {
             if (friendsCountText != null)
@@ -439,6 +448,7 @@ namespace UI.Friend
             });
         }
 
+        // Executes core business logic for load achievement catalog.
         private void LoadAchievementCatalog()
         {
             if (achievementSummaryText != null)
@@ -463,6 +473,7 @@ namespace UI.Friend
             isActive: true);
         }
 
+        // Executes core business logic for load owned achievements.
         private void LoadOwnedAchievements()
         {
             AchievementApi.Instance.GetMyAchievements(response =>
@@ -498,6 +509,7 @@ namespace UI.Friend
             });
         }
 
+        // Executes core business logic for populate achievement list.
         private void PopulateAchievementList()
         {
             ClearAchievementList();
@@ -535,10 +547,6 @@ namespace UI.Friend
                     var capturedAchievement = achievement;
                     var capturedOwnedAchievement = owned;
                     button.onClick.RemoveAllListeners();
-                    // Achievement rewards are useful before unlock as well as
-                    // after unlock, so every catalog row must open its detail.
-                    // The owned record is still passed through to render the
-                    // locked/unlocked state.
                     button.interactable = true;
                     button.onClick.AddListener(() => SelectAchievement(capturedAchievement, capturedOwnedAchievement));
                 }
@@ -555,12 +563,12 @@ namespace UI.Friend
             UpdatePaginationUI(totalPages);
         }
 
-        // Row layout mới (AchievementItem.prefab): mỗi dữ liệu một widget riêng thay vì nhồi
-        // hết vào một label rich-text.
+        // Executes core business logic for bind achievement row.
         private void BindAchievementRow(Transform row, AchievementResponse achievement, PlayerAchievementResponse owned)
         {
             bool isOwned = owned != null;
             int required = Mathf.Max(1, achievement.RequiredValue);
+            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
             int progress = Mathf.Clamp(owned?.Progress ?? 0, 0, required);
             bool isUnlocked = isOwned && (owned.IsCompleted || owned.Progress >= achievement.RequiredValue);
             float ratio = isUnlocked ? 1f : (float)progress / required;
@@ -590,18 +598,18 @@ namespace UI.Friend
                 icon.color = isUnlocked ? Color.white : new Color(1f, 1f, 1f, 0.55f);
             }
 
-            // Khoá = ổ khoá trên icon, không dim cả row nữa: row bị CanvasGroup alpha 0.35 thì
-            // đọc không nổi chữ mà cũng chẳng biết vì sao.
             row.Find("IconBg/LockBg")?.gameObject.SetActive(!isUnlocked);
             row.Find("IconBg/LockIcon")?.gameObject.SetActive(!isUnlocked);
         }
 
+        // Executes core business logic for set row text.
         private void SetRowText(Transform row, string childName, string value)
         {
             var text = row.Find(childName)?.GetComponent<TMP_Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 
+        // Executes core business logic for get rarity badge.
         private Sprite GetRarityBadge(int point)
         {
             return GetRarityTier(point) switch
@@ -613,6 +621,7 @@ namespace UI.Friend
             };
         }
 
+        // Executes core business logic for update pagination ui.
         private void UpdatePaginationUI(int totalPages)
         {
             if (achievementPageText != null)
@@ -631,6 +640,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for on prev achievement page.
         private void OnPrevAchievementPage()
         {
             if (_currentAchievementPage > 1)
@@ -640,6 +650,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for on next achievement page.
         private void OnNextAchievementPage()
         {
             int totalItems = _achievementCatalog.Count;
@@ -653,6 +664,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for show achievement detail.
+        // Logic details: validates required non-empty string arguments.
         private void ShowAchievementDetail(AchievementResponse achievement, PlayerAchievementResponse ownedAchievement)
         {
             if (achievement == null)
@@ -665,7 +678,6 @@ namespace UI.Friend
 
             if (achievementDetailNameText != null) achievementDetailNameText.text = achievement.Name;
 
-            // --- Reward: Icon Gold + Icon Gem ---
             decimal rewardGold = achievement.RewardGold > 0
                 ? achievement.RewardGold
                 : ownedAchievement?.RewardGold ?? 0;
@@ -678,10 +690,8 @@ namespace UI.Friend
             if (gemAmountText != null)
                 gemAmountText.text = rewardGem.ToString("N0");
 
-            // --- Reward Item: InventorySlot_Prefab ---
             PopulateItemSlots(achievement);
 
-            // --- Buff: Icon + Number (InventorySlot_Prefab) ---
             PopulateBuffSlots(achievement);
 
             bool isUnlocked = ownedAchievement != null && (ownedAchievement.IsCompleted || ownedAchievement.Progress >= achievement.RequiredValue);
@@ -699,7 +709,6 @@ namespace UI.Friend
             }
             else
             {
-                // IconUrl rỗng hoặc không có file trong Resources → thử URL tuyệt đối.
                 ApplyAchievementIcon(achievement.IconUrl);
             }
 
@@ -710,6 +719,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for populate item slots.
+        // Logic details: validates required non-empty string arguments.
         private void PopulateItemSlots(AchievementResponse achievement)
         {
             ClearContainer(itemSlotContainer);
@@ -721,12 +732,12 @@ namespace UI.Friend
             {
                 var slotGo = Instantiate(inventorySlotPrefab, itemSlotContainer);
                 slotGo.transform.localScale = Vector3.one;
+                // Supported equipment slots: None, Weapon, Armor, Helmet, Gloves, Boots, Ring, Necklace, or Shield.
                 var slot = slotGo.GetComponent<UIBaseItemSlot>();
                 if (slot != null)
                 {
                     string itemName = !string.IsNullOrEmpty(achievement.RewardItemName) ? achievement.RewardItemName : "Item";
                     Sprite itemIcon = null;
-                    // Try to load item icon from Resources
                     if (!string.IsNullOrEmpty(achievement.RewardItemName))
                     {
                         itemIcon = Resources.Load<Sprite>($"Item/{achievement.RewardItemName}")
@@ -738,6 +749,8 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for populate buff slots.
+        // Logic details: validates required non-empty string arguments.
         private void PopulateBuffSlots(AchievementResponse achievement)
         {
             ClearContainer(buffContainer);
@@ -749,7 +762,6 @@ namespace UI.Friend
                 ? achievement.BuffDescription
                 : GetBuffDescription(achievement.Point, achievement.Type);
 
-            // Remove "Buff: " prefix and " | Type: xxx" suffix if present
             if (buffDesc.StartsWith("Buff: "))
                 buffDesc = buffDesc.Substring(6);
             int pipeIdx = buffDesc.IndexOf(" | ");
@@ -759,21 +771,19 @@ namespace UI.Friend
             GameObject prefabToUse = buffSlotPrefab != null ? buffSlotPrefab : inventorySlotPrefab;
             if (prefabToUse == null) return;
 
-            // Parse "+1 ATK, +2 DEF, +1 HP, +1 Crit" → individual stat entries
             string[] parts = buffDesc.Split(',');
             foreach (string raw in parts)
             {
                 string part = raw.Trim();
                 if (string.IsNullOrEmpty(part)) continue;
 
-                // Extract stat name and value, e.g. "+2 ATK" → statName="ATK", statValue="+2"
                 string statName = "";
                 string statValue = "";
                 int spaceIdx = part.IndexOf(' ');
                 if (spaceIdx > 0)
                 {
-                    statValue = part.Substring(0, spaceIdx);  // "+2"
-                    statName = part.Substring(spaceIdx + 1);   // "ATK"
+                    statValue = part.Substring(0, spaceIdx);
+                    statName = part.Substring(spaceIdx + 1);
                 }
                 else
                 {
@@ -801,6 +811,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for get stat icon.
         private Sprite GetStatIcon(string statName)
         {
             if (string.Equals(statName, "ATK", StringComparison.OrdinalIgnoreCase)) return atkStatIcon;
@@ -811,6 +822,7 @@ namespace UI.Friend
             return null;
         }
 
+        // Executes core business logic for clear container.
         private void ClearContainer(Transform container)
         {
             if (container == null) return;
@@ -820,6 +832,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for show achievement list view.
         public void ShowAchievementListView()
         {
             _currentAchievementPage = 1;
@@ -839,11 +852,13 @@ namespace UI.Friend
         }
 
 
+        // Executes core business logic for select achievement.
         public void SelectAchievement(AchievementResponse achievement, PlayerAchievementResponse ownedAchievement)
         {
             ShowAchievementDetail(achievement, ownedAchievement);
         }
 
+        // Executes core business logic for close achievement popup.
         public void CloseAchievementPopup()
         {
             if (achievementDetailPanel != null)
@@ -857,6 +872,7 @@ namespace UI.Friend
             _selectedAchievement = null;
         }
 
+        // Executes core business logic for get rarity tier.
         private int GetRarityTier(int point)
         {
             if (point >= 80) return 3;
@@ -865,6 +881,7 @@ namespace UI.Friend
             return 0;
         }
 
+        // Executes core business logic for get rarity label.
         private string GetRarityLabel(int point)
         {
             return GetRarityTier(point) switch
@@ -876,6 +893,7 @@ namespace UI.Friend
             };
         }
 
+        // Executes core business logic for get rarity color hex.
         private string GetRarityColorHex(int point)
         {
             return GetRarityTier(point) switch
@@ -887,12 +905,14 @@ namespace UI.Friend
             };
         }
 
+        // Executes core business logic for get rarity color.
         private Color GetRarityColor(int point)
         {
             ColorUtility.TryParseHtmlString(GetRarityColorHex(point), out var color);
             return color;
         }
 
+        // Executes core business logic for get buff description.
         private string GetBuffDescription(int point, string type)
         {
             int tier = GetRarityTier(point);
@@ -917,6 +937,7 @@ namespace UI.Friend
             return $"Buff: {buff} | Type: {type}";
         }
 
+        // Executes core business logic for clear achievement detail.
         private void ClearAchievementDetail()
         {
             if (achievementDetailNameText != null) achievementDetailNameText.text = string.Empty;
@@ -927,7 +948,6 @@ namespace UI.Friend
                 achievementDetailIconImage.enabled = false;
             }
 
-            // Clear reward icons
             if (goldAmountText != null) goldAmountText.text = "0";
             if (gemAmountText != null) gemAmountText.text = "0";
             ClearContainer(itemSlotContainer);
@@ -936,6 +956,8 @@ namespace UI.Friend
             _selectedAchievement = null;
         }
 
+        // Executes core business logic for apply achievement icon.
+        // Logic details: validates required non-empty string arguments.
         private void ApplyAchievementIcon(string iconUrl)
         {
             if (achievementDetailIconImage == null)
@@ -949,6 +971,7 @@ namespace UI.Friend
             if (Uri.TryCreate(iconUrl, UriKind.Absolute, out var absoluteUri) &&
                 (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
             {
+                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 StartCoroutine(LoadRemoteAchievementIcon(iconUrl));
                 return;
             }
@@ -961,6 +984,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for load remote achievement icon.
         private System.Collections.IEnumerator LoadRemoteAchievementIcon(string iconUrl)
         {
             using (var request = UnityWebRequestTexture.GetTexture(iconUrl))
@@ -983,6 +1007,7 @@ namespace UI.Friend
             }
         }
 
+        // Executes core business logic for clear achievement list.
         private void ClearAchievementList()
         {
             if (achievementContent == null)
@@ -996,6 +1021,7 @@ namespace UI.Friend
             _achievementItemInstances.Clear();
         }
 
+        // Executes core business logic for bind close buttons.
         private void BindCloseButtons()
         {
             if (closeButton != null)
@@ -1015,9 +1041,7 @@ namespace UI.Friend
             BindLogoutButton();
         }
 
-        // LogoutButton nằm trong panel này (RightPanel/LogoutButton) nhưng onClick trong scene
-        // RỖNG và không script nào tham chiếu tới nó → bấm vào không có gì xảy ra. Bind bằng code
-        // để không phụ thuộc việc gán tay trong Inspector.
+        // Executes core business logic for bind logout button.
         private void BindLogoutButton()
         {
             if (logoutButton == null)
@@ -1046,15 +1070,14 @@ namespace UI.Friend
             logoutButton.onClick.AddListener(OnLogoutClicked);
         }
 
-        // Only meaningful for the signed-in account: this panel also shows other players' profiles,
-        // where Logout makes no sense (and is easy to hit by accident).
-        // Logout is not undoable (session gone, back to MainMenu), so confirm first.
+        // Executes core business logic for on logout clicked.
         private void OnLogoutClicked()
         {
             UIPopupBox.Show(transform, "Logout", "Log out of your account?",
                 () => MysticJourney.Core.Services.SessionService.Logout());
         }
 
+        // Executes core business logic for close panel.
         public void ClosePanel()
         {
             if (UIManager.Instance != null)
@@ -1063,6 +1086,7 @@ namespace UI.Friend
                 gameObject.SetActive(false);
         }
 
+        // Executes core business logic for add hover effects.
         private void AddHoverEffects()
         {
             var buttons = GetComponentsInChildren<Button>(true);

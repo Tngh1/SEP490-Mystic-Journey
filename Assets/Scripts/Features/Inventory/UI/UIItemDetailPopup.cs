@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Models.Response;
 
+// Executes mono behaviour operation.
 public class UIItemDetailPopup : MonoBehaviour
 {
     [Header("Panels")]
@@ -12,7 +13,6 @@ public class UIItemDetailPopup : MonoBehaviour
     [SerializeField] private GameObject consumePanel;
     [SerializeField] private GameObject skinPanel;
 
-    // --- DETAIL PANEL ---
     [Header("Detail Panel - Text")]
     [SerializeField] private TMP_Text itemNameText;
     [SerializeField] private TMP_Text itemTypeText;
@@ -51,7 +51,6 @@ public class UIItemDetailPopup : MonoBehaviour
     [SerializeField] private Button unequipSkinButton;
     [SerializeField] private Button closeDetailButton;
 
-    // --- EQUIP COMPARISON PANEL ---
     [Header("Equip Comparison - Old Item")]
     [SerializeField] private TMP_Text oldItemName;
     [SerializeField] private TMP_Text oldItemType;
@@ -70,7 +69,6 @@ public class UIItemDetailPopup : MonoBehaviour
     [SerializeField] private Button confirmEquipButton;
     [SerializeField] private Button cancelEquipButton;
 
-    // --- CONSUME PANEL ---
     [Header("Consume Panel - Fields")]
     [SerializeField] private TMP_Text consumeName;
     [SerializeField] private TMP_Text consumeDesc;
@@ -85,17 +83,15 @@ public class UIItemDetailPopup : MonoBehaviour
     [SerializeField] private Button confirmConsumeButton;
     [SerializeField] private Button cancelConsumeButton;
 
-    // --- SKIN PANEL ---
     [Header("Skin Panel - Fields")]
     [SerializeField] private TMP_Text skinTitleText;
     [SerializeField] private TMP_Text skinNameText;
     [SerializeField] private Image skinIcon;
-    
+
     [Header("Skin Panel - Buttons")]
     [SerializeField] private Button confirmSkinButton;
     [SerializeField] private Button cancelSkinButton;
 
-    // Dữ liệu item đang hiển thị
     private InventoryItemResponse _currentItem;
 #pragma warning disable CS0414
     private PlayerSkinSummaryResponse _currentSkin;
@@ -104,12 +100,13 @@ public class UIItemDetailPopup : MonoBehaviour
     private int _consumeQuantity = 1;
     private Sprite _currentIcon;
 
-    // Callbacks
-    public Action<InventoryItemResponse> OnEquipInitiated; // Khi click Equip ở Detail -> InventoryUIManager tìm đồ đang mặc để so sánh
-    public Action<InventoryItemResponse> OnEquipConfirmed; // Khi click Equip ở Comparison -> Thực sự mặc
-    public Action<InventoryItemResponse> OnUnequipClicked; // Bấm gỡ
-    public Action<InventoryItemResponse, int> OnConsumeConfirmed; // Thực sự dùng item với số lượng
+    public Action<InventoryItemResponse> OnEquipInitiated;
+    public Action<InventoryItemResponse> OnEquipConfirmed;
+    public Action<InventoryItemResponse> OnUnequipClicked;
+    public Action<InventoryItemResponse, int> OnConsumeConfirmed;
 
+    // Initializes internal component caches and dependencies for UIItemDetailPopup upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         BindConsumeQuantityText();
@@ -128,17 +125,14 @@ public class UIItemDetailPopup : MonoBehaviour
 
         SetupHoverEffects();
 
-        // Detail Buttons
         if (equipButton)      equipButton.onClick.AddListener(HandleEquipInitiated);
         if (unequipButton)    unequipButton.onClick.AddListener(HandleUnequip);
         if (consumeButton)    consumeButton.onClick.AddListener(HandleConsumeButtonClick);
         if (closeDetailButton) closeDetailButton.onClick.AddListener(Hide);
 
-        // Equip Comparison Buttons
         if (confirmEquipButton) confirmEquipButton.onClick.AddListener(HandleEquipConfirmed);
         if (cancelEquipButton)  cancelEquipButton.onClick.AddListener(Hide);
 
-        // Consume Buttons
         if (btnMinus) btnMinus.onClick.AddListener(() => ChangeConsumeQty(-1));
         if (btnPlus)  btnPlus.onClick.AddListener(() => ChangeConsumeQty(1));
         if (btnMax)   btnMax.onClick.AddListener(SetMaxSmartQuantity);
@@ -146,6 +140,7 @@ public class UIItemDetailPopup : MonoBehaviour
         if (cancelConsumeButton)  cancelConsumeButton.onClick.AddListener(Hide);
     }
 
+    // Executes bind consume quantity text operation.
     private void BindConsumeQuantityText()
     {
         if (consumeQuantityText != null || consumePanel == null)
@@ -159,6 +154,7 @@ public class UIItemDetailPopup : MonoBehaviour
             Debug.LogWarning("[UIItemDetailPopup] Consume quantity text is not assigned.", this);
     }
 
+    // Executes setup hover effects operation.
     private void SetupHoverEffects()
     {
         foreach (var btn in GetComponentsInChildren<Button>(true))
@@ -171,6 +167,8 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes switch panel operation.
+    // Validates input parameters against null or empty values.
     private void SwitchPanel(GameObject activePanel)
     {
         if (detailPanel) detailPanel.SetActive(false);
@@ -183,9 +181,8 @@ public class UIItemDetailPopup : MonoBehaviour
 
     private int _currentSlotStackQuantity = 99;
 
-    // =========================================================================
-    // UC 20.2 - Show Detail
-    // =========================================================================
+    // Executes show operation.
+    // Validates input parameters against null or empty values.
     public void Show(InventoryItemResponse item, Sprite icon = null, int slotStackQuantity = 99)
     {
         if (item == null)
@@ -227,7 +224,7 @@ public class UIItemDetailPopup : MonoBehaviour
             itemRarityText.text = item.ItemRarity ?? "";
             itemRarityText.color = rarityColor;
         }
-        if (itemDescriptionText) 
+        if (itemDescriptionText)
         {
             itemDescriptionText.enableWordWrapping = true;
             itemDescriptionText.text = item.ItemDescription ?? "";
@@ -271,6 +268,7 @@ public class UIItemDetailPopup : MonoBehaviour
         RefreshButtons(item);
     }
 
+    // Update visibility for the current state; it updates active.
     public void Hide()
     {
         SwitchPanel(null);
@@ -278,6 +276,7 @@ public class UIItemDetailPopup : MonoBehaviour
         _currentItem = null;
     }
 
+    // Executes update item state operation.
     public void UpdateItemState(InventoryItemResponse updatedItem)
     {
         if (_currentItem == null || updatedItem == null) return;
@@ -286,6 +285,7 @@ public class UIItemDetailPopup : MonoBehaviour
         RefreshButtons(updatedItem);
     }
 
+    // Executes refresh buttons operation.
     private void RefreshButtons(InventoryItemResponse item)
     {
         if (item == null)
@@ -303,39 +303,39 @@ public class UIItemDetailPopup : MonoBehaviour
         if (unequipSkinButton) unequipSkinButton.gameObject.SetActive(false);
     }
 
+    // Executes set stat text operation.
     private void SetStatText(TMP_Text label, string name, float value, bool isFloat = false)
     {
         if (label == null) return;
         label.text = isFloat ? $"{name}: {value:F1}%" : $"{name}: {(int)value}";
     }
 
-    // =========================================================================
-    // ACTIONS
-    // =========================================================================
+    // Executes handle equip initiated operation.
     private void HandleEquipInitiated()
     {
         if (_currentItem != null && IsEquipment(_currentItem)) OnEquipInitiated?.Invoke(_currentItem);
     }
 
+    // Executes handle equip confirmed operation.
     private void HandleEquipConfirmed()
     {
         if (_currentItem != null && IsEquipment(_currentItem)) OnEquipConfirmed?.Invoke(_currentItem);
     }
 
+    // Executes handle unequip operation.
     private void HandleUnequip()
     {
         if (_currentItem != null && IsEquipment(_currentItem)) OnUnequipClicked?.Invoke(_currentItem);
     }
 
-    // =========================================================================
-    // EQUIP COMPARISON PANEL
-    // =========================================================================
+    // Executes show equip comparison operation.
     public void ShowEquipComparison(InventoryItemResponse equippedItem, Sprite oldIcon = null)
     {
         SwitchPanel(equipComparisonPanel);
         PopulateEquipComparison(equippedItem, oldIcon);
     }
 
+    // Update visibility for equip comparison using new item, new icon, slot stack quantity, and equipped item; it updates navigation or visibility through hide and updates active and guards invalid or unavailable states.
     public void ShowEquipComparison(
         InventoryItemResponse newItem,
         Sprite newIcon,
@@ -355,17 +355,17 @@ public class UIItemDetailPopup : MonoBehaviour
         _currentIcon = newIcon;
         _currentSlotStackQuantity = slotStackQuantity > 0 ? slotStackQuantity : 99;
 
-        // Chọn panel trước khi bật root để panel của item trước không xuất hiện lại.
         SwitchPanel(equipComparisonPanel);
         gameObject.SetActive(true);
         PopulateEquipComparison(equippedItem, oldIcon);
     }
 
+    // Executes populate equip comparison operation.
+    // Validates input parameters against null or empty values.
     private void PopulateEquipComparison(InventoryItemResponse equippedItem, Sprite oldIcon)
     {
         EnsureStatIconsAsset();
 
-        // Fill old item (Equipped)
         if (equippedItem != null)
         {
             if (oldItemName)
@@ -397,7 +397,6 @@ public class UIItemDetailPopup : MonoBehaviour
             if (oldItemIcon) { oldItemIcon.enabled = false; ApplyRarityGlowToImage(oldItemIcon, null); }
         }
 
-        // Fill new item (New)
         if (_currentItem != null)
         {
             if (newItemName)
@@ -417,6 +416,7 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes ensure stat icons asset operation.
     private void EnsureStatIconsAsset()
     {
         var statIconsAsset = Resources.Load<TMP_SpriteAsset>("Sprite Assets/StatIcons");
@@ -427,6 +427,7 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes build stats string operation.
     private string BuildStatsString(InventoryItemResponse item, InventoryItemResponse oldItem = null)
     {
         string s = "";
@@ -449,9 +450,7 @@ public class UIItemDetailPopup : MonoBehaviour
         return s;
     }
 
-    // =========================================================================
-    // CONSUME PANEL
-    // =========================================================================
+    // Executes handle consume button click operation.
     private void HandleConsumeButtonClick()
     {
         if (_currentItem != null && _currentItem.ItemName != null && _currentItem.ItemName.Contains("Lucky Ticket", StringComparison.OrdinalIgnoreCase))
@@ -464,13 +463,14 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes show consume panel operation.
     private void ShowConsumePanel()
     {
         if (_currentItem == null || !IsConsumable(_currentItem) || _currentItem.Quantity <= 0) return;
         SwitchPanel(consumePanel);
 
         _consumeQuantity = 1;
-        
+
         Color rarityColor = GetRarityColor(_currentItem.ItemRarity);
         if (consumeName)
         {
@@ -495,41 +495,35 @@ public class UIItemDetailPopup : MonoBehaviour
         AdjustConsumePanelLayout();
     }
 
+    // Executes get max usable in current slot operation.
     private int GetMaxUsableInCurrentSlot()
     {
         int maxSlotCap = _currentSlotStackQuantity > 0 ? _currentSlotStackQuantity : 99;
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         return Mathf.Clamp(maxSlotCap, 1, 99);
     }
 
+    // Executes change consume qty operation.
     private void ChangeConsumeQty(int delta)
     {
         if (_currentItem == null) return;
         int maxUsable = GetMaxUsableInCurrentSlot();
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         _consumeQuantity = Mathf.Clamp(_consumeQuantity + delta, 1, maxUsable);
         UpdateConsumeQuantityText();
     }
 
-    /// <summary>
-    /// Nút "Max" thông minh cho consumable hồi máu:
-    /// - Nếu item là heal potion (BaseHp/BonusHp > 0, hoặc tên chứa Potion/Health/Heal/HP):
-    ///     • HP đã đầy        → 1 (không lãng phí)
-    ///     • HP chưa đầy + biết heal amount → tính số bình vừa đủ fill HP nhưng KHÔNG vượt quá Max Stack 99 của ô này
-    ///     • HP chưa đầy + không biết heal amount → max hết stack ô này (tối đa 99)
-    /// - Nếu không phải heal potion (EXP book, material...) → max hết stack ô này (tối đa 99).
-    /// </summary>
+    // Executes set max smart quantity operation.
     private void SetMaxSmartQuantity()
     {
         if (_currentItem == null) return;
 
         int maxUsable = GetMaxUsableInCurrentSlot();
 
-        // Lấy lượng hồi máu: từ BaseHp, BonusHp hoặc tự đọc số từ ItemDescription
         int healPerItem = ParseHealAmount(_currentItem);
 
-        // Nhận diện heal potion: qua stat, qua số heal đọc được, hoặc qua tên item
         bool isHealItem = healPerItem > 0 || IsHealConsumableByName(_currentItem.ItemName);
 
-        // Lấy HP hiện tại và HP tối đa của người chơi từ mọi nguồn
         int currentHp = 0;
         int maxHp = 0;
 
@@ -555,34 +549,30 @@ public class UIItemDetailPopup : MonoBehaviour
 
             if (hpDeficit <= 0)
             {
-                // HP đã đầy → đặt 1 và thông báo cho người chơi
                 _consumeQuantity = 1;
                 UIPopupBox.Notify(transform, "Notice", "Your HP is already full!\nNo need to use more health potions.");
             }
             else if (healPerItem > 0)
             {
-                // Tính chính xác số bình vừa đủ để lấp đầy HP thiếu (không lãng phí và không vượt quá ô 99 này)
                 int needed = Mathf.CeilToInt((float)hpDeficit / (float)healPerItem);
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 _consumeQuantity = Mathf.Clamp(needed, 1, maxUsable);
             }
             else
             {
-                // Không đọc được số heal → dùng tối đa ô này (tối đa 99)
                 _consumeQuantity = maxUsable;
             }
         }
         else
         {
-            // Vật phẩm khác (sách EXP, nguyên liệu...) → dùng tối đa ô này (tối đa 99)
             _consumeQuantity = maxUsable;
         }
 
         UpdateConsumeQuantityText();
     }
 
-    /// <summary>
-    /// Đọc lượng HP hồi từ BaseHp, BonusHp hoặc trích xuất số trong ItemDescription (ví dụ "Hồi 50 HP" -> 50).
-    /// </summary>
+    // Executes parse heal amount operation.
+    // Validates input parameters against null or empty values.
     private static int ParseHealAmount(InventoryItemResponse item)
     {
         if (item == null) return 0;
@@ -609,7 +599,8 @@ public class UIItemDetailPopup : MonoBehaviour
         return 0;
     }
 
-    /// <summary>Nhận diện heal potion qua tên item khi BaseHp và BonusHp đều = 0.</summary>
+    // Executes is heal consumable by name operation.
+    // Validates input parameters against null or empty values.
     private static bool IsHealConsumableByName(string itemName)
     {
         if (string.IsNullOrEmpty(itemName)) return false;
@@ -622,22 +613,26 @@ public class UIItemDetailPopup : MonoBehaviour
     }
 
 
+    // Executes update consume quantity text operation.
     private void UpdateConsumeQuantityText()
     {
         if (consumeQuantityText) consumeQuantityText.text = _consumeQuantity.ToString();
     }
 
+    // Executes handle consume confirmed operation.
     private void HandleConsumeConfirmed()
     {
         if (_currentItem != null && IsConsumable(_currentItem) && _currentItem.Quantity > 0)
             OnConsumeConfirmed?.Invoke(_currentItem, _consumeQuantity);
     }
 
+    // Executes is consumable operation.
     private static bool IsConsumable(InventoryItemResponse item)
     {
         return IsItemType(item, "Consumable") || (item != null && item.ItemName != null && item.ItemName.Contains("Lucky Ticket", StringComparison.OrdinalIgnoreCase));
     }
 
+    // Executes is equipment operation.
     private static bool IsEquipment(InventoryItemResponse item)
     {
         return IsItemType(item, "Weapon") ||
@@ -650,12 +645,16 @@ public class UIItemDetailPopup : MonoBehaviour
                IsItemType(item, "Necklace");
     }
 
+    // Executes is item type operation.
+    // Validates input parameters against null or empty values.
     private static bool IsItemType(InventoryItemResponse item, string itemType)
     {
         return item != null &&
                string.Equals(item.ItemType, itemType, StringComparison.OrdinalIgnoreCase);
     }
 
+    // Executes get rarity color operation.
+    // Validates input parameters against null or empty values.
     public static Color GetRarityColor(string rarity)
     {
         if (string.IsNullOrWhiteSpace(rarity)) return Color.white;
@@ -663,15 +662,17 @@ public class UIItemDetailPopup : MonoBehaviour
         switch (rarity.Trim().ToLowerInvariant())
         {
             case "common": return Color.white;
-            case "uncommon": return new Color(0.35f, 0.9f, 0.45f); // Bright Green
-            case "rare": return new Color(0.35f, 0.62f, 1f);     // Bright Blue
-            case "epic": return new Color(0.75f, 0.45f, 1f);     // Bright Purple
-            case "legendary": return new Color(1f, 0.72f, 0.2f); // Gold / Yellow
-            case "mythic": return new Color(1f, 0.3f, 0.3f);     // Red
+            case "uncommon": return new Color(0.35f, 0.9f, 0.45f);
+            case "rare": return new Color(0.35f, 0.62f, 1f);
+            case "epic": return new Color(0.75f, 0.45f, 1f);
+            case "legendary": return new Color(1f, 0.72f, 0.2f);
+            case "mythic": return new Color(1f, 0.3f, 0.3f);
             default: return Color.white;
         }
     }
 
+    // Executes apply rarity glow to image operation.
+    // Validates input parameters against null or empty values.
     private static void ApplyRarityGlowToImage(Image targetImage, string rarity)
     {
         if (targetImage == null) return;
@@ -694,6 +695,7 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes configure name text operation.
     private static void ConfigureNameText(TMP_Text text)
     {
         if (text == null) return;
@@ -712,6 +714,7 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes adjust consume panel layout operation.
     private void AdjustConsumePanelLayout()
     {
         if (consumePanel == null) return;
@@ -760,6 +763,8 @@ public class UIItemDetailPopup : MonoBehaviour
         }
     }
 
+    // Executes get rarity icon operation.
+    // Validates input parameters against null or empty values.
     private Sprite GetRarityIcon(string rarity)
     {
         if (string.IsNullOrWhiteSpace(rarity)) return iconCommon;

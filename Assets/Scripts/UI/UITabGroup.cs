@@ -6,12 +6,13 @@ using System.Collections.Generic;
 [System.Serializable]
 public class TabEvent : UnityEvent<int> { }
 
+// Executes mono behaviour operation.
 public class UITabGroup : MonoBehaviour
 {
     [Header("Tab Buttons")]
     [Tooltip("List of buttons that act as tabs")]
     public List<Button> tabButtons = new List<Button>();
-    
+
     [Header("Tab Visuals")]
     public Color activeColor = Color.white;
     public Color inactiveColor = new Color(0.7f, 0.7f, 0.7f, 1f);
@@ -25,35 +26,36 @@ public class UITabGroup : MonoBehaviour
 
     private int currentTabIndex = -1;
 
+    // Performs startup initialization for TabEvent on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         for (int i = 0; i < tabButtons.Count; i++)
         {
-            int index = i; // Capture for lambda
+            int index = i;
             if (tabButtons[i] != null)
             {
                 tabButtons[i].onClick.AddListener(() => SelectTab(index));
             }
         }
 
-        // Select the first tab by default if it exists
         if (tabButtons.Count > 0)
         {
             SelectTab(0);
         }
     }
 
+    // Executes select tab operation.
     public void SelectTab(int index)
     {
         if (index < 0 || index >= tabButtons.Count) return;
 
         currentTabIndex = index;
 
-        // Update visuals
         for (int i = 0; i < tabButtons.Count; i++)
         {
             if (tabButtons[i] == null) continue;
-            
+
             Image btnImage = tabButtons[i].GetComponent<Image>();
             if (btnImage != null)
             {
@@ -61,7 +63,6 @@ public class UITabGroup : MonoBehaviour
             }
         }
 
-        // Update pages if they are assigned
         for (int i = 0; i < tabPages.Count; i++)
         {
             if (tabPages[i] != null)
@@ -70,7 +71,6 @@ public class UITabGroup : MonoBehaviour
             }
         }
 
-        // Fire event so other scripts (like Shop) know the category changed
         onTabSelected?.Invoke(index);
     }
 }

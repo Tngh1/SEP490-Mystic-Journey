@@ -2,15 +2,16 @@ using System.Collections;
 using UnityEngine;
 using MysticJourney.Core.Services;
 
+// Executes mono behaviour operation.
 public class DarknessCurseSkill : MonoBehaviour
 {
     [Header("Curse Settings")]
     [Tooltip("Thời gian tồn tại của Lời nguyền (giây)")]
     [SerializeField] private float duration = 10f;
-    
+
     [Tooltip("Sát thương mỗi giây")]
     [SerializeField] private int damagePerSecond = 5;
-    
+
     [Tooltip("Tỷ lệ làm chậm (0.5 = giảm 50% tốc độ)")]
     [SerializeField] private float slowMultiplier = 0.5f;
 
@@ -21,6 +22,8 @@ public class DarknessCurseSkill : MonoBehaviour
     private PlayerEntity targetEntity;
     private PlayerMovement targetMovement;
 
+    // Performs startup initialization for DarknessCurseSkill on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         if (EnemySkillVisualReplica.IsReplica(this))
@@ -34,7 +37,6 @@ public class DarknessCurseSkill : MonoBehaviour
             AudioManager.Instance.PlaySfx(castSound, soundVolume);
         }
 
-        // 1. Tìm người chơi để bám vào
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
@@ -50,44 +52,38 @@ public class DarknessCurseSkill : MonoBehaviour
                 return;
             }
 
-            // Bám chặt vào người chơi
             transform.SetParent(player.transform);
-            transform.localPosition = Vector3.zero; // Nằm ngay chính giữa
+            transform.localPosition = Vector3.zero;
 
-            // Lấy các component cần thiết
             targetEntity = player.GetComponent<PlayerEntity>();
             targetMovement = player.GetComponent<PlayerMovement>();
 
-            // Gây hiệu ứng làm chậm
             if (targetMovement != null)
             {
                 targetMovement.SetMoveSpeedOverride(targetMovement.CurrentMoveSpeed * slowMultiplier);
             }
 
-            // Bắt đầu chu kỳ gây sát thương và cộng dồn hắc hoá
             if (buffMgr != null) buffMgr.AddBuff("Darkness Curse", "curse_icon", duration, true);
+            // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
             StartCoroutine(CurseRoutine());
 
-            // Tự động huỷ sau thời gian duration
             Destroy(gameObject, duration);
         }
         else
         {
-            // Nếu không tìm thấy player thì tự hủy luôn
             Destroy(gameObject);
         }
     }
 
+    // Executes curse routine operation.
     private IEnumerator CurseRoutine()
     {
         float timer = 0f;
         while (timer < duration)
         {
-            // Đợi 1 giây
             yield return new WaitForSeconds(1f);
             timer += 1f;
 
-            // Trừ máu
             if (targetEntity != null)
             {
                 var combat = targetEntity.GetComponent<PlayerCombat>();
@@ -99,7 +95,6 @@ public class DarknessCurseSkill : MonoBehaviour
                 targetEntity.TakeDamage(damagePerSecond);
             }
 
-            // Tăng 1 chỉ số Hắc Hoá vào Profile toàn cục
             var playerCombat = targetEntity != null ? targetEntity.GetComponent<PlayerCombat>() : null;
             if (playerCombat != null)
             {
@@ -109,9 +104,9 @@ public class DarknessCurseSkill : MonoBehaviour
         }
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
-        // Khi skill kết thúc (hoặc Boss chết -> skill biến mất), trả lại tốc độ bình thường
         if (targetMovement != null)
         {
             targetMovement.SetMoveSpeedOverride(0f);

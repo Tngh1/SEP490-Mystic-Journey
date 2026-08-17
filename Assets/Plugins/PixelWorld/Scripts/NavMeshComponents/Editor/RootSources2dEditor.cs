@@ -3,6 +3,7 @@ using NavMeshPlus.Components;
 
 namespace NavMeshPlus.Extensions.Editors
 {
+    // Executes editor operation.
     [CanEditMultipleObjects]
     [CustomEditor(typeof(RootSources2d))]
     internal class RootSources2dEditor: Editor
@@ -13,6 +14,7 @@ namespace NavMeshPlus.Extensions.Editors
             _rootSources = serializedObject.FindProperty("_rootSources");
         }
 
+        // Executes on inspector gui operation.
         public override void OnInspectorGUI()
         {
             serializedObject.Update();

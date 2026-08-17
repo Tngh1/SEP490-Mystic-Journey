@@ -2,10 +2,7 @@ using System;
 using MysticJourney.API.Core;
 using UnityEngine;
 
-/// <summary>
-/// Base class that all API endpoint singletons should inherit from.
-/// Eliminates the repeated singleton boilerplate across all 13 API classes.
-/// </summary>
+// Executes core business logic for mono behaviour.
 public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
 {
     private static T _instance;
@@ -13,6 +10,7 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
     private static bool _applicationIsQuitting;
 
 #if UNITY_EDITOR
+    // Initializes a new default instance of the BaseApiService class.
     static BaseApiService()
     {
         UnityEditor.EditorApplication.playModeStateChanged += state =>
@@ -25,6 +23,7 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
     }
 #endif
 
+    // Executes core business logic for instance.
     public static T Instance
     {
         get
@@ -56,6 +55,8 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
         }
     }
 
+    // Initializes internal component caches and dependencies for BaseApiService upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     protected virtual void Awake()
     {
         if (_instance != null && _instance != this)
@@ -67,6 +68,7 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
         PreserveAcrossScenes(gameObject);
     }
 
+    // Executes core business logic for preserve across scenes.
     private static void PreserveAcrossScenes(GameObject go)
     {
         if (go == null) return;
@@ -78,22 +80,26 @@ public abstract class BaseApiService<T> : MonoBehaviour where T : MonoBehaviour
             DontDestroyOnLoad(go);
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     protected virtual void OnDestroy()
     {
         if (_instance == this)
             _instance = null;
     }
 
+    // Executes core business logic for on application quit.
     protected virtual void OnApplicationQuit()
     {
         _applicationIsQuitting = true;
     }
 
+    // Executes core business logic for safe debug log.
     protected static void SafeDebugLog(string message)
     {
         Debug.Log($"[{typeof(T).Name}] {message}");
     }
 
+    // Executes core business logic for safe debug error.
     protected static void SafeDebugError(string message)
     {
         Debug.LogError($"[{typeof(T).Name}] {message}");

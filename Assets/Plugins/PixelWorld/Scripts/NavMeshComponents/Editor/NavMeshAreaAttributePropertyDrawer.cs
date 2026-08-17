@@ -7,14 +7,17 @@ using UnityEngine;
 //***********************************************************************************
 namespace NavMeshPlus.Extensions.Editors
 {
+    // Executes property drawer operation.
     [CustomPropertyDrawer(typeof(NavMeshAreaAttribute))]
     public class NavMeshAreaAttributePropertyDrawer : PropertyDrawer
     {
+        // Executes on gui operation.
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             NavMeshComponentsGUIUtility.AreaPopup(position, label.text, property);
         }
 
+        // Executes get property height operation.
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => 20;
     }
 }

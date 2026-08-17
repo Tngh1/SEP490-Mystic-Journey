@@ -3,9 +3,7 @@ using UnityEngine;
 
 namespace MysticJourney.Features.Monster
 {
-    /// <summary>
-    /// Hiệu ứng Floating Text cho vật phẩm, vàng, và kinh nghiệm rớt ra khi quái bị tiêu diệt.
-    /// </summary>
+    // Executes mono behaviour operation.
     public class FloatingDropText : MonoBehaviour
     {
         [SerializeField] private TextMeshPro tmpText;
@@ -19,6 +17,8 @@ namespace MysticJourney.Features.Monster
         private float timer = 0f;
         private Color originalColor = Color.white;
 
+        // Initializes internal component caches and dependencies for FloatingDropText upon GameObject instantiation.
+        // Executes during scene loading prior to Start to ensure critical references are wired up.
         private void Awake()
         {
             if (tmpText == null) tmpText = GetComponent<TextMeshPro>();
@@ -27,11 +27,12 @@ namespace MysticJourney.Features.Monster
 
             ApplySilverFont();
 
-            // Random nhẹ hướng bay nghiêng để nhiều dòng không bị đè hoàn toàn lên nhau
+            // Randomize the eligible candidates before selecting this gameplay result.
             float randomX = Random.Range(-0.3f, 0.3f);
             moveDirection = new Vector3(randomX, 1f, 0f).normalized;
         }
 
+        // Executes setup operation.
         public void Setup(string text, Color color, float speedMultiplier = 1f)
         {
             ApplySilverFont();
@@ -51,6 +52,7 @@ namespace MysticJourney.Features.Monster
             }
         }
 
+        // Executes apply silver font operation.
         private void ApplySilverFont()
         {
             TMP_FontAsset font = SilverFontResolver.Font;
@@ -63,17 +65,18 @@ namespace MysticJourney.Features.Monster
                 tmpTextUI.font = font;
         }
 
+        // Per-frame update loop for FloatingDropText.
+        // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
         private void Update()
         {
             timer += Time.deltaTime;
 
-            // Di chuyển lên trên
             transform.position += moveDirection * (moveSpeed * Time.deltaTime);
 
-            // Mờ dần về cuối vòng đời
             float startFadeTime = lifetime - fadeDuration;
             if (timer >= startFadeTime)
             {
+                // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
                 float alpha = Mathf.Clamp01(1f - ((timer - startFadeTime) / fadeDuration));
 
                 if (canvasGroup != null)
@@ -94,7 +97,6 @@ namespace MysticJourney.Features.Monster
                 }
             }
 
-            // Hủy object sau khi hết thời gian
             if (timer >= lifetime)
             {
                 Destroy(gameObject);

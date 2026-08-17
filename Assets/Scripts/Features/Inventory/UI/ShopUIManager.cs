@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Executes core business logic for mono behaviour.
 public class ShopUIManager : MonoBehaviour
 {
     public static ShopUIManager Instance;
@@ -58,6 +59,8 @@ public class ShopUIManager : MonoBehaviour
 
     public Action<UIBaseItemSlot> OnShopItemClicked;
 
+    // Initializes internal component caches and dependencies for ShopUIManager upon GameObject instantiation.
+    // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
         if (Instance == null)
@@ -66,8 +69,7 @@ public class ShopUIManager : MonoBehaviour
             Destroy(gameObject);
 
         EnsureSkinCategoryTab();
-            
-        // Force Grid Layout Group to Fixed Column Count = 3
+
         if (contentParent != null)
         {
             var grid = contentParent.GetComponent<GridLayoutGroup>();
@@ -79,6 +81,7 @@ public class ShopUIManager : MonoBehaviour
         }
     }
 
+    // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
         BindEvents();
@@ -90,11 +93,14 @@ public class ShopUIManager : MonoBehaviour
             LoadRefreshStatus();
     }
 
+    // Performs startup initialization for ShopUIManager on the first active frame.
+    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         BindEvents();
     }
 
+    // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
         if (categoryTabGroup != null)
@@ -107,6 +113,7 @@ public class ShopUIManager : MonoBehaviour
             refreshButton.onClick.RemoveListener(HandleRefreshClicked);
     }
 
+    // Executes core business logic for bind events.
     private void BindEvents()
     {
         if (eventsBound)
@@ -127,11 +134,13 @@ public class ShopUIManager : MonoBehaviour
         UpdateRefreshButton();
     }
 
+    // Executes core business logic for load shop.
     public void LoadShop(bool force = false)
     {
         LoadCurrentCategory();
     }
 
+    // Executes core business logic for refresh shop.
     public void RefreshShop(List<UIItemDisplayData> shopItems)
     {
         allCurrentItems = shopItems ?? new List<UIItemDisplayData>();
@@ -139,6 +148,7 @@ public class ShopUIManager : MonoBehaviour
         UpdateRefreshVisibility();
     }
 
+    // Executes core business logic for refresh daily shop.
     public void RefreshDailyShop()
     {
         if (!IsDailyDealsCategory(currentCategory))
@@ -183,6 +193,7 @@ public class ShopUIManager : MonoBehaviour
             includeSoldOut: includeSoldOut);
     }
 
+    // Executes core business logic for load current category.
     private void LoadCurrentCategory()
     {
         if (requestInFlight)
@@ -206,10 +217,12 @@ public class ShopUIManager : MonoBehaviour
             return;
         }
 
+        // Supported item types: Weapon, Armor, Consumable, Material, QuestItem, or Currency; the type controls filtering, stacking, and usage behavior.
         string itemType = IsAllCategory(currentCategory) ? null : currentCategory;
         LoadFixedShopPage(1, new List<UIItemDisplayData>(), itemType);
     }
 
+    // Executes core business logic for load skins.
     private void LoadSkins()
     {
         ShopApi.Instance.GetSkins(
@@ -234,6 +247,7 @@ public class ShopUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for load daily deals.
     private void LoadDailyDeals()
     {
         ShopApi.Instance.GetDailyDeals(
@@ -256,6 +270,7 @@ public class ShopUIManager : MonoBehaviour
             includeSoldOut: includeSoldOut);
     }
 
+    // Executes core business logic for load fixed shop page.
     private void LoadFixedShopPage(int page, List<UIItemDisplayData> aggregate, string itemType)
     {
         ShopApi.Instance.GetFixedShopItems(
@@ -292,6 +307,7 @@ public class ShopUIManager : MonoBehaviour
             includeSoldOut: includeSoldOut);
     }
 
+    // Executes core business logic for load refresh status.
     private void LoadRefreshStatus()
     {
         ShopApi.Instance.GetPlayerShopRefreshStatus(
@@ -307,6 +323,8 @@ public class ShopUIManager : MonoBehaviour
             });
     }
 
+    // Executes core business logic for map shop items.
+    // Logic details: validates required non-empty string arguments.
     private List<UIItemDisplayData> MapShopItems(ShopItemPublicResponse[] responseItems)
     {
         var items = new List<UIItemDisplayData>();
@@ -319,10 +337,13 @@ public class ShopUIManager : MonoBehaviour
         return items;
     }
 
+    // Executes core business logic for map shop item.
+    // Logic details: validates required non-empty string arguments.
     private UIItemDisplayData MapShopItem(ShopItemPublicResponse item)
     {
         decimal unitPrice = item?.Price ?? 0;
         string itemName = item?.ItemName ?? string.Empty;
+        // Supported item types: Weapon, Armor, Consumable, Material, QuestItem, or Currency; the type controls filtering, stacking, and usage behavior.
         string itemType = item?.ItemType ?? "Other";
 
         return new UIItemDisplayData
@@ -364,6 +385,7 @@ public class ShopUIManager : MonoBehaviour
         };
     }
 
+    // Executes core business logic for map skin shop item.
     private UIItemDisplayData MapSkinShopItem(SkinShopItemResponse skin)
     {
         decimal price = skin?.Price ?? 0;
@@ -389,6 +411,7 @@ public class ShopUIManager : MonoBehaviour
         };
     }
 
+    // Executes core business logic for on category tab selected.
     private void OnCategoryTabSelected(int index)
     {
         currentCategory = index >= 0 && index < categoryMapping.Length
@@ -400,6 +423,7 @@ public class ShopUIManager : MonoBehaviour
         LoadCurrentCategory();
     }
 
+    // Executes core business logic for update flag tag.
     private void UpdateFlagTag(int index)
     {
         if (flagTagImage == null)
@@ -457,6 +481,7 @@ public class ShopUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for display items.
     private void DisplayItems(List<UIItemDisplayData> items)
     {
         var displayItems = items ?? new List<UIItemDisplayData>();
@@ -488,6 +513,8 @@ public class ShopUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for handle slot clicked.
+    // Logic details: validates required non-empty string arguments; validates numeric boundary constraints.
     private void HandleSlotClicked(UIBaseItemSlot clickedSlot)
     {
         if (purchaseInFlight)
@@ -516,6 +543,8 @@ public class ShopUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for handle purchase confirmed.
+    // Logic details: validates numeric boundary constraints.
     private void HandlePurchaseConfirmed(UIItemDisplayData itemData, int quantity)
     {
         if (itemData == null || quantity <= 0 || purchaseInFlight)
@@ -582,24 +611,19 @@ public class ShopUIManager : MonoBehaviour
                 SetStatus($"Purchase failed: {error.Message}");
                 Debug.LogError($"[ShopUIManager] Purchase FAIL: {error.Message}");
 
-                // statusText chưa được gán trong Main.unity nên SetStatus chỉ ghi console — thiếu tiền
-                // trước giờ hoàn toàn im lặng với người chơi. BE ném BadRequestException cho MỌI lỗi mua
-                // (thiếu tiền, hết hàng, quá giới hạn) nên errorCode đều là BAD_REQUEST, không phân biệt
-                // được; chỉ message là khác nhau ("Not enough Gold." / "Sold out." / ...). Vì vậy đưa
-                // thẳng message của BE vào popup thay vì đoán loại lỗi bằng cách so khớp chuỗi.
-                // ponytail: message tiếng Anh lấy nguyên từ BE; muốn đa ngôn ngữ thì BE phải trả
-                // errorCode riêng cho từng trường hợp rồi client map sang chuỗi dịch.
                 UIPopupBox.Notify(transform, "Purchase Failed", error.Message);
 
                 UpdateRefreshButton();
             });
     }
 
+    // Executes core business logic for handle refresh clicked.
     private void HandleRefreshClicked()
     {
         RefreshDailyShop();
     }
 
+    // Executes core business logic for apply refresh status.
     private void ApplyRefreshStatus(ShopRefreshStatusResponse status)
     {
         currentRefreshStatus = status;
@@ -616,6 +640,7 @@ public class ShopUIManager : MonoBehaviour
         refreshCountText.text = $"Refresh: {Mathf.Max(0, status.RefreshesRemainingToday)}/{Mathf.Max(0, status.MaxDailyRefreshes)}";
     }
 
+    // Executes core business logic for update refresh button.
     private void UpdateRefreshButton()
     {
         if (refreshButton == null)
@@ -626,6 +651,7 @@ public class ShopUIManager : MonoBehaviour
         refreshButton.interactable = canRefresh && !requestInFlight && !purchaseInFlight;
     }
 
+    // Executes core business logic for update refresh visibility.
     private void UpdateRefreshVisibility()
     {
         bool isDailyDeals = IsDailyDealsCategory(currentCategory);
@@ -643,6 +669,7 @@ public class ShopUIManager : MonoBehaviour
             refreshCountText.gameObject.SetActive(isDailyDeals);
     }
 
+    // Executes core business logic for get auto bind root.
     private Transform GetAutoBindRoot()
     {
         Transform current = transform;
@@ -657,6 +684,7 @@ public class ShopUIManager : MonoBehaviour
         return transform;
     }
 
+    // Executes core business logic for try auto bind refresh controls.
     private void TryAutoBindRefreshControls()
     {
         Transform root = GetAutoBindRoot();
@@ -690,11 +718,13 @@ public class ShopUIManager : MonoBehaviour
         }
     }
 
+    // Executes core business logic for resolve icon.
     private Sprite ResolveIcon(string itemName, string itemType)
     {
         return ItemIconDatabase.Instance != null ? ItemIconDatabase.Instance.GetIcon(itemName, itemType) : null;
     }
 
+    // Executes core business logic for resolve currency icon.
     private Sprite ResolveCurrencyIcon(string currency)
     {
         if (ItemIconDatabase.Instance == null) return null;
@@ -703,12 +733,14 @@ public class ShopUIManager : MonoBehaviour
         return ItemIconDatabase.Instance.GetIcon(key, "Currency");
     }
 
+    // Executes core business logic for resolve skin icon.
     private static Sprite ResolveSkinIcon(int skinId)
     {
         var database = SkinDatabaseSO.LoadDefault();
         return database != null ? database.GetPreviewSprite(skinId) : null;
     }
 
+    // Executes core business logic for ensure skin category tab.
     private void EnsureSkinCategoryTab()
     {
         bool mappingHasSkin = false;
@@ -746,12 +778,16 @@ public class ShopUIManager : MonoBehaviour
         categoryTabGroup.tabButtons.Add(skinTab);
     }
 
+    // Executes core business logic for set loading.
+    // Logic details: validates required non-empty string arguments.
     private void SetLoading(bool isLoading)
     {
         if (loadingIndicator != null)
             loadingIndicator.SetActive(isLoading);
     }
 
+    // Executes core business logic for set status.
+    // Logic details: validates required non-empty string arguments.
     private void SetStatus(string message)
     {
         if (statusText != null)
@@ -764,6 +800,8 @@ public class ShopUIManager : MonoBehaviour
             Debug.Log($"[ShopUIManager] {message}");
     }
 
+    // Executes core business logic for normalize category.
+    // Logic details: validates required non-empty string arguments.
     private static string NormalizeCategory(string category)
     {
         if (string.IsNullOrWhiteSpace(category))
@@ -778,20 +816,33 @@ public class ShopUIManager : MonoBehaviour
         return category.Trim();
     }
 
+    // Executes core business logic for is daily deals category.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private static bool IsDailyDealsCategory(string category)
         => NormalizeCategory(category).Equals(DailyDealsCategory, StringComparison.OrdinalIgnoreCase);
 
+    // Executes core business logic for is all category.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private static bool IsAllCategory(string category)
         => string.IsNullOrWhiteSpace(category) || category.Equals(AllCategory, StringComparison.OrdinalIgnoreCase);
 
+    // Executes core business logic for is skin category.
+    // Logic details: validates required non-empty string arguments.
+    // Returns a boolean indicating operation success.
     private static bool IsSkinCategory(string category)
         => !string.IsNullOrWhiteSpace(category) && category.Equals(SkinCategory, StringComparison.OrdinalIgnoreCase);
 
+    // Executes core business logic for normalize currency.
+    // Logic details: validates required non-empty string arguments; validates numeric boundary constraints.
     private static string NormalizeCurrency(string currency)
     {
         return string.IsNullOrWhiteSpace(currency) ? "Gold" : currency.Trim();
     }
 
+    // Executes core business logic for to legacy price.
+    // Logic details: validates numeric boundary constraints.
     private static int ToLegacyPrice(decimal price)
     {
         if (price <= 0) return 0;
@@ -799,6 +850,7 @@ public class ShopUIManager : MonoBehaviour
         return decimal.ToInt32(decimal.Round(price, 0, MidpointRounding.AwayFromZero));
     }
 
+    // Executes core business logic for format amount.
     private static string FormatAmount(decimal amount)
     {
         return amount.ToString("N0", CultureInfo.InvariantCulture).Replace(",", ".");

@@ -1,18 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Giữ kích thước Handle của một Scrollbar CỐ ĐỊNH theo PIXEL, không đổi theo tỷ lệ
-/// viewport/content.
-///
-/// ScrollRect mỗi LateUpdate tự set <see cref="Scrollbar.size"/> = viewport/content và
-/// Scrollbar resize handle theo size. Component chạy LateUpdate SAU ScrollRect
-/// (DefaultExecutionOrder cao hơn), ép lại:
-///   • Trục TRƯỢT: size = handleLength / areaLength -> handle dài đúng handleLength pixel.
-///   • Trục VUÔNG GÓC (cross): SetSizeWithCurrentAnchors = handleThickness pixel (giữ tỷ lệ
-///     art gốc, có thể to hơn bề dày khung). handleThickness<=0 -> khớp đúng bề dày khung.
-/// Vị trí (value) vẫn do ScrollRect điều khiển; scroll bình thường.
-/// </summary>
+// Executes mono behaviour operation.
 [DefaultExecutionOrder(1000)]
 [RequireComponent(typeof(Scrollbar))]
 public class FixedScrollbarHandleSize : MonoBehaviour
@@ -25,10 +14,9 @@ public class FixedScrollbarHandleSize : MonoBehaviour
 
     private Scrollbar _scrollbar;
 
+    // Executes late update operation.
     private void LateUpdate()
     {
-        // Lazy-resolve: component có thể được gắn lúc GameObject đang inactive nên
-        // không dựa vào Awake timing.
         if (_scrollbar == null) _scrollbar = GetComponent<Scrollbar>();
         if (_scrollbar == null || _scrollbar.handleRect == null) return;
 
@@ -39,8 +27,6 @@ public class FixedScrollbarHandleSize : MonoBehaviour
         bool vertical = _scrollbar.direction == Scrollbar.Direction.BottomToTop
                      || _scrollbar.direction == Scrollbar.Direction.TopToBottom;
 
-        // TRỤC TRƯỢT: zero sizeDelta rồi khóa size. Handle rect = size*areaLength + sizeDelta;
-        // sizeDelta thừa làm handle thò ra 2 đầu Sliding Area nên phải zero.
         float areaLength = vertical ? slidingArea.rect.height : slidingArea.rect.width;
         if (areaLength <= 0f) return;
 
@@ -48,12 +34,11 @@ public class FixedScrollbarHandleSize : MonoBehaviour
         if (vertical) sd.y = 0f; else sd.x = 0f;
         if (handle.sizeDelta != sd) handle.sizeDelta = sd;
 
+        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
         float target = Mathf.Clamp01(handleLength / areaLength);
         if (!Mathf.Approximately(_scrollbar.size, target))
             _scrollbar.size = target;
 
-        // TRỤC VUÔNG GÓC: ép bề dày cố định (giữ tỷ lệ art). SetSizeWithCurrentAnchors tự tính
-        // sizeDelta bù theo anchor hiện tại -> rect cross đúng handleThickness bất kể anchor.
         var crossAxis = vertical ? RectTransform.Axis.Horizontal : RectTransform.Axis.Vertical;
         if (handleThickness > 0f)
         {
@@ -63,7 +48,6 @@ public class FixedScrollbarHandleSize : MonoBehaviour
         }
         else
         {
-            // Khớp bề dày khung: zero sizeDelta cross (chỉ khi khung cross-size > 0).
             var sd2 = handle.sizeDelta;
             if (vertical) { if (slidingArea.rect.width > 0f) sd2.x = 0f; }
             else { if (slidingArea.rect.height > 0f) sd2.y = 0f; }
