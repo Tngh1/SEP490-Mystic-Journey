@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -238,9 +239,7 @@ public class InventoryUIManager : MonoBehaviour
             onSuccess: response =>
             {
                 Debug.Log($"[InventoryUIManager] ✅ EquipItem OK");
-                LoadInventory(force: true);
-                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
-                StartCoroutine(RefreshInventoryAfterEquipmentMutation());
+                LoadInventory(force: true, refreshStats: true);
             },
             onError: error =>
             {
@@ -266,8 +265,9 @@ public class InventoryUIManager : MonoBehaviour
         }
         else
         {
+            Sprite newIcon = ResolveIcon(newItem.ItemId, newItem.IconUrl, newItem.ItemName, newItem.ItemType);
             Sprite oldIcon = ResolveIcon(oldItem.ItemId, oldItem.IconUrl, oldItem.ItemName, oldItem.ItemType);
-            itemDetailPopup?.ShowEquipComparison(oldItem, oldIcon);
+            itemDetailPopup?.ShowEquipComparison(newItem, newIcon, newItem.Quantity, oldItem, oldIcon);
         }
     }
 
@@ -330,9 +330,7 @@ public class InventoryUIManager : MonoBehaviour
             onSuccess: response =>
             {
                 Debug.Log($"[InventoryUIManager] ✅ UnequipItem OK");
-                LoadInventory(force: true);
-                // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
-                StartCoroutine(RefreshInventoryAfterEquipmentMutation());
+                LoadInventory(force: true, refreshStats: true);
             },
             onError: error =>
             {
@@ -346,7 +344,7 @@ public class InventoryUIManager : MonoBehaviour
     // Logic details: validates required non-empty string arguments; validates numeric boundary constraints.
     private IEnumerator RefreshInventoryAfterEquipmentMutation()
     {
-        yield return new WaitForSecondsRealtime(0.35f);
+        yield return new WaitForSecondsRealtime(0.15f);
         LoadInventory(force: true, refreshStats: true);
     }
 
@@ -631,14 +629,49 @@ public class InventoryUIManager : MonoBehaviour
         {
             if (uiInventory == null) return;
             var allItems = new List<InventoryItemResponse>();
-
-            if (_summary.EquippedItems != null)
-                foreach (var it in _summary.EquippedItems)
-                    if (ShouldShowInventoryItem(it)) allItems.Add(it);
-
             if (_summary.BagItems != null)
-                foreach (var it in _summary.BagItems)
-                    if (ShouldShowInventoryItem(it)) allItems.Add(it);
+            {
+                var bagGroups = new Dictionary<string, InventoryItemResponse>();
+                foreach (var it in _summary.BagItems.OrderByDescending(x => x.Quantity))
+                {
+                    if (!ShouldShowInventoryItem(it)) continue;
+                    string key = $"{it.ItemId}_{it.EnhancementLevel}";
+                    if (bagGroups.TryGetValue(key, out var existing))
+                    {
+                        existing.Quantity += Mathf.Max(1, it.Quantity);
+                    }
+                    else
+                    {
+                        var copy = new InventoryItemResponse
+                        {
+                            InventoryItemId = it.InventoryItemId,
+                            ItemId = it.ItemId,
+                            ItemName = it.ItemName,
+                            ItemDescription = it.ItemDescription,
+                            ItemType = it.ItemType,
+                            ItemRarity = it.ItemRarity,
+                            ItemSlot = it.ItemSlot,
+                            Quantity = Mathf.Max(1, it.Quantity),
+                            IsEquipped = it.IsEquipped,
+                            EnhancementLevel = it.EnhancementLevel,
+                            EquippedSlot = it.EquippedSlot,
+                            IconUrl = it.IconUrl,
+                            CorruptionReduction = it.CorruptionReduction,
+                            BaseHp = it.BaseHp,
+                            BaseAtk = it.BaseAtk,
+                            BaseDef = it.BaseDef,
+                            BonusHp = it.BonusHp,
+                            BonusAtk = it.BonusAtk,
+                            BonusDef = it.BonusDef,
+                            BonusCritRate = it.BonusCritRate,
+                            BonusCritDamage = it.BonusCritDamage
+                        };
+                        bagGroups[key] = copy;
+                    }
+                }
+                foreach (var it in bagGroups.Values)
+                    allItems.Add(it);
+            }
 
             if (_currentFilter != "All")
             {
@@ -672,7 +705,7 @@ public class InventoryUIManager : MonoBehaviour
                         itemId = item.InventoryItemId,
                         itemName = item.ItemName,
                         icon = icon,
-                        quantity = stackQty,
+                        quantity = item.IsEquipped ? 1 : stackQty,
                         rarity = item.ItemRarity,
                         isEquipped = item.IsEquipped && CanEquipItem(item),
                         rawData = item
