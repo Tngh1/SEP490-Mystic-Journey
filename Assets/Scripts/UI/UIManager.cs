@@ -398,7 +398,7 @@ public class UIManager : MonoBehaviour
         friendPanel = BindPanel(friendPanel, "FriendPanel");
         mailboxPanel = BindPanel(mailboxPanel, "MailboxPanel");
         settingPanel = BindPanel(settingPanel, "GameSettingPanel");
-        npcPanel = BindPanel(npcPanel, "NPCPanel");
+        npcPanel = BindPanel(npcPanel, "NPCPanel") ?? BindPanel(npcPanel, "MainNpcPanel");
         chestPanel = BindPanel(chestPanel, "ChestPanel");
         bestiaryPanel = BindPanel(bestiaryPanel, "BestiaryPanel");
     }

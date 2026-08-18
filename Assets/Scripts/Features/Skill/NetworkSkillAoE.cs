@@ -21,13 +21,14 @@ public class NetworkSkillAoE : NetworkBehaviour
     // Configures input/state authority handlers, sets singleton references if local player, and applies initial visuals.
     public override void Spawned()
     {
-        if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
-        {
-            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
-        }
-
         var legacy = GetComponent<SkillAoE>();
-        if (legacy != null) legacy.enabled = false;
+        if (legacy != null)
+        {
+            legacy.enabled = false;
+            legacy.PlayCastAudio();
+        }
+        else if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
 
         if (HasStateAuthority)
             Life = TickTimer.CreateFromSeconds(Runner, duration);
@@ -61,7 +62,7 @@ public class NetworkSkillAoE : NetworkBehaviour
         bool isCrit = Random.Range(0f, 100f) <= 20f;
         int dmg = Mathf.RoundToInt(isCrit ? Damage * 1.5f : Damage);
 
-        enemy.TakeDamage(dmg);
+        enemy.TakeDamage(dmg, Object.InputAuthority);
         RPC_ShowPopup(enemy.transform.position, dmg, isCrit);
     }
 
