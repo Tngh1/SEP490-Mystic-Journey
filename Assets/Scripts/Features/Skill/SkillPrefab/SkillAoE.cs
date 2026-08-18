@@ -16,11 +16,14 @@ public class SkillAoE : MonoBehaviour
     {
         _damage = damage;
         Destroy(gameObject, duration);
+        PlayCastAudio();
+    }
 
+    // Plays the configured cast clip for both legacy and network-spawned AoE effects.
+    public void PlayCastAudio()
+    {
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
-        {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
-        }
     }
 
     // Executes on trigger enter2 d operation.

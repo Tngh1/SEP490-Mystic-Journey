@@ -495,7 +495,7 @@ public class PlayerCombat : NetworkBehaviour
                 float finalDamage = GetClassScaledDamage(basicAttackDamage);
                 if (isCrit) finalDamage *= critDamageMultiplier;
                 int damageInt = Mathf.RoundToInt(finalDamage);
-                enemy.TakeDamage(damageInt);
+                enemy.TakeDamage(damageInt, Object != null ? Object.InputAuthority : default);
 
                 var net = enemy.Network;
                 if (net != null)

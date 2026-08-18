@@ -1,4 +1,5 @@
 using System;
+using Fusion;
 using MysticJourney.API.Core;
 using UnityEngine;
 
@@ -28,6 +29,8 @@ public class EnemyEntity : MonoBehaviour
     public int CurrentHealth => currentHealth;
     // Executes max health operation.
     public int MaxHealth => maxHealth;
+    // Executes monster spawn id operation.
+    public int MonsterSpawnId => monsterSpawnId;
 
     // Executes set spawn data operation.
     public void SetSpawnData(int id, int spawnId)
@@ -133,7 +136,7 @@ public class EnemyEntity : MonoBehaviour
     }
 
     // Executes take damage operation.
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, PlayerRef attacker = default)
     {
         if (isDead) return;
 
@@ -145,7 +148,7 @@ public class EnemyEntity : MonoBehaviour
 
         if (_network != null && _network.IsNetworkActive)
         {
-            _network.RequestDamage(damage);
+            _network.RequestDamage(damage, attacker);
             return;
         }
 
@@ -233,14 +236,27 @@ public class EnemyEntity : MonoBehaviour
             if (enemyBehaviour != null) enemyBehaviour.SetDeathState();
             Debug.Log("Destroy");
 
-            if (MysticJourney.Features.Monster.MonsterDropVisualManager.Instance != null)
+            if ((_network == null || !_network.IsNetworkActive) &&
+                MysticJourney.Features.Monster.MonsterDropVisualManager.Instance != null)
             {
                 MysticJourney.Features.Monster.MonsterDropVisualManager.Instance.RegisterMonsterDeathPosition(monsterId, transform.position);
             }
 
             if (monsterId > 0 && MonsterManager.Instance != null && ApiClient.Instance.HasToken())
             {
-                MonsterManager.Instance.ReportDefeat(monsterId, monsterSpawnId > 0 ? monsterSpawnId : null);
+                if (_network != null && _network.IsNetworkActive)
+                {
+                    _network.NotifyKillerReward();
+                }
+                else
+                {
+                    MonsterManager.Instance.ReportDefeat(
+                        monsterId,
+                        monsterSpawnId > 0 ? monsterSpawnId : null,
+                        DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon
+                            ? DungeonManager.Instance.CurrentSessionId
+                            : (int?)null);
+                }
             }
 
             if (QuestUIManager.Instance != null)

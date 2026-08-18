@@ -14,11 +14,21 @@ public class SkillProjectile : MonoBehaviour
     {
         _damage = damage;
         Destroy(gameObject, 2f);
+        PlayCastAudio();
+    }
 
+    // Plays the configured cast clip for both legacy and network-spawned projectiles.
+    public void PlayCastAudio()
+    {
         if (castSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
-        {
             MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(castSound, soundVolume);
-        }
+    }
+
+    // Plays the configured impact clip for network-spawned projectiles.
+    public void PlayHitAudio()
+    {
+        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
+            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
     }
 
     // Per-frame update loop for SkillProjectile.
@@ -69,10 +79,7 @@ public class SkillProjectile : MonoBehaviour
     // Executes on hit target operation.
     protected virtual void OnHitTarget()
     {
-        if (hitSound != null && MysticJourney.Core.Services.AudioManager.Instance != null)
-        {
-            MysticJourney.Core.Services.AudioManager.Instance.PlaySfx(hitSound, soundVolume);
-        }
+        PlayHitAudio();
         Destroy(gameObject);
     }
 }

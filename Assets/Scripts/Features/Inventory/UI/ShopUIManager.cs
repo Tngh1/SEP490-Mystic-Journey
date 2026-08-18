@@ -280,7 +280,12 @@ public class ShopUIManager : MonoBehaviour
             {
                 var responseItems = response?.Items ?? Array.Empty<ShopItemPublicResponse>();
                 for (int i = 0; i < responseItems.Length; i++)
+                {
+                    if (IsSoldOut(responseItems[i]))
+                        continue;
+
                     aggregate.Add(MapShopItem(responseItems[i]));
+                }
 
                 int totalCount = response?.TotalCount ?? aggregate.Count;
                 bool hasNextPage = responseItems.Length > 0 && aggregate.Count < totalCount;
@@ -332,9 +337,24 @@ public class ShopUIManager : MonoBehaviour
             responseItems = Array.Empty<ShopItemPublicResponse>();
 
         for (int i = 0; i < responseItems.Length; i++)
+        {
+            if (IsSoldOut(responseItems[i]))
+                continue;
+
             items.Add(MapShopItem(responseItems[i]));
+        }
 
         return items;
+    }
+
+    // Sold-out entries stay out of every shop tab even when the API is asked to include them.
+    private static bool IsSoldOut(ShopItemPublicResponse item)
+    {
+        if (item == null) return true;
+        if (!item.IsUnlimitedStock && item.Stock <= 0) return true;
+        if (item.RemainingDailyPurchases.HasValue && item.RemainingDailyPurchases.Value <= 0) return true;
+        if (item.RemainingWeeklyPurchases.HasValue && item.RemainingWeeklyPurchases.Value <= 0) return true;
+        return false;
     }
 
     // Executes core business logic for map shop item.
