@@ -105,7 +105,11 @@ public class MainNpcPanel : MonoBehaviour
             return;
         }
 
-        WorldInteractionPromptRuntime.Hide();
+        // Open immediately so interaction never appears unresponsive while the
+        // dialogue request is in flight. The API response replaces this local
+        // content when it arrives.
+        ShowPanel();
+        RenderLocal(interactable);
         manager.TalkToNpc(
             interactable.NpcId,
             response =>
@@ -130,7 +134,9 @@ public class MainNpcPanel : MonoBehaviour
     // Executes bind ui operation.
     private void BindUi()
     {
-        npcPanel = npcPanel != null ? npcPanel : FindSceneObject("NPCPanel");
+        npcPanel = npcPanel != null
+            ? npcPanel
+            : FindSceneObject("NPCPanel") ?? FindSceneObject("MainNpcPanel");
         if (npcPanel == null)
         {
             if (!didBind)

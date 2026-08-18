@@ -22,7 +22,11 @@ public class NetworkSkillProjectile : NetworkBehaviour
     public override void Spawned()
     {
         var legacy = GetComponent<SkillProjectile>();
-        if (legacy != null) legacy.enabled = false;
+        if (legacy != null)
+        {
+            legacy.enabled = false;
+            legacy.PlayCastAudio();
+        }
 
         if (HasStateAuthority)
             Life = TickTimer.CreateFromSeconds(Runner, lifeSeconds);
@@ -60,14 +64,22 @@ public class NetworkSkillProjectile : NetworkBehaviour
                 bool isCrit = Random.Range(0f, 100f) <= 20f;
                 int dmg = Mathf.RoundToInt(isCrit ? Damage * 1.5f : Damage);
 
-                enemy.TakeDamage(dmg);
+                enemy.TakeDamage(dmg, Object.InputAuthority);
                 RPC_ShowPopup(enemy.transform.position, dmg, isCrit);
             }
+            RPC_PlayHitAudio();
             Runner.Despawn(Object);
             return;
         }
 
         Runner.Despawn(Object);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayHitAudio()
+    {
+        var legacy = GetComponent<SkillProjectile>();
+        if (legacy != null) legacy.PlayHitAudio();
     }
 
     // Executes on collision enter2 d operation.

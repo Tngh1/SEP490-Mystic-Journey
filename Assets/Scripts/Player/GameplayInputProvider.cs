@@ -122,9 +122,13 @@ public class GameplayInputProvider : MonoBehaviour
     public bool Skill3Pressed => !UiIsCapturingInput && WasPressedRaw(_skill3, ref _skill3, Skill3Name);
 
     // Executes interact held operation.
-    public bool InteractHeld => !UiIsCapturingInput && IsHeldRaw(_interact, ref _interact, InteractName);
+    public bool InteractHeld => !IsTextFieldFocused &&
+                                (IsHeldRaw(_interact, ref _interact, InteractName) ||
+                                 (Keyboard.current != null && Keyboard.current.eKey.isPressed));
     // Executes interact pressed operation.
-    public bool InteractPressed => !UiIsCapturingInput && WasPressedRaw(_interact, ref _interact, InteractName);
+    public bool InteractPressed => !IsTextFieldFocused &&
+                                   (WasPressedRaw(_interact, ref _interact, InteractName) ||
+                                    (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame));
 
     // Executes inventory pressed operation.
     public bool InventoryPressed => !IsTextFieldFocused && WasPressedRaw(_inventory, ref _inventory, InventoryName);

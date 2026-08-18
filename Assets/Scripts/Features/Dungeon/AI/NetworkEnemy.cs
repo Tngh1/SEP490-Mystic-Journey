@@ -10,6 +10,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     [Networked] public int CurrentHp { get; set; }
     [Networked] public int MaxHp { get; set; }
     [Networked] public NetworkBool IsAlive { get; set; }
+    [Networked] public PlayerRef LastHitBy { get; set; }
 
     private EnemyEntity _entity;
     private EnemyBehaviour _behaviour;
@@ -46,6 +47,7 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
             MaxHp = Mathf.Max(1, _entity.MaxHealth);
             CurrentHp = _entity.CurrentHealth > 0 ? _entity.CurrentHealth : MaxHp;
             IsAlive = true;
+            LastHitBy = PlayerRef.None;
         }
 
         ApplyAuthorityRole();
@@ -278,21 +280,56 @@ public class NetworkEnemy : NetworkBehaviour, IStateAuthorityChanged
     }
 
     // Requests damage to be applied to this player, routing via RPC to the StateAuthority instance.
-    public void RequestDamage(int amount)
+    public void RequestDamage(int amount, PlayerRef attacker = default)
     {
         if (amount <= 0) return;
 
         if (HasStateAuthority)
+        {
+            if (!attacker.IsNone)
+                LastHitBy = attacker;
+            else if (!Runner.LocalPlayer.IsNone)
+                LastHitBy = Runner.LocalPlayer;
             _entity.ApplyDamageAuthoritative(amount);
+        }
         else
-            RPC_RequestDamage(amount);
+            RPC_RequestDamage(amount, attacker);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     // Photon Fusion RPC receiving damage request on the StateAuthority and executing ApplyDamage().
-    private void RPC_RequestDamage(int amount)
+    private void RPC_RequestDamage(int amount, PlayerRef attacker, RpcInfo info = default)
     {
+        LastHitBy = !info.Source.IsNone ? info.Source : attacker;
         _entity.ApplyDamageAuthoritative(amount);
+    }
+
+    // Notifies every client, then only the player who dealt the killing hit reports and receives the drop.
+    public void NotifyKillerReward()
+    {
+        if (HasStateAuthority)
+            RPC_GrantKillerReward(LastHitBy);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_GrantKillerReward(PlayerRef killer)
+    {
+        if (killer.IsNone || NetworkPlayer.Local == null || NetworkPlayer.Local.Player != killer)
+            return;
+
+        if (MysticJourney.Features.Monster.MonsterDropVisualManager.Instance != null)
+            MysticJourney.Features.Monster.MonsterDropVisualManager.Instance.RegisterMonsterDeathPosition(
+                _entity.MonsterId, _entity.transform.position);
+
+        if (MonsterManager.Instance != null && MysticJourney.API.Core.ApiClient.Instance.HasToken())
+        {
+            MonsterManager.Instance.ReportDefeat(
+                _entity.MonsterId,
+                _entity.MonsterSpawnId,
+                DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon
+                    ? DungeonManager.Instance.CurrentSessionId
+                    : (int?)null);
+        }
     }
 
     [Rpc(RpcSources.All, RpcTargets.All)]
