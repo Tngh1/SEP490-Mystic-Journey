@@ -134,8 +134,6 @@ public class UIManager : MonoBehaviour
         panel.transform.SetAsLastSibling();
         currentPanel = panel;
         KeepQuestTrackerVisible();
-
-        MysticJourney.Core.Services.AudioManager.Instance.PlayOpenPanel();
     }
 
     // Executes core business logic for close current panel.

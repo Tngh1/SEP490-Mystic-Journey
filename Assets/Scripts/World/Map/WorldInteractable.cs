@@ -346,6 +346,11 @@ public class WorldInteractable : MonoBehaviour
     {
         Debug.Log($"[WorldInteractable] OnSuccessfulInteraction called on {gameObject.name}. Kind: {kind}, InteractionType: '{InteractionType}'");
 
+        bool pickupInteraction = InteractionType.Equals("Collect", System.StringComparison.OrdinalIgnoreCase) ||
+                                 InteractionType.Equals("Gather", System.StringComparison.OrdinalIgnoreCase);
+        if (pickupInteraction)
+            MysticJourney.Core.Services.AudioManager.Instance?.PlayPickup();
+
         if (kind == WorldInteractableKind.QuestItem || kind == WorldInteractableKind.Object)
         {
             var bridgeGate = GetComponent<LockedBridgeGate>();

@@ -91,8 +91,15 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (Instance == this)
         {
+            MysticJourney.Core.Services.AudioManager.Instance?.StopWalking();
             Instance = null;
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            MysticJourney.Core.Services.AudioManager.Instance?.StopWalking();
     }
 
     // Per-frame update loop for PlayerMovement.
@@ -201,6 +208,7 @@ public class PlayerMovement : NetworkBehaviour
             _rootTimer -= deltaTime; // Count down root duration each fixed frame
             _moveInput = Vector2.zero; // Zero input so IsMoving returns false while rooted
             _rb.linearVelocity = Vector2.zero; // Hard-stop velocity while rooted
+            MysticJourney.Core.Services.AudioManager.Instance?.StopWalking();
             if (_animation != null) _animation.SetMovement(Vector2.zero, true); // Force idle animation during root
             return;
         }
@@ -214,6 +222,15 @@ public class PlayerMovement : NetworkBehaviour
         _rb.linearVelocity = input.sqrMagnitude > 0.01f
             ? _moveInput * _currentMoveSpeed // Apply directional velocity scaled by current move speed
             : Vector2.zero; // Zero velocity when there's no input (prevents drift)
+
+        if (input.sqrMagnitude > 0.01f)
+        {
+            MysticJourney.Core.Services.AudioManager.Instance?.PlayWalking();
+        }
+        else
+        {
+            MysticJourney.Core.Services.AudioManager.Instance?.StopWalking();
+        }
     }
 
 

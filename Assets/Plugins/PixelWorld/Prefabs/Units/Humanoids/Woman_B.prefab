@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 3104293141578938146}
   - component: {fileID: 6240416266215048661}
   - component: {fileID: 6961131053210684313}
-  - component: {fileID: 2455361678517671891}
   m_Layer: 0
   m_Name: Woman_B
   m_TagString: Untagged
@@ -224,30 +223,6 @@ PolygonCollider2D:
       - {x: 0.8755375, y: 0.41710162}
       - {x: 0.76644707, y: 0.8117101}
   m_UseDelaunayMesh: 0
---- !u!114 &2455361678517671891
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4076494404184008814}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 599140ebe7fdbcd478997d26c19882c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WorldInteractable
-  kind: 0
-  npcId: 0
-  displayName: Interactable
-  description: 
-  greetingText: 
-  interactionRadius: 2.25
-  objectKey: 
-  interactionType: Interact
-  questId: 0
-  progressDelta: 1
-  linkedQuestIds: 
-  portraitSprite: {fileID: 0}
 --- !u!1 &7066723119438896901
 GameObject:
   m_ObjectHideFlags: 0
