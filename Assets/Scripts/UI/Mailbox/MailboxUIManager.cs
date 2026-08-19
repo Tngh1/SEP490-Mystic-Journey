@@ -463,10 +463,10 @@ namespace MysticJourney.Screen.Mail
                 mailboxId: _currentSelectedMailboxSummary.MailboxId,
                 onSuccess: response =>
                 {
-                    SetRewardsVisible(false);
-                    if (claimButton != null) claimButton.gameObject.SetActive(false);
+                    // Keep the original attachments visible after claiming so the mail detail remains an audit trail.
+                    // DisplayRewards also hides the claim button and shows the claimed stamp based on the response state.
+                    DisplayRewards(response);
                     claimButton.interactable = true;
-                    if (claimedStamp != null) claimedStamp.SetActive(true);
                     _currentSelectedMailboxUI?.MarkAsClaimedLocally();
 
                     if (PlayerHUDUIManager.Instance != null)

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 // Executes core business logic for mono behaviour.
 public class MenuUIManager : MonoBehaviour
@@ -16,6 +17,9 @@ public class MenuUIManager : MonoBehaviour
     [SerializeField] private GameObject exitButton;
     [SerializeField] private Button exitGameButton;
 
+    [Header("Game Version")]
+    [SerializeField] private TMP_Text gameVersionText;
+
     [Header("Website")]
     public string websiteUrl = "https://mystic-journey.io.vn";
 
@@ -23,6 +27,16 @@ public class MenuUIManager : MonoBehaviour
     // Executes during scene loading prior to Start to ensure critical references are wired up.
     private void Awake()
     {
+        if (gameVersionText == null)
+        {
+            Transform versionTransform = transform.Find("GameVersion");
+            if (versionTransform != null)
+                gameVersionText = versionTransform.GetComponent<TMP_Text>();
+        }
+
+        if (gameVersionText != null)
+            gameVersionText.text = $"V{Application.version}";
+
         if (exitGameButton == null)
         {
             Transform exitTransform = transform.Find("ExitGameButton") ?? transform.Find("ExitGame");

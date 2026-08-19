@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace MysticJourney.Core.Services
 {
@@ -18,6 +20,17 @@ namespace MysticJourney.Core.Services
             _isQuitting = false;
         }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Bootstrap()
+        {
+            if (!Application.isPlaying || _instance != null || _isQuitting)
+                return;
+
+            var go = new GameObject("[AudioManager]");
+            _instance = go.AddComponent<AudioManager>();
+            DontDestroyOnLoad(go);
+        }
+
         // Executes core business logic for instance.
         public static AudioManager Instance
         {
@@ -34,13 +47,15 @@ namespace MysticJourney.Core.Services
         }
 
         [Header("UI SFX")]
-        [Tooltip("Tiếng phát khi mở panel UI. Kéo clip OpenPanel vào đây.")]
-        [SerializeField] private AudioClip openPanelSfx;
+        [Tooltip("Tiếng phát khi click button UI. Kéo Assets/UI/Audio/Button/Button.mp3 vào đây.")]
+        [SerializeField] private AudioClip buttonClickSfx;
 
         private AudioSource _musicSource;
         private AudioSource _sfxSource;
 
         private AudioClip _currentMusicClip;
+        private readonly HashSet<Button> _registeredButtons = new HashSet<Button>();
+        private float _nextButtonScanTime;
 
         // Initializes internal component caches and dependencies for AudioManager upon GameObject instantiation.
         // Executes during scene loading prior to Start to ensure critical references are wired up.
@@ -48,6 +63,7 @@ namespace MysticJourney.Core.Services
         {
             if (_instance != null && _instance != this)
             {
+                if (_instance.buttonClickSfx == null) _instance.buttonClickSfx = buttonClickSfx;
                 Destroy(gameObject);
                 return;
             }
@@ -55,6 +71,11 @@ namespace MysticJourney.Core.Services
             _instance = this;
             if (Application.isPlaying) DontDestroyOnLoad(gameObject);
             EnsureSources();
+            if (buttonClickSfx == null)
+                buttonClickSfx = Resources.Load<AudioClip>("Audio/Button");
+
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            RegisterButtons();
 
             SettingsService.Instance.Load();
             ApplyVolumesFromSettings();
@@ -117,10 +138,6 @@ namespace MysticJourney.Core.Services
             _sfxSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale));
         }
 
-        // Executes core business logic for play open panel.
-        public void PlayOpenPanel() => PlaySfx(openPanelSfx);
-
-
         // Executes core business logic for apply volumes from settings.
         public void ApplyVolumesFromSettings()
         {
@@ -139,9 +156,51 @@ namespace MysticJourney.Core.Services
             _isQuitting = true;
         }
 
+        private void Update()
+        {
+            if (Time.unscaledTime < _nextButtonScanTime)
+                return;
+
+            _nextButtonScanTime = Time.unscaledTime + 0.5f;
+            RegisterButtons();
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            RegisterButtons();
+        }
+
+        private void RegisterButtons()
+        {
+            var buttons = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var button in buttons)
+            {
+                if (button == null || !button.gameObject.scene.IsValid() || _registeredButtons.Contains(button))
+                    continue;
+
+                button.onClick.AddListener(PlayButtonClick);
+                _registeredButtons.Add(button);
+            }
+
+            _registeredButtons.RemoveWhere(button => button == null);
+        }
+
+        private void PlayButtonClick()
+        {
+            PlaySfx(buttonClickSfx);
+        }
+
         // Unsubscribe this component's event handlers and release its temporary runtime resources.
         private void OnDestroy()
         {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            foreach (var button in _registeredButtons)
+            {
+                if (button != null)
+                    button.onClick.RemoveListener(PlayButtonClick);
+            }
+            _registeredButtons.Clear();
+
             if (_instance == this)
             {
                 _isQuitting = true;
