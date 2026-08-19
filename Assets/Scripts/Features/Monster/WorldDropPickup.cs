@@ -205,6 +205,8 @@ namespace MysticJourney.Features.Monster
             if (_isCollected) return;
             _isCollected = true;
 
+            MysticJourney.Core.Services.AudioManager.Instance?.PlayPickup();
+
             if (_spriteRenderer != null) _spriteRenderer.enabled = false;
             var col = GetComponent<Collider2D>();
             if (col != null) col.enabled = false;

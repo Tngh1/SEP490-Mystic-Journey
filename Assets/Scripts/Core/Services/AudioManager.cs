@@ -49,9 +49,14 @@ namespace MysticJourney.Core.Services
         [Header("UI SFX")]
         [Tooltip("Tiếng phát khi click button UI. Kéo Assets/UI/Audio/Button/Button.mp3 vào đây.")]
         [SerializeField] private AudioClip buttonClickSfx;
+        [Tooltip("Tiếng bước chân. Kéo Assets/UI/Audio/Player/Walking.mp3 vào đây.")]
+        [SerializeField] private AudioClip walkingSfx;
+        [Tooltip("Tiếng nhặt vật phẩm. Kéo Assets/UI/Audio/Player/Pickup.mp3 vào đây.")]
+        [SerializeField] private AudioClip pickupSfx;
 
         private AudioSource _musicSource;
         private AudioSource _sfxSource;
+        private AudioSource _walkingSource;
 
         private AudioClip _currentMusicClip;
         private readonly HashSet<Button> _registeredButtons = new HashSet<Button>();
@@ -64,6 +69,8 @@ namespace MysticJourney.Core.Services
             if (_instance != null && _instance != this)
             {
                 if (_instance.buttonClickSfx == null) _instance.buttonClickSfx = buttonClickSfx;
+                if (_instance.walkingSfx == null) _instance.walkingSfx = walkingSfx;
+                if (_instance.pickupSfx == null) _instance.pickupSfx = pickupSfx;
                 Destroy(gameObject);
                 return;
             }
@@ -73,6 +80,10 @@ namespace MysticJourney.Core.Services
             EnsureSources();
             if (buttonClickSfx == null)
                 buttonClickSfx = Resources.Load<AudioClip>("Audio/Button");
+            if (walkingSfx == null)
+                walkingSfx = Resources.Load<AudioClip>("Audio/Player/Walking");
+            if (pickupSfx == null)
+                pickupSfx = Resources.Load<AudioClip>("Audio/Player/Pickup");
 
             SceneManager.sceneLoaded += OnSceneLoaded;
             RegisterButtons();
@@ -98,6 +109,14 @@ namespace MysticJourney.Core.Services
                 _sfxSource.playOnAwake = false;
                 _sfxSource.loop = false;
                 _sfxSource.spatialBlend = 0f;
+            }
+
+            if (_walkingSource == null)
+            {
+                _walkingSource = gameObject.AddComponent<AudioSource>();
+                _walkingSource.playOnAwake = false;
+                _walkingSource.loop = true;
+                _walkingSource.spatialBlend = 0f;
             }
         }
 
@@ -138,6 +157,24 @@ namespace MysticJourney.Core.Services
             _sfxSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale));
         }
 
+        public void PlayWalking()
+        {
+            if (walkingSfx == null) return;
+            EnsureSources();
+            if (_walkingSource.clip != walkingSfx)
+                _walkingSource.clip = walkingSfx;
+            if (!_walkingSource.isPlaying)
+                _walkingSource.Play();
+        }
+
+        public void StopWalking()
+        {
+            if (_walkingSource != null)
+                _walkingSource.Stop();
+        }
+
+        public void PlayPickup(float volumeScale = 1f) => PlaySfx(pickupSfx, volumeScale);
+
         // Executes core business logic for apply volumes from settings.
         public void ApplyVolumesFromSettings()
         {
@@ -148,6 +185,7 @@ namespace MysticJourney.Core.Services
 
             _musicSource.volume = master * s.MusicVolume;
             _sfxSource.volume = master * s.SfxVolume;
+            _walkingSource.volume = master * s.SfxVolume * 0.5f;
         }
 
         // Executes core business logic for on application quit.
