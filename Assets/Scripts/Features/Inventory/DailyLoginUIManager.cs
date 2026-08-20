@@ -136,11 +136,22 @@ public class DailyLoginUIManager : MonoBehaviour
 
         UpdateMonthText();
 
+        // Find the single latest/adjacent missed day before currentDay that can be retro-claimed
+        int latestMissedDay = -1;
+        for (int d = currentDay - 1; d >= 1; d--)
+        {
+            if (!claimedDaysList.Contains(d))
+            {
+                latestMissedDay = d;
+                break;
+            }
+        }
+
         foreach (var reward in rewards.OrderBy(r => r.DayNumber))
         {
             var isClaimed = claimedDaysList.Contains(reward.DayNumber);
             var isAvailable = !isClaimed && reward.DayNumber == currentDay;
-            var isMissed = !isClaimed && reward.DayNumber < currentDay;
+            var isMissed = !isClaimed && reward.DayNumber == latestMissedDay;
 
             var itemId = reward.RewardItemId ?? reward.DailyLoginRewardId;
             list.Add(new UIItemDisplayData
@@ -149,7 +160,8 @@ public class DailyLoginUIManager : MonoBehaviour
                 itemName = BuildRewardName(reward),
                 icon = ResolveRewardIcon(reward),
                 quantity = BuildRewardQuantity(reward),
-                rarity = string.Empty,
+                category = reward.RewardType,
+                rarity = ResolveRewardRarity(reward),
                 isClaimed = isClaimed,
                 isAvailable = isAvailable,
                 isMissed = isMissed,
@@ -504,6 +516,37 @@ public class DailyLoginUIManager : MonoBehaviour
             return Mathf.Max(1, reward.RewardItemQuantity);
 
         return Mathf.Max(1, Mathf.RoundToInt((float)reward.RewardValue));
+    }
+
+    // Executes core business logic for resolve reward rarity.
+    private static string ResolveRewardRarity(DailyLoginRewardResponse reward)
+    {
+        if (reward == null)
+            return string.Empty;
+
+        if (string.Equals(reward.RewardType, "Item", System.StringComparison.OrdinalIgnoreCase) || reward.RewardItemId.HasValue)
+        {
+            if (!string.IsNullOrWhiteSpace(reward.RewardItemRarity))
+                return reward.RewardItemRarity;
+
+            string name = reward.RewardItemName ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(name))
+                return "Rare";
+
+            string n = name.ToLowerInvariant();
+            if (n.Contains("necklace") || n.Contains("dây chuyền")) return "Legendary";
+            if (n.Contains("ring") || n.Contains("nhẫn")) return "Epic";
+            if (n.Contains("glove") || n.Contains("bao tay")) return "Rare";
+            if (n.Contains("weapon") || n.Contains("sword") || n.Contains("kiếm") || n.Contains("bow") || n.Contains("cung") ||
+                n.Contains("armor") || n.Contains("giáp") || n.Contains("helmet") || n.Contains("mũ") || n.Contains("boots") || n.Contains("giày") || n.Contains("shield") || n.Contains("khiên"))
+            {
+                return "Rare";
+            }
+
+            return "Rare";
+        }
+
+        return string.Empty;
     }
 
     // Executes core business logic for update status text.
