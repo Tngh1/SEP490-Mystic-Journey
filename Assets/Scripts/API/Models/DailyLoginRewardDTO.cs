@@ -16,6 +16,10 @@ namespace MysticJourney.API.Models.Response
         public int? RewardItemId { get; set; }
         // Executes reward item name operation.
         public string RewardItemName { get; set; }
+        // Executes reward item rarity operation.
+        public string RewardItemRarity { get; set; }
+        // Executes reward item type operation.
+        public string RewardItemType { get; set; }
         // Executes reward item quantity operation.
         public int RewardItemQuantity { get; set; }
         // Executes is active operation.

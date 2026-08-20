@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -54,21 +55,24 @@ public class UIDailySlot : UIBaseItemSlot
         if (todayOverlay != null)
             todayOverlay.SetActive(data.isAvailable && !data.isClaimed);
 
-        bool isLocked = !data.isClaimed && !data.isAvailable && !data.isMissed;
+        int currentDay = DateTime.UtcNow.Day;
+        bool isPastExpired = !data.isClaimed && !data.isAvailable && !data.isMissed && data.dayNumber < currentDay;
+        bool isFutureLocked = !data.isClaimed && !data.isAvailable && !data.isMissed && data.dayNumber > currentDay;
+
         if (lockOverlay != null)
-            lockOverlay.SetActive(isLocked);
+            lockOverlay.SetActive(isFutureLocked);
 
         if (claimButton != null)
         {
             bool canClick = (data.isAvailable || data.isMissed) && !data.isClaimed;
             claimButton.interactable = canClick;
 
-            if (data.isMissed && !data.isClaimed)
+            if ((data.isMissed || isPastExpired) && !data.isClaimed)
             {
                 if (claimButton.targetGraphic != null)
-                    claimButton.targetGraphic.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+                    claimButton.targetGraphic.color = new Color(0.45f, 0.45f, 0.45f, 1f);
                 if (iconImage != null)
-                    iconImage.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+                    iconImage.color = new Color(0.45f, 0.45f, 0.45f, 1f);
             }
             else
             {
@@ -76,6 +80,120 @@ public class UIDailySlot : UIBaseItemSlot
                     claimButton.targetGraphic.color = Color.white;
                 if (iconImage != null)
                     iconImage.color = Color.white;
+            }
+        }
+
+        ApplyResponsiveLayout();
+    }
+
+    // Executes core business logic for apply responsive layout.
+    private void ApplyResponsiveLayout()
+    {
+        if (dayText != null)
+        {
+            var rect = dayText.rectTransform;
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.05f, 0.76f);
+                rect.anchorMax = new Vector2(0.95f, 0.96f);
+                rect.pivot = new Vector2(0.5f, 1f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+                dayText.enableAutoSizing = true;
+                dayText.fontSizeMin = 8f;
+                dayText.fontSizeMax = 28f;
+                dayText.alignment = TextAlignmentOptions.Center;
+            }
+        }
+
+        if (iconImage != null)
+        {
+            var rect = iconImage.rectTransform;
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.15f, 0.24f);
+                rect.anchorMax = new Vector2(0.85f, 0.74f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+                iconImage.preserveAspect = true;
+            }
+        }
+
+        if (lockOverlay != null)
+        {
+            var rect = lockOverlay.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.35f, -0.05f);
+                rect.anchorMax = new Vector2(0.65f, 0.25f);
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+
+                var img = lockOverlay.GetComponent<Image>();
+                if (img != null) img.preserveAspect = true;
+            }
+        }
+
+        if (missedOverlay != null)
+        {
+            var rect = missedOverlay.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.35f, -0.05f);
+                rect.anchorMax = new Vector2(0.65f, 0.25f);
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+
+                var img = missedOverlay.GetComponent<Image>();
+                if (img != null) img.preserveAspect = true;
+            }
+        }
+
+        if (claimedOverlay != null)
+        {
+            var rect = claimedOverlay.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.35f, -0.05f);
+                rect.anchorMax = new Vector2(0.65f, 0.25f);
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+
+                var img = claimedOverlay.GetComponent<Image>();
+                if (img != null) img.preserveAspect = true;
+            }
+        }
+
+        if (todayOverlay != null)
+        {
+            var rect = todayOverlay.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+            }
+        }
+
+        if (quantityText != null)
+        {
+            var rect = quantityText.rectTransform;
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.55f, 0.04f);
+                rect.anchorMax = new Vector2(0.95f, 0.28f);
+                rect.pivot = new Vector2(1f, 0f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+                quantityText.enableAutoSizing = true;
+                quantityText.fontSizeMin = 8f;
+                quantityText.fontSizeMax = 28f;
+                quantityText.alignment = TextAlignmentOptions.BottomRight;
             }
         }
     }

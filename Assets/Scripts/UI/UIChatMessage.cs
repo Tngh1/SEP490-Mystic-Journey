@@ -190,8 +190,8 @@ public class UIChatMessage : MonoBehaviour
                     rt.anchorMin = new Vector2(1f, 0.5f);
                     rt.anchorMax = new Vector2(1f, 0.5f);
                     rt.pivot     = new Vector2(1f, 0.5f);
-                    rt.anchoredPosition = new Vector2(-4f, 0f);
-                    rt.sizeDelta = new Vector2(24f, 24f);
+                    rt.anchoredPosition = new Vector2(-6f, 3f);
+                    rt.sizeDelta = new Vector2(22f, 22f);
                     rt.localScale = Vector3.one;
                 }
 
@@ -224,8 +224,6 @@ public class UIChatMessage : MonoBehaviour
             return;
         }
 
-
-
         if (!CanReport)
         {
             return;
@@ -240,8 +238,8 @@ public class UIChatMessage : MonoBehaviour
         rect.anchorMin = new Vector2(1f, 0.5f);
         rect.anchorMax = new Vector2(1f, 0.5f);
         rect.pivot = new Vector2(1f, 0.5f);
-        rect.anchoredPosition = new Vector2(-4f, 0f);
-        rect.sizeDelta = new Vector2(58f, 24f);
+        rect.anchoredPosition = new Vector2(-6f, 3f);
+        rect.sizeDelta = new Vector2(48f, 20f);
         rect.localScale = Vector3.one;
 
         var image = buttonObject.GetComponent<Image>();
@@ -260,7 +258,7 @@ public class UIChatMessage : MonoBehaviour
 
         var label = labelObject.GetComponent<TextMeshProUGUI>();
         label.text = "Report";
-        label.fontSize = 12f;
+        label.fontSize = 11f;
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;

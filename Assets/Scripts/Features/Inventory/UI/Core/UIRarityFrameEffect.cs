@@ -61,14 +61,20 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         Sprite frameSprite = (slotBg != null && slotBg.name != "Icon") ? slotBg.sprite : null;
         Image.Type frameType = slotBg != null ? slotBg.type : Image.Type.Sliced;
 
+        bool isDailySlot = GetComponent<UIDailySlot>() != null || GetComponentInParent<UIDailySlot>() != null;
+
+        Vector2 ambientExtra = isDailySlot ? Vector2.zero : new Vector2(20f, 20f);
+        Vector2 outerExtra   = isDailySlot ? Vector2.zero : new Vector2(12f, 12f);
+        Vector2 innerExtra   = isDailySlot ? Vector2.zero : new Vector2(4f, 4f);
+
         if (ambientAura == null)
-            ambientAura = CreateGlowLayer("AmbientAura", new Vector2(20f, 20f), frameSprite, frameType);
+            ambientAura = CreateGlowLayer("AmbientAura", ambientExtra, frameSprite, frameType);
 
         if (outerGlow == null)
-            outerGlow = CreateGlowLayer("OuterGlowAura", new Vector2(12f, 12f), frameSprite, frameType);
+            outerGlow = CreateGlowLayer("OuterGlowAura", outerExtra, frameSprite, frameType);
 
         if (innerGlow == null)
-            innerGlow = CreateGlowLayer("InnerGlowFrame", new Vector2(4f, 4f), frameSprite, frameType);
+            innerGlow = CreateGlowLayer("InnerGlowFrame", innerExtra, frameSprite, frameType);
 
         ReorderGlowLayers();
     }
@@ -115,6 +121,10 @@ public sealed class UIRarityFrameEffect : MonoBehaviour
         if (ambientAura != null) ambientAura.transform.SetSiblingIndex(baseIndex);
         if (outerGlow != null) outerGlow.transform.SetSiblingIndex(baseIndex + 1);
         if (innerGlow != null) innerGlow.transform.SetSiblingIndex(baseIndex + 2);
+
+        bool isDailySlot = GetComponent<UIDailySlot>() != null || GetComponentInParent<UIDailySlot>() != null;
+        if (isDailySlot)
+            return;
 
         Transform icon = transform.Find("Icon") ?? transform.Find("Image");
         if (icon != null) icon.SetAsLastSibling();
