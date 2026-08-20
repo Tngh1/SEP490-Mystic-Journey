@@ -430,9 +430,10 @@ public class UIItemDetailPopup : MonoBehaviour
     // Executes build stats string operation.
     private string BuildStatsString(InventoryItemResponse item, InventoryItemResponse oldItem = null)
     {
+        if (item == null) return "";
         string s = "";
         void AddStat(string iconName, string name, float val, float? oldVal = null, bool isPct = false) {
-            if (val > 0) {
+            if (val > 0 || (oldVal.HasValue && oldVal.Value > 0)) {
                 string vStr = isPct ? $"{val:F1}%" : $"{(int)val}";
                 string diffStr = "";
                 if (oldVal.HasValue) {
@@ -701,14 +702,14 @@ public class UIItemDetailPopup : MonoBehaviour
         if (text == null) return;
         text.enableWordWrapping = true;
         text.enableAutoSizing = false;
-        text.fontSize = 24f;
+        text.fontSize = 30f;
         text.fontStyle = FontStyles.Bold;
         text.overflowMode = TextOverflowModes.Overflow;
         text.margin = Vector4.zero;
         if (text.rectTransform != null)
         {
-            if (text.rectTransform.rect.height < 32f)
-                text.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 36f);
+            if (text.rectTransform.rect.height < 40f)
+                text.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 42f);
             if (text.rectTransform.rect.width < 150f)
                 text.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 220f);
         }
@@ -746,17 +747,19 @@ public class UIItemDetailPopup : MonoBehaviour
             float descStartY = descRect.anchoredPosition.y;
             if (nameRect != null && consumeName != null)
             {
-                float nameHeight = Mathf.Max(consumeName.preferredHeight, nameRect.rect.height);
+                float nameHeight = Mathf.Max(consumeName.preferredHeight, nameRect.rect.height, 42f);
                 nameRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, nameHeight);
-                float nameTopY = nameRect.anchoredPosition.y;
-                descStartY = nameTopY - nameHeight - 4f;
+                float nameBottomY = nameRect.anchoredPosition.y - (nameRect.pivot.y * nameHeight);
+                descStartY = nameBottomY - ((1f - descRect.pivot.y) * descRect.rect.height) - 8f;
                 descRect.anchoredPosition = new Vector2(descRect.anchoredPosition.x, descStartY);
             }
 
             float descHeight = Mathf.Max(consumeDesc.preferredHeight, descRect.rect.height);
             descRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, descHeight);
 
-            float ownedStartY = descStartY - descHeight - 6f;
+            float descBottomY = descStartY - (descRect.pivot.y * descHeight);
+            float ownedHeight = Mathf.Max(consumeOwnedText.preferredHeight, ownedRect.rect.height);
+            float ownedStartY = descBottomY - ((1f - ownedRect.pivot.y) * ownedHeight) - 8f;
             ownedRect.anchoredPosition = new Vector2(ownedRect.anchoredPosition.x, ownedStartY);
 
             Canvas.ForceUpdateCanvases();

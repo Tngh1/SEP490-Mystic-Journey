@@ -45,8 +45,6 @@ public class FootstepController : MonoBehaviour
 
     void Update()
     {
-        if (footstepPrefab == null) return;
-
         float distanceMoved = Vector2.Distance(transform.position, lastPosition);
         lastPosition = transform.position;
 
@@ -55,7 +53,8 @@ public class FootstepController : MonoBehaviour
             stepTimer += Time.deltaTime;
             if (stepTimer >= stepInterval)
             {
-                SpawnFootstep();
+                if (footstepPrefab != null)
+                    SpawnFootstep();
                 stepTimer = 0f;
             }
         }

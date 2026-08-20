@@ -56,8 +56,14 @@ public class LevelUpUIManager : MonoBehaviour
     private void SetupButtonFeedback()
     {
         AddButtonFeedback(closeButton);
-        if (statButtons == null) return;
-        foreach (var button in statButtons)
+        if (statButtons != null)
+        {
+            foreach (var button in statButtons)
+                AddButtonFeedback(button);
+        }
+
+        // Include buttons created or nested inside the panel, not only serialized stat slots.
+        foreach (var button in GetComponentsInChildren<Button>(true))
             AddButtonFeedback(button);
     }
 
@@ -76,6 +82,7 @@ public class LevelUpUIManager : MonoBehaviour
     // Refresh visible state and subscribe the event handlers required while this component is active.
     private void OnEnable()
     {
+        SetupButtonFeedback();
         FetchOptions();
     }
 

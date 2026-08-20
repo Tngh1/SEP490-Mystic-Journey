@@ -8,6 +8,9 @@ namespace MysticJourney.API.Models.Request
 
         // Supported client types: Web or Game (selects independent refresh-token slot and session behavior)
         public string ClientType { get; set; } = "Game";
+
+        // Sent to the BE version gate so outdated Game clients are rejected before authentication.
+        public string ClientVersion { get; set; }
     }
 }
 
