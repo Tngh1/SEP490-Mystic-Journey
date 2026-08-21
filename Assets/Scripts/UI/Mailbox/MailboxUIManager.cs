@@ -15,6 +15,8 @@ namespace MysticJourney.Screen.Mail
     {
         public static event Action MailboxStateChanged;
 
+        public static void NotifyMailboxChanged() => MailboxStateChanged?.Invoke();
+
         [Header("Left Panel - General")]
         [SerializeField] private Transform contentContainer;
         [SerializeField] private GameObject mailItemPrefab;

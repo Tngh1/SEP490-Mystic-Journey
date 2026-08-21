@@ -29,6 +29,14 @@ namespace MysticJourney.API.Models.Request
         // Executes reason operation.
         public string Reason { get; set; }
     }
+
+    [Serializable]
+    public class ReportPartyChatMessageRequest
+    {
+        public int ReportedPlayerId { get; set; }
+        public string Content { get; set; }
+        public string Reason { get; set; }
+    }
 }
 
 namespace MysticJourney.API.Models.Response
