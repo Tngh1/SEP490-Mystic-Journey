@@ -146,6 +146,7 @@ namespace MysticJourney.API.Core
         public const string ChatWorldMessages = "/api/chat/world/messages";
         public const string ChatWorldSend = "/api/chat/world/send";
         public const string ChatWorldReport = "/api/chat/world/report";
+        public const string ChatPartyReport = "/api/chat/party/report";
         public const string ChatFriendMessages = "/api/chat/friend/messages";
         public const string ChatFriendSend = "/api/chat/friend/send";
         public const string ChatFriendReport = "/api/chat/friend/report";
