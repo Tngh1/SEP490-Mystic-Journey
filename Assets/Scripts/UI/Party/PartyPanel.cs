@@ -1045,32 +1045,10 @@ public class PartyPanel : MonoBehaviour
         rt.offsetMin = new Vector2(10, 0);
         rt.offsetMax = new Vector2(-75, 0);
 
-        if (friend.IsInDungeon)
-        {
-            // Friends who are already in a dungeon remain visible, but cannot be invited.
-            GameObject dungeonStatusObj = new GameObject("DungeonStatus", typeof(RectTransform), typeof(TextMeshProUGUI));
-            dungeonStatusObj.transform.SetParent(row.transform, false);
-            TextMeshProUGUI dungeonStatus = dungeonStatusObj.GetComponent<TextMeshProUGUI>();
-            dungeonStatus.text = "In Dungeon";
-            dungeonStatus.fontSize = 11;
-            dungeonStatus.fontStyle = FontStyles.Bold;
-            dungeonStatus.alignment = TextAlignmentOptions.MidlineRight;
-            dungeonStatus.color = new Color(1f, 0.75f, 0.25f);
-
-            RectTransform statusRt = dungeonStatusObj.GetComponent<RectTransform>();
-            statusRt.anchorMin = new Vector2(1, 0);
-            statusRt.anchorMax = new Vector2(1, 1);
-            statusRt.pivot = new Vector2(1, 0.5f);
-            statusRt.anchoredPosition = new Vector2(-10, 0);
-            statusRt.sizeDelta = new Vector2(80, 0);
-            return;
-        }
-
         GameObject inviteBtnObj = new GameObject("InviteBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         inviteBtnObj.transform.SetParent(row.transform, false);
         Image btnImg = inviteBtnObj.GetComponent<Image>();
         Button btn = inviteBtnObj.GetComponent<Button>();
-        AddHoverEffect(inviteBtnObj);
 
         RectTransform btnRt = inviteBtnObj.GetComponent<RectTransform>();
         btnRt.anchorMin = new Vector2(1, 0.5f);
@@ -1079,14 +1057,23 @@ public class PartyPanel : MonoBehaviour
         btnRt.anchoredPosition = new Vector2(-8, 0);
         btnRt.sizeDelta = new Vector2(60, 28);
 
+        var livePresence = PlayerPresence.Find(friend.FriendProfileId);
+        bool isInDungeon = friend.IsInDungeon ||
+                           (livePresence != null && (bool)livePresence.IsInDungeon);
         bool alreadyInParty = IsProfileInParty(friend.FriendProfileId);
-        btnImg.color = alreadyInParty ? new Color(0.4f, 0.4f, 0.4f, 0.5f) : new Color(0.2f, 0.5f, 0.2f);
-        btn.interactable = !alreadyInParty;
+        bool inviteBlocked = isInDungeon || alreadyInParty;
+
+        btnImg.color = inviteBlocked
+            ? new Color(0.35f, 0.35f, 0.35f, 0.65f)
+            : new Color(0.2f, 0.5f, 0.2f);
+        btn.interactable = !inviteBlocked;
+        if (!inviteBlocked)
+            AddHoverEffect(inviteBtnObj);
 
         GameObject btnTxtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         btnTxtObj.transform.SetParent(inviteBtnObj.transform, false);
         TextMeshProUGUI btnTxt = btnTxtObj.GetComponent<TextMeshProUGUI>();
-        btnTxt.text = alreadyInParty ? "IN" : "INVITE";
+        btnTxt.text = isInDungeon ? "IN DUN" : alreadyInParty ? "IN" : "INVITE";
         btnTxt.fontSize = 11;
         btnTxt.fontStyle = FontStyles.Bold;
         btnTxt.alignment = TextAlignmentOptions.Center;
@@ -1096,44 +1083,51 @@ public class PartyPanel : MonoBehaviour
         btnTxtRt.anchorMax = Vector2.one;
         btnTxtRt.sizeDelta = Vector2.zero;
 
-        if (!alreadyInParty)
-        {
-            int profileId = friend.FriendProfileId;
-            string friendName = friend.FriendName;
-            btn.onClick.AddListener(() =>
-            {
-                var presence = PlayerPresence.Find(profileId);
-                if (presence != null &&
-                    !MapProgressionRules.CanInviteToMap(selectedMapId, presence.HighestUnlockedMapId))
-                {
-                    UIPopupBox.Notify(transform, "Notice",
-                        $"Cannot invite {friendName}. They have not unlocked {MapProgressionRules.GetDisplayName(selectedMapId)} yet.");
-                    return;
-                }
+        if (inviteBlocked)
+            return;
 
-                var result = PartyService.InviteByProfileId(profileId, selectedMapId);
-                if (result == PartyService.InviteResult.Sent)
-                {
-                    UIPopupBox.Notify(transform, "Notice", $"Invited {friendName}.");
-                    btnTxt.text = "SENT";
-                    btnImg.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
-                    btn.interactable = false;
-                    UpdateUI();
-                }
-                else
-                {
-                    UIPopupBox.Notify(transform, "Notice", result switch
-                    {
-                        PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
-                        PartyService.InviteResult.PartyFull => "Your party is already full.",
-                        PartyService.InviteResult.PartyUnavailable => "Could not create the party. Try again.",
-                        PartyService.InviteResult.MapLocked =>
-                            $"Cannot invite {friendName}. They have not unlocked {MapProgressionRules.GetDisplayName(selectedMapId)} yet.",
-                        _ => "You are not connected to the party service.",
-                    });
-                }
+        int profileId = friend.FriendProfileId;
+        string friendName = friend.FriendName;
+        btn.onClick.AddListener(() =>
+        {
+            var presence = PlayerPresence.Find(profileId);
+            if (presence != null &&
+                !MapProgressionRules.CanInviteToMap(selectedMapId, presence.HighestUnlockedMapId))
+            {
+                UIPopupBox.Notify(transform, "Notice",
+                    $"Cannot invite {friendName}. They have not unlocked {MapProgressionRules.GetDisplayName(selectedMapId)} yet.");
+                return;
+            }
+
+            var result = PartyService.InviteByProfileId(profileId, selectedMapId);
+            if (result == PartyService.InviteResult.Sent)
+            {
+                UIPopupBox.Notify(transform, "Notice", $"Invited {friendName}.");
+                btnTxt.text = "SENT";
+                btnImg.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+                btn.interactable = false;
+                UpdateUI();
+                return;
+            }
+
+            if (result == PartyService.InviteResult.FriendInDungeon)
+            {
+                btnTxt.text = "IN DUN";
+                btnImg.color = new Color(0.35f, 0.35f, 0.35f, 0.65f);
+                btn.interactable = false;
+            }
+
+            UIPopupBox.Notify(transform, "Notice", result switch
+            {
+                PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
+                PartyService.InviteResult.FriendInDungeon => $"{friendName} is already in a dungeon.",
+                PartyService.InviteResult.PartyFull => "Your party is already full.",
+                PartyService.InviteResult.PartyUnavailable => "Could not create the party. Try again.",
+                PartyService.InviteResult.MapLocked =>
+                    $"Cannot invite {friendName}. They have not unlocked {MapProgressionRules.GetDisplayName(selectedMapId)} yet.",
+                _ => "You are not connected to the party service.",
             });
-        }
+        });
     }
 
     // Executes is profile in party operation.
