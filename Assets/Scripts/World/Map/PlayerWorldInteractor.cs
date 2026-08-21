@@ -199,9 +199,24 @@ public class PlayerWorldInteractor : MonoBehaviour
             var quest = QuestUIManager.Instance.GetQuestResponse(questIdToSend.Value);
             if (quest != null && string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase))
             {
+                var currentState = QuestUIManager.Instance.GetQuestState(quest.QuestId);
+                var currentProgress = currentState != null ? currentState.progress : quest.Progress;
+                var targetAmount = currentState != null && currentState.targetAmount > 0
+                    ? currentState.targetAmount
+                    : Mathf.Max(1, quest.TargetAmount);
+
+                if (currentProgress >= targetAmount)
+                {
+                    // The collection objective is complete; do not call the interaction API again.
+                    WorldInteractionPromptRuntime.Hide();
+                    return;
+                }
+
                 QuestUIManager.Instance.AddProgress(quest.QuestId, target.ProgressDelta);
                 var localState = QuestUIManager.Instance.GetQuestState(quest.QuestId);
-                var targetAmount = Mathf.Max(1, quest.TargetAmount);
+                targetAmount = localState != null && localState.targetAmount > 0
+                    ? localState.targetAmount
+                    : Mathf.Max(1, quest.TargetAmount);
 
                 if (localState == null || localState.progress < targetAmount)
                 {
@@ -352,7 +367,7 @@ public class PlayerWorldInteractor : MonoBehaviour
 
                 governed = true;
                 if (responses.TryGetValue(questId, out var linkedQuest) &&
-                    QuestUIManager.IsStatus(linkedQuest, "InProgress"))
+                    IsQuestAvailableForWorldObject(manager, linkedQuest))
                     return true;
             }
         }
@@ -366,11 +381,28 @@ public class PlayerWorldInteractor : MonoBehaviour
                 continue;
 
             governed = true;
-            if (QuestUIManager.IsStatus(quest, "InProgress"))
+            if (IsQuestAvailableForWorldObject(manager, quest))
                 return true;
         }
 
         return !governed;
+    }
+
+    // Checks whether an active world objective still needs interaction progress.
+    private static bool IsQuestAvailableForWorldObject(QuestUIManager manager, PlayerQuestResponse quest)
+    {
+        if (manager == null || quest == null || !QuestUIManager.IsStatus(quest, "InProgress"))
+            return false;
+
+        if (!string.Equals(quest.ObjectiveType, "Collect", System.StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var state = manager.GetQuestState(quest.QuestId);
+        int progress = state != null ? state.progress : quest.Progress;
+        int targetAmount = state != null && state.targetAmount > 0
+            ? state.targetAmount
+            : Mathf.Max(1, quest.TargetAmount);
+        return progress < targetAmount;
     }
 
 

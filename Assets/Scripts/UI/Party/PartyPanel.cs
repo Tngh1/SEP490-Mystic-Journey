@@ -1018,6 +1018,27 @@ public class PartyPanel : MonoBehaviour
         rt.offsetMin = new Vector2(10, 0);
         rt.offsetMax = new Vector2(-75, 0);
 
+        if (friend.IsInDungeon)
+        {
+            // Friends who are already in a dungeon remain visible, but cannot be invited.
+            GameObject dungeonStatusObj = new GameObject("DungeonStatus", typeof(RectTransform), typeof(TextMeshProUGUI));
+            dungeonStatusObj.transform.SetParent(row.transform, false);
+            TextMeshProUGUI dungeonStatus = dungeonStatusObj.GetComponent<TextMeshProUGUI>();
+            dungeonStatus.text = "In Dungeon";
+            dungeonStatus.fontSize = 11;
+            dungeonStatus.fontStyle = FontStyles.Bold;
+            dungeonStatus.alignment = TextAlignmentOptions.MidlineRight;
+            dungeonStatus.color = new Color(1f, 0.75f, 0.25f);
+
+            RectTransform statusRt = dungeonStatusObj.GetComponent<RectTransform>();
+            statusRt.anchorMin = new Vector2(1, 0);
+            statusRt.anchorMax = new Vector2(1, 1);
+            statusRt.pivot = new Vector2(1, 0.5f);
+            statusRt.anchoredPosition = new Vector2(-10, 0);
+            statusRt.sizeDelta = new Vector2(80, 0);
+            return;
+        }
+
         GameObject inviteBtnObj = new GameObject("InviteBtn", typeof(RectTransform), typeof(Image), typeof(Button));
         inviteBtnObj.transform.SetParent(row.transform, false);
         Image btnImg = inviteBtnObj.GetComponent<Image>();

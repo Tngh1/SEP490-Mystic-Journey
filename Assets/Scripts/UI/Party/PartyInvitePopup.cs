@@ -86,7 +86,20 @@ public class PartyInvitePopup : MonoBehaviour
     {
         if (_queue.Count == 0) return;
         var invite = _queue.Dequeue();
-        PartyService.AcceptInvite(invite.HostProfileId);
+
+        if (PartyService.IsDungeonStarted(invite.HostProfileId))
+        {
+            // Resolve the stale invite as well as informing the player why it cannot be accepted.
+            PartyService.DeclineInvite(invite.HostProfileId);
+            UIPopupBox.Notify(transform, "Party", PartyService.DungeonAlreadyStartedMessage);
+            ShowNext();
+            return;
+        }
+
+        if (!PartyService.AcceptInvite(invite.HostProfileId) && PartyService.IsDungeonStarted(invite.HostProfileId))
+        {
+            UIPopupBox.Notify(transform, "Party", PartyService.DungeonAlreadyStartedMessage);
+        }
         ShowNext();
     }
 
@@ -95,6 +108,15 @@ public class PartyInvitePopup : MonoBehaviour
     {
         if (_queue.Count == 0) return;
         var invite = _queue.Dequeue();
+
+        if (PartyService.IsDungeonStarted(invite.HostProfileId))
+        {
+            PartyService.DeclineInvite(invite.HostProfileId);
+            UIPopupBox.Notify(transform, "Party", PartyService.DungeonAlreadyStartedMessage);
+            ShowNext();
+            return;
+        }
+
         PartyService.DeclineInvite(invite.HostProfileId);
         ShowNext();
     }
