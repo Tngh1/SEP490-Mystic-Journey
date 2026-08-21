@@ -35,6 +35,8 @@ namespace MysticJourney.API.Models.Response
         public int ItemId;
         public string ItemName;
         public string IconUrl;
+        public string ItemType;
+        public string ItemRarity;
         public int Quantity;
     }
 

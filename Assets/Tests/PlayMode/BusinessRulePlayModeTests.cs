@@ -90,6 +90,10 @@ namespace MysticJourney.Tests.PlayMode
         {
             Assert.That(PartyRule("CanKick", true, true, false), Is.True);
             Assert.That(PartyRule("CanKick", false, true, false), Is.False);
+            Assert.That(PartyRule("CanStartDungeon", true, 0, 1, 1, 0), Is.True,
+                "A host must be able to start a dungeon alone.");
+            Assert.That(PartyRule("CanStartDungeon", true, 0, 1, 0, 0), Is.False,
+                "The solo host still has to occupy a ready party slot.");
             Assert.That(PartyRule("CanStartDungeon", true, 0, 2, 2, 0), Is.True);
             Assert.That(PartyRule("CanStartDungeon", true, 0, 2, 2, 3), Is.True,
                 "Unanswered invites are not members and must not lock a ready party.");
@@ -118,6 +122,8 @@ namespace MysticJourney.Tests.PlayMode
             Assert.That((int)InvokeStatic(rules, "GetMapId", "Frozen Mountain"), Is.EqualTo(3));
             Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 2, 1), Is.False);
             Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 2, 2), Is.True);
+            Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 4, 3), Is.False);
+            Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 4, 4), Is.True);
             Assert.That((bool)InvokeStatic(rules, "CanInviteToMap", 1, 1), Is.True);
             Assert.That((int)InvokeStatic(rules, "GetMapUnlockedByQuest", 20), Is.EqualTo(3));
         }
