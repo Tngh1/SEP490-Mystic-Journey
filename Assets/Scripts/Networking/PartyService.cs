@@ -5,7 +5,9 @@ using MysticJourney.Core.Utilities;
 // Initializes a new default instance of the PartyService class.
 public static class PartyService
 {
-    public const string DungeonAlreadyStartedMessage = "The dungeon has already started.";
+    public const string DungeonAlreadyStartedMessage = "This party is no longer available because the dungeon has already started.";
+    public const string PartyNoLongerExistsMessage = "This party no longer exists.";
+    public const string PartyJoinUnavailableMessage = "Unable to join this party right now.";
 
     // Executes core business logic for current party.
     public static PartyLobby CurrentParty => PartyLobby.Local;
@@ -38,6 +40,13 @@ public static class PartyService
         PartyUnavailable,
         PartyFull,
         MapLocked,
+    }
+
+    public enum InviteAvailability
+    {
+        Available,
+        PartyMissing,
+        DungeonStarted,
     }
 
     // Process invite by profile id using friend profile id and required map id; it loads find and creates party and guards invalid or unavailable states.
@@ -109,11 +118,8 @@ public static class PartyService
 
     // Returns true when the host's party has already left the lobby state.
     // The invite popup uses this shared check for both accept and decline actions.
-    public static bool IsDungeonStarted(int hostProfileId)
-    {
-        var party = FindPartyByHostProfileId(hostProfileId);
-        return party != null && party.State != PartyLobby.PartyState.Lobby;
-    }
+    public static bool IsDungeonStarted(int hostProfileId) =>
+        GetInviteAvailability(hostProfileId) == InviteAvailability.DungeonStarted;
 
 
     // Executes core business logic for kick member.
@@ -177,5 +183,20 @@ public static class PartyService
         foreach (var p in PartyLobby.All)
             if (p != null && p.HostProfileId == hostProfileId) return p;
         return null;
+    }
+
+
+    public static InviteAvailability GetInviteAvailability(int hostProfileId)
+    {
+        if (hostProfileId <= 0)
+            return InviteAvailability.PartyMissing;
+
+        var party = FindPartyByHostProfileId(hostProfileId);
+        if (party == null)
+            return InviteAvailability.PartyMissing;
+
+        return party.State == PartyLobby.PartyState.Lobby
+            ? InviteAvailability.Available
+            : InviteAvailability.DungeonStarted;
     }
 }

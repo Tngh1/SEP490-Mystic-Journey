@@ -35,6 +35,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
     [SerializeField] private TMP_Text corruptionText;
     [SerializeField] private Image corruptionBarImage;
+    [SerializeField] private UICorruptionFlameEffect corruptionFlameEffect;
     [SerializeField] private Image avatarImage;
 
     [Header("HUD Buttons")]
@@ -128,6 +129,7 @@ public class PlayerHUDUIManager : MonoBehaviour
         }
 
         FindHUDReferences(); // Cache all text, bar, and button transforms
+        EnsureCorruptionFlameEffect(); // Create the corruption-scaled purple flame overlay
         FindDeathPanelReferences(); // Wire up death and restart prompt references
     }
 
@@ -418,6 +420,51 @@ public class PlayerHUDUIManager : MonoBehaviour
         ToggleDungeonMode(inDungeon);
     }
 
+    private void EnsureCorruptionFlameEffect()
+    {
+        if (corruptionFlameEffect != null)
+            return;
+
+        Transform corruptionRoot = corruptionBarImage != null
+            ? corruptionBarImage.transform.parent?.parent
+            : transform.Find("Corruption");
+
+        if (corruptionRoot == null)
+            return;
+
+        Transform existing = corruptionRoot.Find("PurpleFlameEffect");
+        if (existing != null)
+            corruptionFlameEffect = existing.GetComponent<UICorruptionFlameEffect>();
+
+        if (corruptionFlameEffect == null)
+        {
+            var effectObject = new GameObject(
+                "PurpleFlameEffect",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(UICorruptionFlameEffect));
+            effectObject.layer = corruptionRoot.gameObject.layer;
+            effectObject.transform.SetParent(corruptionRoot, false);
+            corruptionFlameEffect = effectObject.GetComponent<UICorruptionFlameEffect>();
+        }
+
+        var effectRect = corruptionFlameEffect.rectTransform;
+        effectRect.anchorMin = Vector2.zero;
+        effectRect.anchorMax = Vector2.one;
+        effectRect.pivot = new Vector2(0.5f, 0.5f);
+        effectRect.anchoredPosition = Vector2.zero;
+        effectRect.offsetMin = new Vector2(-10f, -4f);
+        effectRect.offsetMax = new Vector2(10f, 30f);
+        corruptionFlameEffect.raycastTarget = false;
+        corruptionFlameEffect.transform.SetAsFirstSibling();
+
+        float current = GameStateService.Instance != null
+            ? GameStateService.Instance.CorruptionLevel
+            : 0f;
+        corruptionFlameEffect.SetIntensity(current / 100f);
+    }
+
+
     // Executes core business logic for toggle dungeon mode.
     public void ToggleDungeonMode(bool isInDungeon)
     {
@@ -533,16 +580,19 @@ public class PlayerHUDUIManager : MonoBehaviour
     public void ApplyCorruption(float corruptionLevel)
     {
         FindHUDReferences();
+        float normalized = Mathf.Clamp01(corruptionLevel / 100f);
+
         if (corruptionText != null)
-        {
             corruptionText.text = $"{Mathf.RoundToInt(corruptionLevel)}/100";
-        }
+
         if (corruptionBarImage != null)
         {
             EnsureFilledImageMode(corruptionBarImage);
-            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
-            corruptionBarImage.fillAmount = Mathf.Clamp01(corruptionLevel / 100f);
+            corruptionBarImage.fillAmount = normalized;
         }
+
+        EnsureCorruptionFlameEffect();
+        corruptionFlameEffect?.SetIntensity(normalized);
     }
 
     // Executes core business logic for apply health.
@@ -665,17 +715,7 @@ public class PlayerHUDUIManager : MonoBehaviour
 
         UpdateEnergyUI(profile.Energy, profile.MaxEnergy);
 
-        if (corruptionText != null)
-        {
-            corruptionText.text = $"{Mathf.RoundToInt(profile.CorruptionLevel)}/100";
-        }
-
-        if (corruptionBarImage != null)
-        {
-            EnsureFilledImageMode(corruptionBarImage);
-            // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
-            corruptionBarImage.fillAmount = Mathf.Clamp01(profile.CorruptionLevel / 100f);
-        }
+        ApplyCorruption(profile.CorruptionLevel);
 
         ApplyAvatar(profile.AvatarUrl);
 
