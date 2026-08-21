@@ -8,6 +8,7 @@ using MysticJourney.API.Models.Response;
 using MysticJourney.Core.Services;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 // Executes core business logic for mono behaviour.
@@ -80,6 +81,7 @@ public class ChatUIManager : MonoBehaviour
 
     private Coroutine sendCooldownCoroutine;
     private string sendButtonOriginalLabel;
+    private Color sendButtonOriginalColor = Color.white;
     private bool isOnCooldown;
 
     private bool sendEventsBound;
@@ -98,6 +100,15 @@ public class ChatUIManager : MonoBehaviour
         PrepareRuntimeBindings(); // Hook button listeners and input fields
         SubscribeChannelRelays(); // Bind Photon realtime RPC events and party relays
 
+        if (ApiClient.Instance.HasToken())
+        {
+            GuildApi.GetMyGuild(
+                detail => { currentGuildId = detail != null ? detail.guildId : 0; RefreshChannelTabsVisibility(); },
+                _ => { currentGuildId = 0; RefreshChannelTabsVisibility(); });
+        }
+
+        RefreshChannelTabsVisibility();
+
         if (loadHistoryOnEnable)
         {
             LoadCurrentChannelHistory(); // Query previous messages for active channel tab
@@ -112,6 +123,7 @@ public class ChatUIManager : MonoBehaviour
     {
         PrepareRuntimeBindings();
         SubscribeChannelRelays();
+        RefreshChannelTabsVisibility();
         UpdateHistoryFallbackState();
         RefreshSendButtonState();
     }
@@ -129,6 +141,8 @@ public class ChatUIManager : MonoBehaviour
         CheckClickOutside(); // Dismiss chat overlay if user clicks elsewhere
     }
 
+    private readonly List<RaycastResult> tempRaycastResults = new List<RaycastResult>();
+
     // Dismisses chat modal if the user clicks outside its UI bounds.
     private void CheckClickOutside()
     {
@@ -137,6 +151,34 @@ public class ChatUIManager : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            var activePopup = UIPopupBox.FindPopup(transform);
+            if (activePopup != null && activePopup.gameObject.activeInHierarchy)
+            {
+                return; // An alert or confirmation popup box is open; DO NOT close chat panel!
+            }
+
+            if (EventSystem.current != null)
+            {
+                var eventData = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
+                tempRaycastResults.Clear();
+                EventSystem.current.RaycastAll(eventData, tempRaycastResults);
+                foreach (var result in tempRaycastResults)
+                {
+                    if (result.gameObject != null)
+                    {
+                        Transform t = result.gameObject.transform;
+                        if (t.IsChildOf(transform) ||
+                            (contextMenu != null && t.IsChildOf(contextMenu.transform)) ||
+                            (reportConfirmPopup != null && t.IsChildOf(reportConfirmPopup.transform)) ||
+                            (activePopup != null && t.IsChildOf(activePopup)) ||
+                            t.name.Contains("Popup") || t.name.Contains("Modal") || t.name.Contains("Dialog"))
+                        {
+                            return; // Raycast hit chat UI or active popup element, do NOT close!
+                        }
+                    }
+                }
+            }
+
             RectTransform rect = GetComponent<RectTransform>();
             if (rect == null) return;
 
@@ -216,6 +258,11 @@ public class ChatUIManager : MonoBehaviour
         string msg = inputField.text != null ? inputField.text.Trim() : string.Empty;
         if (string.IsNullOrWhiteSpace(msg))
         {
+            if (!UIPopupBox.Notify(transform, "Notice", "Please enter a message before sending.", FocusInput))
+            {
+                AddSystemMessage("Please enter a message before sending.");
+                FocusInput();
+            }
             return;
         }
 
@@ -308,23 +355,71 @@ public class ChatUIManager : MonoBehaviour
     // Executes core business logic for bind send events.
     private void BindSendEvents()
     {
-        if (sendEventsBound)
-        {
-            return;
-        }
-
-        sendEventsBound = true;
-
         if (sendButton != null)
         {
-            sendButton.onClick.AddListener(OnSendClicked);
+            foreach (var tmp in sendButton.GetComponentsInChildren<TMP_Text>(true))
+            {
+                tmp.raycastTarget = false;
+            }
+            foreach (var txt in sendButton.GetComponentsInChildren<Text>(true))
+            {
+                txt.raycastTarget = false;
+            }
+
+            var graphic = sendButton.targetGraphic as Graphic;
+            if (graphic == null)
+            {
+                graphic = sendButton.GetComponent<Graphic>();
+                if (graphic != null) sendButton.targetGraphic = graphic;
+            }
+            if (graphic != null)
+            {
+                graphic.raycastTarget = true;
+            }
+
+            if (sendButton.GetComponent<UIHoverScaleEffect>() == null)
+            {
+                sendButton.gameObject.AddComponent<UIHoverScaleEffect>();
+            }
+
+            if (!sendEventsBound)
+            {
+                sendButton.onClick.AddListener(OnSendClicked);
+            }
         }
 
         if (inputField != null)
         {
             inputField.characterLimit = NetworkChatText.MaxContentChars;
-            inputField.onSubmit.AddListener(HandleInputSubmitted);
+
+            var inputGraphic = inputField.targetGraphic as Graphic;
+            if (inputGraphic == null)
+            {
+                inputGraphic = inputField.GetComponent<Graphic>();
+                if (inputGraphic != null) inputField.targetGraphic = inputGraphic;
+            }
+            if (inputGraphic != null)
+            {
+                inputGraphic.raycastTarget = true;
+            }
+
+            if (inputField.textComponent != null)
+            {
+                inputField.textComponent.raycastTarget = false;
+            }
+
+            if (inputField.placeholder != null && inputField.placeholder is Graphic placeholderGraphic)
+            {
+                placeholderGraphic.raycastTarget = false;
+            }
+
+            if (!sendEventsBound)
+            {
+                inputField.onSubmit.AddListener(HandleInputSubmitted);
+            }
         }
+
+        sendEventsBound = true;
     }
 
     // Executes core business logic for handle input submitted.
@@ -385,25 +480,161 @@ public class ChatUIManager : MonoBehaviour
         return legacyText != null ? legacyText.text : string.Empty;
     }
 
+    // Configures tab button raycasts and hover effects for smooth responsiveness.
+    private static void ConfigureTabButton(Button button)
+    {
+        if (button == null) return;
+
+        foreach (var tmp in button.GetComponentsInChildren<TMP_Text>(true))
+        {
+            tmp.raycastTarget = false;
+        }
+
+        foreach (var text in button.GetComponentsInChildren<Text>(true))
+        {
+            text.raycastTarget = false;
+        }
+
+        var graphic = button.targetGraphic as Graphic;
+        if (graphic == null)
+        {
+            graphic = button.GetComponent<Graphic>();
+            if (graphic != null) button.targetGraphic = graphic;
+        }
+        if (graphic != null)
+        {
+            graphic.raycastTarget = true;
+        }
+
+        if (button.GetComponent<UIHoverScaleEffect>() == null)
+        {
+            button.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
+    }
+
     // Executes core business logic for bind channel tabs.
     private void BindChannelTabs()
     {
-        if (worldTabButton != null && !worldTabBound)
+        if (worldTabButton != null)
         {
-            worldTabBound = true;
-            worldTabButton.onClick.AddListener(ShowWorldChat);
+            ConfigureTabButton(worldTabButton);
+            if (!worldTabBound)
+            {
+                worldTabBound = true;
+                worldTabButton.onClick.AddListener(ShowWorldChat);
+            }
         }
 
-        if (guildTabButton != null && !guildTabBound)
+        if (guildTabButton != null)
         {
-            guildTabBound = true;
-            guildTabButton.onClick.AddListener(ShowGuildChat);
+            ConfigureTabButton(guildTabButton);
+            if (!guildTabBound)
+            {
+                guildTabBound = true;
+                guildTabButton.onClick.AddListener(ShowGuildChat);
+            }
         }
 
-        if (partyTabButton != null && !partyTabBound)
+        if (partyTabButton != null)
         {
-            partyTabBound = true;
-            partyTabButton.onClick.AddListener(ShowPartyChat);
+            ConfigureTabButton(partyTabButton);
+            if (!partyTabBound)
+            {
+                partyTabBound = true;
+                partyTabButton.onClick.AddListener(ShowPartyChat);
+            }
+        }
+        RefreshChannelTabsVisibility();
+    }
+
+    private float cachedTabWidth = -1f;
+
+    // Updates visibility of Guild and Party tabs based on player participation.
+    public void RefreshChannelTabsVisibility()
+    {
+        if (worldTabButton != null)
+        {
+            worldTabButton.gameObject.SetActive(true);
+        }
+
+        bool hasGuild = currentGuildId > 0;
+        if (guildTabButton != null)
+        {
+            guildTabButton.gameObject.SetActive(hasGuild);
+        }
+
+        bool hasParty = PartyLobby.Local != null || IsDungeonPartyChat() || IsPartyTransportMigrating();
+        if (partyTabButton != null)
+        {
+            partyTabButton.gameObject.SetActive(hasParty);
+        }
+
+        LockTabButtonSizes();
+
+        if ((currentChannel == ChatChannel.Guild && !hasGuild) ||
+            (currentChannel == ChatChannel.Party && !hasParty))
+        {
+            ShowWorldChat();
+        }
+    }
+
+    // Locks tab button widths to their original 3-tab proportions to prevent stretching when tabs hide.
+    private void LockTabButtonSizes()
+    {
+        if (worldTabButton == null) return;
+
+        Transform parentTransform = worldTabButton.transform.parent;
+        if (parentTransform != null)
+        {
+            foreach (var hlg in parentTransform.GetComponents<HorizontalLayoutGroup>())
+            {
+                hlg.childForceExpandWidth = false;
+                hlg.childAlignment = TextAnchor.UpperLeft;
+            }
+        }
+
+        if (cachedTabWidth <= 0f)
+        {
+            var rt = worldTabButton.GetComponent<RectTransform>();
+            if (rt != null && rt.rect.width > 0f)
+            {
+                cachedTabWidth = rt.rect.width;
+            }
+            else if (rt != null && rt.sizeDelta.x > 0f)
+            {
+                cachedTabWidth = rt.sizeDelta.x;
+            }
+            else if (parentTransform is RectTransform parentRt && parentRt.rect.width > 0f)
+            {
+                cachedTabWidth = (parentRt.rect.width - 12f) / 3f;
+            }
+        }
+
+        if (cachedTabWidth > 0f)
+        {
+            ApplyPreferredWidth(worldTabButton, cachedTabWidth);
+            ApplyPreferredWidth(guildTabButton, cachedTabWidth);
+            ApplyPreferredWidth(partyTabButton, cachedTabWidth);
+        }
+    }
+
+    private static void ApplyPreferredWidth(Button button, float width)
+    {
+        if (button == null) return;
+        var le = button.GetComponent<LayoutElement>();
+        if (le == null)
+        {
+            le = button.gameObject.AddComponent<LayoutElement>();
+        }
+        le.preferredWidth = width;
+        le.flexibleWidth = 0f;
+
+        var rt = button.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            var size = rt.sizeDelta;
+            size.x = width;
+            rt.sizeDelta = size;
         }
     }
 
@@ -673,6 +904,7 @@ public class ChatUIManager : MonoBehaviour
     {
         if (currentGuildId > 0)
         {
+            RefreshChannelTabsVisibility();
             onResolved?.Invoke(currentGuildId);
             return;
         }
@@ -681,6 +913,7 @@ public class ChatUIManager : MonoBehaviour
             detail =>
             {
                 currentGuildId = detail != null ? detail.guildId : 0;
+                RefreshChannelTabsVisibility();
 
                 if (currentGuildId > 0)
                 {
@@ -694,6 +927,7 @@ public class ChatUIManager : MonoBehaviour
             error =>
             {
                 currentGuildId = 0;
+                RefreshChannelTabsVisibility();
                 onFailed?.Invoke(BuildErrorMessage(error));
             });
     }
@@ -787,18 +1021,31 @@ public class ChatUIManager : MonoBehaviour
     // Logic details: validates numeric boundary constraints.
     private void HandleSenderNameClicked(string senderName, int senderProfileId, Vector3 clickPosition)
     {
-        if (IsCurrentPlayer(senderProfileId) || senderProfileId <= 0)
+        string myName = GetCurrentPlayerName();
+        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(myName) &&
+            string.Equals(senderName.Trim(), myName.Trim(), StringComparison.OrdinalIgnoreCase))
         {
-            return;
+            return; // Don't open context menu for self!
+        }
+
+        if (IsCurrentPlayer(senderProfileId))
+        {
+            return; // Don't open context menu for self!
+        }
+
+        if (contextMenu == null)
+        {
+            contextMenu = FindFirstObjectByType<UIPlayerContextMenu>(FindObjectsInactive.Include);
         }
 
         if (contextMenu != null)
         {
-            contextMenu.ShowMenu(senderName, senderProfileId, clickPosition);
+            Vector3 pos = clickPosition != Vector3.zero ? clickPosition : Input.mousePosition;
+            contextMenu.ShowMenu(senderName, senderProfileId, pos);
         }
         else
         {
-            Debug.LogError("[ChatUIManager] Player context menu is not assigned in Inspector.");
+            Debug.LogError("[ChatUIManager] Player context menu is not assigned in Inspector and could not be found.");
         }
     }
 
@@ -991,6 +1238,8 @@ public class ChatUIManager : MonoBehaviour
     // Executes core business logic for handle local party changed.
     private void HandleLocalPartyChanged()
     {
+        RefreshChannelTabsVisibility();
+
         if (currentChannel != ChatChannel.Party)
         {
             return;
@@ -1300,9 +1549,13 @@ public class ChatUIManager : MonoBehaviour
         isOnCooldown = true;
 
         TMP_Text buttonLabel = GetSendButtonLabel();
-        if (buttonLabel != null && string.IsNullOrEmpty(sendButtonOriginalLabel))
+        if (buttonLabel != null)
         {
-            sendButtonOriginalLabel = buttonLabel.text;
+            if (string.IsNullOrEmpty(sendButtonOriginalLabel))
+            {
+                sendButtonOriginalLabel = buttonLabel.text;
+                sendButtonOriginalColor = buttonLabel.color;
+            }
         }
 
         float remaining = sendCooldownSeconds;
@@ -1310,13 +1563,19 @@ public class ChatUIManager : MonoBehaviour
         {
             if (currentChannel == ChatChannel.World)
             {
-                if (buttonLabel != null)
-                {
-                    buttonLabel.text = Mathf.CeilToInt(remaining).ToString();
-                }
                 if (sendButton != null)
                 {
                     sendButton.interactable = false;
+                }
+
+                SetSendButtonIconVisible(false);
+
+                if (buttonLabel != null)
+                {
+                    buttonLabel.gameObject.SetActive(true);
+                    int sec = Mathf.CeilToInt(remaining);
+                    buttonLabel.text = $"{sec}s";
+                    buttonLabel.color = new Color(1f, 0.88f, 0.2f, 1f); // Vibrant gold/yellow text
                 }
             }
             else
@@ -1342,7 +1601,41 @@ public class ChatUIManager : MonoBehaviour
     // Logic details: validates required non-empty string arguments.
     private TMP_Text GetSendButtonLabel()
     {
-        return sendButton != null ? sendButton.GetComponentInChildren<TMP_Text>() : null;
+        if (sendButton == null) return null;
+
+        var tmp = sendButton.GetComponentInChildren<TMP_Text>(true);
+        if (tmp == null)
+        {
+            var labelObject = new GameObject("CooldownText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            var labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.SetParent(sendButton.transform, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            tmp = labelObject.GetComponent<TextMeshProUGUI>();
+            tmp.fontSize = 13f;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = new Color(1f, 0.88f, 0.2f, 1f);
+            tmp.raycastTarget = false;
+        }
+
+        return tmp;
+    }
+
+    // Toggles child icon images on sendButton (e.g. speech bubble icon).
+    private void SetSendButtonIconVisible(bool visible)
+    {
+        if (sendButton == null) return;
+        foreach (var img in sendButton.GetComponentsInChildren<Image>(true))
+        {
+            if (img.gameObject != sendButton.gameObject && img != sendButton.targetGraphic)
+            {
+                img.enabled = visible;
+            }
+        }
     }
 
     // Executes core business logic for restore send button label.
@@ -1354,8 +1647,16 @@ public class ChatUIManager : MonoBehaviour
         {
             buttonLabel.text = !string.IsNullOrEmpty(sendButtonOriginalLabel)
                 ? sendButtonOriginalLabel
-                : "Send";
+                : string.Empty;
+            buttonLabel.color = sendButtonOriginalColor != default ? sendButtonOriginalColor : Color.white;
+
+            if (string.IsNullOrEmpty(sendButtonOriginalLabel))
+            {
+                buttonLabel.gameObject.SetActive(false);
+            }
         }
+
+        SetSendButtonIconVisible(true);
     }
 
     // Executes core business logic for refresh send button state.
