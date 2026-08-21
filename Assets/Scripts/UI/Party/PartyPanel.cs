@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -57,6 +59,16 @@ public class PartyPanel : MonoBehaviour
 
     private PartyLobby _hookedParty;
     private Sprite _readyDefaultSprite;
+    private readonly List<InviteCooldownView> _inviteCooldownViews = new List<InviteCooldownView>();
+    private Coroutine _inviteCooldownCoroutine;
+
+    private sealed class InviteCooldownView
+    {
+        public Button Button;
+        public TMP_Text Label;
+        public Image Image;
+        public bool IsSent;
+    }
 
     // Initializes singleton reference and hooks party disband presence callback.
     private void Awake()
@@ -91,6 +103,7 @@ public class PartyPanel : MonoBehaviour
     {
         PartyLobby.OnLocalPartyChanged -= HandleLocalPartyChanged;
         UnhookPartyEvents();
+        ClearInviteCooldownViews();
     }
 
     // Cleans up event listeners upon GameObject destruction.
@@ -908,6 +921,7 @@ public class PartyPanel : MonoBehaviour
     // Executes open friend list modal operation.
     private void OpenFriendListModal()
     {
+        ClearInviteCooldownViews();
         if (friendModalObj != null) Destroy(friendModalObj);
 
         Canvas canvas = GetComponentInParent<Canvas>();
@@ -978,6 +992,7 @@ public class PartyPanel : MonoBehaviour
         {
             Destroy(friendModalObj);
             friendModalObj = null;
+            ClearInviteCooldownViews();
         });
 
         GameObject closeTxtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -1083,6 +1098,10 @@ public class PartyPanel : MonoBehaviour
         btnTxtRt.anchorMax = Vector2.one;
         btnTxtRt.sizeDelta = Vector2.zero;
 
+        InviteCooldownView cooldownView = null;
+        if (!inviteBlocked)
+            cooldownView = RegisterInviteCooldownView(btn, btnTxt, btnImg);
+
         if (inviteBlocked)
             return;
 
@@ -1090,6 +1109,13 @@ public class PartyPanel : MonoBehaviour
         string friendName = friend.FriendName;
         btn.onClick.AddListener(() =>
         {
+            if (PartyService.InviteCooldownRemaining > 0f)
+            {
+                StartInviteCooldownCountdown();
+                UpdateInviteCooldownViews();
+                return;
+            }
+
             var presence = PlayerPresence.Find(profileId);
             if (presence != null &&
                 !MapProgressionRules.CanInviteToMap(selectedMapId, presence.HighestUnlockedMapId))
@@ -1102,12 +1128,21 @@ public class PartyPanel : MonoBehaviour
             var result = PartyService.InviteByProfileId(profileId, selectedMapId);
             if (result == PartyService.InviteResult.Sent)
             {
+                if (cooldownView != null) cooldownView.IsSent = true;
+                StartInviteCooldownCountdown();
+                UpdateInviteCooldownViews();
                 UIPopupBox.Notify(transform, "Notice", $"Invited {friendName}.");
                 btnTxt.text = "SENT";
                 btnImg.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
                 btn.interactable = false;
                 UpdateUI();
                 return;
+            }
+
+            if (result == PartyService.InviteResult.Cooldown)
+            {
+                StartInviteCooldownCountdown();
+                UpdateInviteCooldownViews();
             }
 
             if (result == PartyService.InviteResult.FriendInDungeon)
@@ -1121,6 +1156,7 @@ public class PartyPanel : MonoBehaviour
             {
                 PartyService.InviteResult.FriendOffline => $"{friendName} is not online right now.",
                 PartyService.InviteResult.FriendInDungeon => $"{friendName} is already in a dungeon.",
+                PartyService.InviteResult.Cooldown => $"Please wait {Mathf.Max(1, Mathf.CeilToInt(PartyService.InviteCooldownRemaining))}s before inviting again.",
                 PartyService.InviteResult.PartyFull => "Your party is already full.",
                 PartyService.InviteResult.PartyUnavailable => "Could not create the party. Try again.",
                 PartyService.InviteResult.MapLocked =>
@@ -1128,6 +1164,89 @@ public class PartyPanel : MonoBehaviour
                 _ => "You are not connected to the party service.",
             });
         });
+    }
+
+    private InviteCooldownView RegisterInviteCooldownView(Button button, TMP_Text label, Image image)
+    {
+        var view = new InviteCooldownView
+        {
+            Button = button,
+            Label = label,
+            Image = image,
+            IsSent = false
+        };
+
+        _inviteCooldownViews.Add(view);
+        UpdateInviteCooldownViews();
+
+        if (PartyService.InviteCooldownRemaining > 0f)
+            StartInviteCooldownCountdown();
+
+        return view;
+    }
+
+    private void StartInviteCooldownCountdown()
+    {
+        if (_inviteCooldownCoroutine == null && isActiveAndEnabled)
+            _inviteCooldownCoroutine = StartCoroutine(InviteCooldownCountdown());
+    }
+
+    private IEnumerator InviteCooldownCountdown()
+    {
+        var wait = new WaitForSecondsRealtime(0.1f);
+        while (PartyService.InviteCooldownRemaining > 0f)
+        {
+            UpdateInviteCooldownViews();
+            yield return wait;
+        }
+
+        UpdateInviteCooldownViews();
+        _inviteCooldownCoroutine = null;
+    }
+
+    private void UpdateInviteCooldownViews()
+    {
+        float remaining = PartyService.InviteCooldownRemaining;
+        bool coolingDown = remaining > 0f;
+        string countdown = $"{Mathf.Max(1, Mathf.CeilToInt(remaining))}s";
+
+        for (int i = _inviteCooldownViews.Count - 1; i >= 0; i--)
+        {
+            var view = _inviteCooldownViews[i];
+            if (view == null || view.Button == null)
+            {
+                _inviteCooldownViews.RemoveAt(i);
+                continue;
+            }
+
+            if (view.IsSent)
+            {
+                view.Button.interactable = false;
+                if (view.Label != null) view.Label.text = "SENT";
+                if (view.Image != null) view.Image.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+                continue;
+            }
+
+            view.Button.interactable = !coolingDown;
+            if (view.Label != null) view.Label.text = coolingDown ? countdown : "INVITE";
+            if (view.Image != null)
+            {
+                view.Image.color = coolingDown
+                    ? new Color(0.35f, 0.35f, 0.35f, 0.65f)
+                    : new Color(0.2f, 0.5f, 0.2f);
+            }
+        }
+    }
+
+    private void ClearInviteCooldownViews()
+    {
+        if (_inviteCooldownCoroutine != null)
+        {
+            StopCoroutine(_inviteCooldownCoroutine);
+            _inviteCooldownCoroutine = null;
+        }
+
+        _inviteCooldownViews.Clear();
     }
 
     // Executes is profile in party operation.
