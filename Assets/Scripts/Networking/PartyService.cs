@@ -39,6 +39,7 @@ public static class PartyService
         FriendOffline,
         PartyUnavailable,
         PartyFull,
+        FriendInDungeon,
         MapLocked,
     }
 
@@ -61,6 +62,12 @@ public static class PartyService
         {
             Debug.Log($"[PartyService] Invite failed — friend {friendProfileId} is not online in the lobby.");
             return InviteResult.FriendOffline;
+        }
+
+        if ((bool)target.IsInDungeon)
+        {
+            Debug.Log($"[PartyService] Invite failed — friend {friendProfileId} is already in a dungeon.");
+            return InviteResult.FriendInDungeon;
         }
 
         var me = PlayerPresence.Local;
