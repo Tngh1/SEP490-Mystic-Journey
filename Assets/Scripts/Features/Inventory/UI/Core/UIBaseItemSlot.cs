@@ -117,15 +117,30 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
                          (DisplayData != null && (DisplayData.isSkin || string.Equals(DisplayData.category, "Skin", StringComparison.OrdinalIgnoreCase))) ||
                          RawData is MysticJourney.API.Models.Response.PlayerSkinSummaryResponse;
 
-        if (isSkinSlot || IsConsumableOrNonEquip(DisplayData, RawData))
+        if (isSkinSlot)
         {
             if (rarityBorder != null) rarityBorder.enabled = false;
             rarityEffect?.SetVisible(false);
             return;
         }
 
+        // Daily Login specific rule: ONLY equipment & weapons show rarity color/glow
+        if (this is UIDailySlot)
+        {
+            if (IsConsumableOrNonEquip(DisplayData, RawData))
+            {
+                if (rarityBorder != null) rarityBorder.enabled = false;
+                rarityEffect?.SetVisible(false);
+                return;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(rarity))
-            rarity = "Common";
+        {
+            if (rarityBorder != null) rarityBorder.enabled = false;
+            rarityEffect?.SetVisible(false);
+            return;
+        }
 
         GameObject targetObj = rarityBorder != null ? rarityBorder.gameObject : gameObject;
 
@@ -143,8 +158,8 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         if (rarityBorder != null)
             rarityBorder.enabled = false;
 
-        if (iconImage != null) iconImage.transform.SetAsLastSibling();
-        if (quantityText != null) quantityText.transform.SetAsLastSibling();
+        if (iconImage != null && !(this is UIDailySlot)) iconImage.transform.SetAsLastSibling();
+        if (quantityText != null && !(this is UIDailySlot)) quantityText.transform.SetAsLastSibling();
     }
 
     // Executes is consumable or non equip operation.
@@ -157,6 +172,12 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
 
         if (rawData is MysticJourney.API.Models.Response.PlayerSkinSummaryResponse)
             return true;
+
+        if (rawData is MysticJourney.API.Models.Response.DailyLoginRewardResponse dailyReward)
+        {
+            if (!string.Equals(dailyReward.RewardType, "Item", System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
 
         if (data != null && data.isEquipped)
             return false;
@@ -198,7 +219,12 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
                 string.Equals(cat, "Ticket", System.StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(cat, "QuestItem", System.StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(cat, "Quest", System.StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(cat, "Currency", System.StringComparison.OrdinalIgnoreCase))
+                string.Equals(cat, "Currency", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Gold", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Gems", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Gem", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "EXP", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cat, "Energy", System.StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -208,7 +234,8 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
         {
             string n = name.ToLowerInvariant();
             if (n.Contains("potion") || n.Contains("máu") || n.Contains("ticket") || n.Contains("vé") ||
-                n.Contains("flour") || n.Contains("stone") || n.Contains("scroll") || n.Contains("key"))
+                n.Contains("flour") || n.Contains("stone") || n.Contains("scroll") || n.Contains("key") ||
+                n.Equals("gold") || n.Equals("gem") || n.Equals("gems") || n.Equals("exp") || n.Equals("energy"))
             {
                 return true;
             }
@@ -229,7 +256,7 @@ public abstract class UIBaseItemSlot : MonoBehaviour, IPointerClickHandler
     protected void EnsureIconCentered()
     {
         if (iconImage == null) return;
-        if (this is UIShopSlot) return;
+        if (this is UIShopSlot || this is UIDailySlot) return;
 
         RectTransform rect = iconImage.rectTransform;
         if (rect != null)

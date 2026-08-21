@@ -56,11 +56,20 @@ namespace MysticJourney.Screen.GameSetting
 
         private SettingState savedState;
 
-        private static readonly Vector2Int[] SupportedResolutions =
+        private static readonly Vector2Int[] FallbackResolutions =
         {
+            new(1024, 768),
             new(1280, 720),
+            new(1280, 800),
+            new(1366, 768),
+            new(1440, 900),
             new(1600, 900),
-            new(1920, 1080)
+            new(1920, 1080),
+            new(1920, 1200),
+            new(2560, 1080),
+            new(2560, 1440),
+            new(3440, 1440),
+            new(3840, 2160)
         };
 
         private List<Resolution> filteredResolutions;
@@ -171,27 +180,8 @@ namespace MysticJourney.Screen.GameSetting
 
             if (resolutionDropdown != null)
             {
-                filteredResolutions = new List<Resolution>();
+                filteredResolutions = BuildSupportedResolutionList(UnityEngine.Screen.resolutions);
                 resolutionDropdown.ClearOptions();
-
-                Resolution[] availableResolutions = UnityEngine.Screen.resolutions;
-                foreach (Vector2Int target in SupportedResolutions)
-                {
-                    if (TryGetBestSupportedResolution(availableResolutions, target, out Resolution resolution))
-                        filteredResolutions.Add(resolution);
-                }
-
-                if (filteredResolutions.Count == 0)
-                {
-                    foreach (Vector2Int target in SupportedResolutions)
-                    {
-                        filteredResolutions.Add(new Resolution
-                        {
-                            width = target.x,
-                            height = target.y
-                        });
-                    }
-                }
 
                 var options = new List<string>(filteredResolutions.Count);
                 foreach (Resolution resolution in filteredResolutions)
@@ -202,34 +192,64 @@ namespace MysticJourney.Screen.GameSetting
             }
         }
 
-        // Attempt get best supported resolution using available resolutions, target, and best match; it guards invalid or unavailable states and processes each matching entry.
-        private static bool TryGetBestSupportedResolution(
-            Resolution[] availableResolutions,
-            Vector2Int target,
-            out Resolution bestMatch)
+        // Builds one entry per supported screen size and keeps the highest refresh-rate mode.
+        private static List<Resolution> BuildSupportedResolutionList(Resolution[] availableResolutions)
         {
-            bestMatch = default;
-            bool found = false;
-            double bestRefreshRate = double.MinValue;
+            var bestBySize = new Dictionary<Vector2Int, Resolution>();
 
             foreach (Resolution resolution in availableResolutions)
             {
-                if (resolution.width != target.x || resolution.height != target.y)
+                if (resolution.width <= 0 || resolution.height <= 0)
                     continue;
 
-                double refreshRate = resolution.refreshRateRatio.value;
-                if (double.IsNaN(refreshRate))
-                    refreshRate = 0d;
-
-                if (!found || refreshRate > bestRefreshRate)
+                var size = new Vector2Int(resolution.width, resolution.height);
+                if (!bestBySize.TryGetValue(size, out Resolution currentBest) ||
+                    GetRefreshRate(resolution) > GetRefreshRate(currentBest))
                 {
-                    bestMatch = resolution;
-                    bestRefreshRate = refreshRate;
-                    found = true;
+                    bestBySize[size] = resolution;
                 }
             }
 
-            return found;
+            if (bestBySize.Count == 0)
+            {
+                int currentWidth = UnityEngine.Screen.width;
+                int currentHeight = UnityEngine.Screen.height;
+                if (currentWidth > 0 && currentHeight > 0)
+                {
+                    bestBySize[new Vector2Int(currentWidth, currentHeight)] = new Resolution
+                    {
+                        width = currentWidth,
+                        height = currentHeight
+                    };
+                }
+
+                foreach (Vector2Int fallback in FallbackResolutions)
+                {
+                    bestBySize[fallback] = new Resolution
+                    {
+                        width = fallback.x,
+                        height = fallback.y
+                    };
+                }
+            }
+
+            var result = new List<Resolution>(bestBySize.Values);
+            result.Sort((left, right) =>
+            {
+                long leftPixels = (long)left.width * left.height;
+                long rightPixels = (long)right.width * right.height;
+                int pixelComparison = leftPixels.CompareTo(rightPixels);
+                return pixelComparison != 0 ? pixelComparison : left.width.CompareTo(right.width);
+            });
+
+            return result;
+        }
+
+        // Returns a stable refresh-rate value even when a platform reports an invalid ratio.
+        private static double GetRefreshRate(Resolution resolution)
+        {
+            double refreshRate = resolution.refreshRateRatio.value;
+            return double.IsNaN(refreshRate) || double.IsInfinity(refreshRate) ? 0d : refreshRate;
         }
 
         // Executes core business logic for apply graphics settings.

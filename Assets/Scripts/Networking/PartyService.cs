@@ -5,6 +5,8 @@ using MysticJourney.Core.Utilities;
 // Initializes a new default instance of the PartyService class.
 public static class PartyService
 {
+    public const string DungeonAlreadyStartedMessage = "The dungeon has already started.";
+
     // Executes core business logic for current party.
     public static PartyLobby CurrentParty => PartyLobby.Local;
 
@@ -85,6 +87,12 @@ public static class PartyService
             return false;
         }
 
+        if (party.State != PartyLobby.PartyState.Lobby)
+        {
+            Debug.LogWarning($"[PartyService] AcceptInvite rejected — party state is {party.State}.");
+            return false;
+        }
+
         var runner = PhotonManager.Instance.Runner;
         var me = PlayerPresence.Local;
         if (runner == null || me == null) return false;
@@ -97,6 +105,14 @@ public static class PartyService
     public static void DeclineInvite(int hostProfileId)
     {
         FindPartyByHostProfileId(hostProfileId)?.RPC_InviteResolved();
+    }
+
+    // Returns true when the host's party has already left the lobby state.
+    // The invite popup uses this shared check for both accept and decline actions.
+    public static bool IsDungeonStarted(int hostProfileId)
+    {
+        var party = FindPartyByHostProfileId(hostProfileId);
+        return party != null && party.State != PartyLobby.PartyState.Lobby;
     }
 
 

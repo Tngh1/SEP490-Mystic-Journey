@@ -77,11 +77,13 @@ public class UIChatMessage : MonoBehaviour
         {
             senderText.text = sender + ":";
             senderText.color = senderColor;
+            senderText.raycastTarget = false;
         }
 
         if (messageText != null)
         {
             messageText.text = message;
+            messageText.raycastTarget = false;
         }
 
         if (background != null && bgColor.a > 0)
@@ -148,8 +150,40 @@ public class UIChatMessage : MonoBehaviour
     // Executes ensure sender button operation.
     private void EnsureSenderButton()
     {
+        if (senderText != null)
+        {
+            senderText.raycastTarget = false;
+            foreach (var childText in senderText.GetComponentsInChildren<TMP_Text>(true))
+            {
+                childText.raycastTarget = false;
+            }
+            foreach (var childLegacyText in senderText.GetComponentsInChildren<Text>(true))
+            {
+                childLegacyText.raycastTarget = false;
+            }
+        }
+
         if (senderButton != null)
         {
+            foreach (var img in senderButton.GetComponentsInChildren<Image>(true))
+            {
+                img.raycastTarget = true;
+                if (senderButton.targetGraphic == null)
+                {
+                    senderButton.targetGraphic = img;
+                }
+            }
+
+            var graphic = senderButton.targetGraphic as Graphic;
+            if (graphic != null)
+            {
+                graphic.raycastTarget = true;
+            }
+
+            if (senderButton.GetComponent<UIHoverScaleEffect>() == null)
+            {
+                senderButton.gameObject.AddComponent<UIHoverScaleEffect>();
+            }
             BindSenderButton();
             return;
         }
@@ -162,14 +196,19 @@ public class UIChatMessage : MonoBehaviour
 
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        rect.offsetMin = new Vector2(-6f, -6f);
+        rect.offsetMax = new Vector2(6f, 6f);
 
         var image = buttonObject.GetComponent<Image>();
         image.color = new Color(0, 0, 0, 0);
         image.raycastTarget = true;
 
         senderButton = buttonObject.GetComponent<Button>();
+        senderButton.targetGraphic = image;
+        if (senderButton.GetComponent<UIHoverScaleEffect>() == null)
+        {
+            senderButton.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
         BindSenderButton();
     }
 
@@ -178,23 +217,23 @@ public class UIChatMessage : MonoBehaviour
     {
         if (reportButton != null)
         {
+            var le = reportButton.GetComponent<LayoutElement>();
+            if (le == null) le = reportButton.gameObject.AddComponent<LayoutElement>();
+            le.ignoreLayout = true;
+
+            var rt = reportButton.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = new Vector2(1f, 0.5f);
+                rt.anchorMax = new Vector2(1f, 0.5f);
+                rt.pivot = new Vector2(1f, 0.5f);
+                rt.anchoredPosition = new Vector2(-10f, 0f);
+                rt.sizeDelta = new Vector2(22f, 22f);
+                rt.localScale = Vector3.one;
+            }
+
             if (CanReport)
             {
-                var le = reportButton.GetComponent<LayoutElement>();
-                if (le == null) le = reportButton.gameObject.AddComponent<LayoutElement>();
-                le.ignoreLayout = true;
-
-                var rt = reportButton.GetComponent<RectTransform>();
-                if (rt != null)
-                {
-                    rt.anchorMin = new Vector2(1f, 0.5f);
-                    rt.anchorMax = new Vector2(1f, 0.5f);
-                    rt.pivot     = new Vector2(1f, 0.5f);
-                    rt.anchoredPosition = new Vector2(-4f, 0f);
-                    rt.sizeDelta = new Vector2(24f, 24f);
-                    rt.localScale = Vector3.one;
-                }
-
                 foreach (var img in reportButton.GetComponentsInChildren<Image>(true))
                 {
                     img.enabled      = true;
@@ -207,6 +246,16 @@ public class UIChatMessage : MonoBehaviour
                             reportButton.targetGraphic = img;
                         }
                     }
+                }
+
+                foreach (var textComponent in reportButton.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    textComponent.raycastTarget = false;
+                }
+
+                if (reportButton.GetComponent<UIHoverScaleEffect>() == null)
+                {
+                    reportButton.gameObject.AddComponent<UIHoverScaleEffect>();
                 }
 
                 reportButton.transform.SetAsLastSibling();
@@ -224,8 +273,6 @@ public class UIChatMessage : MonoBehaviour
             return;
         }
 
-
-
         if (!CanReport)
         {
             return;
@@ -240,8 +287,8 @@ public class UIChatMessage : MonoBehaviour
         rect.anchorMin = new Vector2(1f, 0.5f);
         rect.anchorMax = new Vector2(1f, 0.5f);
         rect.pivot = new Vector2(1f, 0.5f);
-        rect.anchoredPosition = new Vector2(-4f, 0f);
-        rect.sizeDelta = new Vector2(58f, 24f);
+        rect.anchoredPosition = new Vector2(-6f, 3f);
+        rect.sizeDelta = new Vector2(52f, 24f);
         rect.localScale = Vector3.one;
 
         var image = buttonObject.GetComponent<Image>();
@@ -249,6 +296,10 @@ public class UIChatMessage : MonoBehaviour
         image.raycastTarget = true;
 
         reportButton = buttonObject.GetComponent<Button>();
+        if (reportButton.GetComponent<UIHoverScaleEffect>() == null)
+        {
+            reportButton.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
 
         var labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         var labelRect = labelObject.GetComponent<RectTransform>();
@@ -260,7 +311,7 @@ public class UIChatMessage : MonoBehaviour
 
         var label = labelObject.GetComponent<TextMeshProUGUI>();
         label.text = "Report";
-        label.fontSize = 12f;
+        label.fontSize = 11f;
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;

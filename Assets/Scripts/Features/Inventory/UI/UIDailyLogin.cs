@@ -121,6 +121,12 @@ public class UIDailyLogin : MonoBehaviour
         if (containerRect == null)
             return;
 
+        grid.padding.left = 6;
+        grid.padding.right = 6;
+        grid.padding.top = 6;
+        grid.padding.bottom = 6;
+        grid.spacing = new Vector2(4f, 4f);
+
         var scrollRect = contentParent.GetComponentInParent<ScrollRect>();
         if (scrollRect != null && scrollRect.content == containerRect)
         {
@@ -141,38 +147,63 @@ public class UIDailyLogin : MonoBehaviour
         if (!autoFitCellSize)
             return;
 
-        Vector2 containerSize = containerRect.rect.size;
+        RectTransform parentRect = containerRect.parent as RectTransform;
+        RectTransform grandParentRect = parentRect != null ? parentRect.parent as RectTransform : null;
 
-        if (containerSize.x <= 0 || containerSize.y <= 0)
+        Vector2 maxContainerSize = Vector2.zero;
+        if (grandParentRect != null)
         {
-            Canvas.ForceUpdateCanvases();
-            containerSize = containerRect.rect.size;
+            Vector2 gSize = grandParentRect.rect.size;
+            if (gSize.x > 0 && gSize.y > 0)
+            {
+                maxContainerSize = new Vector2(gSize.x - 60f, gSize.y - 130f);
+            }
         }
 
-        if (containerSize.x > 0 && containerSize.y > 0)
+        if (maxContainerSize.x <= 0 || maxContainerSize.y <= 0)
         {
-            float availableWidth = containerSize.x - grid.padding.left - grid.padding.right - (grid.spacing.x * (cols - 1));
-            float availableHeight = containerSize.y - grid.padding.top - grid.padding.bottom - (grid.spacing.y * (rows - 1));
+            if (parentRect != null && parentRect.rect.width > 0 && parentRect.rect.height > 0)
+            {
+                maxContainerSize = parentRect.rect.size;
+            }
+            else
+            {
+                Canvas.ForceUpdateCanvases();
+                maxContainerSize = containerRect.rect.size;
+            }
+        }
+
+        if (maxContainerSize.x > 0 && maxContainerSize.y > 0)
+        {
+            float availableWidth = maxContainerSize.x - grid.padding.left - grid.padding.right - (grid.spacing.x * (cols - 1));
+            float availableHeight = maxContainerSize.y - grid.padding.top - grid.padding.bottom - (grid.spacing.y * (rows - 1));
 
             if (availableWidth > 0 && availableHeight > 0)
             {
                 float calculatedWidth = availableWidth / cols;
                 float calculatedHeight = availableHeight / rows;
 
-                if (preserveSquareAspect)
-                {
-                    float maxAllowedHeight = calculatedHeight;
-                    float maxAllowedWidth = calculatedWidth;
+                float side = Mathf.Min(calculatedWidth, calculatedHeight);
+                float finalWidth = side * slotAspectRatio;
+                float finalHeight = side;
 
-                    float sideFromHeight = maxAllowedHeight * slotAspectRatio;
-                    float finalWidth = Mathf.Min(maxAllowedWidth, sideFromHeight);
-                    float finalHeight = finalWidth / slotAspectRatio;
+                grid.cellSize = new Vector2(finalWidth, finalHeight);
 
-                    grid.cellSize = new Vector2(finalWidth, finalHeight);
-                }
-                else
+                if (parentRect != null && scrollRect == null)
                 {
-                    grid.cellSize = new Vector2(calculatedWidth, calculatedHeight);
+                    float requiredGridWidth = (cols * finalWidth) + ((cols - 1) * grid.spacing.x) + grid.padding.left + grid.padding.right;
+                    float requiredGridHeight = (rows * finalHeight) + ((rows - 1) * grid.spacing.y) + grid.padding.top + grid.padding.bottom;
+
+                    parentRect.anchorMin = new Vector2(0.5f, 0.52f);
+                    parentRect.anchorMax = new Vector2(0.5f, 0.52f);
+                    parentRect.pivot = new Vector2(0.5f, 0.5f);
+                    parentRect.anchoredPosition = Vector2.zero;
+                    parentRect.sizeDelta = new Vector2(requiredGridWidth + 16f, requiredGridHeight + 16f);
+
+                    containerRect.anchorMin = Vector2.zero;
+                    containerRect.anchorMax = Vector2.one;
+                    containerRect.anchoredPosition = Vector2.zero;
+                    containerRect.sizeDelta = Vector2.zero;
                 }
             }
         }
