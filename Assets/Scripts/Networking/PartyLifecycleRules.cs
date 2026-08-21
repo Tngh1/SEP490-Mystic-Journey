@@ -30,7 +30,7 @@ public static class PartyLifecycleRules
         _ = pendingInviteCount;
         return requesterIsHost &&
                state == 0 &&
-               memberCount >= 2 &&
+               memberCount >= 1 &&
                memberCount <= MaximumMembers &&
                readyCount == memberCount;
     }
