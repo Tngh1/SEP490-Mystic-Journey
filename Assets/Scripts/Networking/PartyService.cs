@@ -8,6 +8,10 @@ public static class PartyService
     public const string DungeonAlreadyStartedMessage = "This party is no longer available because the dungeon has already started.";
     public const string PartyNoLongerExistsMessage = "This party no longer exists.";
     public const string PartyJoinUnavailableMessage = "Unable to join this party right now.";
+    public const float InviteCooldownSeconds = 5f;
+    private static float _nextInviteAllowedAt;
+
+    public static float InviteCooldownRemaining => Mathf.Max(0f, _nextInviteAllowedAt - Time.unscaledTime);
 
     // Executes core business logic for current party.
     public static PartyLobby CurrentParty => PartyLobby.Local;
@@ -40,6 +44,7 @@ public static class PartyService
         PartyUnavailable,
         PartyFull,
         FriendInDungeon,
+        Cooldown,
         MapLocked,
     }
 
@@ -56,6 +61,7 @@ public static class PartyService
         int requiredMapId = MapProgressionRules.FirstMapId)
     {
         if (!IsOnline) return InviteResult.NotConnected;
+        if (InviteCooldownRemaining > 0f) return InviteResult.Cooldown;
 
         var target = PlayerPresence.Find(friendProfileId);
         if (target == null)
@@ -86,6 +92,7 @@ public static class PartyService
 
         target.RPC_ReceiveInvite(me.ProfileId, me.DisplayName);
         party.RegisterPendingInvite();
+        _nextInviteAllowedAt = Time.unscaledTime + InviteCooldownSeconds;
         return InviteResult.Sent;
     }
 
