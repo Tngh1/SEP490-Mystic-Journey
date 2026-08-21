@@ -630,50 +630,7 @@ public class InventoryUIManager : MonoBehaviour
         else
         {
             if (uiInventory == null) return;
-            var allItems = new List<InventoryItemResponse>();
-            if (_summary.BagItems != null)
-            {
-                var bagGroups = new Dictionary<string, InventoryItemResponse>();
-                foreach (var it in _summary.BagItems.OrderByDescending(x => x.Quantity))
-                {
-                    if (!ShouldShowInventoryItem(it)) continue;
-                    string key = $"{it.ItemId}_{it.EnhancementLevel}";
-                    if (bagGroups.TryGetValue(key, out var existing))
-                    {
-                        existing.Quantity += Mathf.Max(1, it.Quantity);
-                    }
-                    else
-                    {
-                        var copy = new InventoryItemResponse
-                        {
-                            InventoryItemId = it.InventoryItemId,
-                            ItemId = it.ItemId,
-                            ItemName = it.ItemName,
-                            ItemDescription = it.ItemDescription,
-                            ItemType = it.ItemType,
-                            ItemRarity = it.ItemRarity,
-                            ItemSlot = it.ItemSlot,
-                            Quantity = Mathf.Max(1, it.Quantity),
-                            IsEquipped = it.IsEquipped,
-                            EnhancementLevel = it.EnhancementLevel,
-                            EquippedSlot = it.EquippedSlot,
-                            IconUrl = it.IconUrl,
-                            CorruptionReduction = it.CorruptionReduction,
-                            BaseHp = it.BaseHp,
-                            BaseAtk = it.BaseAtk,
-                            BaseDef = it.BaseDef,
-                            BonusHp = it.BonusHp,
-                            BonusAtk = it.BonusAtk,
-                            BonusDef = it.BonusDef,
-                            BonusCritRate = it.BonusCritRate,
-                            BonusCritDamage = it.BonusCritDamage
-                        };
-                        bagGroups[key] = copy;
-                    }
-                }
-                foreach (var it in bagGroups.Values)
-                    allItems.Add(it);
-            }
+            var allItems = BuildInventoryItemDisplaySource(_summary);
 
             if (_currentFilter != "All")
             {
@@ -717,6 +674,75 @@ public class InventoryUIManager : MonoBehaviour
             }
             uiInventory.Refresh(displayList);
         }
+    }
+
+    // Builds the grid source from both API collections. Equipped records stay
+    // separate from bag stacks so they retain their green tick and can be clicked to unequip.
+    private static List<InventoryItemResponse> BuildInventoryItemDisplaySource(InventorySummaryResponse summary)
+    {
+        var allItems = new List<InventoryItemResponse>();
+
+        if (summary?.EquippedItems != null)
+        {
+            foreach (var item in summary.EquippedItems)
+            {
+                if (!ShouldShowInventoryItem(item)) continue;
+                allItems.Add(CloneInventoryItem(item, 1));
+            }
+        }
+
+        if (summary?.BagItems == null)
+            return allItems;
+
+        var bagGroups = new Dictionary<string, InventoryItemResponse>();
+        foreach (var item in summary.BagItems.OrderByDescending(x => x.Quantity))
+        {
+            if (!ShouldShowInventoryItem(item)) continue;
+
+            string key = $"{item.ItemId}_{item.EnhancementLevel}";
+            if (bagGroups.TryGetValue(key, out var existing))
+            {
+                existing.Quantity += Mathf.Max(1, item.Quantity);
+            }
+            else
+            {
+                bagGroups[key] = CloneInventoryItem(item, Mathf.Max(1, item.Quantity));
+            }
+        }
+
+        allItems.AddRange(bagGroups.Values);
+        return allItems;
+    }
+
+    private static InventoryItemResponse CloneInventoryItem(InventoryItemResponse item, int quantity)
+    {
+        return new InventoryItemResponse
+        {
+            InventoryItemId = item.InventoryItemId,
+            PlayerProfileId = item.PlayerProfileId,
+            ItemId = item.ItemId,
+            ItemName = item.ItemName,
+            ItemDescription = item.ItemDescription,
+            ItemType = item.ItemType,
+            ItemRarity = item.ItemRarity,
+            ItemSlot = item.ItemSlot,
+            Quantity = quantity,
+            IsEquipped = item.IsEquipped,
+            IsSkin = item.IsSkin,
+            EnhancementLevel = item.EnhancementLevel,
+            EquippedSlot = item.EquippedSlot,
+            CreatedAt = item.CreatedAt,
+            IconUrl = item.IconUrl,
+            CorruptionReduction = item.CorruptionReduction,
+            BaseHp = item.BaseHp,
+            BaseAtk = item.BaseAtk,
+            BaseDef = item.BaseDef,
+            BonusHp = item.BonusHp,
+            BonusAtk = item.BonusAtk,
+            BonusDef = item.BonusDef,
+            BonusCritRate = item.BonusCritRate,
+            BonusCritDamage = item.BonusCritDamage
+        };
     }
 
     // Executes core business logic for bind ui references.
