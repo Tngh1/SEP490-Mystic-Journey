@@ -26,6 +26,7 @@ public sealed class HUDNotificationController : MonoBehaviour
     private bool _configured;
     private bool _eventsBound;
     private bool _mailRequestInFlight;
+    private bool _mailRefreshQueued;
 
     private static Sprite _circleSprite;
 
@@ -181,14 +182,19 @@ public sealed class HUDNotificationController : MonoBehaviour
     // Executes refresh mailbox status operation.
     private void RefreshMailboxStatus()
     {
-        if (_mailRequestInFlight || !Application.isPlaying)
+        if (!Application.isPlaying)
+            return;
+
+        if (_mailRequestInFlight)
         {
+            _mailRefreshQueued = true;
             return;
         }
 
         ApiClient apiClient = ApiClient.Instance;
         if (apiClient == null || !apiClient.HasToken())
         {
+            _mailRefreshQueued = false;
             SetBadgeVisible(_mailBadge, false);
             return;
         }
@@ -199,20 +205,30 @@ public sealed class HUDNotificationController : MonoBehaviour
             MailLookupPageSize,
             response =>
             {
-                _mailRequestInFlight = false;
-                if (this == null)
+                if (this != null)
                 {
-                    return;
+                    bool hasUnread = response?.Items != null &&
+                                     response.Items.Any(mail => mail != null && !mail.IsRead);
+                    SetBadgeVisible(_mailBadge, hasUnread);
                 }
 
-                bool hasUnread = response?.Items != null && response.Items.Any(mail => mail != null && !mail.IsRead);
-                SetBadgeVisible(_mailBadge, hasUnread);
+                CompleteMailboxRefresh();
             },
             error =>
             {
-                _mailRequestInFlight = false;
                 Debug.LogWarning($"[HUDNotificationController] Failed to refresh unread mail: {error.Message}");
+                CompleteMailboxRefresh();
             });
+    }
+
+    private void CompleteMailboxRefresh()
+    {
+        _mailRequestInFlight = false;
+        if (!_mailRefreshQueued || this == null)
+            return;
+
+        _mailRefreshQueued = false;
+        RefreshMailboxStatus();
     }
 
     // Executes handle world message received operation.

@@ -185,5 +185,36 @@ namespace MysticJourney.API.Endpoints
                 },
                 requiresAuth: true);
         }
-    }
+
+        public void ReportPartyMessage(
+            int reportedPlayerId,
+            string content,
+            string reason,
+            Action<ChatModerationResultResponse> onSuccess,
+            Action<ApiException> onError)
+        {
+            var body = new ReportPartyChatMessageRequest
+            {
+                ReportedPlayerId = reportedPlayerId,
+                Content = content != null ? content.Trim() : string.Empty,
+                Reason = reason != null ? reason.Trim() : null
+            };
+
+            SafeDebugLog($"ReportPartyMessage -> ReportedPlayerId={reportedPlayerId}");
+            ApiClient.Instance.Post<ReportPartyChatMessageRequest, ChatModerationResultResponse>(
+                ApiConfig.ChatPartyReport,
+                body,
+                response =>
+                {
+                    SafeDebugLog($"ReportPartyMessage OK | Locked={response?.ChatLocked ?? false}");
+                    onSuccess?.Invoke(response);
+                },
+                error =>
+                {
+                    SafeDebugError($"ReportPartyMessage FAIL | {error.StatusCode} {error.ErrorCode}: {error.Message}");
+                    onError?.Invoke(error);
+                },
+                requiresAuth: true);
+        }
+}
 }

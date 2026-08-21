@@ -28,6 +28,8 @@ public class UIChatMessage : MonoBehaviour
     public bool CanReport { get; private set; }
     // Executes sender profile id operation.
     public int SenderProfileId => currentSenderProfileId;
+    public string MessageContent { get; private set; }
+    public string Channel { get; private set; } = "World";
 
     // Initializes internal component caches and dependencies for UIChatMessage upon GameObject instantiation.
     // Executes during scene loading prior to Start to ensure critical references are wired up.
@@ -65,11 +67,14 @@ public class UIChatMessage : MonoBehaviour
         int chatMessageId,
         int senderProfileId,
         bool isMine,
-        bool isReported)
+        bool isReported,
+        string channel = "World")
     {
         currentSender = sender;
         currentSenderProfileId = senderProfileId;
         ChatMessageId = chatMessageId;
+        MessageContent = message ?? string.Empty;
+        Channel = string.IsNullOrWhiteSpace(channel) ? "World" : channel;
 
         CanReport = !isMine && !isReported;
 

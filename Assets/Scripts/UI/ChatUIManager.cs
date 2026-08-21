@@ -63,6 +63,7 @@ public class ChatUIManager : MonoBehaviour
 
     private readonly HashSet<int> displayedMessageIds = new HashSet<int>();
     private readonly HashSet<int> pendingReportIds = new HashSet<int>();
+    private readonly HashSet<UIChatMessage> pendingRealtimeReports = new HashSet<UIChatMessage>();
     private readonly HashSet<string> displayedRealtimeKeys = new HashSet<string>();
 
     private const int MaxPendingPartyMessages = 50;
@@ -333,7 +334,7 @@ public class ChatUIManager : MonoBehaviour
         bool isMe = IsCurrentPlayer(message.SenderId);
         string sender = ResolveSenderName(message.SenderId, message.SenderName, isMe);
         Color senderColor = isMe ? myNameColor : otherNameColor;
-        AddMessage(sender, message.Content, senderColor, message.ChatMessageId, message.SenderId, isMe, message.IsReported);
+        AddMessage(sender, message.Content, senderColor, message.ChatMessageId, message.SenderId, isMe, message.IsReported, "World");
     }
 
     // Executes core business logic for add message.
@@ -970,7 +971,7 @@ public class ChatUIManager : MonoBehaviour
         bool isMe = IsCurrentPlayer(message.SenderId);
         string sender = ResolveSenderName(message.SenderId, message.SenderName, isMe);
         Color senderColor = isMe ? myNameColor : otherNameColor;
-        AddMessage(sender, message.Content, senderColor, 0, message.SenderId, isMe, false);
+        AddMessage(sender, message.Content, senderColor, 0, message.SenderId, isMe, false, "Party");
     }
 
     // Executes core business logic for add system message.
@@ -980,7 +981,7 @@ public class ChatUIManager : MonoBehaviour
     }
 
     // Executes core business logic for add message.
-    private void AddMessage(string sender, string message, Color senderColor, int chatMessageId = 0, int senderProfileId = 0, bool isMine = true, bool isReported = false)
+    private void AddMessage(string sender, string message, Color senderColor, int chatMessageId = 0, int senderProfileId = 0, bool isMine = true, bool isReported = false, string reportChannel = null)
     {
         if (chatMessagePrefab == null || contentParent == null)
         {
@@ -990,7 +991,8 @@ public class ChatUIManager : MonoBehaviour
 
         UIChatMessage newMsg = Instantiate(chatMessagePrefab, contentParent);
         newMsg.gameObject.SetActive(true);
-        newMsg.Setup(sender, message, senderColor, new Color(0, 0, 0, 0), chatMessageId, senderProfileId, isMine, isReported);
+        newMsg.Setup(sender, message, senderColor, new Color(0, 0, 0, 0), chatMessageId, senderProfileId, isMine, isReported,
+            string.IsNullOrWhiteSpace(reportChannel) ? currentChannel.ToString() : reportChannel);
 
         newMsg.OnSenderClicked += HandleSenderNameClicked;
         newMsg.OnReportClicked += HandleWorldReportClicked;
@@ -1004,6 +1006,7 @@ public class ChatUIManager : MonoBehaviour
     {
         displayedMessageIds.Clear();
         pendingReportIds.Clear();
+        pendingRealtimeReports.Clear();
         displayedRealtimeKeys.Clear();
 
         if (contentParent == null)
@@ -1052,7 +1055,9 @@ public class ChatUIManager : MonoBehaviour
     // Executes core business logic for handle world report clicked.
     private void HandleWorldReportClicked(UIChatMessage item)
     {
-        if (item == null || (item.ChatMessageId > 0 && pendingReportIds.Contains(item.ChatMessageId)))
+        if (item == null ||
+            (item.ChatMessageId > 0 && pendingReportIds.Contains(item.ChatMessageId)) ||
+            (item.ChatMessageId <= 0 && pendingRealtimeReports.Contains(item)))
         {
             return;
         }
@@ -1080,10 +1085,42 @@ public class ChatUIManager : MonoBehaviour
     // Logic details: validates numeric boundary constraints.
     private void ExecuteReport(UIChatMessage item)
     {
+        if (item == null)
+            return;
+
+        bool isPartyMessage = string.Equals(item.Channel, "Party", StringComparison.OrdinalIgnoreCase);
+        if (isPartyMessage)
+        {
+            if (item.SenderProfileId <= 0 || string.IsNullOrWhiteSpace(item.MessageContent))
+            {
+                AddSystemMessage("This party message cannot be reported.");
+                return;
+            }
+
+            pendingRealtimeReports.Add(item);
+            ChatApi.Instance.ReportPartyMessage(
+                item.SenderProfileId,
+                item.MessageContent,
+                "Reported from party chat UI",
+                response =>
+                {
+                    pendingRealtimeReports.Remove(item);
+                    item.MarkReported();
+                    AddSystemMessage("Report submitted. The review result will be sent to your mailbox.");
+                    MysticJourney.Screen.Mail.MailboxUIManager.NotifyMailboxChanged();
+                    Debug.Log($"[ChatUIManager] ReportPartyMessage submitted. SenderProfileId={item.SenderProfileId}");
+                },
+                error =>
+                {
+                    pendingRealtimeReports.Remove(item);
+                    Debug.LogWarning($"[ChatUIManager] ReportPartyMessage failed: {BuildErrorMessage(error)}");
+                });
+            return;
+        }
+
         if (item.ChatMessageId <= 0)
         {
-            item.MarkReported();
-            AddSystemMessage("Report submitted.");
+            AddSystemMessage("This chat channel cannot be reported.");
             return;
         }
 
@@ -1095,6 +1132,7 @@ public class ChatUIManager : MonoBehaviour
             {
                 pendingReportIds.Remove(item.ChatMessageId);
                 item.MarkReported();
+                MysticJourney.Screen.Mail.MailboxUIManager.NotifyMailboxChanged();
                 Debug.Log($"[ChatUIManager] ReportWorldMessage submitted. ChatMessageId={item.ChatMessageId}");
             },
             error =>
