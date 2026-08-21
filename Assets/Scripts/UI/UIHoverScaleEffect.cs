@@ -1,21 +1,23 @@
 using UnityEngine;
 
-// Executes i pointer exit handler operation.
+// Executes pointer hover scale effect on UI elements.
 public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPointerEnterHandler, UnityEngine.EventSystems.IPointerExitHandler
 {
+    [SerializeField] private float hoverScaleFactor = 1.15f;
+    [SerializeField] private float lerpSpeed = 15f;
+    public Transform targetTransform; // Optional target to scale, defaults to this transform
+    
     private Vector3 originalScale;
     private Vector3 targetScale;
     private bool _initialized;
 
-    // Initializes internal component caches and dependencies for UIHoverScaleEffect upon GameObject instantiation.
-    // Executes during scene loading prior to Start to ensure critical references are wired up.
+    // Initializes internal component caches and dependencies.
     private void Awake()
     {
         InitScale();
     }
 
-    // Performs startup initialization for UIHoverScaleEffect on the first active frame.
-    // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
+    // Performs startup initialization.
     private void Start()
     {
         InitScale();
@@ -24,21 +26,22 @@ public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPoint
     // Executes init scale operation.
     private void InitScale()
     {
+        if (targetTransform == null) targetTransform = transform;
+        
         if (!_initialized || originalScale == Vector3.zero)
         {
-            originalScale = transform.localScale != Vector3.zero ? transform.localScale : Vector3.one;
+            originalScale = targetTransform.localScale != Vector3.zero ? targetTransform.localScale : Vector3.one;
             targetScale = originalScale;
             _initialized = true;
         }
     }
 
-    // Per-frame update loop for UIHoverScaleEffect.
-    // Handles real-time input polling, smooth interpolations, cooldown timers, and UI updates.
+    // Per-frame update loop for smooth scale interpolation.
     private void Update()
     {
-        if (transform.localScale != targetScale)
+        if (targetTransform != null && targetTransform.localScale != targetScale)
         {
-            transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * 15f);
+            targetTransform.localScale = Vector3.Lerp(targetTransform.localScale, targetScale, Time.unscaledDeltaTime * lerpSpeed);
         }
     }
 
@@ -46,7 +49,7 @@ public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPoint
     public void OnPointerEnter(UnityEngine.EventSystems.PointerEventData eventData)
     {
         InitScale();
-        targetScale = originalScale * 1.08f;
+        targetScale = originalScale * hoverScaleFactor;
     }
 
     // Executes on pointer exit operation.
@@ -56,12 +59,12 @@ public class UIHoverScaleEffect : MonoBehaviour, UnityEngine.EventSystems.IPoint
         targetScale = originalScale;
     }
 
-    // Unsubscribe this component's event handlers and release its temporary runtime resources.
+    // Restores original scale when disabled.
     private void OnDisable()
     {
-        if (_initialized && originalScale != Vector3.zero)
+        if (_initialized && originalScale != Vector3.zero && targetTransform != null)
         {
-            transform.localScale = originalScale;
+            targetTransform.localScale = originalScale;
             targetScale = originalScale;
         }
     }
