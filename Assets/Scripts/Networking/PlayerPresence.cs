@@ -30,6 +30,7 @@ public class PlayerPresence : NetworkBehaviour
     [Networked] public int PlayerClass { get; set; }
     [Networked] public int Level { get; set; }
     [Networked] public int HighestUnlockedMapId { get; set; }
+    [Networked] public NetworkBool IsInDungeon { get; set; }
 
     // Registers networked presence in global lookup table and hooks map progression listeners.
     public override void Spawned()
@@ -72,9 +73,28 @@ public class PlayerPresence : NetworkBehaviour
         HighestUnlockedMapId = Mathf.Max(
             MapProgressionRules.FirstMapId,
             WorldState.HighestUnlockedMapId); // Networked map progression
+        IsInDungeon = IsLocalDungeonActive(); // Networked live dungeon availability
 
         RegisterSelf();
     }
+
+    public override void FixedUpdateNetwork()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        bool inDungeon = IsLocalDungeonActive();
+        if ((bool)IsInDungeon != inDungeon)
+            IsInDungeon = inDungeon;
+    }
+
+    private static bool IsLocalDungeonActive()
+    {
+        return (DungeonManager.Instance != null && DungeonManager.Instance.IsInDungeon) ||
+               (PhotonManager.Instance != null && PhotonManager.Instance.IsDungeonSession);
+    }
+
+
 
     // Refreshes local presence network properties.
     public static void RefreshLocal() => Local?.ApplyWorldState();
