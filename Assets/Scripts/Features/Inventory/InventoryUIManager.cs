@@ -66,6 +66,7 @@ public class InventoryUIManager : MonoBehaviour
 
     private readonly Dictionary<string, Image> _filterGraphics = new Dictionary<string, Image>();
     private readonly Dictionary<string, Sprite> _filterNormalSprites = new Dictionary<string, Sprite>();
+    private readonly Dictionary<string, Sprite> _emptyEquipSlotIcons = new Dictionary<string, Sprite>(System.StringComparer.OrdinalIgnoreCase);
     private Sprite _tabItemsNormalSprite;
     private Sprite _tabSkinsNormalSprite;
     private bool _tabNormalSpritesCached;
@@ -78,6 +79,7 @@ public class InventoryUIManager : MonoBehaviour
     private void Awake()
     {
         BindUiReferences(); // Cache child transforms and slot views
+        CacheEmptyEquipSlotIcons(); // Preserve the designed slot-type icons before item data can replace them
         BindEvents(); // Subscribe slot click and filter toggle events
         AddHoverEffects(); // Attach scale hover script to selectables
         ShowTab(_showingSkins); // Display Item or Skin inventory tab
@@ -1256,6 +1258,38 @@ public class InventoryUIManager : MonoBehaviour
         ("NecklaceSlot",  new[] { "Necklace", "Shield", "OffHand" }),
     };
 
+    // Caches the icon authored for each empty equipment slot so unequipping can
+    // restore the slot type (weapon, helmet, armor, etc.) instead of hiding it.
+    private void CacheEmptyEquipSlotIcons()
+    {
+        foreach (var (slotObject, slotKeys) in EquipSlotMap)
+        {
+            _ = slotKeys;
+            if (_emptyEquipSlotIcons.ContainsKey(slotObject))
+                continue;
+
+            var iconImage = FindEquipSlotIcon(slotObject);
+            if (iconImage != null && iconImage.sprite != null)
+                _emptyEquipSlotIcons[slotObject] = iconImage.sprite;
+        }
+    }
+
+    // Displays the slot-type placeholder while the slot is empty or while a
+    // remote equipped-item icon is still loading.
+    private void ShowEmptyEquipSlotIcon(string slotObject, Image iconImage)
+    {
+        if (_emptyEquipSlotIcons.TryGetValue(slotObject, out var emptyIcon) && emptyIcon != null)
+        {
+            iconImage.sprite = emptyIcon;
+            iconImage.enabled = true;
+            iconImage.preserveAspect = true;
+            return;
+        }
+
+        iconImage.sprite = null;
+        iconImage.enabled = false;
+    }
+
     // Executes core business logic for update equipment slots.
     private void UpdateEquipmentSlots()
     {
@@ -1270,16 +1304,22 @@ public class InventoryUIManager : MonoBehaviour
             var item = FindEquippedForSlot(equipped, slotObject);
             if (item == null)
             {
-                iconImage.sprite = null;
-                iconImage.enabled = false;
+                ShowEmptyEquipSlotIcon(slotObject, iconImage);
                 SetEquipSlotRarity(slotObject, null, false);
                 continue;
             }
 
             var icon = ResolveIcon(item.ItemId, item.IconUrl, item.ItemName, item.ItemType);
-            iconImage.sprite = icon;
-            iconImage.enabled = icon != null;
-            iconImage.preserveAspect = true;
+            if (icon != null)
+            {
+                iconImage.sprite = icon;
+                iconImage.enabled = true;
+                iconImage.preserveAspect = true;
+            }
+            else
+            {
+                ShowEmptyEquipSlotIcon(slotObject, iconImage);
+            }
             SetEquipSlotRarity(slotObject, item.ItemRarity, true);
         }
     }

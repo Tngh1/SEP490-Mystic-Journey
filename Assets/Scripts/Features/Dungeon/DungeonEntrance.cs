@@ -1,4 +1,5 @@
 using MysticJourney.API.Endpoints;
+using MysticJourney.Core.Utilities;
 using UnityEngine;
 
 // Executes mono behaviour operation.
@@ -97,7 +98,8 @@ public class DungeonEntrance : MonoBehaviour
             {
                 lobbyScript = targetPanel.AddComponent<PartyPanel>();
             }
-            lobbyScript.OpenForDungeon(dungeonConfigId, "HollowCryptDungeon", energyCost, dungeonName);
+            int requiredMapId = MapProgressionRules.GetMapId(gameObject.scene.name);
+            lobbyScript.OpenForDungeon(dungeonConfigId, "HollowCryptDungeon", energyCost, dungeonName, requiredMapId);
         }
         else
         {

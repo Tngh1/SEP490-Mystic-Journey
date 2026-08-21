@@ -437,11 +437,11 @@ namespace MysticJourney.Screen.Mail
                 itemId = item.ItemId,
                 itemName = item.ItemName,
                 quantity = item.Quantity,
-                rarity = "Common",
+                rarity = string.IsNullOrWhiteSpace(item.ItemRarity) ? "Common" : item.ItemRarity,
                 rawData = item
             };
 
-            displayData.icon = GetIconFromDatabase(item.ItemName, null);
+            displayData.icon = GetIconFromDatabase(item.ItemName, item.ItemType);
 
             if (displayData.icon == null && !string.IsNullOrWhiteSpace(item.IconUrl))
             {
@@ -471,6 +471,11 @@ namespace MysticJourney.Screen.Mail
 
                     if (PlayerHUDUIManager.Instance != null)
                         PlayerHUDUIManager.Instance.RefreshHUD();
+
+                    // Claim changes bag contents on the backend. Bypass the inventory cache so
+                    // opening the bag immediately shows the newly delivered attachments.
+                    InventoryUIManager.RefreshAny(refreshStats: false);
+                    MailboxStateChanged?.Invoke();
 
                 },
                 onError: error =>

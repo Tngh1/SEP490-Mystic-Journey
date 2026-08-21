@@ -158,10 +158,12 @@ public class PartyPanel : MonoBehaviour
 
 
     // Executes open for dungeon operation.
-    public void OpenForDungeon(int configId, string sceneName, int cost, string displayName)
+    public void OpenForDungeon(int configId, string sceneName, int cost, string displayName, int requiredMapId = 0)
     {
         selectedConfigId = configId;
-        selectedMapId = MapProgressionRules.GetMapId(WorldState.CurrentMapName);
+        selectedMapId = requiredMapId > 0
+            ? requiredMapId
+            : MapProgressionRules.GetMapId(WorldState.CurrentMapName);
         selectedSceneName = sceneName;
         energyCost = cost;
         selectedDungeonName = displayName;
@@ -282,6 +284,9 @@ public class PartyPanel : MonoBehaviour
         {
             foreach (Transform child in dropsContainer)
             {
+                // Destroy is deferred until the end of the frame. Disable old slots first so
+                // a roster/profile refresh cannot lay out both generations on top of each other.
+                child.gameObject.SetActive(false);
                 Destroy(child.gameObject);
             }
 
@@ -338,9 +343,13 @@ public class PartyPanel : MonoBehaviour
         grid.constraint = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = columns;
         grid.cellSize = new Vector2(Mathf.Floor(cellWidth), DropCellHeight);
+        grid.childAlignment = TextAnchor.UpperLeft;
     }
 
     private const float DropCellHeight = 80f;
+    private const float DropIconSize = 52f;
+    private const float DropHorizontalPadding = 8f;
+    private const float DropTextGap = 6f;
 
     // Executes spawn drop item operation.
     private void SpawnDropItem(string itemName, int minQty, int maxQty, string iconUrl)
@@ -400,6 +409,11 @@ public class PartyPanel : MonoBehaviour
             }
         }
 
+        if (image != null && iconTransform != null)
+        {
+            FitDropIcon(image);
+        }
+
         var qtyText = itemObj.GetComponentInChildren<TMPro.TMP_Text>();
         if (qtyText != null)
         {
@@ -412,6 +426,18 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
+    // Keeps the reward icon in its own left-hand region instead of sharing the
+    // centre of the slot with the quantity label.
+    private static void FitDropIcon(Image image)
+    {
+        var rt = image.rectTransform;
+        rt.anchorMin = new Vector2(0f, 0.5f);
+        rt.anchorMax = new Vector2(0f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(DropHorizontalPadding + DropIconSize * 0.5f, 0f);
+        rt.sizeDelta = new Vector2(DropIconSize, DropIconSize);
+    }
+
     // Executes fit quantity label operation.
     private void FitQuantityLabel(TMPro.TMP_Text label)
     {
@@ -421,8 +447,9 @@ public class PartyPanel : MonoBehaviour
             rt.anchorMin = new Vector2(0f, 0.5f);
             rt.anchorMax = new Vector2(1f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.offsetMin = new Vector2(82f, -20f);
-            rt.offsetMax = new Vector2(-6f, 20f);
+            float textLeft = DropHorizontalPadding + DropIconSize + DropTextGap;
+            rt.offsetMin = new Vector2(textLeft, -20f);
+            rt.offsetMax = new Vector2(-DropHorizontalPadding, 20f);
         }
 
         label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
@@ -807,8 +834,8 @@ public class PartyPanel : MonoBehaviour
                 string message;
                 if (party.State != PartyLobby.PartyState.Lobby)
                     message = "The dungeon is already starting.";
-                else if (party.MemberCount < 2)
-                    message = "At least 2 players are required to start the dungeon.";
+                else if (party.MemberCount < 1)
+                    message = "No party member is available to start the dungeon.";
                 else if (party.ReadyCount < party.MemberCount)
                     message = "All party members must be ready before starting.";
                 else
@@ -1075,6 +1102,15 @@ public class PartyPanel : MonoBehaviour
             string friendName = friend.FriendName;
             btn.onClick.AddListener(() =>
             {
+                var presence = PlayerPresence.Find(profileId);
+                if (presence != null &&
+                    !MapProgressionRules.CanInviteToMap(selectedMapId, presence.HighestUnlockedMapId))
+                {
+                    UIPopupBox.Notify(transform, "Notice",
+                        $"Cannot invite {friendName}. They have not unlocked {MapProgressionRules.GetDisplayName(selectedMapId)} yet.");
+                    return;
+                }
+
                 var result = PartyService.InviteByProfileId(profileId, selectedMapId);
                 if (result == PartyService.InviteResult.Sent)
                 {
