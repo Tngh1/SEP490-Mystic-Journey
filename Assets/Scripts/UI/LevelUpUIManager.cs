@@ -75,8 +75,21 @@ public class LevelUpUIManager : MonoBehaviour
         if (button.targetGraphic == null)
             button.targetGraphic = button.GetComponent<Graphic>();
 
-        if (button.GetComponent<UIHoverScaleEffect>() == null)
-            button.gameObject.AddComponent<UIHoverScaleEffect>();
+        var effect = button.GetComponent<UIHoverScaleEffect>();
+        if (effect == null)
+        {
+            effect = button.gameObject.AddComponent<UIHoverScaleEffect>();
+        }
+        
+        // If this is an invisible clickable area covering a card (like ChooseButton),
+        // we want to scale the parent card instead of the invisible button.
+        if (button.name.StartsWith("ChooseButton") && button.transform.parent != null)
+        {
+            if (effect.targetTransform == null || effect.targetTransform == effect.transform)
+            {
+                effect.targetTransform = button.transform.parent;
+            }
+        }
     }
 
     // Refresh visible state and subscribe the event handlers required while this component is active.
