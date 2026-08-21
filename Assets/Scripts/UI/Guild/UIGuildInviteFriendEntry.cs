@@ -29,7 +29,13 @@ namespace MysticJourney.UI.Guild
 
             if (nameText != null) nameText.text = friend.FriendName;
             if (levelText != null) levelText.text = $"Lv. {friend.FriendLevel}";
-            if (selectedOverlay != null) selectedOverlay.SetActive(false);
+            if (selectedOverlay != null)
+            {
+                selectedOverlay.SetActive(false);
+                var cg = selectedOverlay.GetComponent<CanvasGroup>();
+                if (cg == null) cg = selectedOverlay.AddComponent<CanvasGroup>();
+                cg.blocksRaycasts = false;
+            }
 
             if (avatarImage != null)
             {

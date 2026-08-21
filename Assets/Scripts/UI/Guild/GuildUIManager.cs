@@ -217,7 +217,10 @@ namespace MysticJourney.UI.Guild
                 {
                     GuildApi.GetGuildDetail(currentGuild.guildId,
                         onSuccess: (detail) => OpenMyGuildDashboard(detail),
-                        onError: (err) => Debug.LogError("Error refreshing guild after donate: " + err.Message));
+                        onError: (err) => {
+                            Debug.LogError("Error refreshing guild after donate: " + err.Message);
+                            if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Error refreshing guild: " + err.Message);
+                        });
                 });
             }
         }
@@ -532,6 +535,7 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) => {
                     Debug.LogError("Error loading guild list: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Error loading guild list: " + err.Message);
                 });
         }
 
@@ -571,6 +575,7 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) => {
                     Debug.LogError("Error loading guild detail: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Error loading guild detail: " + err.Message);
                 });
         }
 
@@ -802,6 +807,7 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) => {
                     Debug.LogError("Lỗi khi load bảng xếp hạng: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Lỗi khi load bảng xếp hạng: " + err.Message);
                 });
         }
 
@@ -922,6 +928,7 @@ namespace MysticJourney.UI.Guild
                 onError: (err) =>
                 {
                     Debug.LogError("Error loading applications: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Error loading applications: " + err.Message);
                 });
         }
 
@@ -958,6 +965,7 @@ namespace MysticJourney.UI.Guild
                 onError: (err) =>
                 {
                     Debug.LogError("Error rejecting application: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Error rejecting application: " + err.Message);
                 });
         }
 
@@ -982,6 +990,7 @@ namespace MysticJourney.UI.Guild
                 onError: (err) =>
                 {
                     Debug.LogError("Error refreshing guild: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Error refreshing guild: " + err.Message);
                 });
         }
 
@@ -1077,6 +1086,7 @@ namespace MysticJourney.UI.Guild
                 },
                 onError: (err) => {
                     Debug.LogError("Level Up failed: " + err.Message);
+                    if (UIPopup.Instance != null) UIPopup.Instance.ShowAlert("Error", "Level Up failed: " + err.Message);
                 });
         }
 

@@ -67,7 +67,12 @@ public class ChatUIManager : MonoBehaviour
     private readonly HashSet<string> displayedRealtimeKeys = new HashSet<string>();
 
     private const int MaxPendingPartyMessages = 50;
+    private const int MaxPartyHistoryMessages = 100;
     private readonly Queue<PartyChatMessageResponse> pendingPartyMessages = new Queue<PartyChatMessageResponse>();
+    private readonly List<PartyChatMessageResponse> partyMessageHistory = new List<PartyChatMessageResponse>();
+    private readonly HashSet<string> cachedPartyMessageKeys = new HashSet<string>();
+    private int partyHistorySessionKey;
+    private bool hasPartyHistorySession;
 
     private ChatChannel currentChannel = ChatChannel.World;
     private bool isSending;
@@ -99,6 +104,9 @@ public class ChatUIManager : MonoBehaviour
     {
         enableTime = Time.unscaledTime; // Cache enable timestamp
         PrepareRuntimeBindings(); // Hook button listeners and input fields
+        bool historyClearedOnOpen = SynchronizePartyHistorySession();
+        if (historyClearedOnOpen && currentChannel == ChatChannel.Party)
+            ClearMessages();
         SubscribeChannelRelays(); // Bind Photon realtime RPC events and party relays
 
         if (ApiClient.Instance.HasToken())
@@ -696,6 +704,9 @@ public class ChatUIManager : MonoBehaviour
                 break;
             case ChatChannel.Party:
                 SubscribePartyTransport();
+                if (SynchronizePartyHistorySession())
+                    ClearMessages();
+                RenderPartyHistory();
                 if (HasNoParty())
                 {
                     AddSystemMessage("You are not in a party.");
@@ -933,6 +944,38 @@ public class ChatUIManager : MonoBehaviour
             });
     }
 
+    private static int GetPartySessionKey(PartyLobby party)
+    {
+        return ReferenceEquals(party, null) ? 0 : party.GetInstanceID();
+    }
+
+    // Returns true when stale history was cleared because the party session changed or ended.
+    private bool SynchronizePartyHistorySession()
+    {
+        int currentSessionKey = GetPartySessionKey(PartyLobby.Local);
+        bool transportMigrating = IsPartyTransportMigrating() || IsDungeonPartyChat();
+
+        if (currentSessionKey != 0)
+        {
+            bool changedSession = hasPartyHistorySession &&
+                                  partyHistorySessionKey != currentSessionKey;
+            bool cleared = clearPartyChatOnPartyChanged && changedSession;
+            if (cleared)
+                ClearPartyHistory();
+
+            partyHistorySessionKey = currentSessionKey;
+            hasPartyHistorySession = true;
+            return cleared;
+        }
+
+        bool endedSession = hasPartyHistorySession && !transportMigrating;
+        bool clearedEndedSession = clearPartyChatOnPartyChanged && endedSession;
+        if (clearedEndedSession)
+            ClearPartyHistory();
+
+        return clearedEndedSession;
+    }
+
     // Executes core business logic for add guild message.
     // Logic details: validates required non-empty string arguments.
     private void AddGuildMessage(GuildMessageDTO message)
@@ -953,6 +996,49 @@ public class ChatUIManager : MonoBehaviour
         AddMessage(sender, message.content, senderColor, message.messageId, message.senderId, isMe, false);
     }
 
+    private static string GetPartyMessageKey(PartyChatMessageResponse message)
+    {
+        if (message == null)
+            return string.Empty;
+
+        return $"{message.SenderId}|{message.SentAt}|{message.Content}";
+    }
+
+    private void CachePartyMessage(PartyChatMessageResponse message)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.Content))
+            return;
+
+        SynchronizePartyHistorySession();
+
+        string key = GetPartyMessageKey(message);
+        if (string.IsNullOrEmpty(key) || !cachedPartyMessageKeys.Add(key))
+            return;
+
+        partyMessageHistory.Add(message);
+        if (partyMessageHistory.Count > MaxPartyHistoryMessages)
+        {
+            var removed = partyMessageHistory[0];
+            partyMessageHistory.RemoveAt(0);
+            cachedPartyMessageKeys.Remove(GetPartyMessageKey(removed));
+        }
+    }
+
+    private void RenderPartyHistory()
+    {
+        foreach (var message in partyMessageHistory)
+            AddPartyMessage(message);
+    }
+
+    private void ClearPartyHistory()
+    {
+        partyMessageHistory.Clear();
+        cachedPartyMessageKeys.Clear();
+        pendingPartyMessages.Clear();
+        partyHistorySessionKey = 0;
+        hasPartyHistorySession = false;
+    }
+
     // Executes core business logic for add party message.
     // Logic details: validates required non-empty string arguments.
     private void AddPartyMessage(PartyChatMessageResponse message)
@@ -962,7 +1048,8 @@ public class ChatUIManager : MonoBehaviour
             return;
         }
 
-        string key = $"{message.SenderId}|{message.SentAt}|{message.Content}";
+        CachePartyMessage(message);
+        string key = GetPartyMessageKey(message);
         if (!displayedRealtimeKeys.Add(key))
         {
             return;
@@ -1276,29 +1363,18 @@ public class ChatUIManager : MonoBehaviour
     // Executes core business logic for handle local party changed.
     private void HandleLocalPartyChanged()
     {
+        bool historyCleared = SynchronizePartyHistorySession();
+
         RefreshChannelTabsVisibility();
-
         if (currentChannel != ChatChannel.Party)
-        {
             return;
-        }
 
-        var previous = subscribedParty;
-        SubscribePartyTransport();
-
-        if (previous != null && subscribedParty == null && !HasNoParty())
-        {
-            return;
-        }
-
-        if (clearPartyChatOnPartyChanged && previous != subscribedParty)
-        {
+        if (historyCleared)
             ClearMessages();
-            if (HasNoParty())
-            {
-                AddSystemMessage("You are not in a party.");
-            }
-        }
+
+        SubscribePartyTransport();
+        if (HasNoParty())
+            AddSystemMessage("You are not in a party.");
     }
 
     // Executes core business logic for update history fallback state.
@@ -1426,6 +1502,8 @@ public class ChatUIManager : MonoBehaviour
         }
 
         if (message == null || string.IsNullOrWhiteSpace(message.Content)) return;
+
+        CachePartyMessage(message);
 
         if (pendingPartyMessages.Count >= MaxPendingPartyMessages)
         {
