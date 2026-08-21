@@ -1,8 +1,10 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using MysticJourney.API.Endpoints;
 using MysticJourney.API.Models;
+using MysticJourney.API.Models.Response;
 using System.Collections.Generic;
 using System.Linq;
 using MysticJourney.UI;
@@ -113,7 +115,8 @@ namespace MysticJourney.UI.Guild
             if (guildDetailPanel != null) guildDetailPanel.SetActive(false);
             if (createGuildPanel != null) createGuildPanel.SetActive(false);
 
-            if (inputCreateName != null) inputCreateName.characterLimit = 15; // Set 15 char max length
+            if (inputCreateName != null) inputCreateName.characterLimit = 15; // Match backend guild-name validation
+            if (inputCreateNotice != null) inputCreateNotice.characterLimit = 200; // Match backend notice validation
 
             if (toggleRequireApproval != null)
             {
@@ -325,22 +328,32 @@ namespace MysticJourney.UI.Guild
         // Logic details: validates required non-empty string arguments.
         public void SubmitCreateGuild()
         {
-            if (inputCreateName == null || string.IsNullOrWhiteSpace(inputCreateName.text))
+            string guildName = inputCreateName != null
+                ? inputCreateName.text?.Trim()
+                : string.Empty;
+            string guildNotice = inputCreateNotice != null
+                ? inputCreateNotice.text?.Trim()
+                : string.Empty;
+
+            string validationMessage = ValidateCreateGuildInput(guildName, guildNotice);
+            if (!string.IsNullOrEmpty(validationMessage))
             {
-                Debug.LogWarning("[GuildUIManager] Guild name cannot be empty!");
+                ShowCreateGuildError(validationMessage);
+                inputCreateName?.Select();
+                inputCreateName?.ActivateInputField();
                 return;
             }
 
             var request = new CreateGuildRequestDto
             {
-                name = inputCreateName.text,
-                notice = inputCreateNotice != null ? inputCreateNotice.text : "",
+                name = guildName,
+                notice = guildNotice,
                 requiredLevel = 1,
                 joinPolicy = 0
             };
 
             GuildApi.CreateGuild(request,
-                onSuccess: (guildResp) =>
+                onSuccess: guildResp =>
                 {
                     if (UIPopup.Instance != null)
                     {
@@ -351,22 +364,62 @@ namespace MysticJourney.UI.Guild
                         Debug.Log($"[GuildUIManager] Created guild '{guildResp.name}' successfully!");
                     }
 
-                    inputCreateName.text = "";
-                    if (inputCreateNotice != null) inputCreateNotice.text = "";
+                    inputCreateName.text = string.Empty;
+                    if (inputCreateNotice != null) inputCreateNotice.text = string.Empty;
 
                     OpenGuildSystem();
                 },
-                onError: (err) =>
+                onError: err =>
                 {
-                    if (UIPopup.Instance != null)
-                    {
-                        UIPopup.Instance.ShowAlert("Failed", "Error creating guild:\n" + err.Message);
-                    }
-                    else
-                    {
-                        Debug.LogError("[GuildUIManager] Error creating guild: " + err.Message);
-                    }
+                    string message = BuildCreateGuildError(err);
+                    ShowCreateGuildError(message);
+                    Debug.LogWarning($"[GuildUIManager] Create guild failed: {message}");
                 });
+        }
+
+        private static string ValidateCreateGuildInput(string guildName, string guildNotice)
+        {
+            if (string.IsNullOrWhiteSpace(guildName))
+                return "Guild name is required.";
+
+            if (guildName.Length < 3 || guildName.Length > 15)
+                return "Guild name must be between 3 and 15 characters.";
+
+            if (!string.IsNullOrEmpty(guildNotice) && guildNotice.Length > 200)
+                return "Guild notice must not exceed 200 characters.";
+
+            return null;
+        }
+
+        private static string BuildCreateGuildError(ApiException error)
+        {
+            if (error == null)
+                return "Unable to create guild. Please try again.";
+
+            string message = error.Message?.Trim();
+            if (string.IsNullOrWhiteSpace(message))
+                return "Unable to create guild. Please try again.";
+
+            if (message.StartsWith("{", StringComparison.Ordinal) ||
+                message.IndexOf("<html", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return error.StatusCode == 400
+                    ? "Please check the guild information and try again."
+                    : "Unable to create guild. Please try again.";
+            }
+
+            return message;
+        }
+
+        private void ShowCreateGuildError(string message)
+        {
+            if (UIPopup.Instance != null)
+            {
+                UIPopup.Instance.ShowAlert("Failed", message);
+                return;
+            }
+
+            Debug.LogWarning($"[GuildUIManager] {message}");
         }
 
         // Executes core business logic for request leave guild.

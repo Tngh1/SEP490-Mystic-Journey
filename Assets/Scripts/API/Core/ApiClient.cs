@@ -449,12 +449,13 @@ namespace MysticJourney.API.Core
 
                 try
                 {
-                    var errObj = JsonConvert.DeserializeObject<ErrorBodyResponse>(rawBody);
-                    if (errObj != null)  // Entity exists — proceed with conditional branch
-                    {
-                        errorMsg = errObj.message ?? rawBody;
-                        errorCode = errObj.errorCode ?? errObj.error ?? errorCode;
-                    }
+                    var errorObject = JObject.Parse(rawBody);
+                    errorMsg = ExtractStructuredErrorMessage(errorObject) ?? rawBody;
+                    errorCode = ReadString(errorObject, "errorCode")
+                             ?? ReadString(errorObject, "error")
+                             ?? (errorObject.Property("errors", StringComparison.OrdinalIgnoreCase) != null
+                                 ? "VALIDATION_ERROR"
+                                 : errorCode);
                 }
                 catch
                 {
@@ -540,6 +541,49 @@ namespace MysticJourney.API.Core
         {
             var value = obj?.Property(name, StringComparison.OrdinalIgnoreCase)?.Value;
             return value == null || value.Type == JTokenType.Null ? null : value.ToString();
+        }
+
+        private static string ExtractStructuredErrorMessage(JObject errorObject)
+        {
+            if (errorObject == null)
+                return null;
+
+            string directMessage = ReadString(errorObject, "message");
+            if (!string.IsNullOrWhiteSpace(directMessage))
+                return directMessage;
+
+            var errorsToken = errorObject
+                .Property("errors", StringComparison.OrdinalIgnoreCase)
+                ?.Value as JObject;
+
+            if (errorsToken != null)
+            {
+                var messages = new List<string>();
+                foreach (var errorProperty in errorsToken.Properties())
+                {
+                    if (errorProperty.Value is JArray errorArray)
+                    {
+                        foreach (var entry in errorArray)
+                        {
+                            string text = entry?.ToString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(text) && !messages.Contains(text))
+                                messages.Add(text);
+                        }
+                    }
+                    else
+                    {
+                        string text = errorProperty.Value?.ToString()?.Trim();
+                        if (!string.IsNullOrWhiteSpace(text) && !messages.Contains(text))
+                            messages.Add(text);
+                    }
+                }
+
+                if (messages.Count > 0)
+                    return string.Join("\n", messages);
+            }
+
+            return ReadString(errorObject, "detail")
+                ?? ReadString(errorObject, "title");
         }
 
         // Process unwrap envelope using json, envelope, and is envelope; it loads generic type definition and guards invalid or unavailable states.
