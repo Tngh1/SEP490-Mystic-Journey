@@ -651,6 +651,8 @@ public class InventoryUIManager : MonoBehaviour
                 });
             }
 
+            allItems.Sort(CompareInventoryItemsByRarity);
+
             const int MaxStackSize = 99;
             foreach (var item in allItems)
             {
@@ -743,6 +745,57 @@ public class InventoryUIManager : MonoBehaviour
             BonusCritRate = item.BonusCritRate,
             BonusCritDamage = item.BonusCritDamage
         };
+    }
+
+    private static int CompareInventoryItemsByRarity(
+        InventoryItemResponse left,
+        InventoryItemResponse right)
+    {
+        int rarityCompare = GetInventoryRarityRank(right?.ItemRarity)
+            .CompareTo(GetInventoryRarityRank(left?.ItemRarity));
+        if (rarityCompare != 0) return rarityCompare;
+
+        bool leftEquipped = left != null && left.IsEquipped;
+        bool rightEquipped = right != null && right.IsEquipped;
+        int equippedCompare = rightEquipped.CompareTo(leftEquipped);
+        if (equippedCompare != 0) return equippedCompare;
+
+        int enhancementCompare = (right?.EnhancementLevel ?? 0)
+            .CompareTo(left?.EnhancementLevel ?? 0);
+        if (enhancementCompare != 0) return enhancementCompare;
+
+        int typeCompare = string.Compare(
+            left?.ItemType,
+            right?.ItemType,
+            System.StringComparison.OrdinalIgnoreCase);
+        if (typeCompare != 0) return typeCompare;
+
+        int nameCompare = string.Compare(
+            left?.ItemName,
+            right?.ItemName,
+            System.StringComparison.OrdinalIgnoreCase);
+        if (nameCompare != 0) return nameCompare;
+
+        int itemIdCompare = (left?.ItemId ?? 0).CompareTo(right?.ItemId ?? 0);
+        if (itemIdCompare != 0) return itemIdCompare;
+
+        return (left?.InventoryItemId ?? 0).CompareTo(right?.InventoryItemId ?? 0);
+    }
+
+    private static int GetInventoryRarityRank(string rarity)
+    {
+        if (string.IsNullOrWhiteSpace(rarity)) return 0;
+
+        switch (rarity.Trim().ToLowerInvariant())
+        {
+            case "mythic": return 6;
+            case "legendary": return 5;
+            case "epic": return 4;
+            case "rare": return 3;
+            case "uncommon": return 2;
+            case "common": return 1;
+            default: return 0;
+        }
     }
 
     // Executes core business logic for bind ui references.
