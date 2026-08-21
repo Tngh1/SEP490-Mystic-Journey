@@ -133,26 +133,178 @@ public class UIPlayerContextMenu : MonoBehaviour
         currentPlayerProfileId = playerProfileId; // Cache target profile ID
         menuOpenTime = Time.unscaledTime;
 
+        if (menuRect == null) menuRect = transform as RectTransform;
+
+        Canvas rootCanvas = GetComponentInParent<Canvas>();
+        if (rootCanvas != null && transform.parent != rootCanvas.transform)
+        {
+            transform.SetParent(rootCanvas.transform, false);
+        }
+
+        transform.SetAsLastSibling(); // Bring menu to front of root Canvas!
+        gameObject.SetActive(true); // Open modal
+
         if (playerNameText != null)
             playerNameText.text = playerName; // Display target player name on header
 
-        transform.SetAsLastSibling(); // Bring menu to front
-        gameObject.SetActive(true); // Open modal
         AutoFindButtons();
         BindButtons();
         EnsureButtonRaycasts();
         EnsureHoverEffects();
-        if (HasCachedPendingRequest(currentPlayerProfileId))
+
+        bool isSelf = IsSelf(playerProfileId, playerName);
+
+        if (reportButton != null)
+        {
+            reportButton.gameObject.SetActive(!isSelf);
+        }
+
+        if (isSelf)
+        {
+            HideAddFriendButton();
+        }
+        else if (HasCachedPendingRequest(currentPlayerProfileId))
         {
             SetAddFriendSent(); // Update button label to "Pending"
         }
         else
         {
             SetAddFriendChecking(); // Set loading spinner while querying friendship relation
+            RefreshAddFriendVisibility(); // Query FriendApi to check if already friends
         }
-        RefreshAddFriendVisibility(); // Query FriendApi to check if already friends
 
-        Debug.Log($"[ContextMenu] ShowMenu -> name={playerName} profileId={playerProfileId} addButton={DescribeButton(addFriendButton)}");
+        ReflowLayout();
+        Vector3 targetPos = position != Vector3.zero ? position : Input.mousePosition;
+        PositionMenuSmartly(targetPos);
+
+        Debug.Log($"[ContextMenu] ShowMenu -> name={playerName} profileId={playerProfileId} pos={targetPos} isSelf={isSelf}");
+    }
+
+    // Helper to find the actual wooden card RectTransform panel inside the full-screen modal root.
+    private RectTransform GetCardRect()
+    {
+        if (viewProfileButton != null)
+        {
+            Transform curr = viewProfileButton.transform;
+            while (curr.parent != null && curr.parent != transform)
+            {
+                curr = curr.parent;
+            }
+            if (curr is RectTransform rt && curr != transform)
+            {
+                return rt;
+            }
+        }
+        if (playerNameText != null)
+        {
+            Transform curr = playerNameText.transform;
+            while (curr.parent != null && curr.parent != transform)
+            {
+                curr = curr.parent;
+            }
+            if (curr is RectTransform rt && curr != transform)
+            {
+                return rt;
+            }
+        }
+        if (transform.childCount > 0)
+        {
+            foreach (Transform child in transform)
+            {
+                if (child.gameObject.activeSelf && child is RectTransform childRt)
+                {
+                    return childRt;
+                }
+            }
+            if (transform.GetChild(0) is RectTransform firstRt) return firstRt;
+        }
+        return transform as RectTransform;
+    }
+
+    // Dynamic reflowing of menu layout containers so frame height wraps tightly around active buttons.
+    private void ReflowLayout()
+    {
+        RectTransform cardRect = GetCardRect();
+        if (cardRect == null) return;
+
+        foreach (var lg in cardRect.GetComponentsInChildren<LayoutGroup>(true))
+        {
+            var rt = lg.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            }
+        }
+        Canvas.ForceUpdateCanvases();
+    }
+
+    // Smart positioning that adjusts pivot (opening upwards/downwards) based on click location.
+    private void PositionMenuSmartly(Vector3 clickPos)
+    {
+        RectTransform cardRect = GetCardRect();
+        if (cardRect == null) return;
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        Camera cam = (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay) ? canvas.worldCamera : null;
+
+        Vector3 screenClick = RectTransformUtility.WorldToScreenPoint(cam, clickPos);
+
+        // If click is in lower half of screen, expand UPWARDS (pivotY = 0), else DOWNWARDS (pivotY = 1)
+        float pivotY = (screenClick.y < Screen.height * 0.55f) ? 0f : 1f;
+        float pivotX = (screenClick.x > Screen.width * 0.75f) ? 1f : 0f;
+
+        cardRect.pivot = new Vector2(pivotX, pivotY);
+
+        var parentRt = cardRect.parent as RectTransform ?? cardRect;
+        if (RectTransformUtility.ScreenPointToWorldPointInRectangle(parentRt, screenClick, cam, out Vector3 worldClick))
+        {
+            cardRect.position = worldClick;
+        }
+        else
+        {
+            cardRect.position = clickPos;
+        }
+
+        ReflowLayout();
+        ClampToScreenBounds();
+    }
+
+    private void ClampToScreenBounds()
+    {
+        RectTransform cardRect = GetCardRect();
+        if (cardRect == null) return;
+        Canvas.ForceUpdateCanvases();
+
+        Vector3[] corners = new Vector3[4];
+        cardRect.GetWorldCorners(corners);
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        Camera cam = (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay) ? canvas.worldCamera : null;
+
+        Vector3 minScreen = RectTransformUtility.WorldToScreenPoint(cam, corners[0]);
+        Vector3 maxScreen = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+
+        float shiftScreenX = 0f;
+        float shiftScreenY = 0f;
+        float padding = 20f;
+
+        if (minScreen.x < padding) shiftScreenX = padding - minScreen.x;
+        else if (maxScreen.x > Screen.width - padding) shiftScreenX = (Screen.width - padding) - maxScreen.x;
+
+        if (minScreen.y < padding) shiftScreenY = padding - minScreen.y;
+        else if (maxScreen.y > Screen.height - padding) shiftScreenY = (Screen.height - padding) - maxScreen.y;
+
+        if (Mathf.Abs(shiftScreenX) > 0.1f || Mathf.Abs(shiftScreenY) > 0.1f)
+        {
+            Vector3 currentScreenPos = RectTransformUtility.WorldToScreenPoint(cam, cardRect.position);
+            Vector3 targetScreenPos = new Vector3(currentScreenPos.x + shiftScreenX, currentScreenPos.y + shiftScreenY, currentScreenPos.z);
+
+            var parentRt = cardRect.parent as RectTransform ?? cardRect;
+            if (RectTransformUtility.ScreenPointToWorldPointInRectangle(parentRt, targetScreenPos, cam, out Vector3 targetWorldPos))
+            {
+                cardRect.position = targetWorldPos;
+            }
+        }
     }
 
     // Dismisses player context menu popup.
@@ -319,39 +471,63 @@ public class UIPlayerContextMenu : MonoBehaviour
             return;
         }
 
-        if (currentPlayerProfileId <= 0 || IsCurrentPlayer(currentPlayerProfileId))
+        if (IsSelf(currentPlayerProfileId, currentPlayerName))
         {
             HideAddFriendButton();
             return;
         }
 
         int requestVersion = ++friendStatusRequestVersion;
+
+        // Check if target player is already in accepted friend list
+        FriendApi.GetFriendList(
+            friends =>
+            {
+                if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy) return;
+
+                bool isAlreadyFriend = friends != null && friends.Exists(f =>
+                    f != null && (
+                        (currentPlayerProfileId > 0 && f.FriendProfileId == currentPlayerProfileId) ||
+                        (!string.IsNullOrEmpty(currentPlayerName) && string.Equals(f.FriendName?.Trim(), currentPlayerName.Trim(), StringComparison.OrdinalIgnoreCase))
+                    ));
+
+                if (isAlreadyFriend)
+                {
+                    RemoveCachedPendingRequest(currentPlayerProfileId);
+                    HideAddFriendButton(); // Hide Add Friend button if already friends
+                    return;
+                }
+
+                CheckSearchRelationshipStatus(requestVersion);
+            },
+            _ =>
+            {
+                if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy) return;
+                CheckSearchRelationshipStatus(requestVersion);
+            });
+    }
+
+    private void CheckSearchRelationshipStatus(int requestVersion)
+    {
+        if (string.IsNullOrEmpty(currentPlayerName)) return;
+
         FriendApi.SearchPlayers(
             currentPlayerName,
             players =>
             {
-                if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy)
-                {
-                    return;
-                }
-
+                if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy) return;
                 ApplyFriendRelationshipState(players);
             },
             error =>
             {
-                if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy)
-                {
-                    return;
-                }
-
-                Debug.LogWarning($"[ContextMenu] Cannot check friend status: {error?.Message}");
+                if (requestVersion != friendStatusRequestVersion || !gameObject.activeInHierarchy) return;
                 if (HasCachedPendingRequest(currentPlayerProfileId))
                 {
                     SetAddFriendSent();
                 }
                 else
                 {
-                    SetAddFriendUnavailable();
+                    ResetAddFriendButton();
                 }
             });
     }
@@ -363,7 +539,10 @@ public class UIPlayerContextMenu : MonoBehaviour
         if (players != null)
         {
             target = players.Find(player =>
-                player != null && player.ProfileId == currentPlayerProfileId);
+                player != null && (
+                    (currentPlayerProfileId > 0 && player.ProfileId == currentPlayerProfileId) ||
+                    (!string.IsNullOrEmpty(currentPlayerName) && string.Equals(player.CharacterName?.Trim(), currentPlayerName.Trim(), StringComparison.OrdinalIgnoreCase))
+                ));
         }
 
         if (target == null)
@@ -374,7 +553,7 @@ public class UIPlayerContextMenu : MonoBehaviour
             }
             else
             {
-                SetAddFriendUnavailable();
+                ResetAddFriendButton();
             }
             return;
         }
@@ -393,7 +572,7 @@ public class UIPlayerContextMenu : MonoBehaviour
             case FriendRelationshipStatus.Blocked:
             case FriendRelationshipStatus.Self:
                 RemoveCachedPendingRequest(currentPlayerProfileId);
-                HideAddFriendButton();
+                HideAddFriendButton(); // Hide Add Friend button if already friends
                 break;
             default:
                 RemoveCachedPendingRequest(currentPlayerProfileId);
@@ -415,6 +594,26 @@ public class UIPlayerContextMenu : MonoBehaviour
         string message = error?.Message ?? string.Empty;
         return message.IndexOf("request already sent", StringComparison.OrdinalIgnoreCase) >= 0
             || message.IndexOf("pending friend request", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    // Executes is self check operation.
+    private static bool IsSelf(int profileId, string playerName)
+    {
+        if (profileId > 0 && IsCurrentPlayer(profileId)) return true;
+        string myName = GetCurrentPlayerName();
+        return !string.IsNullOrEmpty(playerName) && !string.IsNullOrEmpty(myName) &&
+               string.Equals(playerName.Trim(), myName.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Executes get current player name operation.
+    private static string GetCurrentPlayerName()
+    {
+        string name = GameStateService.Instance != null ? GameStateService.Instance.PlayerName : null;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = WorldState.PlayerName;
+        }
+        return name ?? string.Empty;
     }
 
     // Executes is current player operation.
@@ -471,6 +670,7 @@ public class UIPlayerContextMenu : MonoBehaviour
         }
 
         addFriendButton.gameObject.SetActive(false);
+        ReflowLayout();
     }
     // Executes set add friend loading operation.
     private void SetAddFriendLoading(bool loading)
