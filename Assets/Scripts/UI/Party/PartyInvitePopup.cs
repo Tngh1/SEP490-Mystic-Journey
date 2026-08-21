@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,6 +18,9 @@ public class PartyInvitePopup : MonoBehaviour
 
     private readonly Queue<Invite> _queue = new();
     private bool _showing;
+    private float _visibleSince;
+    private const float MissingPartyGraceSeconds = 1.5f;
+    private Coroutine _monitorCoroutine;
 
     private GameObject _root;
     private TMP_Text _messageText;
@@ -35,12 +39,19 @@ public class PartyInvitePopup : MonoBehaviour
     private void OnEnable()
     {
         PlayerPresence.OnInviteReceived += HandleInvite;
+        if (_monitorCoroutine == null)
+            _monitorCoroutine = StartCoroutine(MonitorInvites());
     }
 
     // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDisable()
     {
         PlayerPresence.OnInviteReceived -= HandleInvite;
+        if (_monitorCoroutine != null)
+        {
+            StopCoroutine(_monitorCoroutine);
+            _monitorCoroutine = null;
+        }
     }
 
     // Unsubscribe this component's event handlers and release its temporary runtime resources.
@@ -79,27 +90,93 @@ public class PartyInvitePopup : MonoBehaviour
         if (_root == null) BuildUI();
         _root.SetActive(true);
         _messageText.text = $"<b>{invite.HostName}</b> invited you to a party.";
+        _visibleSince = Time.unscaledTime;
+    }
+
+    // Invalidates a visible invitation as soon as its host party starts or disappears.
+    private IEnumerator MonitorInvites()
+    {
+        var wait = new WaitForSecondsRealtime(0.2f);
+
+        while (true)
+        {
+            if (_showing && _queue.Count > 0)
+            {
+                var invite = _queue.Peek();
+                var availability = PartyService.GetInviteAvailability(invite.HostProfileId);
+                float visibleDuration = Time.unscaledTime - _visibleSince;
+                if (ShouldDismissInvite(availability, visibleDuration))
+                    DismissUnavailableInvite(invite, availability);
+            }
+
+            yield return wait;
+        }
+    }
+
+    private static bool ShouldDismissInvite(
+        PartyService.InviteAvailability availability,
+        float visibleDuration)
+    {
+        if (availability == PartyService.InviteAvailability.DungeonStarted)
+            return true;
+
+        return availability == PartyService.InviteAvailability.PartyMissing &&
+               visibleDuration >= MissingPartyGraceSeconds;
+    }
+
+    private void DismissUnavailableInvite(
+        Invite invite,
+        PartyService.InviteAvailability availability)
+    {
+        if (_queue.Count == 0)
+            return;
+
+        var visibleInvite = _queue.Peek();
+        if (visibleInvite.HostProfileId != invite.HostProfileId)
+            return;
+
+        _queue.Dequeue();
+        PartyService.DeclineInvite(invite.HostProfileId);
+        UIPopupBox.Notify(transform, "Party", GetUnavailableMessage(availability));
+        ShowNext();
+    }
+
+    private static string GetUnavailableMessage(PartyService.InviteAvailability availability)
+    {
+        switch (availability)
+        {
+            case PartyService.InviteAvailability.DungeonStarted:
+                return PartyService.DungeonAlreadyStartedMessage;
+            case PartyService.InviteAvailability.PartyMissing:
+                return PartyService.PartyNoLongerExistsMessage;
+            default:
+                return PartyService.PartyJoinUnavailableMessage;
+        }
     }
 
     // Executes on accept operation.
     private void OnAccept()
     {
         if (_queue.Count == 0) return;
-        var invite = _queue.Dequeue();
 
-        if (PartyService.IsDungeonStarted(invite.HostProfileId))
+        var invite = _queue.Peek();
+        var availability = PartyService.GetInviteAvailability(invite.HostProfileId);
+        if (availability != PartyService.InviteAvailability.Available)
         {
-            // Resolve the stale invite as well as informing the player why it cannot be accepted.
-            PartyService.DeclineInvite(invite.HostProfileId);
-            UIPopupBox.Notify(transform, "Party", PartyService.DungeonAlreadyStartedMessage);
-            ShowNext();
+            DismissUnavailableInvite(invite, availability);
             return;
         }
 
-        if (!PartyService.AcceptInvite(invite.HostProfileId) && PartyService.IsDungeonStarted(invite.HostProfileId))
+        _queue.Dequeue();
+        if (!PartyService.AcceptInvite(invite.HostProfileId))
         {
-            UIPopupBox.Notify(transform, "Party", PartyService.DungeonAlreadyStartedMessage);
+            // Re-check after the join attempt to cover a host starting or despawning
+            // between the initial availability check and the RPC request.
+            availability = PartyService.GetInviteAvailability(invite.HostProfileId);
+            PartyService.DeclineInvite(invite.HostProfileId);
+            UIPopupBox.Notify(transform, "Party", GetUnavailableMessage(availability));
         }
+
         ShowNext();
     }
 

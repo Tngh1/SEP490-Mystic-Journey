@@ -642,8 +642,11 @@ public class UIItemDetailPopup : MonoBehaviour
                IsItemType(item, "Helmet") ||
                IsItemType(item, "Gloves") ||
                IsItemType(item, "Boots") ||
+               IsItemType(item, "Pants") ||
                IsItemType(item, "Ring") ||
-               IsItemType(item, "Necklace");
+               IsItemType(item, "Necklace") ||
+               IsItemType(item, "Shield") ||
+               (item != null && !string.IsNullOrEmpty(item.ItemSlot) && !string.Equals(item.ItemSlot, "None", StringComparison.OrdinalIgnoreCase));
     }
 
     // Executes is item type operation.
