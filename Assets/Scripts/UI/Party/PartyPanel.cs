@@ -36,7 +36,7 @@ public class PartyPanel : MonoBehaviour
     [Header("Dungeon Info UI")]
     [SerializeField] private TMP_Text descriptionText;
     [SerializeField] private Transform dropsContainer;
-    [SerializeField] private GameObject dropItemPrefab;
+    [SerializeField] private GameObject itemSlotPartyPrefab;
 
     [Header("Runtime Info")]
     private int selectedConfigId = 1;
@@ -308,7 +308,7 @@ public class PartyPanel : MonoBehaviour
             if (experienceReward > 0) dropCount++;
             if (possibleDrops != null) dropCount += possibleDrops.Count;
 
-            ConfigureDropsGrid(dropCount);
+            ConfigureDropsScroll(dropCount);
 
             if (goldMaxReward > 0)
             {
@@ -330,147 +330,222 @@ public class PartyPanel : MonoBehaviour
         }
     }
 
-    // Executes configure drops grid operation.
-    // Validates input parameters against null or empty values.
-    private void ConfigureDropsGrid(int itemCount)
+    private const float DropSlotSize = 100f;
+
+    // Configures the drops container to support 100x100 slots and horizontal scrolling
+    // via ScrollRect when the number of items exceeds the viewport width.
+    private void ConfigureDropsScroll(int itemCount)
     {
         if (dropsContainer == null) return;
 
-        var grid = dropsContainer.GetComponent<UnityEngine.UI.GridLayoutGroup>();
-        if (grid == null) return;
+        // Determine Viewport (DungeonDrop) and Content (RewardItem / Content)
+        Transform viewport;
+        Transform content;
 
-        var rt = dropsContainer as RectTransform;
-        float available = rt != null ? rt.rect.width : 0f;
-        if (available <= 1f) return;
+        if (dropsContainer.name.Equals("DungeonDrop", StringComparison.OrdinalIgnoreCase))
+        {
+            viewport = dropsContainer;
+            content = dropsContainer.Find("RewardItem") ?? dropsContainer.Find("Content");
+            if (content == null)
+            {
+                var contentGo = new GameObject("Content", typeof(RectTransform));
+                contentGo.transform.SetParent(viewport, false);
+                content = contentGo.transform;
+            }
+            dropsContainer = content;
+        }
+        else
+        {
+            content = dropsContainer;
+            viewport = dropsContainer.parent;
+        }
 
-        float spacingX = Mathf.Max(0f, grid.spacing.x);
-        available -= grid.padding.left + grid.padding.right;
+        if (viewport == null || content == null) return;
 
-        const float preferredCellWidth = 150f;
-        int columns = Mathf.FloorToInt((available + spacingX) / (preferredCellWidth + spacingX));
-        // Clamp the calculated value to the minimum and maximum accepted by this domain rule.
-        columns = Mathf.Clamp(columns, 1, Mathf.Max(1, itemCount));
+        // Configure ScrollRect on Viewport (DungeonDrop) without changing Viewport's own transform
+        var scrollRect = viewport.GetComponent<ScrollRect>();
+        if (scrollRect == null)
+        {
+            scrollRect = viewport.gameObject.AddComponent<ScrollRect>();
+            scrollRect.movementType = ScrollRect.MovementType.Elastic;
+            scrollRect.inertia = true;
+            scrollRect.scrollSensitivity = 25f;
+        }
+        scrollRect.horizontal = true;
+        scrollRect.vertical = false;
+        scrollRect.viewport = viewport as RectTransform;
+        scrollRect.content = content as RectTransform;
+        scrollRect.horizontalNormalizedPosition = 0f;
 
-        float cellWidth = (available - spacingX * (columns - 1)) / columns;
+        if (viewport.GetComponent<RectMask2D>() == null && viewport.GetComponent<Mask>() == null)
+        {
+            viewport.gameObject.AddComponent<RectMask2D>();
+        }
 
-        grid.constraint = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = columns;
-        grid.cellSize = new Vector2(Mathf.Floor(cellWidth), DropCellHeight);
-        grid.childAlignment = TextAnchor.UpperLeft;
+        // Remove any legacy GridLayoutGroup immediately so HorizontalLayoutGroup can be added without conflict
+        var oldGridContent = content.GetComponent<GridLayoutGroup>();
+        if (oldGridContent != null) DestroyImmediate(oldGridContent);
+
+        var oldGridViewport = viewport.GetComponent<GridLayoutGroup>();
+        if (oldGridViewport != null) DestroyImmediate(oldGridViewport);
+
+        // Configure HorizontalLayoutGroup on Content
+        var hg = content.GetComponent<HorizontalLayoutGroup>();
+        if (hg == null)
+        {
+            hg = content.gameObject.AddComponent<HorizontalLayoutGroup>();
+        }
+        if (hg != null)
+        {
+            hg.padding = new RectOffset(12, 12, 8, 8);
+            hg.spacing = 10f;
+            hg.childAlignment = TextAnchor.MiddleCenter;
+            hg.childControlWidth = false;
+            hg.childControlHeight = false;
+            hg.childForceExpandWidth = false;
+            hg.childForceExpandHeight = false;
+        }
+
+        // ContentSizeFitter allows Content width to expand with items inside Viewport
+        var fitter = content.GetComponent<ContentSizeFitter>();
+        if (fitter == null)
+        {
+            fitter = content.gameObject.AddComponent<ContentSizeFitter>();
+        }
+        if (fitter != null)
+        {
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+        }
+
+        // Position Content inside Viewport
+        var contentRt = content as RectTransform;
+        var viewportRt = viewport as RectTransform;
+        if (contentRt != null && viewportRt != null)
+        {
+            float viewportWidth = viewportRt.rect.width > 1f ? viewportRt.rect.width : 376f;
+            float totalWidth = itemCount * DropSlotSize + Mathf.Max(0, itemCount - 1) * 10f + 24f;
+
+            if (totalWidth <= viewportWidth)
+            {
+                // Center content inside the Viewport box
+                contentRt.anchorMin = new Vector2(0.5f, 0.5f);
+                contentRt.anchorMax = new Vector2(0.5f, 0.5f);
+                contentRt.pivot = new Vector2(0.5f, 0.5f);
+                contentRt.anchoredPosition = Vector2.zero;
+            }
+            else
+            {
+                // Left-align content inside the Viewport box so player scrolls to the right
+                contentRt.anchorMin = new Vector2(0f, 0.5f);
+                contentRt.anchorMax = new Vector2(0f, 0.5f);
+                contentRt.pivot = new Vector2(0f, 0.5f);
+                contentRt.anchoredPosition = Vector2.zero;
+            }
+        }
     }
 
-    private const float DropCellHeight = 80f;
-    private const float DropIconSize = 52f;
-    private const float DropHorizontalPadding = 8f;
-    private const float DropTextGap = 6f;
-
-    // Executes spawn drop item operation.
+    // Spawns a drop item slot using the ItemSlotParty prefab (100x100) and populates it
+    // via UIBaseItemSlot.SetupCustom.
     private void SpawnDropItem(string itemName, int minQty, int maxQty, string iconUrl)
     {
+        EnsureItemSlotPartyPrefab();
+
         GameObject itemObj;
-        if (dropItemPrefab != null)
+        if (itemSlotPartyPrefab != null)
         {
-            itemObj = Instantiate(dropItemPrefab, dropsContainer);
+            itemObj = Instantiate(itemSlotPartyPrefab, dropsContainer);
         }
         else
         {
             itemObj = new GameObject("DropItem", typeof(RectTransform), typeof(Image));
             itemObj.transform.SetParent(dropsContainer, false);
-            var rt = itemObj.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(40, 40);
+            var fallbackRt = itemObj.GetComponent<RectTransform>();
+            fallbackRt.sizeDelta = new Vector2(DropSlotSize, DropSlotSize);
+            Debug.LogWarning("[PartyPanel] ItemSlotParty prefab not found. Falling back to raw GameObject.");
         }
 
-        Image image = null;
-        var iconTransform = itemObj.transform.Find("Icon");
-        if (iconTransform != null)
+        var rt = itemObj.GetComponent<RectTransform>();
+        if (rt != null)
         {
-            image = iconTransform.GetComponent<Image>();
+            rt.localScale = Vector3.one;
+            rt.sizeDelta = new Vector2(DropSlotSize, DropSlotSize);
+        }
+
+        // Resolve icon sprite
+        Sprite sprite = ResolveDropIcon(itemName, iconUrl);
+
+        // Build quantity text
+        string qtyText = minQty == maxQty ? $"x{maxQty}" : $"x{minQty}-{maxQty}";
+
+        // Use UIBaseItemSlot.SetupCustom if the prefab has one (ItemSlotParty has UIRewardSlot)
+        var slot = itemObj.GetComponent<UIBaseItemSlot>();
+        if (slot != null)
+        {
+            slot.SetupCustom(itemName, qtyText, sprite);
         }
         else
         {
-            image = itemObj.GetComponentInChildren<Image>();
-        }
+            // Manual fallback for prefabs without UIBaseItemSlot
+            var iconTransform = itemObj.transform.Find("Icon");
+            Image image = iconTransform != null
+                ? iconTransform.GetComponent<Image>()
+                : itemObj.GetComponentInChildren<Image>();
 
-        if (image != null && !string.IsNullOrEmpty(itemName))
-        {
-            Sprite sprite = null;
-            if (ItemIconDatabase.Instance != null)
-            {
-                sprite = ItemIconDatabase.Instance.GetIcon(itemName, null);
-            }
-
-            if (sprite == null && !string.IsNullOrEmpty(iconUrl))
-            {
-                sprite = Resources.Load<Sprite>(iconUrl);
-            }
-
-            if (sprite == null)
-            {
-                sprite = Resources.Load<Sprite>("Item/" + itemName);
-            }
-
-            if (sprite != null)
+            if (image != null && sprite != null)
             {
                 image.sprite = sprite;
                 image.enabled = true;
                 image.preserveAspect = true;
             }
-            else
+            else if (image != null)
             {
                 image.enabled = false;
-                Debug.LogWarning($"[PartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
+            }
+
+            var label = itemObj.GetComponentInChildren<TMPro.TMP_Text>();
+            if (label != null)
+            {
+                label.text = qtyText;
             }
         }
-
-        if (image != null && iconTransform != null)
-        {
-            FitDropIcon(image);
-        }
-
-        var qtyText = itemObj.GetComponentInChildren<TMPro.TMP_Text>();
-        if (qtyText != null)
-        {
-            if (minQty == maxQty)
-                qtyText.text = $"x{maxQty}";
-            else
-                qtyText.text = $"x{minQty}-{maxQty}";
-
-            FitQuantityLabel(qtyText);
-        }
     }
 
-    // Keeps the reward icon in its own left-hand region instead of sharing the
-    // centre of the slot with the quantity label.
-    private static void FitDropIcon(Image image)
+    // Resolves the icon sprite for a drop item by checking ItemIconDatabase,
+    // then iconUrl, then Resources paths for known items.
+    private static Sprite ResolveDropIcon(string itemName, string iconUrl)
     {
-        var rt = image.rectTransform;
-        rt.anchorMin = new Vector2(0f, 0.5f);
-        rt.anchorMax = new Vector2(0f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(DropHorizontalPadding + DropIconSize * 0.5f, 0f);
-        rt.sizeDelta = new Vector2(DropIconSize, DropIconSize);
-    }
+        Sprite sprite = null;
 
-    // Executes fit quantity label operation.
-    private void FitQuantityLabel(TMPro.TMP_Text label)
-    {
-        var rt = label.transform as RectTransform;
-        if (rt != null)
+        if (!string.IsNullOrEmpty(itemName) && ItemIconDatabase.Instance != null)
+            sprite = ItemIconDatabase.Instance.GetIcon(itemName, null);
+
+        if (sprite == null && !string.IsNullOrEmpty(iconUrl))
+            sprite = Resources.Load<Sprite>(iconUrl);
+
+        if (sprite == null && !string.IsNullOrEmpty(itemName))
+            sprite = Resources.Load<Sprite>("Item/" + itemName);
+
+        if (sprite == null && !string.IsNullOrEmpty(itemName))
         {
-            rt.anchorMin = new Vector2(0f, 0.5f);
-            rt.anchorMax = new Vector2(1f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            float textLeft = DropHorizontalPadding + DropIconSize + DropTextGap;
-            rt.offsetMin = new Vector2(textLeft, -20f);
-            rt.offsetMax = new Vector2(-DropHorizontalPadding, 20f);
+            if (itemName.Equals("Gold", StringComparison.OrdinalIgnoreCase))
+                sprite = Resources.Load<Sprite>("Item/Gold-Icon");
+            else if (itemName.Equals("Exp", StringComparison.OrdinalIgnoreCase) ||
+                     itemName.Equals("Experience", StringComparison.OrdinalIgnoreCase))
+                sprite = Resources.Load<Sprite>("Item/Exp-icon");
         }
 
-        label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
-        label.overflowMode = TMPro.TextOverflowModes.Overflow;
-        label.alignment = TMPro.TextAlignmentOptions.Left;
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 12f;
-        label.fontSizeMax = 30f;
+        if (sprite == null && !string.IsNullOrEmpty(itemName))
+            Debug.LogWarning($"[PartyPanel] Không tìm thấy hình ảnh cho item: {itemName}");
+
+        return sprite;
+    }
+
+    // Loads ItemSlotParty prefab from Resources if not already assigned via Inspector.
+    private void EnsureItemSlotPartyPrefab()
+    {
+        if (itemSlotPartyPrefab != null) return;
+        itemSlotPartyPrefab = Resources.Load<GameObject>("ItemSlotParty");
     }
 
     // Executes update energy cost label operation.
@@ -558,11 +633,6 @@ public class PartyPanel : MonoBehaviour
             }
         }
 
-        if (dropsContainer != null && dropsContainer.name == "RewardItem")
-        {
-            dropsContainer = dropsContainer.parent;
-        }
-
         if (dropsContainer == null)
         {
             var layouts = GetComponentsInChildren<UnityEngine.UI.LayoutGroup>(true);
@@ -578,17 +648,6 @@ public class PartyPanel : MonoBehaviour
                     }
                 }
             }
-        }
-
-        if (dropsContainer != null && dropsContainer.GetComponent<UnityEngine.UI.LayoutGroup>() == null)
-        {
-            var hg = dropsContainer.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
-            hg.childControlHeight = false;
-            hg.childControlWidth = false;
-            hg.childForceExpandHeight = false;
-            hg.childForceExpandWidth = false;
-            hg.childAlignment = TextAnchor.MiddleCenter;
-            hg.spacing = 10;
         }
     }
 
