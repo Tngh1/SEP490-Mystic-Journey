@@ -347,6 +347,10 @@ namespace MysticJourney.API.Core
                 req.timeout = ApiConfig.Timeout;
                 req.SetRequestHeader("Content-Type", ApiConfig.ContentType);
                 req.SetRequestHeader("Accept", ApiConfig.Accept);
+                // The API refresh endpoint reads the game refresh token from the
+                // HTTP-only-style cookie used by the web client. Unity stores the
+                // token locally, so mirror it into the request cookie explicitly.
+                req.SetRequestHeader("Cookie", "refresh_token=" + refreshToken);
                 yield return req.SendWebRequest();
 
                 if (req.result == UnityWebRequest.Result.ConnectionError ||
