@@ -132,9 +132,6 @@ public class MapSceneController : MonoBehaviour
         WorldState.SaveToPlayerPrefs();
         MapPositionCache.Save(targetScene, spawnPosition);
 
-        WorldRuntimeEvents.RaiseMapChanged(targetScene);
-        WorldRuntimeEvents.RaiseQuestsChanged();
-
         var player = FindPlayer();
         if (player == null)
             Debug.LogWarning($"[MapSceneController] No player found after loading {targetScene}.");
@@ -210,16 +207,78 @@ public class MapSceneController : MonoBehaviour
 
             positionSync?.CompleteMapTransition(spawnPosition);
             if (saveSucceeded)
+            {
+                yield return RefreshDestinationData(targetScene);
+            }
+            else
+            {
                 WorldRuntimeEvents.RaiseMapChanged(targetScene);
-
-            QuestUIManager.Instance?.LoadMyQuests();
+                WorldRuntimeEvents.RaiseQuestsChanged();
+            }
         }
         else
         {
             positionSync?.CompleteMapTransition(spawnPosition);
+            WorldRuntimeEvents.RaiseMapChanged(targetScene);
+            WorldRuntimeEvents.RaiseQuestsChanged();
         }
 
         yield return LoadingScreen.Hide();
+    }
+
+    private IEnumerator RefreshDestinationData(string targetScene)
+    {
+        LoadingProgress.Report(0.9f, "Refreshing quests and NPCs...");
+
+        bool questRefreshCompleted = QuestUIManager.Instance == null;
+        var questManager = QuestUIManager.Instance;
+        if (questManager != null)
+        {
+            questManager.LoadMyQuests(
+                onSuccess: () => questRefreshCompleted = true,
+                onError: error =>
+                {
+                    Debug.LogWarning($"[MapSceneController] Quest refresh for {targetScene} failed: {error}");
+                    questRefreshCompleted = true;
+                });
+        }
+
+        bool npcRefreshCompleted = true;
+        WorldNpcSpawnerRuntime targetNpcSpawner = null;
+        var npcSpawners = Object.FindObjectsByType<WorldNpcSpawnerRuntime>(FindObjectsSortMode.None);
+        foreach (var candidate in npcSpawners)
+        {
+            if (candidate != null && candidate.gameObject.scene.name == targetScene)
+            {
+                targetNpcSpawner = candidate;
+                break;
+            }
+        }
+
+        if (targetNpcSpawner != null)
+        {
+            npcRefreshCompleted = false;
+            targetNpcSpawner.SpawnNpcsForCurrentMap(success =>
+            {
+                if (!success)
+                    Debug.LogWarning($"[MapSceneController] NPC refresh for {targetScene} did not complete successfully.");
+                npcRefreshCompleted = true;
+            });
+        }
+
+        var destinationScene = SceneManager.GetSceneByName(targetScene);
+        if (destinationScene.IsValid() && destinationScene.isLoaded)
+            WorldSceneInteractableBootstrap.EnsureForScene(destinationScene);
+
+        float refreshDeadline = Time.realtimeSinceStartup + 12f;
+        while ((!questRefreshCompleted || !npcRefreshCompleted) && Time.realtimeSinceStartup < refreshDeadline)
+            yield return null;
+
+        if (!questRefreshCompleted || !npcRefreshCompleted)
+            Debug.LogWarning($"[MapSceneController] Data refresh for {targetScene} timed out; releasing loading screen.");
+
+        WorldRuntimeEvents.RaiseMapChanged(targetScene);
+        WorldRuntimeEvents.RaiseQuestsChanged();
     }
 
     // Executes find player operation.

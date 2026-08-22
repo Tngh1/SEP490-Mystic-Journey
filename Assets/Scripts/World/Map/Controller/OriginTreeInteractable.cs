@@ -15,8 +15,10 @@ public class OriginTreeInteractable : MonoBehaviour
 
     [Header("Healing Visual")]
     [SerializeField] private float healingDuration = 2.5f;
-    [SerializeField] private Color healedColor = new Color(0.72f, 1f, 0.72f, 1f);
     [SerializeField] private float pulseScale = 1.04f;
+
+    [Header("Animation")]
+    [SerializeField] private string healedAnimationState = "Base Layer.Idle_ThanhTay";
 
     [Header("Video")]
     [Tooltip("Tên VideoClip trong thư mục Resources.")]
@@ -27,9 +29,11 @@ public class OriginTreeInteractable : MonoBehaviour
 
     private WorldInteractable _interactable;
     private SpriteRenderer _treeRenderer;
+    private Animator _treeAnimator;
     private Vector3 _baseScale;
     private bool _isHealing;
     private bool _healed;
+    private bool _healedAnimationApplied;
     private VideoPlayer _videoPlayer;
     private bool _videoFinished;
 
@@ -39,6 +43,7 @@ public class OriginTreeInteractable : MonoBehaviour
     {
         _interactable = GetComponent<WorldInteractable>();
         _treeRenderer = GetComponent<SpriteRenderer>();
+        _treeAnimator = GetComponent<Animator>();
         _baseScale = transform.localScale;
     }
 
@@ -108,7 +113,6 @@ public class OriginTreeInteractable : MonoBehaviour
     {
         yield return PlayPurificationVideo();
 
-        var startColor = _treeRenderer != null ? _treeRenderer.color : Color.white;
         var elapsed = 0f;
         while (elapsed < healingDuration)
         {
@@ -117,8 +121,6 @@ public class OriginTreeInteractable : MonoBehaviour
             var t = Mathf.Clamp01(elapsed / healingDuration);
             var pulse = Mathf.Sin(t * Mathf.PI) * (pulseScale - 1f);
             transform.localScale = _baseScale * (1f + pulse);
-            if (_treeRenderer != null)
-                _treeRenderer.color = Color.Lerp(startColor, healedColor, t);
             yield return null;
         }
 
@@ -205,7 +207,21 @@ public class OriginTreeInteractable : MonoBehaviour
     {
         transform.localScale = _baseScale;
         if (_treeRenderer != null)
-            _treeRenderer.color = healedColor;
+            _treeRenderer.color = Color.white;
+
+        if (_treeAnimator == null || _healedAnimationApplied || string.IsNullOrWhiteSpace(healedAnimationState))
+            return;
+
+        var stateHash = Animator.StringToHash(healedAnimationState);
+        if (!_treeAnimator.HasState(0, stateHash))
+        {
+            Debug.LogWarning($"[OriginTreeInteractable] Animator state '{healedAnimationState}' was not found.");
+            return;
+        }
+
+        _treeAnimator.enabled = true;
+        _treeAnimator.Play(stateHash, 0, 0f);
+        _healedAnimationApplied = true;
     }
 
     // Executes set collider enabled operation.

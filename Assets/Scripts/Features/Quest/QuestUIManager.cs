@@ -164,13 +164,14 @@ public class QuestUIManager : MonoBehaviour
     }
 
     // Executes core business logic for load my quests.
-    public void LoadMyQuests()
+    public void LoadMyQuests(Action onSuccess = null, Action<string> onError = null)
     {
         if (!ApiClient.Instance.HasToken())
         {
             _cache.Clear();
             _responses.Clear();
             OnQuestsLoaded?.Invoke();
+            onSuccess?.Invoke();
             return;
         }
 
@@ -180,20 +181,29 @@ public class QuestUIManager : MonoBehaviour
             {
                 if (generation != _questLoadGeneration)
                 {
+                    const string message = "Quest load was superseded by a newer request.";
                     Debug.Log($"[QuestUIManager] Ignoring stale LoadMyQuests response generation={generation}, latest={_questLoadGeneration}.");
+                    onError?.Invoke(message);
                     return;
                 }
 
                 HandleLoadedQuestResponses(responses);
+                onSuccess?.Invoke();
             },
             onError: err =>
             {
-                if (generation != _questLoadGeneration) return;
+                if (generation != _questLoadGeneration)
+                {
+                    onError?.Invoke("Quest load was superseded by a newer request.");
+                    return;
+                }
+
                 Debug.LogError($"[QuestUIManager] LoadMyQuests FAIL: {err.Message}");
                 ApplyOfflineQueue();
                 if (_batchCoroutine != null) StopCoroutine(_batchCoroutine);
                 // Execute this timed sequence as a coroutine so delayed work yields between frames without blocking Unity's main thread.
                 _batchCoroutine = StartCoroutine(BatchSyncLoop());
+                onError?.Invoke(err.Message);
             }
         );
     }
