@@ -97,6 +97,7 @@ public class GachaUIManager : MonoBehaviour
     [Header("--- Free Pull ---")]
     public TextMeshProUGUI freeCountdownText;
     private int _pull1CostCache = 0;
+    private bool _bannerStateLoaded;
     private bool _freePullStateLoaded;
     private System.DateTime _lastFreePullUtc = System.DateTime.MinValue;
     private System.DateTime _previousFreePullUtc = System.DateTime.MinValue;
@@ -245,6 +246,7 @@ public class GachaUIManager : MonoBehaviour
         if (detailPanel != null) detailPanel.SetActive(false);
         if (historyPanel != null) historyPanel.SetActive(false);
 
+        ResetFreePullUIForLoading();
         LoadBannerData(currentBannerId);
         LoadUserTicketCount();
         LoadFreePullState();
@@ -295,21 +297,24 @@ public class GachaUIManager : MonoBehaviour
     // Executes core business logic for load banner data.
     private void LoadBannerData(int bannerId)
     {
+        _bannerStateLoaded = false;
         SetButtonsInteractable(false);
 
         GachaApi.Instance.GetById(bannerId,
             onSuccess: (response) =>
             {
+                _pull1CostCache = response.PullCost;
                 if (bannerNameText != null) bannerNameText.text = response.Name;
                 if (pull1CostText != null)
                 {
-                    _pull1CostCache = response.PullCost;
                     pull1CostText.text = response.PullCost.ToString();
                 }
                 if (pull10CostText != null) pull10CostText.text = (response.PullCost * 10).ToString();
 
                 _pityLimit = response.PityLimit;
                 _cachedBannerItems = response.BannerItems ?? new List<GachaBannerItemResponse>();
+                _bannerStateLoaded = true;
+                UpdateFreePullUI();
 
                 LoadCurrentPityFromHistory();
                 SetButtonsInteractable(true);
@@ -673,7 +678,7 @@ public class GachaUIManager : MonoBehaviour
     // Executes core business logic for update free pull ui.
     private void UpdateFreePullUI()
     {
-        if (pull1CostText == null || _pull1CostCache == 0 || !_freePullStateLoaded) return;
+        if (pull1CostText == null || !_bannerStateLoaded || !_freePullStateLoaded) return;
 
         if (IsFreePullAvailable())
         {
@@ -690,22 +695,30 @@ public class GachaUIManager : MonoBehaviour
             if (freeCountdownText != null)
             {
                 freeCountdownText.gameObject.SetActive(true);
-                System.TimeSpan timeleft = GetNextFreePullTime() - System.DateTime.Now;
+                System.TimeSpan timeleft = GetNextFreePullTimeUtc() - System.DateTime.UtcNow;
                 if (timeleft.TotalSeconds < 0) timeleft = System.TimeSpan.Zero;
                 freeCountdownText.text = string.Format("{0:D2}:{1:D2}:{2:D2}", timeleft.Hours, timeleft.Minutes, timeleft.Seconds);
             }
         }
     }
 
+    private void ResetFreePullUIForLoading()
+    {
+        if (freeCountdownText == null) return;
+
+        freeCountdownText.text = string.Empty;
+        freeCountdownText.gameObject.SetActive(false);
+    }
+
     // Executes core business logic for is free pull available.
     // Returns a boolean indicating operation success.
     private bool IsFreePullAvailable()
     {
-        return System.DateTime.Now >= GetNextFreePullTime();
+        return System.DateTime.UtcNow >= GetNextFreePullTimeUtc();
     }
 
     // Executes core business logic for get next free pull time.
-    private System.DateTime GetNextFreePullTime()
+    private System.DateTime GetNextFreePullTimeUtc()
     {
         return _lastFreePullUtc == System.DateTime.MinValue
             ? System.DateTime.MinValue
@@ -760,6 +773,7 @@ public class GachaUIManager : MonoBehaviour
         {
             isFreePull = true;
             UseFreePull();
+            UpdateFreePullUI();
         }
 
         SetButtonsInteractable(false);
@@ -794,21 +808,14 @@ public class GachaUIManager : MonoBehaviour
     // Executes core business logic for resolve video clip.
     private VideoClip ResolveVideoClip(int amount)
     {
-        VideoClip clip = (amount >= 10) ? videoClipX10 : videoClipX1;
+        VideoClip clip = amount >= 10 ? videoClipX10 : videoClipX1;
+        if (clip != null)
+            return clip;
 
-#if UNITY_EDITOR
+        string resourcePath = amount >= 10 ? "Videos/GachaX10" : "Videos/GachaX1";
+        clip = Resources.Load<VideoClip>(resourcePath);
         if (clip == null)
-        {
-            string path = (amount >= 10) ? "Assets/UI/Videos/GachaX10.mp4" : "Assets/UI/Videos/GachaX1.mp4";
-            clip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>(path);
-        }
-#endif
-
-        if (clip == null)
-        {
-            string resName = (amount >= 10) ? "Videos/GachaX10" : "Videos/GachaX1";
-            clip = Resources.Load<VideoClip>(resName);
-        }
+            Debug.LogError($"[GachaUI] Missing Resources video at '{resourcePath}'. The gacha animation cannot play.");
 
         return clip;
     }
