@@ -18,6 +18,9 @@ public class OriginTreeInteractable : MonoBehaviour
     [SerializeField] private Color healedColor = new Color(0.72f, 1f, 0.72f, 1f);
     [SerializeField] private float pulseScale = 1.04f;
 
+    [Header("Animation")]
+    [SerializeField] private string healedAnimationState = "Base Layer.Idle_ThanhTay";
+
     [Header("Video")]
     [Tooltip("Tên VideoClip trong thư mục Resources.")]
     [SerializeField] private string videoResourceName = "The_Purification_of_the_Origi_Tree";
@@ -27,9 +30,11 @@ public class OriginTreeInteractable : MonoBehaviour
 
     private WorldInteractable _interactable;
     private SpriteRenderer _treeRenderer;
+    private Animator _treeAnimator;
     private Vector3 _baseScale;
     private bool _isHealing;
     private bool _healed;
+    private bool _healedAnimationApplied;
     private VideoPlayer _videoPlayer;
     private bool _videoFinished;
 
@@ -39,6 +44,7 @@ public class OriginTreeInteractable : MonoBehaviour
     {
         _interactable = GetComponent<WorldInteractable>();
         _treeRenderer = GetComponent<SpriteRenderer>();
+        _treeAnimator = GetComponent<Animator>();
         _baseScale = transform.localScale;
     }
 
@@ -206,6 +212,20 @@ public class OriginTreeInteractable : MonoBehaviour
         transform.localScale = _baseScale;
         if (_treeRenderer != null)
             _treeRenderer.color = healedColor;
+
+        if (_treeAnimator == null || _healedAnimationApplied || string.IsNullOrWhiteSpace(healedAnimationState))
+            return;
+
+        var stateHash = Animator.StringToHash(healedAnimationState);
+        if (!_treeAnimator.HasState(0, stateHash))
+        {
+            Debug.LogWarning($"[OriginTreeInteractable] Animator state '{healedAnimationState}' was not found.");
+            return;
+        }
+
+        _treeAnimator.enabled = true;
+        _treeAnimator.Play(stateHash, 0, 0f);
+        _healedAnimationApplied = true;
     }
 
     // Executes set collider enabled operation.
