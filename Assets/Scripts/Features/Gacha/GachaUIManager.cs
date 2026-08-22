@@ -794,21 +794,14 @@ public class GachaUIManager : MonoBehaviour
     // Executes core business logic for resolve video clip.
     private VideoClip ResolveVideoClip(int amount)
     {
-        VideoClip clip = (amount >= 10) ? videoClipX10 : videoClipX1;
+        VideoClip clip = amount >= 10 ? videoClipX10 : videoClipX1;
+        if (clip != null)
+            return clip;
 
-#if UNITY_EDITOR
+        string resourcePath = amount >= 10 ? "Videos/GachaX10" : "Videos/GachaX1";
+        clip = Resources.Load<VideoClip>(resourcePath);
         if (clip == null)
-        {
-            string path = (amount >= 10) ? "Assets/UI/Videos/GachaX10.mp4" : "Assets/UI/Videos/GachaX1.mp4";
-            clip = UnityEditor.AssetDatabase.LoadAssetAtPath<VideoClip>(path);
-        }
-#endif
-
-        if (clip == null)
-        {
-            string resName = (amount >= 10) ? "Videos/GachaX10" : "Videos/GachaX1";
-            clip = Resources.Load<VideoClip>(resName);
-        }
+            Debug.LogError($"[GachaUI] Missing Resources video at '{resourcePath}'. The gacha animation cannot play.");
 
         return clip;
     }
