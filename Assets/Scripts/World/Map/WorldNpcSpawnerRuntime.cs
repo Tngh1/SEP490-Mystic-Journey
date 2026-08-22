@@ -16,51 +16,91 @@ public class WorldNpcSpawnerRuntime : MonoBehaviour
     [SerializeField] private Transform npcContainer;
 
     private readonly List<GameObject> spawnedNpcs = new List<GameObject>();
+    private int _spawnRequestGeneration;
+    private string _loadedMapName;
 
     // Performs startup initialization for WorldNpcSpawnerRuntime on the first active frame.
     // Binds event handlers, initializes UI view elements, and synchronizes initial state values.
     private void Start()
     {
         WorldRuntimeEvents.MapChanged += OnMapChanged;
-
         SpawnNpcsForCurrentMap();
     }
 
     // Unsubscribe this component's event handlers and release its temporary runtime resources.
     private void OnDestroy()
     {
+        _spawnRequestGeneration++;
         WorldRuntimeEvents.MapChanged -= OnMapChanged;
     }
 
     // Executes on map changed operation.
     private void OnMapChanged(string mapName)
     {
+        var sceneName = gameObject.scene.name;
+        if (!MysticJourney.Core.Utilities.QuestUtils.IsSameMap(mapName, sceneName))
+            return;
+
+        if (MysticJourney.Core.Utilities.QuestUtils.IsSameMap(_loadedMapName, sceneName))
+            return;
+
         SpawnNpcsForCurrentMap();
     }
 
     // Executes spawn npcs for current map operation.
-    public void SpawnNpcsForCurrentMap()
+    public void SpawnNpcsForCurrentMap(System.Action<bool> onComplete = null)
     {
         if (!ApiClient.Instance.HasToken())
         {
             Debug.LogWarning("[WorldNpcSpawner] Không có token, không thể tải danh sách NPC.");
+            onComplete?.Invoke(false);
             return;
         }
 
+        var requestedScene = gameObject.scene.name;
+        if (!MysticJourney.Core.Utilities.QuestUtils.IsSameMap(WorldState.CurrentMapName, requestedScene))
+        {
+            Debug.Log($"[WorldNpcSpawner] Deferred NPC load for '{requestedScene}' while current map is '{WorldState.CurrentMapName}'.");
+            onComplete?.Invoke(false);
+            return;
+        }
+
+        int requestGeneration = ++_spawnRequestGeneration;
         WorldApi.Instance.GetState(
             state =>
             {
                 if (this == null) return;
-                if (state != null && state.Npcs != null)
+                if (requestGeneration != _spawnRequestGeneration)
                 {
-                    ClearCurrentNpcs();
-                    SpawnNpcList(state.Npcs);
+                    Debug.Log($"[WorldNpcSpawner] Ignored stale NPC response generation={requestGeneration}, latest={_spawnRequestGeneration}.");
+                    onComplete?.Invoke(false);
+                    return;
                 }
+
+                var responseMap = state?.Position?.MapName;
+                if (state == null || !MysticJourney.Core.Utilities.QuestUtils.IsSameMap(responseMap, requestedScene))
+                {
+                    Debug.LogWarning($"[WorldNpcSpawner] Ignored NPC data for '{responseMap}' while scene '{requestedScene}' is active.");
+                    onComplete?.Invoke(false);
+                    return;
+                }
+
+                ClearCurrentNpcs();
+                SpawnNpcList(state.Npcs ?? new List<NPCResponse>());
+                _loadedMapName = requestedScene;
+                onComplete?.Invoke(true);
             },
             error =>
             {
                 if (this == null) return;
+                if (requestGeneration != _spawnRequestGeneration)
+                {
+                    onComplete?.Invoke(false);
+                    return;
+                }
+
                 Debug.LogError($"[WorldNpcSpawner] Lỗi tải NPC: {error.Message}");
+                onComplete?.Invoke(false);
             }
         );
     }
